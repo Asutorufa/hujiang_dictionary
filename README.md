@@ -1,19 +1,18 @@
 沪江小d日语词典终端版
 ```
-git clone本目录 然后cd到本目录
 现在已可使用pip3 install hjjpcj安装
-***(旧)运行bash install.sh安装,手机端termux使用bash termux_install.sh安装***
-由于termux目前没有什么合适的播放音频 就没弄读音
 卸载使用 pip3 uninstall hjjpcj
+由于termux目前没有什么合适的播放音频 发音先没弄
+***(旧)运行bash install.sh安装,手机端termux使用bash termux_install.sh安装***
 **(旧)运行 bash uninstall.sh或bash termux_uninstall.sh卸载**
 
-所使用到的工具
+所使用到的库
 lxml cssselect requests
-若报错 请确保安装了以上模块
+若报错 请确保使用pip3安装了以上库
 ```
 查词:使用例如
 ```
-hjjp 子供
+hjjp 大丈夫
 ```
 
 ![](https://github.com/Asutorufa/hujiang-japanese-dict/raw/master/%E6%BC%94%E7%A4%BA.png)
