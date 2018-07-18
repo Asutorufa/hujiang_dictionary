@@ -1,7 +1,7 @@
 沪江小d日语词典终端版
 ```
 git clone本目录 然后cd到本目录
-运行bash install.sh安装,或者直接使用python3 hjjp.py也可以
+运行bash install.sh安装,手机端termux使用bash termux_install.sh安装
 
 所使用到的工具
 lxml cssselect requests
