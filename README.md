@@ -2,7 +2,7 @@
 ```
 git clone本目录 然后cd到本目录
 运行bash install.sh安装,手机端termux使用bash termux_install.sh安装
-
+由于termux目前没有什么合适的播放音频 就没弄
 运行 bash uninstall.sh或bash termux_uninstall.sh卸载
 
 所使用到的工具
