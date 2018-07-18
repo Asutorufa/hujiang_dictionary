@@ -13,8 +13,8 @@ try:
  
  print('\n详细解释/例句:')
  divsimple = tree.cssselect('div.word-details-item-content')[0]
- area2 = divsimple.text_content()
- for word2 in word_temp.split():
+ word_temp2 = divsimple.text_content()
+ for word2 in word_temp2.split():
   print(word2)
 
 except IndexError as e:
