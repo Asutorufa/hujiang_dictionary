@@ -7,14 +7,14 @@ try:
  r = requests.get(url,headers={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36'})
  tree = lxml.html.fromstring(r.text)
  divsimple = tree.cssselect('header.word-details-pane-header')[0]
- area = divsimple.text_content()
- for word in area.split():
+ word_temp = divsimple.text_content()
+ for word in word_temp.split():
   print (word)
  
  print('\n详细解释/例句:')
  divsimple = tree.cssselect('div.word-details-item-content')[0]
  area2 = divsimple.text_content()
- for word2 in area2.split():
+ for word2 in word_temp.split():
   print(word2)
 
 except IndexError as e:
