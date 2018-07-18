@@ -18,5 +18,5 @@ try:
   print(word2)
 
 except IndexError as e:
- print('抱歉，没有找到你查的单词结果、请核对所选语种或是拼写是否有误')
+ print('抱歉，没有找到你查的单词结果、请核对拼写是否有误')
 
