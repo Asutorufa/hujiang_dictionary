@@ -3,6 +3,8 @@
 git clone本目录 然后cd到本目录
 运行bash install.sh安装,手机端termux使用bash termux_install.sh安装
 
+运行 bash uninstall.sh或bash termux_uninstall.sh卸载
+
 所使用到的工具
 lxml cssselect requests
 若报错 请确保安装了以上模块
