@@ -10,7 +10,7 @@
 lxml cssselect requests
 若报错 请确保使用pip3安装了以上库
 ```
-查词:使用例如
+使用方法 例如
 ```
 hjjp 大丈夫
 ```
