@@ -21,6 +21,6 @@ hjjp -v 东京 京都
 hjjp 东京 京都 --voice
 ```
 ![](https://raw.githubusercontent.com/Asutorufa/hujiang-japanese-dict/master/演示-.png)
-<br><\br>termux截图:
+<br>termux截图:
 ![](https://raw.githubusercontent.com/Asutorufa/hujiang-japanese-dict/master/termux演示.png)
 **查词结果均来自 沪江小d网页版**
