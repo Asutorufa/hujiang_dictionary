@@ -15,8 +15,8 @@ useragent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gec
 
 def option():
     parser = argparse.ArgumentParser()
-    parser.add_argument('word',type=str,help='word',nargs='*')
-    parser.add_argument("-v","--voice",help="link of voice",action="store_true")
+    parser.add_argument('word',type=str,help='you don\'t understand word(s) and you want to search',nargs='*')
+    parser.add_argument("-v","--voice",help="voice link from hujiang.com",action="store_true")
     args = parser.parse_args()
     return args.word,args.voice
 
