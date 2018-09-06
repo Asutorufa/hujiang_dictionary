@@ -12,7 +12,7 @@ def main():
   b=[]
   c=[]
   i=0
-  for div_temp1 in tree.cssselect('header.word-details-pane-header'):
+  for div_temp1 in tree.cssselect('word-details-pane-header.word-details-pane-header-multi'):
    word_temp1 = div_temp1.text_content()#提取翻译
    a.append(word_temp1)
    i=i+1

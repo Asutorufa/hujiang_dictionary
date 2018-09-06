@@ -11,8 +11,7 @@ css_word_prnounces_kata = 'span'
 css_word_info='div.simple'
 css_word_example='div.word-details-item-content'
 language=['jp','jc']
-useragent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36'
-Cookie = 'UZT_USER_SET_106_0_DEFAULT=2%7C94203fe9fb690808b7ef29aff3834b76; HJ_UID=1f044849-7a03-87e4-aec7-6d8b26ca2eb7; TRACKSITEMAP=3%2C22%2C88%2C; _REF=https%3A%2F%2Fwww.baidu.com%2Fs%3Fwd%3D%E6%AE%BA%E3%81%97%E5%90%88%E3%81%84%E3%83%8F%E3%82%A6%E3%82%B9%26rsv_spt%3D1%26rsv_iqid%3D0x8706eaa7000315b2%26issp%3D1%26f%3D8%26rsv_bp%3D0%26rsv_idx%3D2%26ie%3Dutf-8%26tn%3Dbaiduhome_pg%26rsv_enter%3D0%26rsv_sug3%3D1; _SREF_3=https%253A%252F%252Fwww.google.co.jp%252F; HJ_SID=629a515e-1ad8-3a12-22b1-d75f28a725a7; HJ_SSID_3=51e61b73-3447-2402-0c13-6e94bde3a35c; HJ_CSST_3=0; HJ_CST=0; HJ_CMATCH=1'
+useragent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.84 Safari/537.36'
 
 def option():
     parser = argparse.ArgumentParser()
@@ -26,7 +25,7 @@ def start(args_word,voice_switch):
         n=0
         cprint('----------查询单词 '+word+'---------','red',attrs=['bold'])
         url = 'https://dict.hjenglish.com/'+language[0]+'/'+language[1]+'/' + word
-        tree = lxml.html.fromstring((requests.get(url,headers={'User-Agent':useragent,'Cookie':Cookie})).text)
+        tree = lxml.html.fromstring((requests.get(url,headers={'User-Agent':useragent})).text)
         word_prnounces = word_simple(tree)
         word_voice = voice(tree)
         word_example = word_example_f(tree)
