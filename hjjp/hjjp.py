@@ -40,9 +40,12 @@ def start(args_word,voice_switch):
             for sub_word_info in word_info_temp.text_content().split():
                 cprint(sub_word_info,'cyan')
             
-            cprint('详细解释:','magenta',attrs=['bold'])
-            for sub_word_example in word_example[n]:
-                cprint(sub_word_example,'green')
+            try:
+                cprint('详细解释:','magenta',attrs=['bold'])
+                for sub_word_example in word_example[n]:
+                    cprint(sub_word_example,'green')
+            except IndexError as e:
+                cprint('没有详细解释','magenta',attrs=['bold'])
 
             n+=1
 
