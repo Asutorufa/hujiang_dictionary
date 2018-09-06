@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "hjjpcj",
-    version = "0.9.8.1",
+    version = "0.9.8.2",
     keywords = ("japanese dict dictionary hujiang"),
     description = "hujiang dictionary",
     long_description = "a dictionary from hujiang to search japanese word",
