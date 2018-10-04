@@ -18,32 +18,50 @@ def option():
     parser = argparse.ArgumentParser()
     parser.add_argument('word',type=str,help='you don\'t understand word(s) and you want to search',nargs='*')
     parser.add_argument("-v","--voice",help="voice link from hujiang.com",action="store_true")
+    parser.add_argument("-m","--markdown",help="print as markdown style(for simplenote,hexo...)",action="store_true")
     args = parser.parse_args()
-    return args.word,args.voice
+    return args.word,args.voice,args.markdown
 
-def start(args_word,voice_switch):
+def start(args_word,voice_switch,markdown):
+    if markdown:
+        print("markdown")
     for word in args_word:
         n=0
         cprint('----------查询单词 '+word+'---------','red',attrs=['bold'])
         url = 'https://dict.hjenglish.com/'+language[0]+'/'+language[1]+'/' + word
         tree = lxml.html.fromstring((requests.get(url,headers={'User-Agent':useragent,'Cookie':Cookie})).text)
-        word_prnounces = word_simple(tree)
+        if markdown:
+            word_prnounces = word_simple_markdown(tree)
+        else:
+            word_prnounces = word_simple(tree)
         word_voice = voice(tree)
         word_example = word_example_f(tree)
         if word_prnounces == []:
             cprint('抱歉，没有找到你查的单词结果,请核对拼写是否有误\n','cyan')
         for word_info_temp in tree.cssselect(css_word_info):
             print('\n '+word+' 查询结果 '+str(n+1))
-            cprint(word_prnounces[n],'yellow')
+            cprint(word_prnounces[n]+'  ','yellow')
             if voice_switch:
-                cprint('读音链接:   '+word_voice[n],'blue',attrs=['underline','bold'])
+                if markdown:
+                    cprint('[读音链接]('+word_voice[n]+')  ','blue',attrs=['underline','bold'])
+                else:
+                    cprint('读音链接:   '+word_voice[n],'blue',attrs=['underline','bold'])
             for sub_word_info in word_info_temp.text_content().split():
-                cprint(sub_word_info,'cyan')
+                if markdown:
+                    cprint(sub_word_info+'  ','cyan')
+                else:
+                    cprint(sub_word_info,'cyan')
             
             try:
-                cprint('详细解释:','magenta',attrs=['bold'])
+                if markdown:
+                    cprint('``详细解释:``  ','magenta',attrs=['bold'])
+                else:
+                    cprint('详细解释:','magenta',attrs=['bold'])
                 for sub_word_example in word_example[n]:
-                    cprint(sub_word_example,'green')
+                    if markdown:
+                        cprint(sub_word_example+'  ','green')
+                    else:
+                        cprint(sub_word_example,'green')
             except IndexError as e:
                 cprint('没有详细解释','magenta',attrs=['bold'])
 
@@ -62,6 +80,20 @@ def word_simple(tree):
     
     return word_prnounces
 
+def word_simple_markdown(tree):
+    word_text=[]
+    word_prnounces=[]
+    for word_text_temp in tree.cssselect(css_word_text):
+        word_text.append(word_text_temp.text_content())
+
+    i=0
+    for voice in tree.cssselect(css_word_prnounces):
+        word_prnounces.append('**'+word_text[i]+'**  \n假名:'+voice.cssselect(css_word_prnounces_kata)[0].text_content()+'|罗马音:'+voice.cssselect(css_word_prnounces_kata)[1].text_content()+'  ')
+        i+=1
+    
+    return word_prnounces
+
+
 def voice(tree):
     word_voice=[]
     for voice in tree.cssselect(css_word_voice):
@@ -78,7 +110,7 @@ def word_example_f(tree):
 
 
 def main():
-    start(option()[0],option()[1])
+    start(option()[0],option()[1],option()[2])
 
 if __name__ == '__main__':
     main()
