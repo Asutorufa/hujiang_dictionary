@@ -23,8 +23,6 @@ def option():
     return args.word,args.voice,args.markdown
 
 def start(args_word,voice_switch,markdown):
-    if markdown:
-        print("markdown")
     for word in args_word:
         n=0
         cprint('----------查询单词 '+word+'---------','red',attrs=['bold'])
