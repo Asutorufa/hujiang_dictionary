@@ -12,6 +12,8 @@ lxml cssselect requests termcolor
 ```
 使用方法:
 可一次性查找多词,加参数 -v 或 --voice 可显示读音链接,-h 显示帮助文档
+0.9.8.5更新:
+增加$-m$和$--markdown$参数,用来生成用于markdown文档的格式
 例如:
 ```
 hjjp -v 东京 京都 
