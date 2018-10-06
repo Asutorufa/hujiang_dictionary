@@ -10,7 +10,7 @@
 所使用到的库  : **lxml cssselect requests termcolor**  
 若报错 请确保使用pip3安装了以上库  
 
-开源协议: [MIT](https://opensource.org/licenses/mit-license.php)
+开源协议: [MIT](https://opensource.org/licenses/mit-license.php)  
 使用方法:  
 可一次性查找多词,加参数``-v``或``--voice``可显示读音链接,``-h``显示帮助文档  
 0.9.8.5更新:  
