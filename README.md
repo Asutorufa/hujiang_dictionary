@@ -4,8 +4,8 @@
 2.卸载使用 pip3 uninstall hjjpcj  
 3.linux amd64 现在可直接使用可执行文件运行 无需安装python3 以及相关库文件  
 
-*(旧)运行bash install.sh安装,手机端termux使用bash termux_install.sh安装*  
-*(旧)运行 bash uninstall.sh或bash termux_uninstall.sh卸载*  
+~~*(旧)运行bash install.sh安装,手机端termux使用bash termux_install.sh安装*~~  
+~~*(旧)运行 bash uninstall.sh或bash termux_uninstall.sh卸载*~~  
 
 所使用到的库  : lxml cssselect requests termcolor  
 若报错 请确保使用pip3安装了以上库  
