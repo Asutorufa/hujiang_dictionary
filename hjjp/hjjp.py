@@ -11,6 +11,10 @@ css_word_prnounces_kata = 'span'
 css_word_info='div.simple'
 css_word_example='div.word-details-item-content'
 language=['jp','jc']
+#['jp','jc'] japanese
+#['w',''] english
+#['kr',''] krean
+#['fr',''] france
 useragent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36'
 Cookie = 'HJ_UID=0f406091-be97-6b64-f1fc-f7b2470883e9; HJ_CST=1; HJ_CSST_3=1; TRACKSITEMAP=3%2C; HJ_SID=393c85c7-abac-f408-6a32-a1f125d7e8c6; _REF=; HJ_SSID_3=4a460f19-c0ae-12a7-8e86-6e360f69ec9b; _SREF_3=; HJ_CMATCH=1'
 
@@ -27,7 +31,11 @@ def start(args_word,voice_switch,markdown):
         n=0
         cprint('----------查询单词 '+word+'---------','red',attrs=['bold'])
         url = 'https://dict.hjenglish.com/'+language[0]+'/'+language[1]+'/' + word
-        tree = lxml.html.fromstring((requests.get(url,headers={'User-Agent':useragent,'Cookie':Cookie})).text)
+        try:
+            tree = lxml.html.fromstring((requests.get(url,headers={'User-Agent':useragent,'Cookie':Cookie})).text)
+        except requests.ConnectionError as e:
+            print('网络连接错误,请检查网络是否连接!')
+
         if markdown:
             word_prnounces = word_simple_markdown(tree)
         else:
