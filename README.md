@@ -1,4 +1,4 @@
-**沪江小d日语词典终端版**
+**沪江小d日语词典终端版**  
 [![codebeat badge](https://codebeat.co/badges/e1408f62-46ae-43b0-920d-e38128dcfd48)](https://codebeat.co/projects/github-com-asutorufa-hujiang_japanese_dict-master)  
 1.现在已可使用pip3 install hjjpcj安装(termux可直接使用pip进行安装)  
 2.卸载使用 pip3 uninstall hjjpcj  
