@@ -5,16 +5,14 @@
 1.现在已可使用pip3 install hjjpcj安装(termux可直接使用pip进行安装)  
 2.卸载使用 pip3 uninstall hjjpcj  
 3.linux amd64 现在可直接使用可执行文件运行 无需安装python3 以及相关库文件    
-
+<!--
 4.现在使用git远程提交master分支
 
 ~~*(旧)运行bash install.sh安装,手机端termux使用bash termux_install.sh安装*~~  
 ~~*(旧)运行 bash uninstall.sh或bash termux_uninstall.sh卸载*~~  
-
+-->
 所使用到的库  : **lxml cssselect requests termcolor**  
 若报错 请确保使用pip3安装了以上库  
-
-**开源协议: [MIT](https://opensource.org/licenses/mit-license.php)**    
 
 使用方法:  
 可一次性查找多词,加参数``-v``或``--voice``可显示读音链接,``-h``显示帮助文档  
