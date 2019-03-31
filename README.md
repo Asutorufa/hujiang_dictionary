@@ -2,8 +2,8 @@
 ![](https://img.shields.io/github/license/asutorufa/hujiang_japanese_dict.svg)
 ![](https://img.shields.io/github/release/asutorufa/hujiang_japanese_dict.svg)
 [![codebeat badge](https://codebeat.co/badges/e1408f62-46ae-43b0-920d-e38128dcfd48)](https://codebeat.co/projects/github-com-asutorufa-hujiang_japanese_dict-master)  
-1.现在已可使用pip3 install hjjpcj安装(termux可直接使用pip进行安装)  
-2.卸载使用 pip3 uninstall hjjpcj  
+1.安装：```pip3 install hjjpcj```  
+2.卸载：```pip3 uninstall hjjpcj```  
 3.linux amd64 现在可直接使用可执行文件运行 无需安装python3 以及相关库文件    
 <!--
 4.现在使用git远程提交master分支
