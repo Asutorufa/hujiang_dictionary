@@ -53,10 +53,11 @@ def start(args_word, voice_switch, markdown):
             print('\n ' + word + ' 查询结果 ' + str(n + 1))
             cprint(word_prnounces[n] + '  ', 'yellow')
             if voice_switch:
-                if markdown:
-                    cprint('[读音链接](' + word_voice[n] + ')  ', 'blue', attrs=['underline', 'bold'])
-                else:
-                    cprint('读音链接:   ' + word_voice[n], 'blue', attrs=['underline', 'bold'])
+                pass
+            if markdown:
+                cprint('[读音链接](' + word_voice[n] + ')  ', 'blue', attrs=['underline', 'bold'])
+            else:
+                cprint('读音链接:   ' + word_voice[n], 'blue', attrs=['underline', 'bold'])
             for sub_word_info in word_info_temp.text_content().split():
                 if markdown:
                     cprint(sub_word_info + '  ', 'cyan')
