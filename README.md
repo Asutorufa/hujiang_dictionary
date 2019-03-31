@@ -17,16 +17,22 @@
 所使用到的库  : **lxml cssselect requests termcolor**  
 
 使用方法:  
-- `hjjp 东京`  
+```
+hjjp 东京
+```
 - 可一次性查找多词  
-`hjjp 东京 京都`  
+```
+hjjp 东京 京都
+```
 - 加参数``-v``或``--voice``可显示读音链接  
 ```
 hjjp -v 东京 京都
 hjjp 东京 京都 --voice
 ```  
 - ``-h``显示帮助文档  
-`hjjp -h`     
+```
+hjjp -h
+```
 - 增加``-m``和``--markdown``参数,用来生成用于markdown文档的格式   
 ```
 hjjp -m 东京 京都
