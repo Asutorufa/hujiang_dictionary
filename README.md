@@ -14,7 +14,7 @@
 ~~*(旧)运行bash install.sh安装,手机端termux使用bash termux_install.sh安装*~~  
 ~~*(旧)运行 bash uninstall.sh或bash termux_uninstall.sh卸载*~~  
 -->
-所使用到的库  : **lxml cssselect requests termcolor**  
+用到的库  : **lxml cssselect requests termcolor**  
 
 使用方法:  
 ```
@@ -33,7 +33,7 @@ hjjp 东京 京都 --voice
 ```
 hjjp -h
 ```
-- 增加``-m``和``--markdown``参数,用来生成用于markdown文档的格式   
+- 加``-m``和``--markdown``参数,生成markdown文档的格式   
 ```
 hjjp -m 东京 京都
 hjjp 东京 京都 --markdown
