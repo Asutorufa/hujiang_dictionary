@@ -1,0 +1,18 @@
+{
+  "name": "node.js",
+  "version": "1.0.0",
+  "dependencies": {
+    "cheerio": "latest",
+    "request": "latest"
+  },
+  "devDependencies": {
+    "pkg": "^4.4.0"
+  },
+  "bin": "./hjjp.js",
+  "scripts": {
+    "start": "node ./hjjp.js",
+    "pkg": "pkg . -t node12.2.0-linux-x64 -o app",
+    "pkgarmv7":"pkg . -t node12.2.0-linux-armv7 -o app_armv7"
+  },
+  "pkg": {}
+}
