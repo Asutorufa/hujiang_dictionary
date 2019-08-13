@@ -13,6 +13,9 @@ function word(word) {
         }
         const cheerio = require('cheerio'), $ = cheerio.load(body);
         $(`.word-details-pane`).map(function (index, html) {
+            if (index !== 0){
+                console.log();
+            }
             let sub$ = cheerio.load(html);
             let word_text = sub$('.word-info .word-text h2').text();
             let word_katakana = sub$('.word-info .pronounces span').text();
@@ -55,7 +58,6 @@ function word(word) {
             //         console.log(value)
             //     }
             // }
-//             console.log();
         })
     });
 }
