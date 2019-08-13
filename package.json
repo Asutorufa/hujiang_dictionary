@@ -11,8 +11,8 @@
   "bin": "./hjjp.js",
   "scripts": {
     "start": "node ./hjjp.js",
-    "pkg": "pkg . -t node12.2.0-linux-x64 -o app",
-    "pkgarmv7":"pkg . -t node12.2.0-linux-armv7 -o app_armv7"
+    "pkg": "pkg . -t node12.2.0-linux-x64 -o hjjp",
+    "pkgarmv7":"pkg . -t node12.2.0-linux-armv7 -o hjjp_armv7"
   },
   "pkg": {}
 }
