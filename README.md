@@ -22,5 +22,5 @@ npm run pkg
 node hjjp.js 东京
 ```
 
-![](https://raw.githubusercontent.com/Asutorufa/hujiang_japanese_dict/node.js/Screenshot_20190813_183940.png)
+![](https://raw.githubusercontent.com/Asutorufa/hujiang_japanese_dict/node.js/Screenshot_20190813_183940.png)  
 **查词结果均来自 沪江小d网页版**
