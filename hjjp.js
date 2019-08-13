@@ -17,7 +17,7 @@ function word(word) {
             let word_text = sub$('.word-info .word-text h2').text();
             let word_katakana = sub$('.word-info .pronounces span').text();
             let word_audio = sub$('.word-info .pronounces .word-audio').attr('data-src');
-            let word_simple = sub$('.simple').text().replace(/[\r\n \| \n \| \r]/g, " ").
+            let word_simple = sub$('.simple').text().replace(/[\r\n | \n | \r]/g, " ").
             replace(/ +/g, "\n").replace(/\n。/g, "。").split('\n');
             // let word_detail = sub$('.word-details-pane-content .word-details-item').text().
             // replace(/[\r\n | \n | \r]/g, " ").replace(/ +/g, "\n").
@@ -34,13 +34,13 @@ function word(word) {
                 let word_detail$ = cheerio.load(html);
                 word_detail$('.word-details-item-content .detail-groups dl').map(function (index,html) {
                     let word_detail_dl$ = cheerio.load(html);
-                    let word_attribute = word_detail_dl$('dt').text().replace(/[\r\n \| \n \| \r]/g, "").replace(/ +/g, "");
+                    let word_attribute = word_detail_dl$('dt').text().replace(/[\r\n | \n | \r]/g, "").replace(/ +/g, "");
                     console.log(" word attribute:",word_attribute);
                     word_detail_dl$("dd").map(function (index,html) {
                         let word_detail_dl_dd$ = cheerio.load(html);
-                        let word_detail_imi = '  '+(index+1) +'.'+word_detail_dl_dd$("h3").text().replace(/[\r\n \| \n \| \r]/g, "").replace(/ +/g, "");
+                        let word_detail_imi = '  '+(index+1) +'.'+word_detail_dl_dd$("h3").text().replace(/[\r\n | \n | \r]/g, "").replace(/ +/g, "");
                         console.log(word_detail_imi);
-                        let eg = word_detail_dl_dd$("ul").text().replace(/[\r\n \| \n \| \r]/g, " ").replace(/ +/g, "\n").replace(/\n。/g, "。").split('\n');
+                        let eg = word_detail_dl_dd$("ul").text().replace(/[\r\n | \n | \r]/g, " ").replace(/ +/g, "\n").replace(/\n。/g, "。").split('\n');
                         for (let value of eg) {
                             if (value !== "") {
                                 console.log('    '+value)
@@ -55,7 +55,7 @@ function word(word) {
             //         console.log(value)
             //     }
             // }
-            console.log();
+//             console.log();
         })
     });
 }
