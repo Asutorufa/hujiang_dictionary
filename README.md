@@ -8,6 +8,10 @@
 ```shell
 node hjjp.js
 ```
+打包:
+```shell
+npm run pkg 
+```
 
 使用方法:  
 ```
