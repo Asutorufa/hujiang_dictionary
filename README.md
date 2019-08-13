@@ -6,10 +6,12 @@
 
 运行:
 ```shell
+npm install
 node hjjp.js
 ```
 打包:
 ```shell
+npm install
 npm run pkg 
 ```
 
