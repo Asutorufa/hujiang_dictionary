@@ -1,4 +1,4 @@
-# 终端日语词典  
+# 沪江终端词典  
 [![](https://img.shields.io/github/license/asutorufa/hujiang_japanese_dict.svg)](https://raw.githubusercontent.com/Asutorufa/hujiang_japanese_dict/master/LICENSE)
 <!--
 [![](https://img.shields.io/github/release/asutorufa/hujiang_japanese_dict.svg)](https://github.com/Asutorufa/hujiang_japanese_dict/releases)
