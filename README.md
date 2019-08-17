@@ -12,7 +12,7 @@ npm install
 # 日语
 node hjjp.js
 # 英语
-node hjjpen.js
+node hjen.js
 ```
 打包:
 ```shell
@@ -25,7 +25,7 @@ npm run pkg
 # 日语
 node hjjp.js 东京
 # 英语
-node hjjpen.js hello
+node hjen.js hello
 ```
 
 ![](https://raw.githubusercontent.com/Asutorufa/hujiang_japanese_dict/node.js/Screenshot_20190813_183940.png)  
