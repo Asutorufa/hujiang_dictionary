@@ -1,0 +1,2 @@
+#! /usr/bin/bash
+node $(cd `dirname $0`;cd ..;pwd)/hjen.js $1
