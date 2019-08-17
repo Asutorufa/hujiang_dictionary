@@ -25,20 +25,20 @@ function word(word) {
             }else{
                 let word_audio_en = "英 " + sub$('.word-info .pronounces .pronounce-value-en').text() +' '+ sub$('.word-info .pronounces .word-audio-en').attr('data-src');
                 let word_audio_us = "美 " + sub$('.word-info .pronounces .pronounce-value-us').text() +' '+ sub$('.word-info .pronounces .word-audio').last().attr('data-src');
-                console.log(word_text)
-                console.log(word_audio_en)
+                console.log(word_text);
+                console.log(word_audio_en);
                 console.log(word_audio_us,'\nSimple explanation:');
             }
 
-            word_simple = sub$('.simple p .simple-definition a');
+            let word_simple = sub$('.simple p .simple-definition a');
             if (word_simple.text() === ""){
                 sub$('.simple p').map(function(index,html){
-                    word_simple_p$ = cheerio.load(html);
+                    let word_simple_p$ = cheerio.load(html);
                     console.log('   '+(index+1) +')'+ word_simple_p$.text().replace(/[\r\n | \n | \r]/g, " ").replace(/ +/g, " "))
                 })
             }else{
                 word_simple.map(function (index,html){
-                    word_simple_simple_definition_a$ = cheerio.load(html);
+                    let word_simple_simple_definition_a$ = cheerio.load(html);
                     console.log('   '+(index+1)+'.'+word_simple_simple_definition_a$.text())
                 })
             }
@@ -60,7 +60,7 @@ function word(word) {
                         word_detail_dl_dd$("ul li").map(function (index,html){
                             let word_detail_dl_dd_ul_li$ = cheerio.load(html);
                             let eg = word_detail_dl_dd_ul_li$('.def-sentence-from').text().replace(/[\r\n | \n | \r]/g, " ").replace(/ +/g, " ");
-                            console.log('       '+eg)
+                            console.log('       '+eg);
                             let eg2 = word_detail_dl_dd_ul_li$('.def-sentence-to').text().replace(/[\r\n | \n | \r]/g, " ").replace(/ +/g, " ");
                             console.log('       '+eg2)
                         })
@@ -74,7 +74,7 @@ function word(word) {
                     }
                     let word_detail_li$ = cheerio.load(html);
                     console.log('   '+(index+1)+'.'+word_detail_li$.text().replace(/[\r\n | \n | \r]/g, " ").replace(/ +/g, " "))
-                })
+                });
                 
                 word_detail$('.word-details-item-content .enen-groups dl').map(function (index,html) {
                     if (index === 0){
@@ -97,7 +97,7 @@ function word(word) {
                     }
                     let word_detail_li$ = cheerio.load(html);
                     console.log('   '+(index+1)+'.'+word_detail_li$.text().replace(/[\r\n | \n | \r]/g, " ").replace(/ +/g, " "))
-                })
+                });
 
                 word_detail$('.word-details-item-content .syn table tbody td').map(function (index,html){
                     if (index === 0){
@@ -106,7 +106,7 @@ function word(word) {
                     }
                     let word_detail_li$ = cheerio.load(html);
                     console.log('   '+(index+1)+'.'+word_detail_li$.text().replace(/[\r\n | \n | \r]/g, " ").replace(/ +/g, " "))
-                })
+                });
 
                 word_detail$('.word-details-item-content .ant table tbody td').map(function (index,html){
                     if (index === 0){
@@ -123,7 +123,7 @@ function word(word) {
 
 check = process.argv.splice(2)[0];
 if (check === undefined){
-    return
+    // do something
 }else{
     word(check);
 }

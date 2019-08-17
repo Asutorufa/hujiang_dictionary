@@ -55,7 +55,7 @@ function word(word) {
 
 check = process.argv.splice(2)[0];
 if (check === undefined){
-    return
+//    do something
 }else{
     word(check);
 }
