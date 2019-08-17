@@ -14,6 +14,14 @@ node hjjp.js
 # 英语
 node hjen.js
 ```
+可以链接到~/.local/bin直接运行:
+```shell
+ln -s bin/hjjp ~/.local/bin/hjjp
+ln -s bin/hjen ~/.local/bin/hjen
+hjjp 东京
+hjen hello
+```
+
 打包:
 ```shell
 npm install
