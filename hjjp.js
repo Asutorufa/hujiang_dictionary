@@ -22,9 +22,6 @@ function word(word) {
             let word_audio = sub$('.word-info .pronounces .word-audio').attr('data-src');
             let word_simple = sub$('.simple').text().replace(/[\r\n | \n | \r]/g, " ").
             replace(/ +/g, "\n").replace(/\n。/g, "。").split('\n');
-            // let word_detail = sub$('.word-details-pane-content .word-details-item').text().
-            // replace(/[\r\n | \n | \r]/g, " ").replace(/ +/g, "\n").
-            // replace(/\n。/g, "。").split('\n');
 
             console.log(word_text, word_katakana, word_audio,'\nSimple explanation:');
             for (let value of word_simple) {
@@ -32,8 +29,8 @@ function word(word) {
                     console.log('   '+value)
                 }
             }
-            console.log('more details:');
             sub$('.word-details-pane-content .word-details-item').map(function (index,html) {
+                console.log('more details:');
                 let word_detail$ = cheerio.load(html);
                 word_detail$('.word-details-item-content .detail-groups dl').map(function (index,html) {
                     let word_detail_dl$ = cheerio.load(html);
@@ -52,19 +49,8 @@ function word(word) {
                     })
                 });
             });
-            // console.log(word_katakana, word_audio);
-            // for (let value of word_detail) {
-            //     if (value !== "") {
-            //         console.log(value)
-            //     }
-            // }
         })
     });
 }
-// word("ha");
-// _ = process.argv.splice(2);
-// for (let value of _) {
-//     console.log(value);
-//     word(value);
-// }
+
 word(process.argv.splice(2)[0]);
