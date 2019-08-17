@@ -16,9 +16,9 @@ node hjen.js
 ```
 可以链接到~/.local/bin直接运行:
 ```shell
-ln -s bin/hjjp ~/.local/bin/hjjp
-ln -s bin/hjen ~/.local/bin/hjen
+ln -s $(pwd)/bin/hjjp ~/.local/bin/hjjp
 hjjp 东京
+ln -s $(pwd)/bin/hjen ~/.local/bin/hjen
 hjen hello
 ```
 
