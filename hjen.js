@@ -18,17 +18,30 @@ function word(word) {
             }
             let sub$ = cheerio.load(html);
             let word_text = sub$('.word-info .word-text h2').text();
-            let word_audio_en = "英 " + sub$('.word-info .pronounces .pronounce-value-en').text() +' '+ sub$('.word-info .pronounces .word-audio-en').attr('data-src');
-            let word_audio_us = "美 " + sub$('.word-info .pronounces .pronounce-value-us').text() +' '+ sub$('.word-info .pronounces .word-audio').last().attr('data-src');
+            if (sub$('.word-info .pronounces .pronounce-value-en').text() === ""){
+                let word_katakana = sub$('.word-info .pronounces span').text();
+                let word_audio = sub$('.word-info .pronounces .word-audio').attr('data-src');
+                console.log(word_text,word_katakana,word_audio,'\nSimple explanation:')
+            }else{
+                let word_audio_en = "英 " + sub$('.word-info .pronounces .pronounce-value-en').text() +' '+ sub$('.word-info .pronounces .word-audio-en').attr('data-src');
+                let word_audio_us = "美 " + sub$('.word-info .pronounces .pronounce-value-us').text() +' '+ sub$('.word-info .pronounces .word-audio').last().attr('data-src');
+                console.log(word_text)
+                console.log(word_audio_en)
+                console.log(word_audio_us,'\nSimple explanation:');
+            }
 
-            console.log(word_text)
-            console.log(word_audio_en)
-            console.log(word_audio_us,'\nSimple explanation:');
-
-            sub$('.simple p').map(function(index,html){
-                word_simple_p$ = cheerio.load(html);
-                console.log('   '+(index+1) +')'+ word_simple_p$.text().replace(/[\r\n | \n | \r]/g, " ").replace(/ +/g, " "))
-            })
+            word_simple = sub$('.simple p .simple-definition a');
+            if (word_simple.text() === ""){
+                sub$('.simple p').map(function(index,html){
+                    word_simple_p$ = cheerio.load(html);
+                    console.log('   '+(index+1) +')'+ word_simple_p$.text().replace(/[\r\n | \n | \r]/g, " ").replace(/ +/g, " "))
+                })
+            }else{
+                word_simple.map(function (index,html){
+                    word_simple_simple_definition_a$ = cheerio.load(html);
+                    console.log('   '+(index+1)+'.'+word_simple_simple_definition_a$.text())
+                })
+            }
 
             sub$('.word-details-pane-content .word-details-item').map(function (index,html) {
                 if (index ===0){
