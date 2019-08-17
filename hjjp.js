@@ -53,4 +53,9 @@ function word(word) {
     });
 }
 
-word(process.argv.splice(2)[0]);
+check = process.argv.splice(2)[0];
+if (check === undefined){
+    return
+}else{
+    word(check);
+}
