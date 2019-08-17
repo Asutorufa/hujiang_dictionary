@@ -17,7 +17,7 @@ node hjen.js <word>
 可以链接到~/.local/bin直接运行:
 ```shell
 ln -s $(pwd)/bin/hjjp ~/.local/bin/hjjp
-hjjp 东京
+hjjp 東京
 ln -s $(pwd)/bin/hjen ~/.local/bin/hjen
 hjen hello
 hjen 你好
@@ -32,7 +32,7 @@ npm run pkg
 使用方法:  
 ```
 # 日语
-node hjjp.js 东京
+node hjjp.js 東京
 # 英语
 node hjen.js hello
 node hjen.js 你好
