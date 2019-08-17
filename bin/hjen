@@ -1,2 +1,2 @@
 #! /usr/bin/bash
-node $(cd `dirname $0`;cd ..;pwd)/hjen.js $1
+node $(cd `dirname $(readlink -f $0)`;cd ..;pwd)/hjen.js $1
