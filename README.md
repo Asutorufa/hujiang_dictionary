@@ -10,9 +10,9 @@
 ```shell
 npm install
 # 日语
-node hjjp.js
+node hjjp.js <word>
 # 英语
-node hjen.js
+node hjen.js <word>
 ```
 可以链接到~/.local/bin直接运行:
 ```shell
