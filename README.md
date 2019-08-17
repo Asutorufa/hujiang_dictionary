@@ -20,6 +20,7 @@ ln -s $(pwd)/bin/hjjp ~/.local/bin/hjjp
 hjjp 东京
 ln -s $(pwd)/bin/hjen ~/.local/bin/hjen
 hjen hello
+hjen 你好
 ```
 
 打包:
@@ -34,6 +35,7 @@ npm run pkg
 node hjjp.js 东京
 # 英语
 node hjen.js hello
+node hjen.js 你好
 ```
 
 ![](https://raw.githubusercontent.com/Asutorufa/hujiang_japanese_dict/nodejs/hj_dict.png)  
