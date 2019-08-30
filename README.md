@@ -39,36 +39,44 @@ node hjen.js 你好
 use hjen API:
 ```javascript
 async test(){
-console.log(await require('./hjenAPI').word('tsunami'))
+console.log(await require('./hjenAPI').word('karaoke'))
 }
 test()
 ```
 return a json format,like this:
 ```json
 {
- "word": "tsunami",
+ "word": "karaoke",
  "word_katakana": "",
- "word_audio_en": "英 [tsʊˈnæmɪ] https://tts.hjapi.com/en-gb/76902B674D6DF5B3",
- "word_audio_us": "美 [tsuˈnɑmi] https://tts.hjapi.com/en-us/76902B674D6DF5B3",
+ "word_audio_en": "英 [ˌkɑːrəˈəʊkɪ] https://tts.hjapi.com/en-gb/4E63BA7951A53A8C",
+ "word_audio_us": "美 [ˌkæriˈoʊki] https://tts.hjapi.com/en-us/4E63BA7951A53A8C",
  "simple_explain": [
-  "1) n. 海啸 "
+  "1) n. 卡拉OK "
  ],
  "more_details": {
-  " n. /tsʊˈnɑːmɪ/ ": {
-   "1. （由海底地震、沉降或火山喷发引起的）海啸 【地理】 ": [],
-   "2. 急剧增长；激增 ": []
+  " n. /ˌkærɪˈəʊkɪ/ ": {
+   "1. 卡拉OK ": [
+    {
+     "eg": " I cannot sing, although I have tried karaoke a few times. ",
+     "eg2": " 尽管我试过几次唱卡拉OK，但我还是不会唱。 "
+    }
+   ]
+  },
+  " mod. /ˌkærɪˈəʊkɪ/ ": {
+   "1. 卡拉OK的 ": [
+    {
+     "eg": " a karaoke version of Kylie Minogue's hit ",
+     "eg2": " 凯莉•米洛名曲的卡拉OK版 "
+    }
+   ]
   }
  },
- "inflections": [
-  " 复数: tsunamis "
- ],
- "synonym": [
-  " increase "
- ],
+ "inflections": [],
+ "synonym": [],
  "antonym": [],
  "English_explains": {
   "n.": [
-   "a cataclysm resulting from a destructive sea wave caused by an earthquake or volcanic eruption"
+   "singing popular songs accompanied by a recording of an orchestra (usually in bars or nightclubs)"
   ]
  },
  "phrase": []
