@@ -98,9 +98,9 @@ func Get(str string) []*Word  {
 				for index,s := range x.Find("dd").HtmlAll(){
 					x, _ := goquery.ParseString(s)
 					if index != 0{
-						sb.WriteString("\n"+strconv.Itoa(index+1)+"."+strings.TrimSpace(reAll2(x.Find("h3").Text())))
+						sb.WriteString("\n  "+strconv.Itoa(index+1)+"."+strings.TrimSpace(reAll2(x.Find("h3").Text())))
 					}else{
-						sb.WriteString(strconv.Itoa(index+1)+"."+strings.TrimSpace(reAll2(x.Find("h3").Text())))
+						sb.WriteString("  "+strconv.Itoa(index+1)+"."+strings.TrimSpace(reAll2(x.Find("h3").Text())))
 					}
 					//fmt.Println("  "+strconv.Itoa(index+1)+"."+strings.TrimSpace(reAll2(x.Find("h3").Text())))
 					//fmt.Println("  "+strconv.Itoa(index+1)+"."+strings.Replace(reAll2(x.Find("h3").Text()),"\n","",-1))
@@ -108,7 +108,7 @@ func Get(str string) []*Word  {
 						x,_ := goquery.ParseString(s)
 						eg := reAll2(x.Find(".def-sentence-from").Text())
 						eg2 := reAll2(x.Find(".def-sentence-to").Text())
-						sb.WriteString("    \n"+eg+"   \n"+eg2)
+						sb.WriteString("\n    "+eg+"\n    "+eg2)
 					}
 				}
 			}
@@ -159,4 +159,32 @@ func Get(str string) []*Word  {
 		words = append(words,word)
 	}
 	return words
+}
+
+func Show(str string){
+	x := Get(str)
+	for _,s := range x  {
+		fmt.Println(s.Word)
+		fmt.Println(s.Katakana,s.Roma)
+		fmt.Println(s.AudioUsUrl)
+		fmt.Println(s.AudioEnUrl)
+		fmt.Println("simple explain:")
+		for _,x := range s.Simple{
+			fmt.Println(" "+x)
+		}
+		fmt.Println("More Detail:")
+		fmt.Println(s.Detail)
+		fmt.Println("English Explains:")
+		fmt.Println(s.EnglishExplains)
+		fmt.Println("inflections:")
+		for index,x := range s.inflections{
+			fmt.Println(" "+strconv.Itoa(index+1)+"."+x)
+		}
+		fmt.Println("phrase:")
+		for index,x := range s.phrase{
+			fmt.Println(" "+strconv.Itoa(index+1)+"."+x)
+		}
+		fmt.Println("synonym:\n ",s.synonym[0])
+		fmt.Println("antonym:\n ",s.antonym[0])
+	}
 }
