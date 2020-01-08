@@ -1,2 +1,0 @@
-#! /usr/bin/bash
-node $(cd `dirname $(readlink -f $0)`;cd ..;pwd)/hjjp.js "${@:1}"
