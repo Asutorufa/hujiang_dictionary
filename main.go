@@ -6,11 +6,11 @@ import (
 	"hjjp/jp"
 )
 
-func main(){
-	enFlag := flag.String("en","","english")
-	jpFlag := flag.String("jp","","japanese")
+func main() {
+	enFlag := flag.String("en", "", "english")
+	jpFlag := flag.String("jp", "", "japanese")
 	flag.Parse()
-	switch  {
+	switch {
 	case *jpFlag != "":
 		jp.Get(*jpFlag)
 	case *enFlag != "":
