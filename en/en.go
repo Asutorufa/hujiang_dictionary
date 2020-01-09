@@ -13,24 +13,36 @@ import (
 	"strings"
 )
 
+// Detail word detail explains
+// Attribute word attribute
+// ExplainsAndExample {explains:[[example],[example]]}  | example: [eg,eg2]
+type ExplainsAndExample struct {
+	Explain string     `json:"explain"`
+	Example [][]string `json:"example"`
+}
 type Detail struct {
-	Attribute          string
-	ExplainsAndExample map[string][]string
+	Attribute          string                `json:"attribute"`
+	ExplainsAndExample []*ExplainsAndExample `json:"explains_and_example"`
+}
+
+type EnglishExplain struct {
+	Attribute string   `json:"attribute"`
+	Explains  []string `json:"explains"`
 }
 
 type Word struct {
-	Word            string   `json:"word"`
-	Katakana        string   `json:"katakana"`
-	Roma            string   `json:"roma"`
-	AudioEnUrl      string   `json:"audio_en_url"`
-	AudioUsUrl      string   `json:"audio_us_url"`
-	EnglishExplains string   `json:"english_explains"`
-	Phrase          []string `json:"phrase"`
-	Synonym         []string `json:"synonym"`
-	Antonym         []string `json:"antonym"`
-	Inflections     []string `json:"inflections"`
-	Simple          []string `json:"simple"`
-	Detail          string   `json:"detail"`
+	Word            string            `json:"word"`
+	Katakana        string            `json:"katakana"`
+	Roma            string            `json:"roma"`
+	AudioEnUrl      string            `json:"audio_en_url"`
+	AudioUsUrl      string            `json:"audio_us_url"`
+	EnglishExplains []*EnglishExplain `json:"english_explains"`
+	Phrase          []string          `json:"phrase"`
+	Synonym         []string          `json:"synonym"`
+	Antonym         []string          `json:"antonym"`
+	Inflections     []string          `json:"inflections"`
+	Simple          []string          `json:"simple"`
+	Detail          []*Detail         `json:"detail"`
 }
 
 func Get(str string) []*Word {
@@ -50,7 +62,6 @@ func Get(str string) []*Word {
 	if err != nil {
 		log.Println(err)
 	}
-	//fmt.Println(string(s))
 	x, _ := goquery.ParseString(string(s))
 
 	for index, s := range x.Find(".word-details-pane").HtmlAll() {
@@ -64,8 +75,6 @@ func Get(str string) []*Word {
 			word.Katakana, word.AudioEnUrl = x.Find(".pronounces span").Text(), x.Find(".pronounces .word-audio").Attr("data-src")
 			word.AudioUsUrl = word.AudioEnUrl
 		} else {
-			//let word_audio_en = "英 " + sub$('.word-info .pronounces .pronounce-value-en').text() + ' ' + sub$('.word-info .pronounces .word-audio-en').attr('data-src');
-			//let word_audio_us = "美 " + sub$('.word-info .pronounces .pronounce-value-us').text() + ' ' + sub$('.word-info .pronounces .word-audio').last().attr('data-src');
 			word.AudioEnUrl = "英 " + x.Find(".word-info .pronounces .pronounce-value-en").Text() + " " + x.Find(".word-info .pronounces .word-audio-en").Attr("data-src")
 			word.AudioUsUrl = "美 " + x.Find(".word-info .pronounces .pronounce-value-us").Text() + " " + x.Find(".word-info .pronounces .word-audio").Last().Attr("data-src")
 		}
@@ -78,7 +87,6 @@ func Get(str string) []*Word {
 		reAll2 := func(str string) string {
 			return strings.TrimSpace(re2.ReplaceAllString(strings.Replace(re.ReplaceAllString(str, ""), "\n", "", -1), " "))
 		}
-		sb := strings.Builder{}
 
 		if x.Find(".simple p .simple-definition a").Text() == "" {
 			for _, s := range x.Find(".simple p").HtmlAll() {
@@ -91,72 +99,64 @@ func Get(str string) []*Word {
 				word.Simple = append(word.Simple, reAll2(x.Text()))
 			}
 		}
-		sb.Reset()
 
+		word.Detail = []*Detail{}
 		for _, s := range x.Find(".word-details-pane-content .word-details-item").HtmlAll() {
 			x, _ := goquery.ParseString(s)
 			for _, s := range x.Find(".word-details-item-content .detail-groups dl").HtmlAll() {
 				x, _ := goquery.ParseString(s)
-				sb.WriteString(" word attribute: " + reAll2(x.Find("dt").Text()) + "\n")
+				detail := &Detail{}
+				detail.Attribute = reAll2(x.Find("dt").Text())
 
-				//fmt.Println(" word attribute:",strings.Replace(reAll2(x.Find("dt").Text()),"\n","",-1))
-				for index, s := range x.Find("dd").HtmlAll() {
+				for _, s := range x.Find("dd").HtmlAll() {
 					x, _ := goquery.ParseString(s)
-					if index != 0 {
-						sb.WriteString("\n  " + strconv.Itoa(index+1) + "." + strings.TrimSpace(reAll2(x.Find("h3").Text())))
-					} else {
-						sb.WriteString("  " + strconv.Itoa(index+1) + "." + strings.TrimSpace(reAll2(x.Find("h3").Text())))
+					if detail.ExplainsAndExample == nil {
+						detail.ExplainsAndExample = []*ExplainsAndExample{}
 					}
-					//fmt.Println("  "+strconv.Itoa(index+1)+"."+strings.TrimSpace(reAll2(x.Find("h3").Text())))
-					//fmt.Println("  "+strconv.Itoa(index+1)+"."+strings.Replace(reAll2(x.Find("h3").Text()),"\n","",-1))
+					explain := strings.TrimSpace(reAll2(x.Find("h3").Text()))
+
+					explainsAndExampleTmp := &ExplainsAndExample{}
+					explainsAndExampleTmp.Explain = explain
 					for _, s := range x.Find("ul li").HtmlAll() {
 						x, _ := goquery.ParseString(s)
 						eg := reAll2(x.Find(".def-sentence-from").Text())
 						eg2 := reAll2(x.Find(".def-sentence-to").Text())
-						sb.WriteString("\n    " + eg + "\n    " + eg2)
+						explainsAndExampleTmp.Example = append(explainsAndExampleTmp.Example, []string{eg, eg2})
 					}
+					detail.ExplainsAndExample = append(detail.ExplainsAndExample, explainsAndExampleTmp)
 				}
+				word.Detail = append(word.Detail, detail)
 			}
 		}
-		word.Detail = sb.String()
 
 		for _, s := range x.Find(".word-details-item-content .phrase-items li").HtmlAll() {
 			x, _ := goquery.ParseString(s)
 			word.Phrase = append(word.Phrase, reAll2(x.Text()))
 		}
 
-		sb.Reset()
-		for index, s := range x.Find(".word-details-item-content .enen-groups dl").HtmlAll() {
+		word.EnglishExplains = []*EnglishExplain{}
+		for _, s := range x.Find(".word-details-item-content .enen-groups dl").HtmlAll() {
 			x, _ := goquery.ParseString(s)
-			if index != 0 {
-				sb.WriteString("\n word attribute: " + reAll2(x.Find("dt").Text()) + "\n")
-			} else {
-				sb.WriteString(" word attribute: " + reAll2(x.Find("dt").Text()) + "\n")
-			}
-			for index, s := range x.Find("dd").HtmlAll() {
+			englishExplainTmp := &EnglishExplain{}
+			englishExplainTmp.Attribute = reAll2(x.Find("dt").Text())
+			for _, s := range x.Find("dd").HtmlAll() {
 				x, _ := goquery.ParseString(s)
-				if index != 0 {
-					sb.WriteString("\n  " + strconv.Itoa(index+1) + "." + reAll(x.Text()))
-				} else {
-					sb.WriteString("  " + strconv.Itoa(index+1) + "." + reAll(x.Text()))
-				}
+				englishExplainTmp.Explains = append(englishExplainTmp.Explains, reAll(x.Text()))
 			}
+			word.EnglishExplains = append(word.EnglishExplains, englishExplainTmp)
 		}
-		word.EnglishExplains = sb.String()
 
 		for _, s := range x.Find(".word-details-item-content .inflections-items li").HtmlAll() {
 			x, _ := goquery.ParseString(s)
 			word.Inflections = append(word.Inflections, reAll2(x.Text()))
 		}
 
-		for _, s := range x.Find(".word-details-item-content .syn table tbody").HtmlAll() {
-			x, _ := goquery.ParseString(s)
-			word.Synonym = append(word.Synonym, reAll2(x.Text()))
+		for _, s := range x.Find(".word-details-item-content .syn table tbody tr td a").HtmlAll() {
+			word.Synonym = append(word.Synonym, reAll2(s))
 		}
 
-		for _, s := range x.Find(".word-details-item-content .ant table tbody").HtmlAll() {
-			x, _ := goquery.ParseString(s)
-			word.Antonym = append(word.Antonym, reAll2(x.Text()))
+		for _, s := range x.Find(".word-details-item-content .ant table tbody tr td a").HtmlAll() {
+			word.Antonym = append(word.Antonym, reAll2(s))
 		}
 
 		words = append(words, word)
@@ -176,27 +176,58 @@ func Show(str string) {
 		fmt.Println(s.Katakana, s.Roma)
 		fmt.Println(s.AudioUsUrl)
 		fmt.Println(s.AudioEnUrl)
+
 		fmt.Println("simple explain:")
-		for _, x := range s.Simple {
-			fmt.Println(" " + x)
+		for index := range s.Simple {
+			fmt.Println(" " + s.Simple[index])
 		}
+
 		fmt.Println("More Detail:")
-		fmt.Println(s.Detail)
+		for index := range s.Detail {
+			fmt.Println(" word attribute: " + s.Detail[index].Attribute)
+			tmp := s.Detail[index].ExplainsAndExample
+			for index := range tmp {
+				fmt.Println("  " + strconv.Itoa(index+1) + "." + tmp[index].Explain)
+				exampleTmp := tmp[index].Example
+				for index := range exampleTmp {
+					for i := range exampleTmp[index] {
+						switch i {
+						case 0:
+							fmt.Println("    " + strconv.Itoa(index+1) + ")" + exampleTmp[index][i])
+						case 1:
+							fmt.Println("      " + exampleTmp[index][i])
+
+						}
+					}
+				}
+			}
+		}
+
 		fmt.Println("English Explains:")
-		fmt.Println(s.EnglishExplains)
+		for index := range s.EnglishExplains {
+			fmt.Println(" " + s.EnglishExplains[index].Attribute)
+			for i := range s.EnglishExplains[index].Explains {
+				fmt.Println("   " + strconv.Itoa(i+1) + "." + s.EnglishExplains[index].Explains[i])
+			}
+		}
+
 		fmt.Println("inflections:")
 		for index, x := range s.Inflections {
 			fmt.Println(" " + strconv.Itoa(index+1) + "." + x)
 		}
+
 		fmt.Println("phrase:")
 		for index, x := range s.Phrase {
 			fmt.Println(" " + strconv.Itoa(index+1) + "." + x)
 		}
-		if len(s.Synonym) >= 1 {
-			fmt.Println("synonym:\n ", s.Synonym[0])
+
+		fmt.Println("synonym:")
+		for index := range s.Synonym {
+			fmt.Println(" " + strconv.Itoa(index+1) + "." + s.Synonym[index])
 		}
-		if len(s.Antonym) >= 1 {
-			fmt.Println("antonym:\n ", s.Antonym[0])
+		fmt.Println("antonym:")
+		for index := range s.Antonym {
+			fmt.Println(" " + strconv.Itoa(index+1) + "." + s.Antonym[index])
 		}
 	}
 }

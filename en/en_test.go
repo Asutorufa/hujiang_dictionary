@@ -1,6 +1,8 @@
 package en
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestGet(t *testing.T) {
 	for _, x := range Get("good") {
@@ -9,7 +11,6 @@ func TestGet(t *testing.T) {
 		t.Log(x.AudioUsUrl)
 		t.Log(x.Katakana)
 		t.Log(x.Roma)
-		t.Log(x.EnglishExplains)
 		for _, x := range x.Phrase {
 			t.Log(x)
 		}
@@ -17,11 +18,14 @@ func TestGet(t *testing.T) {
 		t.Log(x.Antonym)
 		t.Log(x.Inflections)
 		t.Log(x.Simple)
-		t.Log(x.Detail)
 	}
 }
 
 func TestGetJson(t *testing.T) {
 	x, _ := GetJson("good")
 	t.Log(x)
+}
+
+func TestShow(t *testing.T) {
+	Show("good")
 }
