@@ -12,7 +12,7 @@ func main() {
 	flag.Parse()
 	switch {
 	case *jpFlag != "":
-		jp.Get(*jpFlag)
+		jp.Show(*jpFlag)
 	case *enFlag != "":
 		en.Show(*enFlag)
 	default:
