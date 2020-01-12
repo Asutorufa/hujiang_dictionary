@@ -36,6 +36,14 @@ type Word struct {
 }
 
 func Get(str string) []*Word {
+	re, _ := regexp.Compile("\r\n | \n | \r")
+	re2, _ := regexp.Compile(" +")
+	re3, _ := regexp.Compile("\n。")
+	re4, _ := regexp.Compile("\n+")
+	reAll2 := func(str string) string {
+		return strings.TrimSpace(re3.ReplaceAllString(re2.ReplaceAllString(re.ReplaceAllString(re4.ReplaceAllString(str, "\n"), ""), ""), "。"))
+	}
+
 	var words []*Word
 	req, err := http.NewRequest(http.MethodGet, "https://dict.hjenglish.com/jp/jc/"+url.QueryEscape(str), nil)
 	if err != nil {
@@ -54,70 +62,79 @@ func Get(str string) []*Word {
 	}
 	x, _ := goquery.ParseString(string(s))
 
+	wait := make(chan bool)
 	for _, s := range x.Find(".word-details-pane").HtmlAll() {
 		word := &Word{}
 		x, _ := goquery.ParseString(s)
-		word.Word, word.Katakana, word.AudioUrl = x.Find(".word-text h2").Text(), x.Find(".pronounces span").Text(), x.Find(".pronounces .word-audio").Attr("data-src")
-		re, _ := regexp.Compile("\r\n | \n | \r")
-		re2, _ := regexp.Compile(" +")
-		re3, _ := regexp.Compile("\n。")
-		re4, _ := regexp.Compile("\n+")
-		reAll2 := func(str string) string {
-			return strings.TrimSpace(re3.ReplaceAllString(re2.ReplaceAllString(re.ReplaceAllString(re4.ReplaceAllString(str, "\n"), ""), ""), "。"))
-		}
 
-		word.Simple = []*SimpleExplain{}
-		for _, s := range x.Find(".simple").HtmlAll() {
-			simpleTmpAll := reAll2(x.Find(".simple").Text())
-			x, _ := goquery.ParseString(s)
-			if len(x.Find("h2").HtmlAll()) == 0 {
-				if simpleTmpAll == "" {
+		go func() {
+			word.Word, word.Katakana, word.AudioUrl = x.Find(".word-text h2").Text(), x.Find(".pronounces span").Text(), x.Find(".pronounces .word-audio").Attr("data-src")
+			wait <- true
+		}()
+
+		go func() {
+			word.Simple = []*SimpleExplain{}
+			for _, s := range x.Find(".simple").HtmlAll() {
+				simpleTmpAll := reAll2(x.Find(".simple").Text())
+				x, _ := goquery.ParseString(s)
+				if len(x.Find("h2").HtmlAll()) == 0 {
+					if simpleTmpAll == "" {
+						break
+					}
+					simpleTmp := &SimpleExplain{}
+					simpleTmp.Attribute = ""
+					simpleTmp.Explains = append(simpleTmp.Explains, simpleTmpAll)
+					word.Simple = append(word.Simple, simpleTmp)
 					break
 				}
-				simpleTmp := &SimpleExplain{}
-				simpleTmp.Attribute = ""
-				simpleTmp.Explains = append(simpleTmp.Explains, simpleTmpAll)
-				word.Simple = append(word.Simple, simpleTmp)
-				break
-			}
-			list := x.Find("ul").HtmlAll()
-			for index, s := range x.Find("h2").HtmlAll() {
-				simpleTmp := &SimpleExplain{}
-				simpleTmp.Attribute = s
-				x, _ := goquery.ParseString(list[index])
-				for _, s := range x.Find("li").HtmlAll() {
-					x, _ := goquery.ParseString(s)
-					simpleTmp.Explains = append(simpleTmp.Explains, x.Text())
-				}
-				word.Simple = append(word.Simple, simpleTmp)
-			}
-		}
-
-		word.Detail = []*Detail{}
-		for _, s := range x.Find(".word-details-pane-content .word-details-item").HtmlAll() {
-			x, _ := goquery.ParseString(s)
-			for _, s := range x.Find(".word-details-item-content .detail-groups dl").HtmlAll() {
-				x, _ := goquery.ParseString(s)
-				detailTmp := &Detail{}
-				detailTmp.Attribute = reAll2(x.Find("dt").Text())
-				for _, s := range x.Find("dd").HtmlAll() {
-					x, _ := goquery.ParseString(s)
-					explainsAndExampleTmp := &ExplainsAndExample{}
-					explainsAndExampleTmp.Explain = reAll2(x.Find("h3").Text())
-					for _, s := range x.Find("ul li").HtmlAll() {
+				list := x.Find("ul").HtmlAll()
+				for index, s := range x.Find("h2").HtmlAll() {
+					simpleTmp := &SimpleExplain{}
+					simpleTmp.Attribute = s
+					x, _ := goquery.ParseString(list[index])
+					for _, s := range x.Find("li").HtmlAll() {
 						x, _ := goquery.ParseString(s)
-						from := reAll2(x.Find(".def-sentence-from").Text())
-						to := reAll2(x.Find(".def-sentence-to").Text())
-						tmp := []string{from, to}
-						explainsAndExampleTmp.Example = append(explainsAndExampleTmp.Example, tmp)
+						simpleTmp.Explains = append(simpleTmp.Explains, x.Text())
 					}
-					detailTmp.ExplainsAndExample = append(detailTmp.ExplainsAndExample, explainsAndExampleTmp)
+					word.Simple = append(word.Simple, simpleTmp)
 				}
-				word.Detail = append(word.Detail, detailTmp)
 			}
-		}
+			wait <- true
+		}()
+
+		go func() {
+			word.Detail = []*Detail{}
+			for _, s := range x.Find(".word-details-pane-content .word-details-item").HtmlAll() {
+				x, _ := goquery.ParseString(s)
+				for _, s := range x.Find(".word-details-item-content .detail-groups dl").HtmlAll() {
+					x, _ := goquery.ParseString(s)
+					detailTmp := &Detail{}
+					detailTmp.Attribute = reAll2(x.Find("dt").Text())
+					for _, s := range x.Find("dd").HtmlAll() {
+						x, _ := goquery.ParseString(s)
+						explainsAndExampleTmp := &ExplainsAndExample{}
+						explainsAndExampleTmp.Explain = strings.Replace(reAll2(x.Find("h3").Text()), "\n", "", -1)
+						for _, s := range x.Find("ul li").HtmlAll() {
+							x, _ := goquery.ParseString(s)
+							from := reAll2(x.Find(".def-sentence-from").Text())
+							to := reAll2(x.Find(".def-sentence-to").Text())
+							tmp := []string{from, to}
+							explainsAndExampleTmp.Example = append(explainsAndExampleTmp.Example, tmp)
+						}
+						detailTmp.ExplainsAndExample = append(detailTmp.ExplainsAndExample, explainsAndExampleTmp)
+					}
+					word.Detail = append(word.Detail, detailTmp)
+				}
+			}
+			wait <- true
+		}()
+
+		<-wait
+		<-wait
+		<-wait
 		words = append(words, word)
 	}
+	close(wait)
 	return words
 }
 
