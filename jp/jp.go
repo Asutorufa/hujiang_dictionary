@@ -61,10 +61,23 @@ func Get(str string) []*Word {
 		re, _ := regexp.Compile("\r\n | \n | \r")
 		re2, _ := regexp.Compile(" +")
 		re3, _ := regexp.Compile("\n。")
+		re4, _ := regexp.Compile("\n+")
+		reAll2 := func(str string) string {
+			return strings.TrimSpace(re3.ReplaceAllString(re2.ReplaceAllString(re.ReplaceAllString(re4.ReplaceAllString(str, "\n"), ""), ""), "。"))
+		}
 
 		word.Simple = []*SimpleExplain{}
 		for _, s := range x.Find(".simple").HtmlAll() {
+			simpleTmpAll := x.Find(".simple")
 			x, _ := goquery.ParseString(s)
+			if len(x.Find("h2").HtmlAll()) == 0 {
+				simpleTmp := &SimpleExplain{}
+				simpleTmp.Attribute = ""
+				simpleTmp.Explains = append(simpleTmp.Explains, reAll2(simpleTmpAll.Text()))
+				fmt.Println(reAll2(simpleTmpAll.Text()))
+				word.Simple = append(word.Simple, simpleTmp)
+				break
+			}
 			list := x.Find("ul").HtmlAll()
 			for index, s := range x.Find("h2").HtmlAll() {
 				simpleTmp := &SimpleExplain{}
@@ -81,21 +94,18 @@ func Get(str string) []*Word {
 		word.Detail = []*Detail{}
 		for _, s := range x.Find(".word-details-pane-content .word-details-item").HtmlAll() {
 			x, _ := goquery.ParseString(s)
-			reAll2 := func(str string) string {
-				return re3.ReplaceAllString(re2.ReplaceAllString(re.ReplaceAllString(str, ""), ""), "。")
-			}
 			for _, s := range x.Find(".word-details-item-content .detail-groups dl").HtmlAll() {
 				x, _ := goquery.ParseString(s)
 				detailTmp := &Detail{}
-				detailTmp.Attribute = strings.Replace(reAll2(x.Find("dt").Text()), "\n", "", -1)
+				detailTmp.Attribute = reAll2(x.Find("dt").Text())
 				for _, s := range x.Find("dd").HtmlAll() {
 					x, _ := goquery.ParseString(s)
 					explainsAndExampleTmp := &ExplainsAndExample{}
-					explainsAndExampleTmp.Explain = strings.Replace(reAll2(x.Find("h3").Text()), "\n", "", -1)
+					explainsAndExampleTmp.Explain = reAll2(x.Find("h3").Text())
 					for _, s := range x.Find("ul li").HtmlAll() {
 						x, _ := goquery.ParseString(s)
-						from := strings.Replace(reAll2(x.Find(".def-sentence-from").Text()), "\n", "", -1)
-						to := strings.Replace(reAll2(x.Find(".def-sentence-to").Text()), "\n", "", -1)
+						from := reAll2(x.Find(".def-sentence-from").Text())
+						to := reAll2(x.Find(".def-sentence-to").Text())
 						tmp := []string{from, to}
 						explainsAndExampleTmp.Example = append(explainsAndExampleTmp.Example, tmp)
 					}
@@ -116,21 +126,26 @@ func GetJson(str string) (string, error) {
 
 func Show(str string) {
 	x := Get(str)
-	for _, s := range x {
-		fmt.Println(s.Word, s.Katakana, s.AudioUrl)
+	for index := range x {
+		if index != 0 {
+			fmt.Println("")
+		}
+		fmt.Println(x[index].Word, x[index].Katakana, x[index].AudioUrl)
 
 		fmt.Println("simple explain:")
-		for index := range s.Simple {
-			fmt.Println(" " + s.Simple[index].Attribute)
-			for _, s := range s.Simple[index].Explains {
+		for index := range x[index].Simple {
+			if x[index].Simple[index].Attribute != "" {
+				fmt.Println(" " + x[index].Simple[index].Attribute)
+			}
+			for _, s := range x[index].Simple[index].Explains {
 				fmt.Println("   " + s)
 			}
 		}
 
 		fmt.Println("More Detail:")
-		for index := range s.Detail {
-			fmt.Println(" word attribute: " + s.Detail[index].Attribute)
-			tmp := s.Detail[index].ExplainsAndExample
+		for index := range x[index].Detail {
+			fmt.Println(" word attribute: " + x[index].Detail[index].Attribute)
+			tmp := x[index].Detail[index].ExplainsAndExample
 			for index := range tmp {
 				fmt.Println("  " + strconv.Itoa(index+1) + "." + tmp[index].Explain)
 				exampleTmp := tmp[index].Example

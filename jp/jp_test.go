@@ -7,5 +7,6 @@ func TestGetJson(t *testing.T) {
 }
 
 func TestShow(t *testing.T) {
-	Show("koko")
+	Show("さまざま")
+	Show("sorezore")
 }
