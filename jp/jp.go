@@ -68,13 +68,15 @@ func Get(str string) []*Word {
 
 		word.Simple = []*SimpleExplain{}
 		for _, s := range x.Find(".simple").HtmlAll() {
-			simpleTmpAll := x.Find(".simple")
+			simpleTmpAll := reAll2(x.Find(".simple").Text())
 			x, _ := goquery.ParseString(s)
 			if len(x.Find("h2").HtmlAll()) == 0 {
+				if simpleTmpAll == "" {
+					break
+				}
 				simpleTmp := &SimpleExplain{}
 				simpleTmp.Attribute = ""
-				simpleTmp.Explains = append(simpleTmp.Explains, reAll2(simpleTmpAll.Text()))
-				fmt.Println(reAll2(simpleTmpAll.Text()))
+				simpleTmp.Explains = append(simpleTmp.Explains, simpleTmpAll)
 				word.Simple = append(word.Simple, simpleTmp)
 				break
 			}
@@ -125,27 +127,27 @@ func GetJson(str string) (string, error) {
 }
 
 func Show(str string) {
-	x := Get(str)
-	for index := range x {
-		if index != 0 {
+	y := Get(str)
+	for indexY := range y {
+		if indexY != 0 {
 			fmt.Println("")
 		}
-		fmt.Println(x[index].Word, x[index].Katakana, x[index].AudioUrl)
+		fmt.Println(y[indexY].Word, y[indexY].Katakana, y[indexY].AudioUrl)
 
 		fmt.Println("simple explain:")
-		for index := range x[index].Simple {
-			if x[index].Simple[index].Attribute != "" {
-				fmt.Println(" " + x[index].Simple[index].Attribute)
+		for index := range y[indexY].Simple {
+			if y[indexY].Simple[index].Attribute != "" {
+				fmt.Println(" " + y[indexY].Simple[index].Attribute)
 			}
-			for _, s := range x[index].Simple[index].Explains {
+			for _, s := range y[indexY].Simple[index].Explains {
 				fmt.Println("   " + s)
 			}
 		}
 
 		fmt.Println("More Detail:")
-		for index := range x[index].Detail {
-			fmt.Println(" word attribute: " + x[index].Detail[index].Attribute)
-			tmp := x[index].Detail[index].ExplainsAndExample
+		for index := range y[indexY].Detail {
+			fmt.Println(" word attribute: " + y[indexY].Detail[index].Attribute)
+			tmp := y[indexY].Detail[index].ExplainsAndExample
 			for index := range tmp {
 				fmt.Println("  " + strconv.Itoa(index+1) + "." + tmp[index].Explain)
 				exampleTmp := tmp[index].Example
