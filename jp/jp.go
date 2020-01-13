@@ -45,7 +45,7 @@ func Get(str string) []*Word {
 	}
 
 	var words []*Word
-	req, err := http.NewRequest(http.MethodGet, "https://dict.hjenglish.com/jp/jc/"+url.QueryEscape(str), nil)
+	req, err := http.NewRequest(http.MethodGet, "https://dict.hjenglish.com/jp/jc/"+url.PathEscape(str), nil)
 	if err != nil {
 		log.Println(err)
 	}
