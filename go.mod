@@ -1,4 +1,4 @@
-module hjjp
+module github.com/Asutorufa/hjjp
 
 go 1.13
 

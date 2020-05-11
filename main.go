@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"hjjp/en"
-	"hjjp/jp"
+	"github.com/Asutorufa/hjjp/en"
+	"github.com/Asutorufa/hjjp/jp"
 )
 
 func main() {
