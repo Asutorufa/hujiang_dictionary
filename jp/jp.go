@@ -3,8 +3,7 @@ package jp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/opesun/goquery"
-	"io/ioutil"
+	"github.com/PuerkitoBio/goquery"
 	"log"
 	"net/http"
 	"net/url"
@@ -36,12 +35,12 @@ type Word struct {
 }
 
 func Get(str string) []*Word {
-	re, _ := regexp.Compile("\r\n | \n | \r")
-	re2, _ := regexp.Compile(" +")
-	re3, _ := regexp.Compile("\n。")
-	re4, _ := regexp.Compile("\n+")
-	reAll2 := func(str string) string {
-		return strings.TrimSpace(re3.ReplaceAllString(re2.ReplaceAllString(re.ReplaceAllString(re4.ReplaceAllString(str, "\n"), ""), ""), "。"))
+	reEnterSpace, _ := regexp.Compile("\r\n | \n | \r")
+	reSpace, _ := regexp.Compile(" +")
+	reEnterDot, _ := regexp.Compile("\n。")
+	reEnter, _ := regexp.Compile("\n+")
+	reSum := func(str string) string {
+		return strings.TrimSpace(reEnterDot.ReplaceAllString(reSpace.ReplaceAllString(reEnterSpace.ReplaceAllString(reEnter.ReplaceAllString(str, "\n"), ""), ""), "。"))
 	}
 
 	var words []*Word
@@ -56,28 +55,29 @@ func Get(str string) []*Word {
 	if err != nil {
 		log.Println(err)
 	}
-	s, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println(err)
-	}
-	x, _ := goquery.ParseString(string(s))
+	//s, err := ioutil.ReadAll(resp.Body)
+	//if err != nil {
+	//	log.Println(err)
+	//}
+	x, _ := goquery.NewDocumentFromReader(resp.Body)
 
 	wait := make(chan bool)
-	for _, s := range x.Find(".word-details-pane").HtmlAll() {
+	for _, s := range x.Find(".word-details-pane").Nodes {
 		word := &Word{}
-		x, _ := goquery.ParseString(s)
+		x := goquery.NewDocumentFromNode(s)
 
 		go func() {
-			word.Word, word.Katakana, word.AudioUrl = x.Find(".word-text h2").Text(), x.Find(".pronounces span").Text(), x.Find(".pronounces .word-audio").Attr("data-src")
+			word.Word, word.Katakana = x.Find(".word-text h2").Text(), x.Find(".pronounces span").Text()
+			word.AudioUrl, _ = x.Find(".pronounces .word-audio").Attr("data-src")
 			wait <- true
 		}()
 
 		go func() {
 			word.Simple = []*SimpleExplain{}
-			for _, s := range x.Find(".simple").HtmlAll() {
-				simpleTmpAll := reAll2(x.Find(".simple").Text())
-				x, _ := goquery.ParseString(s)
-				if len(x.Find("h2").HtmlAll()) == 0 {
+			for _, s := range x.Find(".simple").Nodes {
+				simpleTmpAll := reSum(x.Find(".simple").Text())
+				x := goquery.NewDocumentFromNode(s)
+				if len(x.Find("h2").Nodes) == 0 {
 					if simpleTmpAll == "" {
 						break
 					}
@@ -87,13 +87,13 @@ func Get(str string) []*Word {
 					word.Simple = append(word.Simple, simpleTmp)
 					break
 				}
-				list := x.Find("ul").HtmlAll()
-				for index, s := range x.Find("h2").HtmlAll() {
+				list := x.Find("ul").Nodes
+				for index, s := range x.Find("h2").Nodes {
 					simpleTmp := &SimpleExplain{}
-					simpleTmp.Attribute = s
-					x, _ := goquery.ParseString(list[index])
-					for _, s := range x.Find("li").HtmlAll() {
-						x, _ := goquery.ParseString(s)
+					simpleTmp.Attribute = goquery.NewDocumentFromNode(s).Text()
+					x := goquery.NewDocumentFromNode(list[index])
+					for _, s := range x.Find("li").Nodes {
+						x := goquery.NewDocumentFromNode(s)
 						simpleTmp.Explains = append(simpleTmp.Explains, x.Text())
 					}
 					word.Simple = append(word.Simple, simpleTmp)
@@ -104,20 +104,20 @@ func Get(str string) []*Word {
 
 		go func() {
 			word.Detail = []*Detail{}
-			for _, s := range x.Find(".word-details-pane-content .word-details-item").HtmlAll() {
-				x, _ := goquery.ParseString(s)
-				for _, s := range x.Find(".word-details-item-content .detail-groups dl").HtmlAll() {
-					x, _ := goquery.ParseString(s)
+			for _, s := range x.Find(".word-details-pane-content .word-details-item").Nodes {
+				x := goquery.NewDocumentFromNode(s)
+				for _, s := range x.Find(".word-details-item-content .detail-groups dl").Nodes {
+					x := goquery.NewDocumentFromNode(s)
 					detailTmp := &Detail{}
-					detailTmp.Attribute = reAll2(x.Find("dt").Text())
-					for _, s := range x.Find("dd").HtmlAll() {
-						x, _ := goquery.ParseString(s)
+					detailTmp.Attribute = reSum(x.Find("dt").Text())
+					for _, s := range x.Find("dd").Nodes {
+						x := goquery.NewDocumentFromNode(s)
 						explainsAndExampleTmp := &ExplainsAndExample{}
-						explainsAndExampleTmp.Explain = strings.Replace(reAll2(x.Find("h3").Text()), "\n", "", -1)
-						for _, s := range x.Find("ul li").HtmlAll() {
-							x, _ := goquery.ParseString(s)
-							from := reAll2(x.Find(".def-sentence-from").Text())
-							to := reAll2(x.Find(".def-sentence-to").Text())
+						explainsAndExampleTmp.Explain = strings.Replace(reSum(x.Find("h3").Text()), "\n", "", -1)
+						for _, s := range x.Find("ul li").Nodes {
+							x := goquery.NewDocumentFromNode(s)
+							from := reSum(x.Find(".def-sentence-from").Text())
+							to := reSum(x.Find(".def-sentence-to").Text())
 							tmp := []string{from, to}
 							explainsAndExampleTmp.Example = append(explainsAndExampleTmp.Example, tmp)
 						}
