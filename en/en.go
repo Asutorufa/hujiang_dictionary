@@ -1,15 +1,18 @@
 package en
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Detail word detail explains
@@ -54,22 +57,31 @@ func Get(str string) []*Word {
 		return strings.TrimSpace(reSpace.ReplaceAllString(strings.Replace(reEnter.ReplaceAllString(str, ""), "\n", "", -1), " "))
 	}
 
+	client := http.Client{
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Resolver: &net.Resolver{
+					PreferGo: true,
+					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+						return net.DialTimeout(network, "114.114.114.114:53", time.Second*10)
+					},
+				},
+			}).DialContext,
+		},
+	}
 	var words []*Word
 	req, err := http.NewRequest(http.MethodGet, "https://dict.hjenglish.com/w/"+url.PathEscape(str), nil)
 	if err != nil {
 		log.Println(err)
+		return nil
 	}
 	req.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36")
 	req.Header.Add("Cookie", "HJ_UID=0f406091-be97-6b64-f1fc-f7b2470883e9; HJ_CST=1; HJ_CSST_3=1;TRACKSITEMAP=3%2C; HJ_SID=393c85c7-abac-f408-6a32-a1f125d7e8c6; _REF=; HJ_SSID_3=4a460f19-c0ae-12a7-8e86-6e360f69ec9b; _SREF_3=; HJ_CMATCH=1")
-	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
+		return nil
 	}
-	//s, err := ioutil.ReadAll(resp.Body)
-	//if err != nil {
-	//	log.Println(err)
-	//}
 	x, _ := goquery.NewDocumentFromReader(resp.Body)
 
 	wait := make(chan bool, 0)
