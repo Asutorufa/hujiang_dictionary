@@ -1,18 +1,16 @@
 package jp
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/PuerkitoBio/goquery"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 type SimpleExplain struct {
@@ -47,16 +45,16 @@ func Get(str string) []*Word {
 	}
 
 	client := http.Client{
-		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Resolver: &net.Resolver{
-					PreferGo: true,
-					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-						return net.DialTimeout(network, "114.114.114.114:53", time.Second*10)
-					},
-				},
-			}).DialContext,
-		},
+		// Transport: &http.Transport{
+		// 	DialContext: (&net.Dialer{
+		// 		Resolver: &net.Resolver{
+		// 			PreferGo: true,
+		// 			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+		// 				return net.DialTimeout(network, "114.114.114.114:53", time.Second*10)
+		// 			},
+		// 		},
+		// 	}).DialContext,
+		// },
 	}
 	var words []*Word
 	req, err := http.NewRequest(http.MethodGet, "https://dict.hjenglish.com/jp/jc/"+url.PathEscape(str), nil)
