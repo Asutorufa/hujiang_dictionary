@@ -61,18 +61,7 @@ var (
 
 func Get(str string) []Word {
 
-	client := http.Client{
-		// Transport: &http.Transport{
-		// 	DialContext: (&net.Dialer{
-		// 		Resolver: &net.Resolver{
-		// 			PreferGo: true,
-		// 			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-		// 				return net.DialTimeout(network, "114.114.114.114:53", time.Second*10)
-		// 			},
-		// 		},
-		// 	}).DialContext,
-		// },
-	}
+	client := http.Client{}
 	req, err := http.NewRequest(http.MethodGet, "https://dict.hjenglish.com/w/"+url.PathEscape(str), nil)
 	if err != nil {
 		log.Println(err)

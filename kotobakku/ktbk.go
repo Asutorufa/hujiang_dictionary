@@ -15,7 +15,7 @@ type Ktbk struct {
 	Imi  []string `json:"imi"`
 }
 
-func Get(word string) (all []*Ktbk) {
+func Get(word string) (all []Ktbk) {
 	reSpace, _ := regexp.Compile(" +")
 	reEnter, _ := regexp.Compile("\n+")
 	reEnterSpace, _ := regexp.Compile("(\n )+")
@@ -27,43 +27,45 @@ func Get(word string) (all []*Ktbk) {
 	if err != nil {
 		panic(err)
 	}
-	for _, n := range x.Find("#mainArea article").Nodes {
-		one := &Ktbk{}
-		xx := goquery.NewDocumentFromNode(n)
-		one.Dict = "「　" + xx.Find("h2").Text() + "　」"
-		for _, node := range xx.Find("div section").Nodes {
-			tmp := ""
-			xx = goquery.NewDocumentFromNode(node)
-			n := xx.Find(">div").Nodes
-			if len(n) <= 0 {
+
+	x.Find("#mainArea article").Each(func(i int, s *goquery.Selection) {
+		one := Ktbk{
+			Dict: "「　" + s.Find("h2").Text() + "　」",
+		}
+
+		s.Find("div section").Each(func(i int, s *goquery.Selection) {
+			imi := ""
+			n := s.Find(">div")
+			if n.Size() == 0 {
 				//log.Println(re2.ReplaceAllString(xx.Find("div section").Text(),""))
-				origin, _ := xx.Html()
+				origin, _ := s.Html()
 				origin = strings.ReplaceAll(origin, "<br/>", "\n")
 				origin = strings.ReplaceAll(origin, "</div>", "</div>\n ")
-				xx.SetHtml(origin)
-				tmp = reSpace.ReplaceAllString(xx.Text(), " ")
-				tmp = reEnter.ReplaceAllString(tmp, "\n")
-				tmp = reEnterSpace.ReplaceAllString(tmp, "\n ")
-				one.Imi = append(one.Imi, tmp)
-				continue
+				s.SetHtml(origin)
+				imi = reSpace.ReplaceAllString(s.Text(), " ")
+				imi = reEnter.ReplaceAllString(imi, "\n")
+				imi = reEnterSpace.ReplaceAllString(imi, "\n ")
+				one.Imi = append(one.Imi, imi)
+				return
 			}
-			for index, x := range n {
-				//log.Println(re2.ReplaceAllString(goquery.NewDocumentFromNode(x).Text(),""))
-				if index != 0 {
-					tmp += "\n"
-				}
-				dataOrgTag, _ := goquery.NewDocumentFromNode(x).Attr("data-orgtag")
-				if dataOrgTag == "meaning" {
-					tmp += " " + strings.ReplaceAll(reSpace.ReplaceAllString(goquery.NewDocumentFromNode(x).Text(), ""), "\n", "")
-				} else {
-					tmp += "  " + strings.ReplaceAll(reSpace.ReplaceAllString(goquery.NewDocumentFromNode(x).Text(), ""), "\n", "")
-				}
-			}
-			one.Imi = append(one.Imi, tmp)
-		}
-		all = append(all, one)
-	}
 
+			n.Each(func(i int, s *goquery.Selection) {
+				//log.Println(re2.ReplaceAllString(goquery.NewDocumentFromNode(x).Text(),""))
+				if i != 0 {
+					imi += "\n"
+				}
+
+				if s.AttrOr("data-orgtag", "") == "meaning" {
+					imi += " " + strings.ReplaceAll(reSpace.ReplaceAllString(s.Text(), ""), "\n", "")
+				} else {
+					imi += "  " + strings.ReplaceAll(reSpace.ReplaceAllString(s.Text(), ""), "\n", "")
+				}
+			})
+			one.Imi = append(one.Imi, imi)
+		})
+
+		all = append(all, one)
+	})
 	return
 }
 

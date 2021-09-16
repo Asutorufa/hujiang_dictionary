@@ -15,7 +15,7 @@ func TestShow(t *testing.T) {
 	t.Log(FormatString("kodomo"))
 }
 
-//go:embed test_data.html
+//go:embed test_data.txt
 var x []byte
 
 func TestGetWord(t *testing.T) {
