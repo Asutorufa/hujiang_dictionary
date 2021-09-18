@@ -2,7 +2,6 @@ package en
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -18,8 +17,8 @@ import (
 // Attribute word attribute
 // ExplainsAndExample {explains:[[example],[example]]}  | example: [eg,eg2]
 type ExplainsAndExample struct {
-	Explain string     `json:"explain"`
-	Example [][]string `json:"example"`
+	Explain string      `json:"explain"`
+	Example [][2]string `json:"example"`
 }
 type Detail struct {
 	Attribute          string               `json:"attribute"`
@@ -127,7 +126,7 @@ func Get(str string) []Word {
 					x.Find("ul li").Each(func(i int, s *goquery.Selection) {
 						explainsAndExampleTmp.Example = append(
 							explainsAndExampleTmp.Example,
-							[]string{
+							[2]string{
 								reReduceEnter(s.Find(".def-sentence-from").Text()),
 								reReduceEnter(s.Find(".def-sentence-to").Text()),
 							},
@@ -195,65 +194,124 @@ func GetJson(str string) (s string, err error) {
 	return string(x), err
 }
 
-func Show(str string) {
-	x := Get(str)
-	for _, s := range x {
-		fmt.Println(s.Word)
-		fmt.Println(s.Katakana, s.Roma)
-		fmt.Println(s.AudioUsUrl)
-		fmt.Println(s.AudioEnUrl)
+func FormatString(str string) string {
+	return convertToString(Get(str))
+}
 
-		fmt.Println("simple explain:")
-		for index := range s.Simple {
-			fmt.Println(" " + s.Simple[index])
+func convertToString(w []Word) string {
+	str := strings.Builder{}
+	for _, s := range w {
+		str.WriteString(s.Word)
+		str.WriteByte('\n')
+		str.WriteString(s.Katakana)
+		str.WriteByte(' ')
+		str.WriteString(s.Roma)
+		str.WriteByte('\n')
+		str.WriteString(s.AudioUsUrl)
+		str.WriteByte('\n')
+		str.WriteString(s.AudioEnUrl)
+		str.WriteByte('\n')
+
+		for i := range s.Simple {
+			if i == 0 {
+				str.WriteString("simple explain:\n")
+			}
+			str.WriteByte(' ')
+			str.WriteString(s.Simple[i])
+			str.WriteByte('\n')
 		}
 
-		fmt.Println("More Detail:")
-		for index := range s.Detail {
-			fmt.Println(" word attribute: " + s.Detail[index].Attribute)
-			tmp := s.Detail[index].ExplainsAndExample
-			for index := range tmp {
-				fmt.Println("  " + strconv.Itoa(index+1) + "." + tmp[index].Explain)
-				exampleTmp := tmp[index].Example
-				for index := range exampleTmp {
-					for i := range exampleTmp[index] {
-						switch i {
-						case 0:
-							fmt.Println("    " + strconv.Itoa(index+1) + ")" + exampleTmp[index][i])
-						case 1:
-							fmt.Println("      " + exampleTmp[index][i])
+		for i := range s.Detail {
+			if i == 0 {
+				str.WriteString("More Detail:\n")
+			}
 
-						}
-					}
+			str.WriteString(" word attribute: ")
+			str.WriteString(s.Detail[i].Attribute)
+			str.WriteByte('\n')
+
+			for i2 := range s.Detail[i].ExplainsAndExample {
+				str.WriteString("  ")
+				str.WriteString(strconv.Itoa(i2 + 1))
+				str.WriteByte('.')
+				str.WriteString(s.Detail[i].ExplainsAndExample[i2].Explain)
+				str.WriteByte('\n')
+
+				for i3 := range s.Detail[i].ExplainsAndExample[i2].Example {
+					str.WriteString("    ")
+					str.WriteString(strconv.Itoa(i3 + 1))
+					str.WriteByte(')')
+					str.WriteString(s.Detail[i].ExplainsAndExample[i2].Example[i3][0])
+					str.WriteByte('\n')
+
+					str.WriteString("      ")
+					str.WriteString(s.Detail[i].ExplainsAndExample[i2].Example[i3][1])
+					str.WriteByte('\n')
 				}
 			}
 		}
 
-		fmt.Println("English Explains:")
-		for index := range s.EnglishExplains {
-			fmt.Println(" " + s.EnglishExplains[index].Attribute)
-			for i := range s.EnglishExplains[index].Explains {
-				fmt.Println("   " + strconv.Itoa(i+1) + "." + s.EnglishExplains[index].Explains[i])
+		for i := range s.EnglishExplains {
+			if i == 0 {
+				str.WriteString("English Explains:\n")
+			}
+			str.WriteByte(' ')
+			str.WriteString(s.EnglishExplains[i].Attribute)
+			str.WriteByte('\n')
+
+			for i2 := range s.EnglishExplains[i].Explains {
+				str.WriteString("   ")
+				str.WriteString(strconv.Itoa(i2 + 1))
+				str.WriteByte('.')
+				str.WriteString(s.EnglishExplains[i].Explains[i2])
+				str.WriteByte('\n')
 			}
 		}
 
-		fmt.Println("inflections:")
-		for index, x := range s.Inflections {
-			fmt.Println(" " + strconv.Itoa(index+1) + "." + x)
+		for i := range s.Inflections {
+			if i == 0 {
+				str.WriteString("inflections:\n")
+			}
+			str.WriteByte(' ')
+			str.WriteString(strconv.Itoa(i + 1))
+			str.WriteByte('.')
+			str.WriteString(s.Inflections[i])
+			str.WriteByte('\n')
 		}
 
-		fmt.Println("phrase:")
-		for index, x := range s.Phrase {
-			fmt.Println(" " + strconv.Itoa(index+1) + "." + x)
+		for i := range s.Phrase {
+			if i == 0 {
+				str.WriteString("phrase:\n")
+			}
+			str.WriteByte(' ')
+			str.WriteString(strconv.Itoa(i + 1))
+			str.WriteByte('.')
+			str.WriteString(s.Phrase[i])
+			str.WriteByte('\n')
 		}
 
-		fmt.Println("synonym:")
-		for index := range s.Synonym {
-			fmt.Println(" " + strconv.Itoa(index+1) + "." + s.Synonym[index])
+		for i := range s.Synonym {
+			if i == 0 {
+				str.WriteString("synonym:\n")
+			}
+			str.WriteByte(' ')
+			str.WriteString(strconv.Itoa(i + 1))
+			str.WriteByte('.')
+			str.WriteString(s.Synonym[i])
+			str.WriteByte('\n')
 		}
-		fmt.Println("antonym:")
-		for index := range s.Antonym {
-			fmt.Println(" " + strconv.Itoa(index+1) + "." + s.Antonym[index])
+
+		for i := range s.Antonym {
+			if i == 0 {
+				str.WriteString("antonym:\n")
+			}
+			str.WriteByte(' ')
+			str.WriteString(strconv.Itoa(i + 1))
+			str.WriteByte('.')
+			str.WriteString(s.Antonym[i])
+			str.WriteByte('\n')
 		}
 	}
+
+	return str.String()
 }

@@ -27,6 +27,6 @@ func TestGetJson(t *testing.T) {
 }
 
 func TestShow(t *testing.T) {
-	Show("good")
-	Show("show")
+	t.Log(FormatString("good"))
+	t.Log(FormatString("show"))
 }

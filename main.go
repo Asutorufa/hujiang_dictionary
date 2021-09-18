@@ -18,7 +18,7 @@ func main() {
 	case *jpFlag != "":
 		fmt.Println(jp.FormatString(*jpFlag))
 	case *enFlag != "":
-		en.Show(*enFlag)
+		fmt.Println(en.FormatString(*enFlag))
 	case *ktbkFlag != "":
 		kotobakku.Show(*ktbkFlag)
 	default:
