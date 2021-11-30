@@ -11,8 +11,8 @@ func TestGetJson(t *testing.T) {
 }
 
 func TestShow(t *testing.T) {
-	t.Log(FormatString("さまざま"))
-	t.Log(FormatString("kodomo"))
+	t.Log(FormatString("魚"))
+	// t.Log(FormatString("kodomo"))
 }
 
 //go:embed test_data.txt

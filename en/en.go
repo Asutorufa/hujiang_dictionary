@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 
+	"github.com/Asutorufa/hujiang_dictionary/utils"
 	"github.com/PuerkitoBio/goquery"
 )
 
@@ -84,106 +84,76 @@ func Get(str string) []Word {
 	}
 
 	var words []Word
-	w := sync.WaitGroup{}
-	x.Find(".word-details-pane").Each(func(i int, x *goquery.Selection) {
+	utils.Each(x.Find(".word-details-pane"), func(i int, x *goquery.Document) {
 		word := Word{}
 
-		w.Add(1)
-		go func() {
-			defer w.Done()
-			word.Word = x.Find(".word-text h2").Text()
-			pronounces := x.Find(".pronounces")
-			en := pronounces.Find(".pronounce-value-en")
-			if en.Size() == 0 {
-				word.Katakana = pronounces.Find("span").Text()
-				word.AudioEnUrl = pronounces.Find(".word-audio").AttrOr("data-src", "")
-				word.AudioUsUrl = word.AudioEnUrl
-			} else {
-				word.AudioEnUrl = en.Text() + " " + pronounces.Find(".word-audio-en").AttrOr("data-src", "")
-				word.AudioUsUrl = pronounces.Find(".pronounce-value-us").Text() + " " + pronounces.Find(".word-audio").Last().AttrOr("data-src", "")
-			}
+		word.Word = x.Find(".word-text h2").Text()
+		pronounces := x.Find(".pronounces")
+		en := pronounces.Find(".pronounce-value-en")
+		if en.Size() == 0 {
+			word.Katakana = pronounces.Find("span").Text()
+			word.AudioEnUrl = pronounces.Find(".word-audio").AttrOr("data-src", "")
+			word.AudioUsUrl = word.AudioEnUrl
+		} else {
+			word.AudioEnUrl = en.Text() + " " + pronounces.Find(".word-audio-en").AttrOr("data-src", "")
+			word.AudioUsUrl = pronounces.Find(".pronounce-value-us").Text() + " " + pronounces.Find(".word-audio").Last().AttrOr("data-src", "")
+		}
 
-			simpleP := x.Find(".simple p")
-			simpleP.Each(func(i int, s *goquery.Selection) {
-				word.Simple = append(word.Simple, reReduceEnter(s.Text()))
-			})
+		simpleP := x.Find(".simple p")
+		utils.Each(simpleP, func(i int, s *goquery.Document) {
+			word.Simple = append(word.Simple, reReduceEnter(s.Text()))
+		})
 
-			simpleP.Find(".simple-definition a").Each(func(i int, s *goquery.Selection) {
-				word.Simple = append(word.Simple, reReduceEnter(s.Text()))
-			})
-		}()
+		utils.Each(simpleP.Find(".simple-definition a"), func(i int, s *goquery.Document) {
+			word.Simple = append(word.Simple, reReduceEnter(s.Text()))
+		})
 
 		wordDetailsItemContent := x.Find(".word-details-item-content")
 
-		w.Add(1)
-		go func() {
-			defer w.Done()
-			wordDetailsItemContent.Find(".detail-groups dl").Each(func(i int, s *goquery.Selection) {
-				detail := Detail{Attribute: reReduceEnter(s.Find("dt").Text())}
+		utils.Each(wordDetailsItemContent.Find(".detail-groups dl"), func(i int, s *goquery.Document) {
+			detail := Detail{Attribute: reReduceEnter(s.Find("dt").Text())}
 
-				s.Find("dd").Each(func(i int, x *goquery.Selection) {
-					explainsAndExampleTmp := ExplainsAndExample{Explain: strings.TrimSpace(reReduceEnter(x.Find("h3").Text()))}
-					x.Find("ul li").Each(func(i int, s *goquery.Selection) {
-						explainsAndExampleTmp.Example = append(
-							explainsAndExampleTmp.Example,
-							[2]string{
-								reReduceEnter(s.Find(".def-sentence-from").Text()),
-								reReduceEnter(s.Find(".def-sentence-to").Text()),
-							},
-						)
-					})
-					detail.ExplainsAndExample = append(detail.ExplainsAndExample, explainsAndExampleTmp)
+			utils.Each(s.Find("dd"), func(i int, x *goquery.Document) {
+				explainsAndExampleTmp := ExplainsAndExample{Explain: strings.TrimSpace(reReduceEnter(x.Find("h3").Text()))}
+				utils.Each(x.Find("ul li"), func(i int, s *goquery.Document) {
+					explainsAndExampleTmp.Example = append(
+						explainsAndExampleTmp.Example,
+						[2]string{
+							reReduceEnter(s.Find(".def-sentence-from").Text()),
+							reReduceEnter(s.Find(".def-sentence-to").Text()),
+						},
+					)
 				})
-				word.Detail = append(word.Detail, detail)
+				detail.ExplainsAndExample = append(detail.ExplainsAndExample, explainsAndExampleTmp)
 			})
-		}()
+			word.Detail = append(word.Detail, detail)
+		})
 
-		w.Add(1)
-		go func() {
-			defer w.Done()
-			wordDetailsItemContent.Find(".phrase-items li").Each(func(i int, s *goquery.Selection) {
-				word.Phrase = append(word.Phrase, reReduceEnter(s.Text()))
+		utils.Each(wordDetailsItemContent.Find(".phrase-items li"), func(i int, s *goquery.Document) {
+			word.Phrase = append(word.Phrase, reReduceEnter(s.Text()))
+		})
+
+		utils.Each(wordDetailsItemContent.Find(".enen-groups dl"), func(i int, s *goquery.Document) {
+			englishExplainTmp := EnglishExplain{Attribute: reReduceEnter(s.Find("dt").Text())}
+
+			utils.Each(s.Find("dd"), func(i int, s *goquery.Document) {
+				englishExplainTmp.Explains = append(englishExplainTmp.Explains, reEnter2Space(s.Text()))
 			})
-		}()
+			word.EnglishExplains = append(word.EnglishExplains, englishExplainTmp)
+		})
 
-		w.Add(1)
-		go func() {
-			defer w.Done()
-			wordDetailsItemContent.Find(".enen-groups dl").Each(func(i int, s *goquery.Selection) {
-				englishExplainTmp := EnglishExplain{Attribute: reReduceEnter(s.Find("dt").Text())}
+		utils.Each(wordDetailsItemContent.Find(".inflections-items li"), func(i int, s *goquery.Document) {
+			word.Inflections = append(word.Inflections, reReduceEnter(s.Text()))
+		})
 
-				s.Find("dd").Each(func(i int, s *goquery.Selection) {
-					englishExplainTmp.Explains = append(englishExplainTmp.Explains, reEnter2Space(s.Text()))
-				})
-				word.EnglishExplains = append(word.EnglishExplains, englishExplainTmp)
-			})
-		}()
+		utils.Each(wordDetailsItemContent.Find(".syn table tbody tr td a"), func(i int, s *goquery.Document) {
+			word.Synonym = append(word.Synonym, reReduceEnter(s.Text()))
+		})
 
-		w.Add(1)
-		go func() {
-			defer w.Done()
-			wordDetailsItemContent.Find(".inflections-items li").Each(func(i int, s *goquery.Selection) {
-				word.Inflections = append(word.Inflections, reReduceEnter(s.Text()))
-			})
-		}()
+		utils.Each(wordDetailsItemContent.Find(".ant table tbody tr td a"), func(i int, s *goquery.Document) {
+			word.Antonym = append(word.Antonym, reReduceEnter(s.Text()))
+		})
 
-		w.Add(1)
-		go func() {
-			defer w.Done()
-			wordDetailsItemContent.Find(".syn table tbody tr td a").Each(func(i int, s *goquery.Selection) {
-				word.Synonym = append(word.Synonym, reReduceEnter(s.Text()))
-			})
-		}()
-
-		w.Add(1)
-		go func() {
-			defer w.Done()
-			wordDetailsItemContent.Find(".ant table tbody tr td a").Each(func(i int, s *goquery.Selection) {
-				word.Antonym = append(word.Antonym, reReduceEnter(s.Text()))
-			})
-		}()
-
-		w.Wait()
 		words = append(words, word)
 	})
 	return words

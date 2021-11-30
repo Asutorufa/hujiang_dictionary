@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/Asutorufa/hujiang_dictionary/utils"
 	"github.com/PuerkitoBio/goquery"
 )
 
@@ -28,12 +29,12 @@ func Get(word string) (all []Ktbk) {
 		panic(err)
 	}
 
-	x.Find("#mainArea article").Each(func(i int, s *goquery.Selection) {
+	utils.Each(x.Find("#mainArea article"), func(i int, s *goquery.Document) {
 		one := Ktbk{
 			Dict: "「　" + s.Find("h2").Text() + "　」",
 		}
 
-		s.Find("div section").Each(func(i int, s *goquery.Selection) {
+		utils.Each(s.Find("div section"), func(i int, s *goquery.Document) {
 			imi := ""
 			n := s.Find(">div")
 			if n.Size() == 0 {
@@ -49,7 +50,7 @@ func Get(word string) (all []Ktbk) {
 				return
 			}
 
-			n.Each(func(i int, s *goquery.Selection) {
+			utils.Each(n, func(i int, s *goquery.Document) {
 				//log.Println(re2.ReplaceAllString(goquery.NewDocumentFromNode(x).Text(),""))
 				if i != 0 {
 					imi += "\n"

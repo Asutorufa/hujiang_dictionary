@@ -9,8 +9,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 
+	"github.com/Asutorufa/hujiang_dictionary/utils"
 	"github.com/PuerkitoBio/goquery"
 )
 
@@ -64,72 +64,57 @@ func Get(str string) []Word {
 		return nil
 	}
 
-	// d, _ := ioutil.ReadAll(resp.Body)
-	// fmt.Println(string(d))
-
 	return getWords(resp.Body)
 }
 
 func getWords(r io.Reader) []Word {
 	var words []Word
-	x, _ := goquery.NewDocumentFromReader(r)
+	x, err := goquery.NewDocumentFromReader(r)
+	if err != nil {
+		panic(err)
+	}
 
-	wg := sync.WaitGroup{}
-	x.Find(".word-details-pane").Each(func(i int, x *goquery.Selection) {
+	utils.Each(x.Find(".word-details-pane"), func(i int, x *goquery.Document) {
 		word := Word{}
+		word.Word = x.Find(".word-text h2").Text()
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			word.Word = x.Find(".word-text h2").Text()
+		pronounces := x.FindMatcher(goquery.Single(".pronounces"))
+		word.Katakana = pronounces.Find("span").Text()
+		word.AudioUrl = pronounces.FindMatcher(goquery.Single(".word-audio")).AttrOr("data-src", "")
 
-			pronounces := x.FindMatcher(goquery.Single(".pronounces"))
-			word.Katakana = pronounces.Find("span").Text()
-			word.AudioUrl = pronounces.FindMatcher(goquery.Single(".pronounces .word-audio")).AttrOr("data-src", "")
-		}()
+		word.Simple = []SimpleExplain{}
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			word.Simple = []SimpleExplain{}
-
-			x.Find(".simple").Each(func(i int, s *goquery.Selection) {
-				attributes := s.Find("h2")
-				if attributes.Size() == 0 {
-					if explains := reSum(x.Find(".simple").Text()); explains != "" {
-						word.Simple = append(word.Simple, SimpleExplain{Explains: []string{explains}})
-					}
-					return
+		utils.Each(x.Find(".simple"), func(i int, s *goquery.Document) {
+			attributes := s.Find("h2")
+			if attributes.Size() == 0 {
+				if explains := reSum(x.Find(".simple").Text()); explains != "" {
+					word.Simple = append(word.Simple, SimpleExplain{Explains: []string{explains}})
 				}
+				return
+			}
 
-				list := s.Find("ul")
-				attributes.Each(func(i int, s *goquery.Selection) {
-					simple := SimpleExplain{}
-					simple.Attribute = s.Text()
-					list.Eq(i).Find("li").Each(func(i int, s *goquery.Selection) {
-						simple.Explains = append(simple.Explains, s.ReplaceWith("span").Text())
-					})
-					word.Simple = append(word.Simple, simple)
+			list := s.Find("ul")
+			utils.Each(attributes, func(i int, s *goquery.Document) {
+				simple := SimpleExplain{}
+				simple.Attribute = s.Text()
+				utils.Each(list.Eq(i).Find("li"), func(i int, s *goquery.Document) {
+					simple.Explains = append(simple.Explains, s.ReplaceWith("span").Text())
 				})
+				word.Simple = append(word.Simple, simple)
 			})
-		}()
+		})
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			word.Detail = getDetails(x)
-		}()
+		word.Detail = getDetails(x)
 
-		wg.Wait()
 		words = append(words, word)
 	})
 	return words
 }
 
-func getDetails(x *goquery.Selection) (d []Detail) {
-	x.Find(".word-details-pane-content .word-details-item").Each(func(i int, s *goquery.Selection) {
+func getDetails(x *goquery.Document) (d []Detail) {
+	utils.Each(x.Find(".word-details-pane-content .word-details-item"), func(i int, s *goquery.Document) {
 		source := s.Find(".detail-source").Text()
-		s.Find(".word-details-item-content .detail-groups dl").Each(func(i int, s *goquery.Selection) {
+		utils.Each(s.Find(".word-details-item-content .detail-groups dl"), func(i int, s *goquery.Document) {
 			detail := getDetail(s)
 			detail.Source = source
 			d = append(d, detail)
@@ -138,18 +123,18 @@ func getDetails(x *goquery.Selection) (d []Detail) {
 	return
 }
 
-func getDetail(s *goquery.Selection) Detail {
+func getDetail(s *goquery.Document) Detail {
 	detail := Detail{}
 	detail.Attribute = reSum(s.FindMatcher(goquery.Single("dt")).Text())
-	s.Find("dd").Each(func(i int, s *goquery.Selection) {
+	utils.Each(s.Find("dd"), func(i int, s *goquery.Document) {
 		explain := strings.Builder{}
-		s.Find("h3 p").Each(func(i int, s *goquery.Selection) {
+		utils.Each(s.Find("h3 p"), func(i int, s *goquery.Document) {
 			explain.WriteString(reSum(s.Text()))
 		})
 
 		explainsAndExample := ExplainsAndExample{Explain: explain.String()}
 
-		s.Find("ul li").Each(func(i int, s *goquery.Selection) {
+		utils.Each(s.Find("ul li"), func(i int, s *goquery.Document) {
 			explainsAndExample.Example = append(
 				explainsAndExample.Example,
 				[2]string{
