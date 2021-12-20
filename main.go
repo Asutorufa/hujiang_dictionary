@@ -12,13 +12,16 @@ import (
 
 func main() {
 	enFlag := flag.String("en", "", "english")
-	jpFlag := flag.String("jp", "", "japanese")
+	jpFlag := flag.String("jp", "", "japanese to chinese")
+	cnjpFlag := flag.String("cnjp", "", "chinese to japanese")
 	krFlag := flag.String("kr", "", "korean")
 	ktbkFlag := flag.String("ktbk", "", "コトバック")
 	flag.Parse()
 	switch {
 	case *jpFlag != "":
 		fmt.Println(jp.FormatString(*jpFlag))
+	case *cnjpFlag != "":
+		fmt.Println(jp.FormatCNString(*cnjpFlag))
 	case *enFlag != "":
 		fmt.Println(en.FormatString(*enFlag))
 	case *ktbkFlag != "":

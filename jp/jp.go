@@ -2,6 +2,7 @@ package jp
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -50,7 +51,11 @@ var (
 )
 
 func Get(str string) []Word {
-	req, err := http.NewRequest(http.MethodGet, "https://dict.hjenglish.com/jp/jc/"+url.PathEscape(str), nil)
+	return get(str, "jc")
+}
+
+func get(str, u string) []Word {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://dict.hjenglish.com/jp/%s/%s", u, url.PathEscape(str)), nil)
 	if err != nil {
 		log.Println(err)
 		return nil
@@ -65,6 +70,10 @@ func Get(str string) []Word {
 	}
 
 	return getWords(resp.Body)
+}
+
+func GetCN(str string) []Word {
+	return get(str, "cj")
 }
 
 func getWords(r io.Reader) []Word {
@@ -157,6 +166,10 @@ func GetJson(str string) (string, error) {
 
 func FormatString(str string) string {
 	return convertToString(Get(str))
+}
+
+func FormatCNString(str string) string {
+	return convertToString(GetCN(str))
 }
 
 func convertToString(y []Word) string {
