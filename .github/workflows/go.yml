@@ -23,3 +23,12 @@ jobs:
 
     - name: Test
       run: go vet ./...
+
+    - name: Build-ALL
+      run: sh build.sh
+
+    - name: upload
+      uses: actions/upload-artifact@v2
+      with:
+        name: "binaries"
+        path: ./output
