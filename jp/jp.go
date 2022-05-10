@@ -164,6 +164,11 @@ func GetJson(str string) (string, error) {
 	return string(s), err
 }
 
+func GetCNJson(str string) (string, error) {
+	s, err := json.MarshalIndent(GetCN(str), "", " ")
+	return string(s), err
+}
+
 func FormatString(str string) string {
 	return convertToString(Get(str))
 }

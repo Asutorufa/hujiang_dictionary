@@ -8,8 +8,13 @@ hj -en hello
 hj -en 你好
 # 日语
 hj -jp こにちは
+# 中日
+hj -cnjp 你好
 #コトバック
 hj -ktbk こら
+
+# add -json output json
+hj -json -jp こにちは
 ```
 
 ## API

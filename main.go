@@ -16,7 +16,30 @@ func main() {
 	cnjpFlag := flag.String("cnjp", "", "chinese to japanese")
 	krFlag := flag.String("kr", "", "korean")
 	ktbkFlag := flag.String("ktbk", "", "コトバック")
+	jsonFlag := flag.Bool("json", false, "output json")
+
 	flag.Parse()
+	if *jsonFlag {
+		var data string
+		switch {
+		case *jpFlag != "":
+			data, _ = jp.GetJson(*jpFlag)
+		case *cnjpFlag != "":
+			data, _ = jp.GetCNJson(*cnjpFlag)
+		case *enFlag != "":
+			data, _ = en.GetJson(*enFlag)
+		case *ktbkFlag != "":
+			data, _ = kotobakku.GetJson(*ktbkFlag)
+		case *krFlag != "":
+			data, _ = kr.GetJson(*krFlag)
+		default:
+			return
+		}
+
+		fmt.Println(data)
+		return
+	}
+
 	switch {
 	case *jpFlag != "":
 		fmt.Println(jp.FormatString(*jpFlag))
