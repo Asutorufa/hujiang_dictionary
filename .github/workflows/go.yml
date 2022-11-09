@@ -28,7 +28,7 @@ jobs:
       run: sh build.sh
 
     - name: upload
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: "binaries"
         path: ./output
