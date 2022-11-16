@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Go
       uses: actions/setup-go@v3
@@ -25,10 +25,40 @@ jobs:
       run: go vet ./...
 
     - name: Build-ALL
-      run: sh build.sh
+      run: bash build.sh
 
-    - name: upload
+    - name: upload_linux
       uses: actions/upload-artifact@v3
       with:
-        name: "binaries"
-        path: ./output
+        name: "linux"
+        path: ./output/linux
+
+    - name: upload_android
+      uses: actions/upload-artifact@v3
+      with:
+        name: "android"
+        path: ./output/android
+  
+    - name: upload_darwin
+      uses: actions/upload-artifact@v3
+      with:
+        name: "darwin"
+        path: ./output/darwin
+
+    - name: upload_freebsd
+      uses: actions/upload-artifact@v3
+      with:
+        name: "freebsd"
+        path: ./output/freebsd
+
+    - name: upload_openbsd
+      uses: actions/upload-artifact@v3
+      with:
+        name: "openbsd"
+        path: ./output/openbsd
+
+    - name: upload_windows
+      uses: actions/upload-artifact@v3
+      with:
+        name: "windows"
+        path: ./output/windows

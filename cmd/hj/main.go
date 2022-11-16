@@ -17,8 +17,8 @@ func main() {
 	krFlag := flag.String("kr", "", "korean")
 	ktbkFlag := flag.String("ktbk", "", "コトバック")
 	jsonFlag := flag.Bool("json", false, "output json")
-
 	flag.Parse()
+
 	if *jsonFlag {
 		var data string
 		switch {

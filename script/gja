@@ -1,0 +1,2 @@
+#! /usr/bin/sh 
+googletl -target ja -text "${*}" 

@@ -57,20 +57,18 @@ func Translate(text, srcLang, tarLang string) (*Result, error) {
 		return nil, fmt.Errorf("unmarshal body failed: %w", err)
 	}
 
-	var resultText []string
-	var sourceText []string
-	if len(result) > 0 {
-		inner := result[0]
-		for _, slice := range inner.([]interface{}) {
-			z, ok := slice.([]interface{})
-			if !ok || len(z) < 2 {
-				continue
-			}
-			resultText = append(resultText, fmt.Sprint(z[0]))
-			sourceText = append(sourceText, fmt.Sprint(z[1]))
-		}
-		return &Result{resultText, sourceText}, nil
-	} else {
+	if len(result) <= 0 {
 		return nil, errors.New("no translated data in response")
 	}
+
+	var resultText, sourceText []string
+	for _, slice := range result[0].([]interface{}) {
+		z, ok := slice.([]interface{})
+		if !ok || len(z) < 2 {
+			continue
+		}
+		resultText = append(resultText, fmt.Sprint(z[0]))
+		sourceText = append(sourceText, fmt.Sprint(z[1]))
+	}
+	return &Result{resultText, sourceText}, nil
 }
