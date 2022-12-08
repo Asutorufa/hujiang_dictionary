@@ -10,55 +10,31 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [mips, mips64, 386, arm, arm64, amd64]
+        os: [linux, android, darwin, freebsd, openbsd, windows]
+
     steps:
     - uses: actions/checkout@v3
 
     - name: Set up Go
       uses: actions/setup-go@v3
       with:
-        go-version: 1.16
+        go-version: 1.19
 
-    - name: Build
-      run: go build -v ./...
+    - name: Build hj
+      run: CGO_ENABLED=0 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w -buildid=" -trimpath -v -o output/hj_${{ matrix.os }}_${{ matrix.arch }} ./cmd/hj/...
 
-    - name: Test
-      run: go vet ./...
+    - name: Build google
+      run: CGO_ENABLED=0 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w -buildid=" -trimpath -v -o output/google_${{ matrix.os }}_${{ matrix.arch }} ./cmd/google/...
 
-    - name: Build-ALL
-      run: bash build.sh
-
-    - name: upload_linux
+    - name: upload_${{ matrix.os }}_${{ matrix.arch }}
       uses: actions/upload-artifact@v3
       with:
-        name: "linux"
-        path: ./output/linux
-
-    - name: upload_android
-      uses: actions/upload-artifact@v3
-      with:
-        name: "android"
-        path: ./output/android
-  
-    - name: upload_darwin
-      uses: actions/upload-artifact@v3
-      with:
-        name: "darwin"
-        path: ./output/darwin
-
-    - name: upload_freebsd
-      uses: actions/upload-artifact@v3
-      with:
-        name: "freebsd"
-        path: ./output/freebsd
-
-    - name: upload_openbsd
-      uses: actions/upload-artifact@v3
-      with:
-        name: "openbsd"
-        path: ./output/openbsd
-
-    - name: upload_windows
-      uses: actions/upload-artifact@v3
-      with:
-        name: "windows"
-        path: ./output/windows
+        name: "${{ matrix.os }}_${{ matrix.arch }}"
+        path: |
+          ./output/hj_${{ matrix.os }}_${{ matrix.arch }}
+          ./output/google_${{ matrix.os }}_${{ matrix.arch }}
