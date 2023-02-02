@@ -87,3 +87,18 @@ func Show(word string) {
 		fmt.Println()
 	}
 }
+
+func FormatString(word string) string {
+	data := Get(word)
+
+	str := strings.Builder{}
+	for index := range data {
+		str.WriteString(data[index].Dict)
+		for _, im := range data[index].Imi {
+			str.WriteString(im)
+		}
+		str.WriteString("\n\n")
+	}
+
+	return str.String()
+}
