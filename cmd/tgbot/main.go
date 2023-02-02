@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/Asutorufa/hujiang_dictionary/en"
 	"github.com/Asutorufa/hujiang_dictionary/jp"
@@ -13,7 +15,7 @@ import (
 
 func main() {
 	token := flag.String("t", "", "-t xxx, telegram bot token")
-	id := flag.Int64("id", 0, "-id xx, user id")
+	id := flag.String("id", "", "-id [xx,xxx], user id")
 	flag.Parse()
 
 	if *token == "" {
@@ -25,6 +27,19 @@ func main() {
 		log.Panic(err)
 	}
 
+	var idMap map[int64]bool
+	if *id != "" {
+		idMap = make(map[int64]bool)
+		for _, id := range strings.FieldsFunc(*id, func(r rune) bool { return r == ',' }) {
+			i, err := strconv.ParseInt(id, 10, 64)
+			if err != nil {
+				log.Panic(err)
+			}
+
+			idMap[i] = true
+		}
+
+	}
 	// bot.Debug = true
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
@@ -43,7 +58,7 @@ func main() {
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		if update.Message == nil || (*id != 0 && update.Message.From.ID != *id) {
+		if update.Message == nil || (idMap != nil && !idMap[update.Message.From.ID]) {
 			continue
 		}
 
