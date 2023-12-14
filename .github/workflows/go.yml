@@ -32,7 +32,7 @@ jobs:
       run: CGO_ENABLED=0 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w -buildid=" -trimpath -v -o output/google_${{ matrix.os }}_${{ matrix.arch }} ./cmd/google/...
 
     - name: upload_${{ matrix.os }}_${{ matrix.arch }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: "${{ matrix.os }}_${{ matrix.arch }}"
         path: |
