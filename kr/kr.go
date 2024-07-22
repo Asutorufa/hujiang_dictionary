@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Asutorufa/hujiang_dictionary/httpclient"
 	"github.com/Asutorufa/hujiang_dictionary/utils"
 	"github.com/PuerkitoBio/goquery"
 )
@@ -58,7 +59,7 @@ func Get(str string) []Word {
 	req.Header.Add("User-Agent", userAgent)
 	req.Header.Add("Cookie", cookie)
 
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := httpclient.DefaultClient.Do(req)
 	if err != nil {
 		log.Println(err)
 		return nil

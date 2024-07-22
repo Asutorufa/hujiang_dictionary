@@ -3,10 +3,10 @@ package kotobakku
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"regexp"
 	"strings"
 
+	"github.com/Asutorufa/hujiang_dictionary/httpclient"
 	"github.com/Asutorufa/hujiang_dictionary/utils"
 	"github.com/PuerkitoBio/goquery"
 )
@@ -20,7 +20,7 @@ func Get(word string) (all []Ktbk) {
 	reSpace, _ := regexp.Compile(" +")
 	reEnter, _ := regexp.Compile("\n+")
 	reEnterSpace, _ := regexp.Compile("(\n )+")
-	c, err := http.Get("https://kotobank.jp/word/" + word)
+	c, err := httpclient.DefaultClient.Get("https://kotobank.jp/word/" + word)
 	if err != nil {
 		panic(err)
 	}

@@ -1,3 +1,6 @@
 output/
 .idea/
 hjjp
+/cmd/worker/build
+/cmd/worker/node_modules
+/cmd/worker/wrangler.toml

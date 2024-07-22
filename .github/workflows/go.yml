@@ -2,39 +2,52 @@ name: Go
 
 on:
   push:
-    branches: [ golang ]
+    branches: [golang]
   pull_request:
-    branches: [ golang ]
+    branches: [golang]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        arch: [mips, mips64, 386, arm, arm64, amd64]
-        os: [linux, android, darwin, freebsd, openbsd, windows]
+        env:
+          [
+            [linux, "amd64"],
+            [linux, "arm64"],
+            [linux, "mipsle"],
+            [android, "arm64"],
+            [darwin, "amd64"],
+            [darwin, "arm64"],
+            [freebsd, "amd64"],
+            [freebsd, "arm64"],
+            [openbsd, "amd64"],
+            [openbsd, "arm64"],
+            [windows, "amd64"],
+            [windows, "arm64"],
+          ]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: 1.19
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          check-latest: true
+          go-version-file: "go.mod"
 
-    - name: Build hj
-      run: CGO_ENABLED=0 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w -buildid=" -trimpath -v -o output/hj_${{ matrix.os }}_${{ matrix.arch }} ./cmd/hj/...
+      - name: Build hj
+        run: CGO_ENABLED=0 GOOS=${{ matrix.env[0] }} GOARCH=${{ matrix.env[1] }} go build -ldflags="-s -w -buildid=" -trimpath -v -o output/hj_${{ matrix.env[0] }}_${{ matrix.env[1] }}${{ matrix.env[0] == 'windows' && '.exe' || '' }} ./cmd/hj/...
 
-    - name: Build google
-      run: CGO_ENABLED=0 GOOS=${{ matrix.os }} GOARCH=${{ matrix.arch }} go build -ldflags="-s -w -buildid=" -trimpath -v -o output/google_${{ matrix.os }}_${{ matrix.arch }} ./cmd/google/...
+      - name: Build google
+        run: CGO_ENABLED=0 GOOS=${{ matrix.env[0] }} GOARCH=${{ matrix.env[1] }} go build -ldflags="-s -w -buildid=" -trimpath -v -o output/google_${{ matrix.env[0] }}_${{ matrix.env[1] }}${{ matrix.env[0] == 'windows' && '.exe' || '' }} ./cmd/google/...
 
-    - name: upload_${{ matrix.os }}_${{ matrix.arch }}
-      uses: actions/upload-artifact@v4
-      with:
-        name: "${{ matrix.os }}_${{ matrix.arch }}"
-        path: |
-          ./output/hj_${{ matrix.os }}_${{ matrix.arch }}
-          ./output/google_${{ matrix.os }}_${{ matrix.arch }}
+      - name: upload_${{ matrix.env[0] }}_${{ matrix.env[1] }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: "${{ matrix.env[0] }}_${{ matrix.env[1] }}"
+          path: |
+            ./output/hj_${{ matrix.env[0] }}_${{ matrix.env[1] }}${{ matrix.env[0] == 'windows' && '.exe' || '' }}
+            ./output/google_${{ matrix.env[0] }}_${{ matrix.env[1] }}${{ matrix.env[0] == 'windows' && '.exe' || '' }}

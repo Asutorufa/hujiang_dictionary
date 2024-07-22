@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Asutorufa/hujiang_dictionary/httpclient"
 	"github.com/Asutorufa/hujiang_dictionary/utils"
 	"github.com/PuerkitoBio/goquery"
 )
@@ -60,7 +61,8 @@ var (
 
 func Get(str string) []Word {
 
-	client := http.Client{}
+	client := httpclient.DefaultClient
+
 	req, err := http.NewRequest(http.MethodGet, "https://dict.hjenglish.com/w/"+url.PathEscape(str), nil)
 	if err != nil {
 		log.Println(err)
