@@ -8,10 +8,12 @@ import (
 	"strings"
 
 	"github.com/Asutorufa/hujiang_dictionary/en"
+	"github.com/Asutorufa/hujiang_dictionary/google"
 	"github.com/Asutorufa/hujiang_dictionary/httpclient"
 	"github.com/Asutorufa/hujiang_dictionary/jp"
 	"github.com/Asutorufa/hujiang_dictionary/kotobakku"
 	"github.com/Asutorufa/hujiang_dictionary/kr"
+	"github.com/Asutorufa/hujiang_dictionary/weblio"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/syumai/tinyutil/httputil"
 	"github.com/syumai/workers"
@@ -43,12 +45,15 @@ command = "make build"
 telegram_token = "****:*****"
 worker_url = "https://*****.workers.dev"
 telegram_ids = "40xxxxxx,42xxxxx"
+
+[ai]
+binding = "AI"
 */
 
 func main() {
 	httpclient.DefaultClient = httputil.DefaultClient
 
-	bot()
+	http.HandleFunc("/tgbot", bot())
 
 	http.HandleFunc("/tgbot/register", func(w http.ResponseWriter, r *http.Request) {
 		wh, err := tgbotapi.NewWebhook(cloudflare.Getenv("worker_url") + "/tgbot")
@@ -67,19 +72,28 @@ func main() {
 			return
 		}
 
-		info, err := Bot.GetWebhookInfo()
-
-		json.NewEncoder(w).Encode([]any{
-			info, err,
-		})
-
-		Bot.Request(tgbotapi.NewSetMyCommands(
+		resp, err := Bot.Request(tgbotapi.NewSetMyCommands(
 			tgbotapi.BotCommand{Command: "en", Description: "en"},
 			tgbotapi.BotCommand{Command: "jpcn", Description: "jp -> cn"},
 			tgbotapi.BotCommand{Command: "cnjp", Description: "cn -> jp"},
 			tgbotapi.BotCommand{Command: "ktbk", Description: "コトバック"},
-			tgbotapi.BotCommand{Command: "kr", Description: "kr"},
+			tgbotapi.BotCommand{Command: "weblio", Description: "weblio辞書"},
+			tgbotapi.BotCommand{Command: "ko", Description: "korean"},
+			tgbotapi.BotCommand{Command: "cfaija", Description: "cloudflare worker ai -> japanese"},
+			tgbotapi.BotCommand{Command: "cfaicn", Description: "cloudflare worker ai -> chinese"},
+			tgbotapi.BotCommand{Command: "cfaitar_lang", Description: "cloudflare worker ai -> [tar_lang]"},
+			tgbotapi.BotCommand{Command: "cfaisrc_lang2tar_lang", Description: "cloudflare worker ai src_lang -> tar_lang"},
+			tgbotapi.BotCommand{Command: "ggtar_lang", Description: "google translate to tar_lang"},
 		))
+
+		if err != nil {
+			json.NewEncoder(w).Encode([]any{
+				err.Error(),
+			})
+			return
+		}
+
+		json.NewEncoder(w).Encode(resp)
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
@@ -94,26 +108,91 @@ func main() {
 
 		fmt.Println(t, word)
 
-		switch t {
-		case "jp":
-			w.Write([]byte(jp.FormatString(word)))
-		case "cnjp":
-			w.Write([]byte(jp.FormatCNString(word)))
-		case "kr":
-			w.Write([]byte(kr.FormatString(word)))
-		case "ktbk":
-			w.Write([]byte(kotobakku.FormatString(word)))
-		case "en":
-			w.Write([]byte(en.FormatString(word)))
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("unsupported type"))
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+		resp := translate(t, Args{Text: word})
+		if resp == "" {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("not found"))
+			return
 		}
+
+		w.Write([]byte(resp))
 	})
 	workers.Serve(nil) // use http.DefaultServeMux
 }
 
-func bot() {
+type Args struct {
+	Text string
+}
+
+func translate(cmd string, args Args) string {
+	var resp string
+	argument := args.Text
+
+	if strings.HasPrefix(cmd, "cfai") {
+		cmd = strings.TrimPrefix(cmd, "cfai")
+		var src string
+		target := cmd
+		if i := strings.IndexByte(cmd, '2'); i != -1 {
+			src = cmd[:i]
+			target = cmd[i+1:]
+		}
+
+		switch target {
+		case "en":
+			target = "english"
+		case "jp":
+			target = "japanese"
+		case "cn":
+			target = "chinese"
+		}
+
+		str, err := NewAI().Translate(TranslateOptions{
+			Text:       argument,
+			SourceLang: src,
+			TargetLang: target,
+		})
+		if err != nil {
+			resp = err.Error()
+		} else {
+			resp = str
+		}
+
+		return resp
+	}
+
+	if strings.HasPrefix(cmd, "gg") {
+		cmd = strings.TrimPrefix(cmd, "gg")
+		str, err := google.Translate(argument, "", cmd)
+		if err != nil {
+			resp = err.Error()
+		} else {
+			resp = strings.Join(str.Target, "\n")
+		}
+
+		return resp
+	}
+
+	switch cmd {
+	case "en":
+		resp = en.FormatString(argument)
+	case "jpcn":
+		resp = jp.FormatString(argument)
+	case "cnjp":
+		resp = jp.FormatCNString(argument)
+	case "ktbk":
+		resp = kotobakku.FormatString(argument)
+	case "ko":
+		resp = kr.FormatString(argument)
+	case "weblio":
+		resp = weblio.FormatString(argument)
+	}
+
+	return resp
+}
+
+func bot() func(w http.ResponseWriter, r *http.Request) {
 	idMap := make(map[int64]bool)
 	for _, id := range strings.FieldsFunc(cloudflare.Getenv("telegram_ids"), func(r rune) bool { return r == ',' }) {
 		i, err := strconv.ParseInt(id, 10, 64)
@@ -125,7 +204,7 @@ func bot() {
 		idMap[i] = true
 	}
 
-	http.HandleFunc("/tgbot", func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		update, err := Bot.HandleUpdate(r)
 		if err != nil {
 			json.NewEncoder(w).Encode([]any{
@@ -147,22 +226,7 @@ func bot() {
 			return
 		}
 
-		var resp string
-		switch update.Message.Command() {
-		case "en":
-			resp = en.FormatString(argument)
-		case "jpcn":
-			resp = jp.FormatString(argument)
-		case "cnjp":
-			resp = jp.FormatCNString(argument)
-		case "ktbk":
-			resp = kotobakku.FormatString(argument)
-		case "kr":
-			resp = kr.FormatString(argument)
-		default:
-			return
-		}
-
+		resp := translate(update.Message.Command(), Args{Text: argument})
 		if resp == "" {
 			return
 		}
@@ -171,5 +235,5 @@ func bot() {
 		msg.ReplyToMessageID = update.Message.MessageID
 
 		Bot.Send(msg)
-	})
+	}
 }

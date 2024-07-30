@@ -1,6 +1,7 @@
 package kotobakku
 
 import (
+	"fmt"
 	"log"
 	"regexp"
 	"testing"
@@ -10,7 +11,7 @@ func TestShow(t *testing.T) {
 	//Show("こら")
 	//Show("API")
 	//Show("蟻")
-	t.Log(GetJson("蟻"))
+	fmt.Println(FormatString("蟻"))
 }
 
 func TestGet(t *testing.T) {

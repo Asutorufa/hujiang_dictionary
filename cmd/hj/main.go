@@ -8,6 +8,7 @@ import (
 	"github.com/Asutorufa/hujiang_dictionary/jp"
 	"github.com/Asutorufa/hujiang_dictionary/kotobakku"
 	"github.com/Asutorufa/hujiang_dictionary/kr"
+	"github.com/Asutorufa/hujiang_dictionary/weblio"
 )
 
 func main() {
@@ -17,6 +18,7 @@ func main() {
 	krFlag := flag.String("kr", "", "korean")
 	ktbkFlag := flag.String("ktbk", "", "コトバック")
 	jsonFlag := flag.Bool("json", false, "output json")
+	webliFlag := flag.String("weblio", "", "weblio辞書")
 	flag.Parse()
 
 	if *jsonFlag {
@@ -48,9 +50,11 @@ func main() {
 	case *enFlag != "":
 		fmt.Println(en.FormatString(*enFlag))
 	case *ktbkFlag != "":
-		kotobakku.Show(*ktbkFlag)
+		fmt.Println(kotobakku.FormatString(*ktbkFlag))
 	case *krFlag != "":
 		fmt.Println(kr.FormatString(*krFlag))
+	case *webliFlag != "":
+		fmt.Println(weblio.FormatString(*webliFlag))
 	default:
 		return
 	}

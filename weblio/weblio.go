@@ -1,7 +1,6 @@
-package kotobakku
+package weblio
 
 import (
-	"encoding/json"
 	"strings"
 
 	"github.com/Asutorufa/hujiang_dictionary/httpclient"
@@ -10,52 +9,51 @@ import (
 	"jaytaylor.com/html2text"
 )
 
-type Ktbk struct {
-	Dict string   `json:"dict"`
-	Imi  []string `json:"imi"`
-}
+// https://www.weblio.jp/content/%E4%BB%8A%E6%97%A5%E3%81%AF
 
-func Get(word string) (all []string) {
-	// reSpace, _ := regexp.Compile(" +")
-	// reEnter, _ := regexp.Compile("\n+")
-	// reEnterSpace, _ := regexp.Compile("(\n )+")
-	c, err := httpclient.DefaultClient.Get("https://kotobank.jp/word/" + word)
+func Get(str string) ([]string, error) {
+	c, err := httpclient.DefaultClient.Get("https://www.weblio.jp/content/" + str)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	x, err := goquery.NewDocumentFromReader(c.Body)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	utils.Each(x.Find("#mainArea article"), func(i int, s *goquery.Document) {
+	all := []string{}
+	utils.Each(x.Find(".kiji"), func(i int, s *goquery.Document) {
+		s.Find(".footNote").Each(func(i int, s *goquery.Selection) { s.Remove() })
+		s.Find(".footNoteB").Each(func(i int, s *goquery.Selection) { s.Remove() })
 		s.Find("a").Each(func(i int, s *goquery.Selection) { s.SetAttr("href", "") })
 
 		html, err := s.Html()
 		if err != nil {
-			panic(err)
+			all = append(all, err.Error())
+			return
 		}
 
 		str, err := html2text.FromString(html, html2text.Options{
 			OmitLinks: true,
 			TextOnly:  true,
 		})
+
 		if err != nil {
-			panic(err)
+			all = append(all, err.Error())
+			return
 		}
 
 		all = append(all, str)
 	})
-	return
-}
 
-func GetJson(str string) (string, error) {
-	s, err := json.MarshalIndent(Get(str), "", " ")
-	return string(s), err
+	return all, nil
 }
 
 func FormatString(word string) string {
-	data := Get(word)
+	data, err := Get(word)
+	if err != nil {
+		return err.Error()
+	}
 
 	return strings.Join(data, "\n\n---------------------------------------\n---------------------------------------\n\n")
 }

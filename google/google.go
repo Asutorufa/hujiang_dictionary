@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/Asutorufa/hujiang_dictionary/httpclient"
 )
 
 type Result struct {
@@ -36,7 +38,7 @@ func Translate(text, srcLang, tarLang string) (*Result, error) {
 	}
 	req.URL.RawQuery = q.Encode()
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpclient.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
