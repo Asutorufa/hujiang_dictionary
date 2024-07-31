@@ -12,8 +12,8 @@ github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf h1:pvbZ0lM0XWPBqUKqFU8cma
 github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf/go.mod h1:RJID2RhlZKId02nZ62WenDCkgHFerpIOmW0iT7GKmXM=
 github.com/syumai/tinyutil v0.3.2 h1:W6yvMJBo64jK5Rz1Ytq/IF8ZqUUSMqi1R2zyEUTnnsg=
 github.com/syumai/tinyutil v0.3.2/go.mod h1:/owCyUs1bh6tKxH7K1Ze3M/zZtZ+vGrj3h82fgNHDFI=
-github.com/syumai/workers v0.26.1 h1:DvhLZ4PPO/zu5leYRd85TnHELOBTkBbi/2ymkLOieSY=
-github.com/syumai/workers v0.26.1/go.mod h1:ZnqmdiHNBrbxOLrZ/HJ5jzHy6af9cmiNZk10R9NrIEA=
+github.com/syumai/workers v0.26.2 h1:PYfBMGzH780puODL4o7g8aB7pRqwfM245SBUiic8zsE=
+github.com/syumai/workers v0.26.2/go.mod h1:ZnqmdiHNBrbxOLrZ/HJ5jzHy6af9cmiNZk10R9NrIEA=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
