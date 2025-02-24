@@ -6,7 +6,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.2
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/syumai/tinyutil v0.3.2
-	github.com/syumai/workers v0.28.0
+	github.com/syumai/workers v0.28.1
 	jaytaylor.com/html2text v0.0.0-20230321000545-74c2419ad056
 )
 
