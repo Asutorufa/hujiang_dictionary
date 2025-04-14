@@ -71,29 +71,28 @@ func main() {
 			continue
 		}
 
-		var resp string
+		var resp []string
 		switch update.Message.Command() {
 		case "en":
-			resp = en.FormatString(argument)
+			resp = en.FormatMarkdown(argument)
 		case "jpcn":
-			resp = jp.FormatString(argument)
+			resp = jp.FormatMarkdown(argument)
 		case "cnjp":
-			resp = jp.FormatCNString(argument)
+			resp = []string{jp.FormatCNString(argument)}
 		case "ktbk":
-			resp = kotobakku.FormatString(argument)
+			resp = []string{kotobakku.FormatString(argument)}
 		case "kr":
-			resp = kr.FormatString(argument)
+			resp = []string{kr.FormatString(argument)}
 		default:
 			continue
 		}
 
-		if resp == "" {
-			continue
+		for _, r := range resp {
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, r)
+			msg.ReplyToMessageID = update.Message.MessageID
+
+			bot.Send(msg)
 		}
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, resp)
-		msg.ReplyToMessageID = update.Message.MessageID
-
-		bot.Send(msg)
 	}
 }

@@ -1,6 +1,7 @@
 package en
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -29,4 +30,8 @@ func TestGetJson(t *testing.T) {
 func TestShow(t *testing.T) {
 	t.Log(FormatString("good"))
 	t.Log(FormatString("show"))
+}
+
+func TestFormatMarkdown(t *testing.T) {
+	fmt.Println(FormatMarkdown("good"))
 }

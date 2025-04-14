@@ -3,6 +3,7 @@ package jp
 import (
 	"bytes"
 	_ "embed"
+	"fmt"
 	"testing"
 )
 
@@ -21,4 +22,8 @@ var x []byte
 func TestGetWord(t *testing.T) {
 	w := getWords(bytes.NewReader(x))
 	t.Log(convertToString(w))
+}
+
+func TestMarkdown(t *testing.T) {
+	fmt.Println(FormatMarkdown("魚"))
 }

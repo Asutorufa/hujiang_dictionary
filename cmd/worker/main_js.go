@@ -111,13 +111,15 @@ func main() {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 
 		resp := translate(t, Args{Text: word})
-		if resp == "" {
+		if len(resp) == 0 {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("not found"))
 			return
 		}
 
-		w.Write([]byte(resp))
+		for _, r := range resp {
+			w.Write([]byte(r + "\n"))
+		}
 	})
 	workers.Serve(nil) // use http.DefaultServeMux
 }
@@ -126,8 +128,8 @@ type Args struct {
 	Text string
 }
 
-func translate(cmd string, args Args) string {
-	var resp string
+func translate(cmd string, args Args) []string {
+	var resp []string
 	argument := args.Text
 
 	if strings.HasPrefix(cmd, "cfai") {
@@ -154,9 +156,9 @@ func translate(cmd string, args Args) string {
 			TargetLang: target,
 		})
 		if err != nil {
-			resp = err.Error()
+			resp = []string{err.Error()}
 		} else {
-			resp = str
+			resp = []string{str}
 		}
 
 		return resp
@@ -166,9 +168,9 @@ func translate(cmd string, args Args) string {
 		cmd = strings.TrimPrefix(cmd, "gg")
 		str, err := google.Translate(argument, "", cmd)
 		if err != nil {
-			resp = err.Error()
+			resp = []string{err.Error()}
 		} else {
-			resp = strings.Join(str.Target, "\n")
+			resp = str.Target
 		}
 
 		return resp
@@ -176,17 +178,17 @@ func translate(cmd string, args Args) string {
 
 	switch cmd {
 	case "en":
-		resp = en.FormatString(argument)
+		resp = en.FormatMarkdown(argument)
 	case "jpcn":
-		resp = jp.FormatString(argument)
+		resp = jp.FormatMarkdown(argument)
 	case "cnjp":
-		resp = jp.FormatCNString(argument)
+		resp = []string{jp.FormatCNString(argument)}
 	case "ktbk":
-		resp = kotobakku.FormatString(argument)
+		resp = []string{kotobakku.FormatString(argument)}
 	case "ko":
-		resp = kr.FormatString(argument)
+		resp = []string{kr.FormatString(argument)}
 	case "weblio":
-		resp = weblio.FormatString(argument)
+		resp = []string{weblio.FormatString(argument)}
 	}
 
 	return resp
@@ -227,13 +229,13 @@ func bot() func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		resp := translate(update.Message.Command(), Args{Text: argument})
-		if resp == "" {
-			return
+
+		for _, r := range resp {
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, r)
+			msg.ReplyToMessageID = update.Message.MessageID
+
+			Bot.Send(msg)
 		}
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, resp)
-		msg.ReplyToMessageID = update.Message.MessageID
-
-		Bot.Send(msg)
 	}
 }

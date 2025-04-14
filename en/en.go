@@ -2,6 +2,7 @@ package en
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -168,6 +169,110 @@ func GetJson(str string) (s string, err error) {
 
 func FormatString(str string) string {
 	return convertToString(Get(str))
+}
+
+func FormatMarkdown(str string) []string {
+	return convertToMarkdown(Get(str))
+}
+
+func convertToMarkdown(w []Word) []string {
+	var result = []string{}
+	for _, s := range w {
+		str := strings.Builder{}
+		str.WriteString(s.Word + "\n")
+		fmt.Fprintf(&str, "%s %s  \n", s.Katakana, s.Roma)
+		fmt.Fprintf(&str, "%s  \n", s.AudioUsUrl)
+		fmt.Fprintf(&str, "%s  \n", s.AudioEnUrl)
+
+		for i := range s.Simple {
+			if i == 0 {
+				fmt.Fprintf(&str, "\n- simple explain\n")
+			}
+			fmt.Fprintf(&str, "  - %s\n", s.Simple[i])
+		}
+
+		for i := range s.Detail {
+			if i == 0 {
+				fmt.Fprintf(&str, "\n- More Detail\n")
+			}
+
+			fmt.Fprintf(&str, "  - %s\n", s.Detail[i].Attribute)
+
+			for i2 := range s.Detail[i].ExplainsAndExample {
+				fmt.Fprintf(&str, "    - %s\n", s.Detail[i].ExplainsAndExample[i2].Explain)
+				for i3 := range s.Detail[i].ExplainsAndExample[i2].Example {
+					fmt.Fprintf(&str, "      - %s\n", s.Detail[i].ExplainsAndExample[i2].Example[i3][0])
+					fmt.Fprintf(&str, "        %s\n", s.Detail[i].ExplainsAndExample[i2].Example[i3][1])
+				}
+			}
+
+		}
+
+		// for i := range s.Detail {
+		// 	if i == 0 {
+		// 		fmt.Fprintf(&str, "\n|attribute|explain|example|\n")
+		// 		fmt.Fprintf(&str, "|-|-|-|\n")
+		// 	}
+
+		// 	fmt.Fprintf(&str, "|%s|||\n", s.Detail[i].Attribute)
+
+		// 	for i2 := range s.Detail[i].ExplainsAndExample {
+		// 		fmt.Fprintf(&str, "||%s||\n", s.Detail[i].ExplainsAndExample[i2].Explain)
+
+		// 		for i3 := range s.Detail[i].ExplainsAndExample[i2].Example {
+		// 			fmt.Fprintf(&str, "|||%s<br/>%s|\n", s.Detail[i].ExplainsAndExample[i2].Example[i3][0], s.Detail[i].ExplainsAndExample[i2].Example[i3][1])
+		// 		}
+		// 	}
+		// }
+
+		for i := range s.EnglishExplains {
+			if i == 0 {
+				fmt.Fprintf(&str, "\n- English Explain\n")
+			}
+
+			fmt.Fprintf(&str, "  - %s\n", s.EnglishExplains[i].Attribute)
+
+			for i2 := range s.EnglishExplains[i].Explains {
+				fmt.Fprintf(&str, "    - %s\n", s.EnglishExplains[i].Explains[i2])
+			}
+		}
+
+		for i := range s.Inflections {
+			if i == 0 {
+				fmt.Fprintf(&str, "\n- Inflections\n")
+			}
+
+			fmt.Fprintf(&str, "  - %s\n", s.Inflections[i])
+		}
+
+		for i := range s.Phrase {
+			if i == 0 {
+				fmt.Fprintf(&str, "\n- Phrase\n")
+			}
+
+			fmt.Fprintf(&str, "  - %s\n", s.Phrase[i])
+		}
+
+		for i := range s.Synonym {
+			if i == 0 {
+				fmt.Fprintf(&str, "\n- Synonym\n")
+			}
+
+			fmt.Fprintf(&str, "  - %s\n", s.Synonym[i])
+		}
+
+		for i := range s.Antonym {
+			if i == 0 {
+				fmt.Fprintf(&str, "\n- Antonym\n")
+			}
+
+			fmt.Fprintf(&str, "  - %s\n", s.Antonym[i])
+		}
+
+		result = append(result, str.String())
+	}
+
+	return result
 }
 
 func convertToString(w []Word) string {

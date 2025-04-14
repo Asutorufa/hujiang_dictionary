@@ -178,6 +178,61 @@ func FormatCNString(str string) string {
 	return convertToString(GetCN(str))
 }
 
+func FormatMarkdown(str string) []string {
+	return convertToMarkdown(Get(str))
+}
+
+func convertToMarkdown(y []Word) []string {
+	var result = []string{}
+
+	for i := range y {
+		s := strings.Builder{}
+		if i != 0 {
+			s.WriteByte('\n')
+		}
+
+		fmt.Fprintf(&s, "%s\n", y[i].Word)
+		fmt.Fprintf(&s, "%s\n", y[i].Katakana)
+		fmt.Fprintf(&s, `<audio controls controlsList="nodownload" preload="none" src="%s"></audio>`+"\n", y[i].AudioUrl)
+
+		for i2 := range y[i].Simple {
+			if i2 == 0 {
+				fmt.Fprintf(&s, "\n- simple explain\n")
+			}
+
+			if y[i].Simple[i2].Attribute != "" {
+				fmt.Fprintf(&s, "  - %s\n", y[i].Simple[i2].Attribute)
+			} else {
+				fmt.Fprintf(&s, "  - *\n")
+			}
+
+			for i3 := range y[i].Simple[i2].Explains {
+				fmt.Fprintf(&s, "    - %s\n", y[i].Simple[i2].Explains[i3])
+			}
+		}
+
+		for i2 := range y[i].Detail {
+			if i2 == 0 {
+				fmt.Fprintf(&s, "\n- More Detail\n")
+			}
+
+			fmt.Fprintf(&s, "  - %s\n", y[i].Detail[i2].Attribute)
+
+			for i3 := range y[i].Detail[i2].ExplainsAndExample {
+				fmt.Fprintf(&s, "    - %s\n", y[i].Detail[i2].ExplainsAndExample[i3].Explain)
+				for i4 := range y[i].Detail[i2].ExplainsAndExample[i3].Example {
+					fmt.Fprintf(&s, "      - %s\n", y[i].Detail[i2].ExplainsAndExample[i3].Example[i4][0])
+					fmt.Fprintf(&s, "        %s\n", y[i].Detail[i2].ExplainsAndExample[i3].Example[i4][1])
+				}
+			}
+		}
+
+		result = append(result, s.String())
+	}
+
+	return result
+}
+
 func convertToString(y []Word) string {
 	s := strings.Builder{}
 	for i := range y {

@@ -4,7 +4,7 @@ dev:
 
 .PHONY: build
 build:
-	go run github.com/syumai/workers/cmd/workers-assets-gen@v0.23.1
+	go run github.com/syumai/workers/cmd/workers-assets-gen@latest
 	tinygo build -panic=trap -gc=leaking -o ./build/app.wasm -target wasm -no-debug ./...
 
 .PHONY: deploy
