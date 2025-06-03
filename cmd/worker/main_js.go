@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,7 +15,7 @@ import (
 	"github.com/Asutorufa/hujiang_dictionary/kotobakku"
 	"github.com/Asutorufa/hujiang_dictionary/kr"
 	"github.com/Asutorufa/hujiang_dictionary/weblio"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/syumai/tinyutil/httputil"
 	"github.com/syumai/workers"
 	"github.com/syumai/workers/cloudflare"
@@ -52,76 +53,24 @@ binding = "AI"
 
 func main() {
 	httpclient.DefaultClient = httputil.DefaultClient
+	workers.Serve(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("panic", "err", err)
+				http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
+			}
+		}()
+		log.Println("new request", "method", r.Method, "path", r.URL.Path)
 
-	http.HandleFunc("/tgbot", bot())
-
-	http.HandleFunc("/tgbot/register", func(w http.ResponseWriter, r *http.Request) {
-		wh, err := tgbotapi.NewWebhook(cloudflare.Getenv("worker_url") + "/tgbot")
-		if err != nil {
-			json.NewEncoder(w).Encode([]any{
-				err.Error(),
-			})
-			return
+		switch r.URL.Path {
+		case "/tgbot":
+			bot(w, r)
+		case "/tgbot/register":
+			register(w, r)
+		default:
+			defaultHandler(w, r)
 		}
-
-		_, err = Bot.Request(wh)
-		if err != nil {
-			json.NewEncoder(w).Encode([]any{
-				err.Error(),
-			})
-			return
-		}
-
-		resp, err := Bot.Request(tgbotapi.NewSetMyCommands(
-			tgbotapi.BotCommand{Command: "en", Description: "en"},
-			tgbotapi.BotCommand{Command: "jpcn", Description: "jp -> cn"},
-			tgbotapi.BotCommand{Command: "cnjp", Description: "cn -> jp"},
-			tgbotapi.BotCommand{Command: "ktbk", Description: "コトバック"},
-			tgbotapi.BotCommand{Command: "weblio", Description: "weblio辞書"},
-			tgbotapi.BotCommand{Command: "ko", Description: "korean"},
-			tgbotapi.BotCommand{Command: "cfaija", Description: "cloudflare worker ai -> japanese"},
-			tgbotapi.BotCommand{Command: "cfaicn", Description: "cloudflare worker ai -> chinese"},
-			tgbotapi.BotCommand{Command: "cfaitar_lang", Description: "cloudflare worker ai -> [tar_lang]"},
-			tgbotapi.BotCommand{Command: "cfaisrc_lang2tar_lang", Description: "cloudflare worker ai src_lang -> tar_lang"},
-			tgbotapi.BotCommand{Command: "ggtar_lang", Description: "google translate to tar_lang"},
-		))
-
-		if err != nil {
-			json.NewEncoder(w).Encode([]any{
-				err.Error(),
-			})
-			return
-		}
-
-		json.NewEncoder(w).Encode(resp)
-	})
-
-	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		t := req.URL.Query().Get("type")
-		word := req.URL.Query().Get("word")
-
-		if t == "" || word == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte("bad request"))
-			return
-		}
-
-		fmt.Println(t, word)
-
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-
-		resp := translate(t, Args{Text: word})
-		if len(resp) == 0 {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("not found"))
-			return
-		}
-
-		for _, r := range resp {
-			w.Write([]byte(r + "\n"))
-		}
-	})
-	workers.Serve(nil) // use http.DefaultServeMux
+	})) // use http.DefaultServeMux
 }
 
 type Args struct {
@@ -131,51 +80,6 @@ type Args struct {
 func translate(cmd string, args Args) []string {
 	var resp []string
 	argument := args.Text
-
-	if strings.HasPrefix(cmd, "cfai") {
-		cmd = strings.TrimPrefix(cmd, "cfai")
-		var src string
-		target := cmd
-		if i := strings.IndexByte(cmd, '2'); i != -1 {
-			src = cmd[:i]
-			target = cmd[i+1:]
-		}
-
-		switch target {
-		case "en":
-			target = "english"
-		case "jp":
-			target = "japanese"
-		case "cn":
-			target = "chinese"
-		}
-
-		str, err := NewAI().Translate(TranslateOptions{
-			Text:       argument,
-			SourceLang: src,
-			TargetLang: target,
-		})
-		if err != nil {
-			resp = []string{err.Error()}
-		} else {
-			resp = []string{str}
-		}
-
-		return resp
-	}
-
-	if strings.HasPrefix(cmd, "gg") {
-		cmd = strings.TrimPrefix(cmd, "gg")
-		str, err := google.Translate(argument, "", cmd)
-		if err != nil {
-			resp = []string{err.Error()}
-		} else {
-			resp = str.Target
-		}
-
-		return resp
-	}
-
 	switch cmd {
 	case "en":
 		resp = en.FormatMarkdown(argument)
@@ -189,53 +93,215 @@ func translate(cmd string, args Args) []string {
 		resp = []string{kr.FormatString(argument)}
 	case "weblio":
 		resp = []string{weblio.FormatString(argument)}
+	default:
+		if strings.HasPrefix(cmd, "cfai") {
+			cmd = cmd[4:]
+			var src string
+			target := cmd
+			if i := strings.IndexByte(cmd, '2'); i != -1 {
+				src = cmd[:i]
+				target = cmd[i+1:]
+			}
+
+			switch target {
+			case "en":
+				target = "english"
+			case "jp":
+				target = "japanese"
+			case "cn":
+				target = "chinese"
+			}
+
+			str, err := NewAI().Translate(TranslateOptions{
+				Text:       argument,
+				SourceLang: src,
+				TargetLang: target,
+			})
+			if err != nil {
+				resp = []string{err.Error()}
+			} else {
+				resp = []string{str}
+			}
+
+			return resp
+		}
+
+		if strings.HasPrefix(cmd, "gg") {
+			cmd = cmd[2:]
+			str, err := google.Translate(argument, "", cmd)
+			if err != nil {
+				resp = []string{err.Error()}
+			} else {
+				resp = str.Target
+			}
+
+			return resp
+		}
 	}
 
 	return resp
 }
 
-func bot() func(w http.ResponseWriter, r *http.Request) {
-	idMap := make(map[int64]bool)
+func bot(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.NotFound(w, r)
+		return
+	}
+
+	var update tgbotapi.Update
+	err := json.NewDecoder(r.Body).Decode(&update)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	authorized := false
 	for _, id := range strings.FieldsFunc(cloudflare.Getenv("telegram_ids"), func(r rune) bool { return r == ',' }) {
 		i, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
-			fmt.Println(err)
+			log.Println("parse id", "id", id, "err", err)
 			continue
 		}
 
-		idMap[i] = true
+		if update.Message.From.ID == i || update.Message.Chat.ID == i {
+			authorized = true
+			break
+		}
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		update, err := Bot.HandleUpdate(r)
+	if update.Message == nil || !authorized {
+		return
+	}
+
+	log.Println("new message",
+		"text", replaceLineBreak(update.Message.Text),
+		"user id", update.Message.From.ID, "user", update.Message.From.UserName,
+		"group id", update.Message.Chat.ID, "group", update.Message.Chat.Title,
+	)
+
+	if update.Message.ReplyToMessage != nil {
+		log.Println("reply to message",
+			"text", replaceLineBreak(update.Message.ReplyToMessage.Text),
+			"user id", update.Message.ReplyToMessage.From.ID, "user", update.Message.ReplyToMessage.From.UserName,
+		)
+
+		if update.Message.ReplyToMessage.Quote != nil {
+			log.Println("reply to quote message",
+				"text", replaceLineBreak(update.Message.ReplyToMessage.Quote.Text),
+				"user id", update.Message.ReplyToMessage.From.ID, "user", update.Message.ReplyToMessage.From.UserName,
+			)
+		}
+	}
+
+	if update.Message.Quote != nil {
+		log.Println("quote message",
+			"text", replaceLineBreak(update.Message.Quote.Text),
+			"user id", update.Message.From.ID, "user", update.Message.From.UserName,
+		)
+	}
+
+	argument := update.Message.CommandArguments()
+
+	if argument == "" {
+		if update.Message.Quote != nil {
+			log.Println("use quote message", "text", replaceLineBreak(update.Message.Quote.Text))
+			argument = update.Message.Quote.Text
+		} else if update.Message.ReplyToMessage != nil {
+			if update.Message.ReplyToMessage.Quote != nil {
+				log.Println("use reply quote message", "text", replaceLineBreak(update.Message.ReplyToMessage.Quote.Text))
+				argument = update.Message.ReplyToMessage.Quote.Text
+			} else {
+				log.Println("use reply message", "text", replaceLineBreak(update.Message.ReplyToMessage.Text))
+				argument = update.Message.ReplyToMessage.Text
+			}
+		} else {
+			return
+		}
+	}
+
+	resp := translate(update.Message.Command(), Args{Text: argument})
+
+	for _, r := range resp {
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, r)
+		msg.ReplyParameters.MessageID = update.Message.MessageID
+		_, err = Bot.Request(msg)
 		if err != nil {
-			json.NewEncoder(w).Encode([]any{
-				err.Error(),
-			})
-			return
+			log.Println("send message", "err", err)
 		}
-
-		if update.Message == nil || (idMap != nil && !idMap[update.Message.From.ID]) {
-			return
-		}
-
-		// If we got a message
-		fmt.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-
-		argument := update.Message.CommandArguments()
-
-		if argument == "" {
-			return
-		}
-
-		resp := translate(update.Message.Command(), Args{Text: argument})
-
-		for _, r := range resp {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, r)
-			msg.ReplyToMessageID = update.Message.MessageID
-
-			Bot.Send(msg)
-		}
-
 	}
+}
+
+type writerWrapper struct {
+	http.ResponseWriter
+	isWritten bool
+}
+
+func (w *writerWrapper) Write([]byte) (int, error) {
+	w.isWritten = true
+	return 0, nil
+}
+
+func register(w http.ResponseWriter, r *http.Request) {
+	wh, err := tgbotapi.NewWebhook(cloudflare.Getenv("worker_url") + "/tgbot")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = Bot.Request(wh)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := Bot.Request(tgbotapi.NewSetMyCommands(
+		tgbotapi.BotCommand{Command: "en", Description: "en"},
+		tgbotapi.BotCommand{Command: "jpcn", Description: "jp -> cn"},
+		tgbotapi.BotCommand{Command: "cnjp", Description: "cn -> jp"},
+		tgbotapi.BotCommand{Command: "ktbk", Description: "コトバック"},
+		tgbotapi.BotCommand{Command: "weblio", Description: "weblio辞書"},
+		tgbotapi.BotCommand{Command: "ko", Description: "korean"},
+		tgbotapi.BotCommand{Command: "cfaija", Description: "cloudflare worker ai -> japanese"},
+		tgbotapi.BotCommand{Command: "cfaicn", Description: "cloudflare worker ai -> chinese"},
+		tgbotapi.BotCommand{Command: "cfaitar_lang", Description: "cloudflare worker ai -> [tar_lang]"},
+		tgbotapi.BotCommand{Command: "cfaisrc_lang2tar_lang", Description: "cloudflare worker ai src_lang -> tar_lang"},
+		tgbotapi.BotCommand{Command: "ggtar_lang", Description: "google translate to tar_lang"},
+	))
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(resp)
+}
+
+func defaultHandler(w http.ResponseWriter, req *http.Request) {
+	t := req.URL.Query().Get("type")
+	word := req.URL.Query().Get("word")
+
+	if t == "" || word == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("bad request"))
+		return
+	}
+
+	log.Println("translate", "type", t, "word", word)
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+	resp := translate(t, Args{Text: word})
+	if len(resp) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("not found"))
+		return
+	}
+
+	for _, r := range resp {
+		w.Write([]byte(r + "\n"))
+	}
+}
+
+func replaceLineBreak(s string) string {
+	return strings.ReplaceAll(s, "\n", "\\n")
 }

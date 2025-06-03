@@ -10,7 +10,7 @@ import (
 	"github.com/Asutorufa/hujiang_dictionary/jp"
 	"github.com/Asutorufa/hujiang_dictionary/kotobakku"
 	"github.com/Asutorufa/hujiang_dictionary/kr"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 )
 
 func main() {
@@ -89,8 +89,7 @@ func main() {
 
 		for _, r := range resp {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, r)
-			msg.ReplyToMessageID = update.Message.MessageID
-
+			msg.ReplyParameters.MessageID = update.Message.MessageID
 			bot.Send(msg)
 		}
 
