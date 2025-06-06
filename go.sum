@@ -11,6 +11,8 @@ github.com/olekukonko/tablewriter v0.0.5 h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N
 github.com/olekukonko/tablewriter v0.0.5/go.mod h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=
 github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf h1:pvbZ0lM0XWPBqUKqFU8cmavspvIl9nulOYwdy6IFRRo=
 github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf/go.mod h1:RJID2RhlZKId02nZ62WenDCkgHFerpIOmW0iT7GKmXM=
+github.com/syumai/go-jsutil v0.2.0 h1:PMtWa9p8ir2AXiwGI8XtCNzjXhq9/5FETLFQcnW0/VQ=
+github.com/syumai/go-jsutil v0.2.0/go.mod h1:rWXCC7dzm0hLgRzZaF2pWvPL08rcx1jeUVTpP9WXyS8=
 github.com/syumai/tinyutil v0.3.2 h1:W6yvMJBo64jK5Rz1Ytq/IF8ZqUUSMqi1R2zyEUTnnsg=
 github.com/syumai/tinyutil v0.3.2/go.mod h1:/owCyUs1bh6tKxH7K1Ze3M/zZtZ+vGrj3h82fgNHDFI=
 github.com/syumai/workers v0.30.2 h1:ZefPdAoXBsw87Bxy1LTAR6Pm9Gbxw/iM7DNraPSput0=

@@ -1,10 +1,16 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"math/rand/v2"
+	"strings"
 	"syscall/js"
-	_ "unsafe"
 
-	_ "github.com/syumai/workers"
+	"github.com/syumai/go-jsutil"
 	"github.com/syumai/workers/cloudflare"
 )
 
@@ -21,7 +27,7 @@ func NewAI() *AI {
 func (a *AI) Translate(opts TranslateOptions) (string, error) {
 	p := a.instance.Call("run", "@cf/meta/m2m100-1.2b", opts.toJS())
 
-	t, err := AwaitPromise(p)
+	t, err := jsutil.AwaitPromise(p)
 	if err != nil {
 		return "", err
 	}
@@ -55,7 +61,7 @@ func (opts *TranslateOptions) toJS() js.Value {
 	if opts == nil {
 		return js.Undefined()
 	}
-	obj := NewObject()
+	obj := jsutil.NewObject()
 	if opts.Text != "" {
 		obj.Set("text", opts.Text)
 	}
@@ -68,8 +74,102 @@ func (opts *TranslateOptions) toJS() js.Value {
 	return obj
 }
 
-//go:linkname NewObject github.com/syumai/workers/internal/jsutil.NewObject
-func NewObject() js.Value
+type Llama2_7bChatOptions struct {
+	Prompt string
+}
 
-//go:linkname AwaitPromise github.com/syumai/workers/internal/jsutil.AwaitPromise
-func AwaitPromise(promiseVal js.Value) (js.Value, error)
+func (opts *Llama2_7bChatOptions) toJS() js.Value {
+	if opts == nil {
+		return js.Undefined()
+	}
+	system := jsutil.NewObject()
+	system.Set("role", "system")
+	system.Set("content", "You are the professional translator. You need translate input text by user's instruction. Don't print with markdown format.")
+
+	obj := jsutil.NewObject()
+	obj.Set("role", "user")
+	obj.Set("content", opts.Prompt)
+
+	x := jsutil.NewObject()
+	x.Set("messages", js.ValueOf([]any{system, obj}))
+	// x.Set("prompt", opts.Prompt)
+	x.Set("max_tokens", 1024)
+	x.Set("seed", rand.IntN(999999))
+	x.Set("stream", true)
+	x.Set("temperature", 2.5)
+	x.Set("top_k", 10)
+
+	return x
+}
+
+// @cf/google/gemma-3-12b-it
+func (a *AI) Gemma3_12b(opt Llama2_7bChatOptions) (io.ReadCloser, error) {
+	p := a.instance.Call("run", "@cf/google/gemma-3-12b-it", opt.toJS())
+
+	t, err := jsutil.AwaitPromise(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsutil.ConvertReadableStreamToReadCloser(t), nil
+}
+
+// @cf/meta/llama-4-scout-17b-16e-instruct
+func (a *AI) LLama4Scout17b16eInstruct(opt Llama2_7bChatOptions) (io.ReadCloser, error) {
+	p := a.instance.Call("run", "@cf/meta/llama-4-scout-17b-16e-instruct", opt.toJS())
+
+	t, err := jsutil.AwaitPromise(p)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsutil.ConvertReadableStreamToReadCloser(t), nil
+}
+
+type llamaStreamDecoder struct {
+	r *bufio.Scanner
+}
+
+func NewLlamaStreamDecoder(r io.Reader) *llamaStreamDecoder {
+	dec := &llamaStreamDecoder{bufio.NewScanner(r)}
+	return dec
+}
+
+func (l *llamaStreamDecoder) Decode() (string, error) {
+	for l.r.Scan() {
+		text := l.r.Text()
+		if text == "" {
+			continue
+		}
+
+		sections := strings.SplitN(text, ":", 2)
+		field, value := sections[0], ""
+		if len(sections) == 2 {
+			value = strings.TrimPrefix(sections[1], " ")
+		}
+		switch field {
+		case "event":
+		case "data":
+			if value == "[DONE]" {
+				return "", io.EOF
+			}
+
+			x := map[string]any{}
+			err := json.Unmarshal([]byte(value), &x)
+			if err != nil {
+				log.Println("json unmarshal", "err", err, "value", value)
+				continue
+			}
+
+			if x["response"] == nil {
+				continue
+			}
+
+			return fmt.Sprint(x["response"]), nil
+		case "id":
+		case "retry":
+		}
+	}
+
+	return "", io.EOF
+}

@@ -5,6 +5,7 @@ go 1.24
 require (
 	github.com/OvyFlash/telegram-bot-api v0.0.0-20250511194450-d315c30d9c40
 	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/syumai/go-jsutil v0.2.0
 	github.com/syumai/tinyutil v0.3.2
 	github.com/syumai/workers v0.30.2
 	jaytaylor.com/html2text v0.0.0-20230321000545-74c2419ad056
