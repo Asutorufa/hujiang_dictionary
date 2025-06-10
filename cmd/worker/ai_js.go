@@ -10,6 +10,7 @@ import (
 	"strings"
 	"syscall/js"
 
+	tgbotapi "github.com/OvyFlash/telegram-bot-api"
 	"github.com/syumai/go-jsutil"
 	"github.com/syumai/workers/cloudflare"
 )
@@ -172,4 +173,45 @@ func (l *llamaStreamDecoder) Decode() (string, error) {
 	}
 
 	return "", io.EOF
+}
+
+func ReturnByEventSource(r io.ReadCloser, update *tgbotapi.Message, argument string) {
+	br := NewLlamaStreamDecoder(r)
+
+	text := strings.Builder{}
+	last, msgId, count := 0, 0, 0
+	for {
+		e, err := br.Decode()
+		if err != nil {
+			if err != io.EOF {
+				log.Println("decode error", err)
+			}
+			break
+		}
+
+		if e == "" {
+			continue
+		}
+
+		text.WriteString(e)
+
+		if count >= 12 || text.Len()-last <= 300 {
+			continue
+		}
+
+		msg, err := SendText(argument, update, msgId, text.String())
+		if err != nil {
+			log.Println("send text", "err", err)
+			return
+		}
+
+		count++
+		last = text.Len()
+
+		if msgId == 0 {
+			msgId = msg.MessageID
+		}
+	}
+
+	SendText(argument, update, msgId, text.String())
 }

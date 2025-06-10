@@ -1,238 +1,72 @@
-package main
+package tgbot
 
 import (
-	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/Asutorufa/hujiang_dictionary/en"
 	"github.com/Asutorufa/hujiang_dictionary/google"
-	"github.com/Asutorufa/hujiang_dictionary/httpclient"
 	"github.com/Asutorufa/hujiang_dictionary/jp"
 	"github.com/Asutorufa/hujiang_dictionary/kotobakku"
 	"github.com/Asutorufa/hujiang_dictionary/kr"
 	"github.com/Asutorufa/hujiang_dictionary/weblio"
 	tgbotapi "github.com/OvyFlash/telegram-bot-api"
-	"github.com/syumai/tinyutil/httputil"
-	"github.com/syumai/workers"
-	"github.com/syumai/workers/cloudflare"
-	"github.com/syumai/workers/cloudflare/cache"
-	"github.com/syumai/workers/cloudflare/cron"
-	_ "github.com/syumai/workers/cloudflare/d1"
 )
 
-var Bot = &tgbotapi.BotAPI{
-	Token:  cloudflare.Getenv("telegram_token"),
-	Client: httputil.DefaultClient,
-	Buffer: 100,
+type Cache interface {
+	Get(command string) (string, bool)
+	Set(command string, result string)
 }
 
-func init() {
-	Bot.SetAPIEndpoint(tgbotapi.APIEndpoint)
-	// Bot.Debug = true
+type DB interface {
+	Save(word string, explain string) error
+	Random() (string, string, error)
+	Remove(word string) error
 }
 
-/*
-wrangler.toml
+var (
+	telegramIds     string
+	workerUrl       string
+	tgbot           *tgbotapi.BotAPI
+	externalCommand func(cmd string, args Args) bool
+	cache           Cache
+	db              DB
+)
 
-name = "hj-dict"
-main = "./build/worker.mjs"
-compatibility_date = "2024-04-15"
-
-[build]
-command = "make build"
-
-[vars]
-telegram_token = "****:*****"
-worker_url = "https://*****.workers.dev"
-telegram_ids = "40xxxxxx,42xxxxx"
-
-[ai]
-binding = "AI"
-*/
-
-func main() {
-	cron.ScheduleTaskNonBlock(func(ctx context.Context) error {
-		ankiIdstr := cloudflare.Getenv("anki_telegram_id")
-		if ankiIdstr == "" {
-			log.Println("anki id is empty")
-			return nil
-		}
-
-		ankiId, err := strconv.ParseInt(ankiIdstr, 10, 64)
-		if err != nil {
-			log.Println("parse anki id", "err", err)
-			return nil
-		}
-
-		db, err := sql.Open("d1", "DB")
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		result, err := db.Query("SELECT word, explain FROM words ORDER BY RANDOM() LIMIT 1")
-		if err != nil {
-			return err
-		}
-
-		result.Next()
-
-		var word, explain string
-		err = result.Scan(&word, &explain)
-		if err != nil {
-			return err
-		}
-		defer result.Close()
-
-		msg := tgbotapi.NewMessage(ankiId, fmt.Sprintf(`<b>%s</b>
-	<tg-spoiler><blockquote expandable>%s</blockquote></tg-spoiler>
-	`, tgbotapi.EscapeText(tgbotapi.ModeHTML, word),
-			tgbotapi.EscapeText(tgbotapi.ModeHTML, explain)))
-		msg.ParseMode = tgbotapi.ModeHTML
-		msg.LinkPreviewOptions.IsDisabled = true
-		_, err = Bot.Send(msg)
-		if err != nil {
-			log.Println("send message failed", "err", err)
-		}
-		return err
-	})
-
-	httpclient.DefaultClient = httputil.DefaultClient
-	workers.ServeNonBlock(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Println("panic", "err", err)
-				http.Error(w, fmt.Sprintf("%v", err), http.StatusInternalServerError)
-			}
-		}()
-		log.Println("new request", "method", r.Method, "path", r.URL.Path)
-
-		switch r.URL.Path {
-		case "/tgbot":
-			bot(w, r)
-		case "/tgbot/register":
-			register(w, r)
-		default:
-			defaultHandler(w, r)
-		}
-	})) // use http.DefaultServeMux
-
-	// send a ready signal to the runtime
-	workers.Ready()
-
-	// block until the handler or task is done
-	select {
-	case <-workers.Done():
-	case <-cron.Done():
-	}
-}
-
-type Args struct {
-	Text string
-}
-
-func translate(cmd string, args Args) []string {
-	var resp []string
-	argument := args.Text
-	switch cmd {
-	case "en":
-		resp = en.FormatMarkdown(argument)
-	case "jpcn":
-		resp = jp.FormatMarkdown(argument)
-	case "cnjp":
-		result := jp.FormatCNString(argument)
-		if result != "" {
-			resp = []string{result}
-		}
-	case "ktbk":
-		result := kotobakku.FormatString(argument)
-		if result != "" {
-			resp = []string{result}
-		}
-	case "ko":
-		result := kr.FormatString(argument)
-		if result != "" {
-			resp = []string{result}
-		}
-	case "weblio":
-		result := weblio.FormatString(argument)
-		if result != "" {
-			resp = []string{result}
-		}
-
-	default:
-		if strings.HasPrefix(cmd, "cfai") {
-			cmd = cmd[4:]
-			var src string
-			target := cmd
-			if i := strings.IndexByte(cmd, '2'); i != -1 {
-				src = cmd[:i]
-				target = cmd[i+1:]
-			}
-
-			switch target {
-			case "en":
-				target = "english"
-			case "jp":
-				target = "japanese"
-			case "cn":
-				target = "chinese"
-			}
-
-			str, err := NewAI().Translate(TranslateOptions{
-				Text:       argument,
-				SourceLang: src,
-				TargetLang: target,
-			})
-			if err != nil {
-				resp = []string{err.Error()}
-			} else {
-				resp = []string{str}
-			}
-
-			return resp
-		}
-
-		if strings.HasPrefix(cmd, "gg") {
-			cmd = cmd[2:]
-			str, err := google.Translate(argument, "", cmd)
-			if err != nil {
-				resp = []string{err.Error()}
-			} else {
-				resp = str.Target
-			}
-
-			return resp
-		}
+func Handler(
+	telegram_ids string,
+	token string,
+	client tgbotapi.HTTPClient,
+	c Cache,
+	d DB,
+) func(r io.Reader) (any, error) {
+	tgbot = &tgbotapi.BotAPI{
+		Token:  token,
+		Client: client,
 	}
 
-	return resp
+	tgbot.SetAPIEndpoint(tgbotapi.APIEndpoint)
+	// tgbot.Debug = true
+	telegramIds = telegram_ids
+	cache = c
+	db = d
+
+	return handler
 }
 
-func bot(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.NotFound(w, r)
-		return
-	}
-
+func handler(r io.Reader) (any, error) {
 	var update tgbotapi.Update
-	err := json.NewDecoder(r.Body).Decode(&update)
+	err := json.NewDecoder(r).Decode(&update)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return nil, err
 	}
 
 	var umsg *tgbotapi.Message
-	var edit bool
 	var callback callbackQuery
 	if update.Message != nil {
 		umsg = update.Message
@@ -251,13 +85,12 @@ func bot(w http.ResponseWriter, r *http.Request) {
 		}
 	} else if update.EditedMessage != nil {
 		umsg = update.EditedMessage
-		edit = true
 	} else {
-		return
+		return nil, fmt.Errorf("unsupported update")
 	}
 
 	authorized := false
-	for _, id := range strings.FieldsFunc(cloudflare.Getenv("telegram_ids"), func(r rune) bool { return r == ',' }) {
+	for _, id := range strings.FieldsFunc(telegramIds, func(r rune) bool { return r == ',' }) {
 		i, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
 			log.Println("parse id", "id", id, "err", err)
@@ -272,48 +105,35 @@ func bot(w http.ResponseWriter, r *http.Request) {
 
 	if callback.Command != "" {
 		if umsg == nil {
-			return
+			return nil, fmt.Errorf("callback message is nil")
 		}
 
 		switch callback.Command {
 		case "delete":
 			deleteMessage(update.CallbackQuery.Message, true)
-			return
+			return nil, nil
 		case "save", "remove":
 			var word string = callback.Data
 
 			if word == "" {
 				if umsg.ReplyToMessage == nil {
-					return
+					return nil, fmt.Errorf("callback reply to message is nil")
 				}
 
 				word = umsg.ReplyToMessage.CommandArguments()
 				if word == "" {
-					log.Println("callback reply to message is empty")
-					return
+					return nil, fmt.Errorf("callback reply to message is empty")
 				}
 			}
 
-			db, err := sql.Open("d1", "DB")
-			if err != nil {
-				log.Println("open db failed", "err", err)
-				return
+			if db == nil {
+				return nil, fmt.Errorf("db is nil")
 			}
-			defer db.Close()
 
 			if callback.IsSave() {
-				now := time.Now().Unix()
-				/*
-					INSERT INTO your_table (id, name, value)
-					VALUES (1, 'Alice', 42)
-					ON CONFLICT(id) DO UPDATE SET
-					    name = excluded.name,
-					    value = excluded.value;
-				*/
-				_, err = db.Exec("INSERT INTO words (word, explain, add_time, update_time) VALUES (?, ?, ?, ?) ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = ?",
-					word, update.CallbackQuery.Message.Text, now, now, update.CallbackQuery.Message.Text, now)
+				err = db.Save(word, update.CallbackQuery.Message.Text)
 			} else {
-				_, err = db.Exec("DELETE FROM words WHERE word = ?", word)
+				err = db.Remove(word)
 			}
 			if err != nil {
 				log.Println(callback.Command, "word failed", "word", word, "err", err)
@@ -322,12 +142,12 @@ func bot(w http.ResponseWriter, r *http.Request) {
 				editMessage(umsg, callback.Data, !callback.IsSave())
 			}
 
-			return
+			return nil, nil
 		}
 	}
 
 	if umsg == nil || !authorized {
-		return
+		return nil, nil
 	}
 
 	command := umsg.Command()
@@ -335,30 +155,16 @@ func bot(w http.ResponseWriter, r *http.Request) {
 	switch command {
 	case "delete":
 		deleteMessage(umsg, false)
-		return
+		return nil, nil
 	case "random":
-		db, err := sql.Open("d1", "DB")
-		if err != nil {
-			log.Println("open db failed", "err", err)
-			return
-		}
-		defer db.Close()
-
-		result, err := db.Query("SELECT word, explain FROM words ORDER BY RANDOM() LIMIT 1")
-		if err != nil {
-			log.Println("get random word failed", "err", err)
-			return
+		if db == nil {
+			return nil, fmt.Errorf("db is nil")
 		}
 
-		result.Next()
-
-		var word, explain string
-		err = result.Scan(&word, &explain)
+		word, explain, err := db.Random()
 		if err != nil {
-			log.Println("scan word failed", "err", err)
-			return
+			return nil, fmt.Errorf("get random word failed: %w", err)
 		}
-		defer result.Close()
 
 		msg := tgbotapi.NewMessage(umsg.Chat.ID, fmt.Sprintf(`<b>%s</b>
 <tg-spoiler><blockquote expandable>%s</blockquote></tg-spoiler>
@@ -367,12 +173,12 @@ func bot(w http.ResponseWriter, r *http.Request) {
 		msg.ParseMode = tgbotapi.ModeHTML
 		msg.LinkPreviewOptions.IsDisabled = true
 		msg.ReplyParameters.MessageID = umsg.MessageID
-		_, err = Bot.Send(msg)
+		_, err = tgbot.Send(msg)
 		if err != nil {
-			log.Println("send message failed", "err", err)
+			return nil, fmt.Errorf("send message failed: %w", err)
 		}
 
-		return
+		return nil, nil
 	}
 
 	log.Println("new message",
@@ -417,66 +223,32 @@ func bot(w http.ResponseWriter, r *http.Request) {
 				argument = umsg.ReplyToMessage.Text
 			}
 		} else {
-			return
+			return nil, nil
 		}
 	}
 
-	if _, err = Bot.Request(tgbotapi.NewChatAction(umsg.Chat.ID, "typing")); err != nil {
-		log.Println("send typing status failed", "err", err)
+	if _, err = tgbot.Request(tgbotapi.NewChatAction(umsg.Chat.ID, "typing")); err != nil {
+		return nil, fmt.Errorf("send typing status failed: %w", err)
 	}
 
-	switch command {
-	case "gemma312b", "llama4scout17b16e":
-		if edit {
-			return
-		}
-
-		var result io.ReadCloser
-		var err error
-
-		if command == "llama4scout17b16e" {
-			result, err = NewAI().LLama4Scout17b16eInstruct(Llama2_7bChatOptions{Prompt: argument})
-		} else {
-			result, err = NewAI().Gemma3_12b(Llama2_7bChatOptions{Prompt: argument})
-		}
-		if err != nil {
-			log.Println("send message failed", "err", err)
-			result = io.NopCloser(strings.NewReader(fmt.Sprintf(`data: {"response": "%s"}`, err.Error())))
-		}
-
-		ReturnByEventSource(result, umsg, argument)
-		return
+	if externalCommand != nil && externalCommand(command, Args{Text: argument}) {
+		return nil, nil
 	}
-
-	c := cache.New()
 
 	var resptext string
 
-	cachekey := &http.Request{
-		Method: "GET", // only GET is supported cache
-		URL: &url.URL{
-			Scheme: "https",
-			Host:   command + ".dict.worker.bot",
-			Path:   argument,
-		},
-	}
-
-	cache, err := c.Match(cachekey, &cache.MatchOptions{IgnoreMethod: true})
-	if err != nil {
-		log.Println("cache match failed", "err", err)
-	} else {
-		defer cache.Body.Close()
-		data, err := io.ReadAll(cache.Body)
-		if err == nil {
+	if cache != nil {
+		cache, ok := cache.Get(command)
+		if ok {
 			log.Println("cache hit for", "command", command, "argument", argument)
-			resptext = string(data)
+			resptext = cache
 		}
 	}
 
 	if resptext == "" {
 		resp := translate(command, Args{Text: argument})
 		if resp == nil {
-			return
+			return nil, nil
 		}
 
 		if len(resp) != 0 {
@@ -489,14 +261,8 @@ func bot(w http.ResponseWriter, r *http.Request) {
 
 		resptext = tgbotapi.EscapeText(tgbotapi.ModeHTML, strings.Join(resp, "\n\n"))
 
-		err := c.Put(cachekey, &http.Response{
-			Body: io.NopCloser(strings.NewReader(resptext)),
-			Header: http.Header{
-				"Cache-Control": []string{"max-age=86400"},
-			},
-		})
-		if err != nil {
-			log.Println("cache put failed", "err", err)
+		if cache != nil {
+			cache.Set(command, resptext)
 		}
 	}
 
@@ -512,25 +278,17 @@ func bot(w http.ResponseWriter, r *http.Request) {
 			tgbotapi.NewInlineKeyboardButtonData("💾", fmt.Sprintf("save:%s", ifOr(len(argument) < 59, argument, ""))),
 		),
 	)
-	if _, err = Bot.Request(msg); err != nil {
-		log.Println("send message", "err", err)
+	if _, err = tgbot.Request(msg); err != nil {
+		return nil, fmt.Errorf("send message failed: %w", err)
 	}
-}
 
-type writerWrapper struct {
-	http.ResponseWriter
-	isWritten bool
-}
-
-func (w *writerWrapper) Write([]byte) (int, error) {
-	w.isWritten = true
-	return 0, nil
+	return nil, nil
 }
 
 func register(w http.ResponseWriter, r *http.Request) {
 	domain := "https://" + r.URL.Host
-	if x := cloudflare.Getenv("worker_url"); x != "" {
-		domain = x
+	if workerUrl != "" {
+		domain = workerUrl
 	}
 
 	wh, err := tgbotapi.NewWebhook(domain + "/tgbot")
@@ -539,13 +297,13 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = Bot.Request(wh)
+	_, err = tgbot.Request(wh)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	resp, err := Bot.Request(tgbotapi.NewSetMyCommands(
+	resp, err := tgbot.Request(tgbotapi.NewSetMyCommands(
 		tgbotapi.BotCommand{Command: "en", Description: "en"},
 		tgbotapi.BotCommand{Command: "jpcn", Description: "jp -> cn"},
 		tgbotapi.BotCommand{Command: "cnjp", Description: "cn -> jp"},
@@ -626,7 +384,7 @@ func deleteMessage(msg *tgbotapi.Message, callback bool) {
 			return
 		}
 
-		bu, err := Bot.GetMe()
+		bu, err := tgbot.GetMe()
 		if err != nil {
 			log.Println("get me", "err", err)
 			return
@@ -644,7 +402,7 @@ func deleteMessage(msg *tgbotapi.Message, callback bool) {
 	}
 
 	dmsg := tgbotapi.NewDeleteMessage(msg.Chat.ID, msg.MessageID)
-	if _, err := Bot.Request(dmsg); err != nil {
+	if _, err := tgbot.Request(dmsg); err != nil {
 		log.Println("delete message", "err", err)
 	}
 }
@@ -671,7 +429,7 @@ func SendText(argument string, update *tgbotapi.Message, msgId int, text string)
 		))
 	}
 
-	rm, err := Bot.Send(msg)
+	rm, err := tgbot.Send(msg)
 	if err != nil {
 		return rm, err
 	}
@@ -699,7 +457,7 @@ func editMessage(umsg *tgbotapi.Message, callData string, save bool) {
 		))
 	msg.ParseMode = tgbotapi.ModeHTML
 	msg.LinkPreviewOptions.IsDisabled = true
-	if _, err := Bot.Request(msg); err != nil {
+	if _, err := tgbot.Request(msg); err != nil {
 		log.Println("edit message failed", "err", err)
 	}
 }
@@ -723,4 +481,54 @@ func (c callbackQuery) IsRemove() bool {
 
 func (c callbackQuery) IsDelete() bool {
 	return c.Command == "delete"
+}
+
+type Args struct {
+	Text string
+}
+
+func translate(cmd string, args Args) []string {
+	var resp []string
+	argument := args.Text
+	switch cmd {
+	case "en":
+		resp = en.FormatMarkdown(argument)
+	case "jpcn":
+		resp = jp.FormatMarkdown(argument)
+	case "cnjp":
+		result := jp.FormatCNString(argument)
+		if result != "" {
+			resp = []string{result}
+		}
+	case "ktbk":
+		result := kotobakku.FormatString(argument)
+		if result != "" {
+			resp = []string{result}
+		}
+	case "ko":
+		result := kr.FormatString(argument)
+		if result != "" {
+			resp = []string{result}
+		}
+	case "weblio":
+		result := weblio.FormatString(argument)
+		if result != "" {
+			resp = []string{result}
+		}
+
+	default:
+		if strings.HasPrefix(cmd, "gg") {
+			cmd = cmd[2:]
+			str, err := google.Translate(argument, "", cmd)
+			if err != nil {
+				resp = []string{err.Error()}
+			} else {
+				resp = str.Target
+			}
+
+			return resp
+		}
+	}
+
+	return resp
 }

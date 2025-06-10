@@ -4,3 +4,5 @@ hjjp
 /cmd/worker/build
 /cmd/worker/node_modules
 /cmd/worker/wrangler.toml
+/cmd/lambda/bootstrap*
+tgbot/.tgid
