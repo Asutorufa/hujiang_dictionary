@@ -6,8 +6,8 @@ require (
 	github.com/OvyFlash/telegram-bot-api v0.0.0-20250511194450-d315c30d9c40
 	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/aws/aws-lambda-go v1.49.0
-	github.com/go-json-experiment/json v0.0.0-20250517221953-25912455fbc8
-	github.com/stretchr/testify v1.7.2
+	github.com/go-json-experiment/json v0.0.0-20250626171732-1a886bd29d1b
+	github.com/stretchr/testify v1.10.0
 	github.com/syumai/go-jsutil v0.2.0
 	github.com/syumai/tinyutil v0.3.2
 	github.com/syumai/workers v0.30.2
