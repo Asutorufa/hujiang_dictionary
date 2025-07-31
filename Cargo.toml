@@ -1,0 +1,12 @@
+[package]
+name = "hj-rust"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+html2text = "0.15.3"
+reqwest = { version = "0.12.22" }
+scraper = "0.23.1"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.141"
+tokio = { version = "1", features = ["full"] }
