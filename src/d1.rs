@@ -51,18 +51,18 @@ struct QueryBody {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryResult {
-    pub errors: Vec<Message>,
-    pub messages: Vec<Message>,
-    pub result: Vec<ResultItem>,
+    pub errors: Option<Vec<Message>>,
+    pub messages: Option<Vec<Message>>,
+    pub result: Option<Vec<ResultItem>>,
     pub success: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Message {
-    pub code: i32,
-    pub message: String,
-    pub documentation_url: String,
-    pub source: Source,
+    pub code: Option<i32>,
+    pub message: Option<String>,
+    pub documentation_url: Option<String>,
+    pub source: Option<Source>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -73,15 +73,21 @@ pub struct Source {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResultItem {
     pub meta: Meta,
-    pub results: Vec<serde_json::Value>,
+    pub results: ItemResult,
     pub success: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ItemResult {
+    columns: Vec<String>,
+    rows: Vec<Vec<serde_json::Value>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Meta {
     pub changed_db: bool,
     pub changes: i32,
-    pub duration: i32,
+    pub duration: f64,
     pub last_row_id: i32,
     pub rows_read: i32,
     pub rows_written: i32,
@@ -93,15 +99,44 @@ pub struct Meta {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Timings {
-    pub sql_duration_ms: i32,
+    pub sql_duration_ms: f64,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Word {
+    word: String,
+    explain: String,
+    add_time: i64,
+    update_time: i64,
+    triger_time: i64,
+}
+
+impl From<Vec<serde_json::Value>> for Word {
+    fn from(value: Vec<serde_json::Value>) -> Self {
+        return Word {
+            word: value[0].as_str().unwrap().to_string(),
+            explain: value[1].as_str().unwrap().to_string(),
+            add_time: value[2].as_i64().unwrap(),
+            update_time: value[3].as_i64().unwrap(),
+            triger_time: value[4].as_i64().unwrap(),
+        };
+    }
 }
 
 impl D1 {
-    pub async fn query(
+    pub fn new(account_id: String, database_id: String, api_token: String) -> D1 {
+        D1 {
+            account_id,
+            database_id,
+            api_token,
+        }
+    }
+
+    pub async fn query<T: From<Vec<serde_json::Value>>>(
         &self,
-        sql: String,
+        sql: &str,
         params: Vec<String>,
-    ) -> Result<Vec<ResultItem>, D1Error> {
+    ) -> Result<Vec<T>, D1Error> {
         /*
                      curl https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/d1/database/$DATABASE_ID/raw \
                  -H 'Content-Type: application/json' \
@@ -163,7 +198,10 @@ impl D1 {
          }
         */
 
-        let body = serde_json::to_string(&QueryBody { sql, params })?;
+        let body = serde_json::to_string(&QueryBody {
+            sql: sql.to_string(),
+            params,
+        })?;
 
         let r = reqwest::Client::builder()
             .build()?
@@ -171,17 +209,59 @@ impl D1 {
                 "https://api.cloudflare.com/client/v4/accounts/{}/d1/database/{}/raw",
                 self.account_id, self.database_id
             ))
-            .header("Authorization", self.api_token.clone())
+            .header("Authorization", format!("Bearer {}", self.api_token))
             .body(body)
             .send()
             .await?;
 
-        let result = serde_json::from_str::<QueryResult>(r.text().await?.as_str())?;
+        let response_body = r.text().await?;
+
+        let result = serde_json::from_str::<QueryResult>(&response_body)?;
 
         if !result.success {
             return Err(D1Error::from(format!("query failed: {:?}", result.errors)));
         }
 
-        Ok(result.result)
+        let mut rs: Vec<T> = vec![];
+
+        for v in result.result.unwrap() {
+            for rv in v.results.rows {
+                rs.push(T::from(rv));
+            }
+        }
+
+        Ok(rs)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::fs;
+
+    use serde::{Deserialize, Serialize};
+
+    use crate::d1::{D1, Word};
+
+    #[derive(Serialize, Deserialize)]
+    struct Auth {
+        account_id: String,
+        database_id: String,
+        api_token: String,
+    }
+
+    #[tokio::test]
+    async fn test() {
+        let auth_json = fs::read_to_string("src/.api.json").unwrap();
+
+        let auth = serde_json::from_str::<Auth>(&auth_json).unwrap();
+
+        let d1 = D1::new(auth.account_id, auth.database_id, auth.api_token);
+
+        let result = d1
+            .query::<Word>("select * from words limit 10", vec![])
+            .await
+            .unwrap();
+
+        println!("{:?}", result);
     }
 }
