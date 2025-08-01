@@ -1,6 +1,6 @@
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
+use std::fmt;
+use value2struct::FromValueVec;
 
 #[derive(Debug)]
 pub struct D1Error(String);
@@ -51,8 +51,8 @@ struct QueryBody {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryResult {
-    pub errors: Option<Vec<Message>>,
-    pub messages: Option<Vec<Message>>,
+    pub errors: serde_json::Value,
+    pub messages: serde_json::Value,
     pub result: Option<Vec<ResultItem>>,
     pub success: bool,
 }
@@ -63,6 +63,12 @@ pub struct Message {
     pub message: Option<String>,
     pub documentation_url: Option<String>,
     pub source: Option<Source>,
+}
+
+impl ToString for Message {
+    fn to_string(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -102,25 +108,13 @@ pub struct Timings {
     pub sql_duration_ms: f64,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, FromValueVec)]
 struct Word {
     word: String,
     explain: String,
     add_time: i64,
     update_time: i64,
     triger_time: i64,
-}
-
-impl From<Vec<serde_json::Value>> for Word {
-    fn from(value: Vec<serde_json::Value>) -> Self {
-        return Word {
-            word: value[0].as_str().unwrap().to_string(),
-            explain: value[1].as_str().unwrap().to_string(),
-            add_time: value[2].as_i64().unwrap(),
-            update_time: value[3].as_i64().unwrap(),
-            triger_time: value[4].as_i64().unwrap(),
-        };
-    }
 }
 
 impl D1 {
@@ -218,8 +212,10 @@ impl D1 {
 
         let result = serde_json::from_str::<QueryResult>(&response_body)?;
 
+        println!("[{}] messages: {}", sql, result.messages);
+
         if !result.success {
-            return Err(D1Error::from(format!("query failed: {:?}", result.errors)));
+            return Err(D1Error::from(format!("query failed: {}", result.errors)));
         }
 
         let mut rs: Vec<T> = vec![];
