@@ -4,8 +4,9 @@ use teloxide::{
     RequestError,
     dispatching::{DefaultKey, DpHandlerDescription},
     prelude::*,
+    sugar::request::RequestLinkPreviewExt,
     types::{ReplyParameters, Update, UserId},
-    utils::command::BotCommands,
+    utils::{command::BotCommands, html},
 };
 
 use crate::{ai::Workers, d1::D1, google, jp};
@@ -26,6 +27,8 @@ pub enum Command {
     UserID,
     #[command(description = "google translate, eg: /gg_en_ja hello, /gg_ja hello")]
     GG(String, String),
+    #[command(description = "get a random word from d1 database")]
+    Random,
 }
 
 pub async fn run_bot(run_opt: RunOpt) -> Dispatcher<Bot, RequestError, DefaultKey> {
@@ -84,6 +87,8 @@ pub async fn answer(
 
     println!("new request from: {}", from_user);
 
+    let mut parse_mode = teloxide::types::ParseMode::MarkdownV2;
+
     let reply = match cmd {
         Command::CNJP(word) => match jp::get(word.as_str(), "cj").await {
             Err(e) => e.to_string(),
@@ -109,10 +114,23 @@ pub async fn answer(
                 Ok(v) => google::merge_translation(v),
             }
         }
+        Command::Random => match opt.d1.random_word().await {
+            Err(e) => e.to_string(),
+            Ok(v) => {
+                parse_mode = teloxide::types::ParseMode::Html;
+                format!(
+                    "<b>{}</b>\n<tg-spoiler><blockquote expandable>{}</blockquote></tg-spoiler>",
+                    html::escape(v.word.as_str()),
+                    html::escape(v.explain.as_str())
+                )
+            }
+        },
     };
 
     bot.send_message(msg.chat.id, reply)
         .reply_parameters(ReplyParameters::new(msg.id))
+        .parse_mode(parse_mode)
+        .disable_link_preview(true)
         .await?;
 
     Ok(())

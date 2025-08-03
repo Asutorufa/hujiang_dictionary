@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::{
+    fmt,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use value2struct::FromValueVec;
 
 #[derive(Debug)]
@@ -109,13 +112,21 @@ pub struct Timings {
     pub sql_duration_ms: f64,
 }
 
-#[derive(Serialize, Deserialize, Debug, FromValueVec)]
-struct Word {
-    word: String,
-    explain: String,
+#[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
+pub struct Word {
+    pub word: String,
+    pub explain: String,
     add_time: i64,
     update_time: i64,
     triger_time: i64,
+}
+
+pub struct Empty {}
+
+impl From<Vec<serde_json::Value>> for Empty {
+    fn from(_: Vec<serde_json::Value>) -> Self {
+        Empty {}
+    }
 }
 
 impl D1 {
@@ -195,7 +206,7 @@ impl D1 {
 
         let body = serde_json::to_string(&QueryBody {
             sql: sql.to_string(),
-            params,
+            params: params.clone(),
         })?;
 
         let r = reqwest::Client::builder()
@@ -213,7 +224,7 @@ impl D1 {
 
         let result = serde_json::from_str::<QueryResult>(&response_body)?;
 
-        println!("[{}] messages: {}", sql, result.messages);
+        println!("[{}] args: {:?} messages: {}", sql, params, result.messages);
 
         if !result.success {
             return Err(D1Error::from(format!("query failed: {}", result.errors)));
@@ -228,6 +239,47 @@ impl D1 {
         }
 
         Ok(rs)
+    }
+
+    pub async fn random_word(&self) -> Result<Word, D1Error> {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            .to_string();
+
+        let words = match self
+            .query::<Word>(
+                "SELECT * FROM words WHERE reminder_time <= ? ORDER BY RANDOM() LIMIT 1",
+                vec![now.clone()],
+            )
+            .await
+        {
+            Ok(v) if !v.is_empty() => v,
+            _ => {
+                self.query::<Word>("SELECT * FROM words ORDER BY RANDOM() LIMIT 1", vec![])
+                    .await?
+            }
+        };
+
+        if words.len() == 0 {
+            return Err(D1Error::from("no word found"));
+        }
+
+        let v = words[0].clone();
+
+        match self
+            .query::<Empty>(
+                "UPDATE words SET reminder_time = ? WHERE word = ?",
+                vec![now.clone(), v.word.clone()],
+            )
+            .await
+        {
+            Err(e) => println!("update reminder_time error: {}", e),
+            _ => {}
+        }
+
+        Ok(v)
     }
 }
 
