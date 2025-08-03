@@ -8,12 +8,14 @@ use teloxide::{
     utils::command::BotCommands,
 };
 
-use crate::jp;
+use crate::{ai::Workers, d1::D1, google, jp};
 
-#[derive(BotCommands, Clone)]
+#[derive(BotCommands, PartialEq, Clone)]
 #[command(
     rename_rule = "lowercase",
-    description = "These commands are supported:"
+    description = "These commands are supported:",
+    parse_with = "split",
+    command_separator = "_"
 )]
 pub enum Command {
     #[command(description = "jp -> cn")]
@@ -22,6 +24,8 @@ pub enum Command {
     CNJP(String),
     #[command(description = "get current user id")]
     UserID,
+    #[command(description = "google translate, eg: /gg_en_ja hello, /gg_ja hello")]
+    GG(String, String),
 }
 
 pub async fn run_bot(run_opt: RunOpt) -> Dispatcher<Bot, RequestError, DefaultKey> {
@@ -58,7 +62,9 @@ pub fn handler() -> Handler<'static, Result<(), RequestError>, DpHandlerDescript
 
 #[derive(Clone)]
 pub struct RunOpt {
-    pub maintainer: HashSet<UserId>,
+    pub allow_users: HashSet<UserId>,
+    pub d1: D1,
+    pub workers_ai: Workers,
 }
 
 pub async fn answer(
@@ -72,7 +78,7 @@ pub async fn answer(
         Some(v) => v.id,
     };
 
-    if !opt.maintainer.contains(&from_user) {
+    if !opt.allow_users.contains(&from_user) {
         return Ok(());
     }
 
@@ -88,10 +94,25 @@ pub async fn answer(
             Ok(v) => format!("{:?}", v),
         },
         Command::UserID => format!("your id is: {}", from_user).to_string(),
+        Command::GG(arg, text) => {
+            let args = arg.split("_").collect::<Vec<_>>();
+            let mut target = arg.as_str();
+            let mut src = "";
+
+            if args.len() > 1 {
+                src = args[0];
+                target = args[1];
+            }
+
+            match google::translate(&text, src, target).await {
+                Err(e) => e.to_string(),
+                Ok(v) => google::merge_translation(v),
+            }
+        }
     };
 
     bot.send_message(msg.chat.id, reply)
-        .reply_parameters(ReplyParameters::default().allow_sending_without_reply())
+        .reply_parameters(ReplyParameters::new(msg.id))
         .await?;
 
     Ok(())

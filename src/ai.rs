@@ -1,6 +1,6 @@
 use async_openai::{
     Client,
-    config::{Config, OpenAIConfig},
+    config::OpenAIConfig,
     error::OpenAIError,
     types::{
         ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
@@ -9,22 +9,21 @@ use async_openai::{
     },
 };
 
+#[derive(Clone)]
 pub struct Workers {
-    client: Client<Box<dyn Config>>,
+    client: Client<OpenAIConfig>,
 }
 
 impl Workers {
-    pub fn new(api_key: String, account_id: String) -> Self {
+    pub fn new(api_key: &str, account_id: &str) -> Self {
         let openai_config = OpenAIConfig::default()
             .with_api_base(format!(
                 "https://api.cloudflare.com/client/v4/accounts/{}/ai/v1",
                 account_id
             ))
             .with_api_key(api_key);
-        // You can use `std::sync::Arc` to wrap the config as well
-        let config = Box::new(openai_config) as Box<dyn Config>;
 
-        let client: Client<Box<dyn Config>> = Client::with_config(config);
+        let client: Client<OpenAIConfig> = Client::with_config(openai_config);
 
         Workers { client }
     }
@@ -103,7 +102,7 @@ mod test {
     pub async fn completion() {
         let auth_json = fs::read_to_string("src/.api.json").unwrap();
         let auth = serde_json::from_str::<Auth>(&auth_json).unwrap();
-        let mut ai = Workers::new(auth.api_token, auth.account_id);
+        let mut ai = Workers::new(auth.api_token.as_str(), auth.account_id.as_str());
         println!(
             "{}",
             ai.gemma3_12b("生意気の意味は？".to_string()).await.unwrap()

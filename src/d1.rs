@@ -37,6 +37,7 @@ impl From<String> for D1Error {
     }
 }
 
+#[derive(Clone)]
 pub struct D1 {
     account_id: String,
     database_id: String,
@@ -118,11 +119,11 @@ struct Word {
 }
 
 impl D1 {
-    pub fn new(account_id: String, database_id: String, api_token: String) -> D1 {
+    pub fn new(account_id: &str, database_id: &str, api_token: &str) -> D1 {
         D1 {
-            account_id,
-            database_id,
-            api_token,
+            account_id: account_id.to_string(),
+            database_id: database_id.to_string(),
+            api_token: api_token.to_string(),
         }
     }
 
@@ -251,7 +252,11 @@ mod test {
 
         let auth = serde_json::from_str::<Auth>(&auth_json).unwrap();
 
-        let d1 = D1::new(auth.account_id, auth.database_id, auth.api_token);
+        let d1 = D1::new(
+            auth.account_id.as_str(),
+            auth.database_id.as_str(),
+            auth.api_token.as_str(),
+        );
 
         let result = d1
             .query::<Word>("select * from words limit 10", vec![])
