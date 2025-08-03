@@ -59,6 +59,40 @@ telegram_ids = "40xxxxxx,42xxxxx"
 binding = "AI"
 */
 
+func getRandomWord() (string, string, error) {
+	now := time.Now()
+
+	db, err := sql.Open("d1", "DB")
+	if err != nil {
+		return "", "", fmt.Errorf("open db failed: %w", err)
+	}
+	defer db.Close()
+
+	result, err := db.Query("SELECT word, explain FROM words  WHERE reminder_time <= ? ORDER BY RANDOM() LIMIT 1", now.Add(-12*time.Hour).Unix())
+	if err != nil {
+		result, err = db.Query("SELECT word, explain FROM words ORDER BY RANDOM() LIMIT 1")
+		if err != nil {
+			return "", "", fmt.Errorf("get random word failed: %w", err)
+		}
+	}
+
+	result.Next()
+
+	var word, explain string
+	err = result.Scan(&word, &explain)
+	if err != nil {
+		return "", "", fmt.Errorf("scan word failed: %w", err)
+	}
+	defer result.Close()
+
+	_, err = db.Exec("UPDATE words SET reminder_time = ? WHERE word = ?", now.Unix(), word)
+	if err != nil {
+		log.Println("update word failed", "err", err)
+	}
+
+	return word, explain, nil
+}
+
 func main() {
 	cron.ScheduleTaskNonBlock(func(ctx context.Context) error {
 		ankiIdstr := cloudflare.Getenv("anki_telegram_id")
@@ -73,25 +107,11 @@ func main() {
 			return nil
 		}
 
-		db, err := sql.Open("d1", "DB")
+		word, explain, err := getRandomWord()
 		if err != nil {
+			log.Println("get random word failed", "err", err)
 			return err
 		}
-		defer db.Close()
-
-		result, err := db.Query("SELECT word, explain FROM words ORDER BY RANDOM() LIMIT 1")
-		if err != nil {
-			return err
-		}
-
-		result.Next()
-
-		var word, explain string
-		err = result.Scan(&word, &explain)
-		if err != nil {
-			return err
-		}
-		defer result.Close()
 
 		msg := tgbotapi.NewMessage(ankiId, fmt.Sprintf(`<b>%s</b>
 	<tg-spoiler><blockquote expandable>%s</blockquote></tg-spoiler>
@@ -337,28 +357,11 @@ func bot(w http.ResponseWriter, r *http.Request) {
 		deleteMessage(umsg, false)
 		return
 	case "random":
-		db, err := sql.Open("d1", "DB")
-		if err != nil {
-			log.Println("open db failed", "err", err)
-			return
-		}
-		defer db.Close()
-
-		result, err := db.Query("SELECT word, explain FROM words ORDER BY RANDOM() LIMIT 1")
+		word, explain, err := getRandomWord()
 		if err != nil {
 			log.Println("get random word failed", "err", err)
 			return
 		}
-
-		result.Next()
-
-		var word, explain string
-		err = result.Scan(&word, &explain)
-		if err != nil {
-			log.Println("scan word failed", "err", err)
-			return
-		}
-		defer result.Close()
 
 		msg := tgbotapi.NewMessage(umsg.Chat.ID, fmt.Sprintf(`<b>%s</b>
 <tg-spoiler><blockquote expandable>%s</blockquote></tg-spoiler>
