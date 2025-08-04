@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{
-    fmt,
+    fmt::{self},
     time::{SystemTime, UNIX_EPOCH},
 };
 use value2struct::FromValueVec;
@@ -40,6 +40,7 @@ impl From<String> for D1Error {
     }
 }
 
+// see: https://developers.cloudflare.com/api/resources/d1/subresources/database
 #[derive(Clone)]
 pub struct D1 {
     account_id: String,
@@ -54,11 +55,26 @@ struct QueryBody {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct QueryResult {
+pub struct RawExecResult {
     pub errors: serde_json::Value,
     pub messages: serde_json::Value,
-    pub result: Option<Vec<ResultItem>>,
+    pub result: Vec<RawResult>,
     pub success: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ListDatabaseResult {
+    pub errors: serde_json::Value,
+    pub messages: serde_json::Value,
+    pub result: Vec<ListDatabaseResultItem>,
+    pub success: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ListDatabaseResultItem {
+    name: String,
+    uuid: String,
+    version: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -81,14 +97,14 @@ pub struct Source {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ResultItem {
+pub struct RawResult {
     pub meta: Meta,
-    pub results: ItemResult,
+    pub results: RawResults,
     pub success: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ItemResult {
+pub struct RawResults {
     columns: Vec<String>,
     rows: Vec<Vec<serde_json::Value>>,
 }
@@ -129,16 +145,48 @@ impl From<Vec<serde_json::Value>> for Empty {
     }
 }
 
+pub enum Database {
+    UUID(String),
+    Name(String),
+}
+
 impl D1 {
-    pub fn new(account_id: &str, database_id: &str, api_token: &str) -> D1 {
-        D1 {
+    pub async fn new(account_id: &str, api_token: &str, database: Database) -> Result<D1, D1Error> {
+        let mut d1 = D1 {
             account_id: account_id.to_string(),
-            database_id: database_id.to_string(),
+            database_id: "".to_string(),
             api_token: api_token.to_string(),
-        }
+        };
+
+        d1.database_id = match database {
+            Database::Name(v) => d1.get_database_id(&v).await?,
+            Database::UUID(v) => v,
+        };
+
+        Ok(d1)
     }
 
-    pub async fn query<T: From<Vec<serde_json::Value>>>(
+    async fn get_database_id(&self, database_name: &str) -> Result<String, D1Error> {
+        let r = reqwest::Client::builder()
+            .build()?
+            .get(format!("/accounts/{}/d1/database", self.account_id,))
+            .query(&vec![("name", database_name)])
+            .header("Authorization", format!("Bearer {}", self.api_token))
+            .send()
+            .await?;
+
+        let lr = r.json::<ListDatabaseResult>().await?;
+
+        if lr.result.len() == 0 {
+            return Err(D1Error(
+                format!("database {} not found", database_name).to_string(),
+            ));
+        }
+
+        Ok(lr.result[0].name.clone())
+    }
+
+    pub async fn raw<T: From<Vec<serde_json::Value>>>(
         &self,
         sql: &str,
         params: Vec<String>,
@@ -220,9 +268,7 @@ impl D1 {
             .send()
             .await?;
 
-        let response_body = r.text().await?;
-
-        let result = serde_json::from_str::<QueryResult>(&response_body)?;
+        let result = r.json::<RawExecResult>().await?;
 
         println!("[{}] args: {:?} messages: {}", sql, params, result.messages);
 
@@ -232,13 +278,34 @@ impl D1 {
 
         let mut rs: Vec<T> = vec![];
 
-        for v in result.result.unwrap() {
+        for v in result.result {
             for rv in v.results.rows {
                 rs.push(T::from(rv));
             }
         }
 
         Ok(rs)
+    }
+
+    pub async fn save_word(&self, word: String, explain: String) -> Result<(), D1Error> {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            .to_string();
+
+        self.raw::<Empty>(
+            "INSERT INTO words (word, explain, add_time, update_time) VALUES (?, ?, ?, ?) ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = ?", 
+            vec![word,explain.clone(),now.clone(),now.clone(),explain,now],
+        ).await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_word(&self, word: String) -> Result<(), D1Error> {
+        self.raw::<Empty>("DELETE FROM words WHERE word = ?", vec![word])
+            .await?;
+        Ok(())
     }
 
     pub async fn random_word(&self) -> Result<Word, D1Error> {
@@ -249,7 +316,7 @@ impl D1 {
             .to_string();
 
         let words = match self
-            .query::<Word>(
+            .raw::<Word>(
                 "SELECT * FROM words WHERE reminder_time <= ? ORDER BY RANDOM() LIMIT 1",
                 vec![now.clone()],
             )
@@ -257,7 +324,7 @@ impl D1 {
         {
             Ok(v) if !v.is_empty() => v,
             _ => {
-                self.query::<Word>("SELECT * FROM words ORDER BY RANDOM() LIMIT 1", vec![])
+                self.raw::<Word>("SELECT * FROM words ORDER BY RANDOM() LIMIT 1", vec![])
                     .await?
             }
         };
@@ -269,7 +336,7 @@ impl D1 {
         let v = words[0].clone();
 
         match self
-            .query::<Empty>(
+            .raw::<Empty>(
                 "UPDATE words SET reminder_time = ? WHERE word = ?",
                 vec![now.clone(), v.word.clone()],
             )
@@ -306,12 +373,14 @@ mod test {
 
         let d1 = D1::new(
             auth.account_id.as_str(),
-            auth.database_id.as_str(),
             auth.api_token.as_str(),
-        );
+            crate::d1::Database::UUID(auth.database_id),
+        )
+        .await
+        .unwrap();
 
         let result = d1
-            .query::<Word>("select * from words limit 10", vec![])
+            .raw::<Word>("select * from words limit 10", vec![])
             .await
             .unwrap();
 

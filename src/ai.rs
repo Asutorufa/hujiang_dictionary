@@ -8,14 +8,17 @@ use async_openai::{
         ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs,
     },
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
 pub struct Workers {
     client: Client<OpenAIConfig>,
+    account_id: String,
+    api_token: String,
 }
 
 impl Workers {
-    pub fn new(api_key: &str, account_id: &str) -> Self {
+    pub fn new(account_id: &str, api_key: &str) -> Self {
         let openai_config = OpenAIConfig::default()
             .with_api_base(format!(
                 "https://api.cloudflare.com/client/v4/accounts/{}/ai/v1",
@@ -25,7 +28,11 @@ impl Workers {
 
         let client: Client<OpenAIConfig> = Client::with_config(openai_config);
 
-        Workers { client }
+        Workers {
+            client,
+            account_id: account_id.to_string(),
+            api_token: api_key.to_string(),
+        }
     }
 
     pub async fn completion(
@@ -83,6 +90,45 @@ impl Workers {
             name:None,
         }),
     ], "@cf/meta/llama-4-scout-17b-16e-instruct").await
+    }
+
+    pub async fn m2m100_1_2b(
+        &self,
+        text: &str,
+        source_lang: &str,
+        target_lang: &str,
+    ) -> Result<String, reqwest::Error> {
+        #[derive(Debug, Serialize, Deserialize)]
+        struct Request {
+            text: String,
+            source_lang: String,
+            target_lang: String,
+        }
+
+        let body = serde_json::to_string(&Request {
+            source_lang: source_lang.to_string(),
+            target_lang: target_lang.to_string(),
+            text: text.to_string(),
+        })
+        .unwrap();
+
+        let r = reqwest::Client::builder()
+            .build()?
+            .post(format!(
+                "https://api.cloudflare.com/client/v4/accounts/{}/ai/run/@cf/meta/m2m100-1.2b",
+                self.account_id
+            ))
+            .header("Authorization", format!("Bearer {}", self.api_token))
+            .body(body)
+            .send()
+            .await?;
+
+        #[derive(Debug, Serialize, Deserialize)]
+        struct Output {
+            translated_text: String,
+        }
+
+        Ok(r.json::<Output>().await?.translated_text)
     }
 }
 

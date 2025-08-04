@@ -1,0 +1,30 @@
+name: build rust musl ci
+
+on:
+  push:
+    branches: [ "rust" ]
+  pull_request:
+    branches: [ "rust" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: |
+        docker run --net host -v $PWD:/volume --rm -t clux/muslrust:stable cargo build --release --bin tg
+        docker run --net host -v $PWD:/volume --rm -t clux/muslrust:stable cargo build --release --bin lambda
+
+    - name: upload_awstgbot
+      uses: actions/upload-artifact@v4
+      with:
+        name: output_awstgbot
+        path: target/x86_64-unknown-linux-musl/release/tg
+
+    - name: upload_lambda
+      uses: actions/upload-artifact@v4
+      with:
+        name: output_lambda
+        path: target/x86_64-unknown-linux-musl/release/lambda

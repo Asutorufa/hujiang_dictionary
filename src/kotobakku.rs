@@ -3,7 +3,7 @@ use scraper::Selector;
 pub async fn get(str: &str) -> Result<Vec<String>, reqwest::Error> {
     let r = reqwest::Client::builder()
         .build()?
-        .get(format!("https://www.weblio.jp/content/{}", str))
+        .get(format!("https://kotobank.jp/word/{}", str))
         .send()
         .await?;
 
@@ -11,7 +11,7 @@ pub async fn get(str: &str) -> Result<Vec<String>, reqwest::Error> {
 
     let q = scraper::Html::parse_fragment(&text);
 
-    let kiji_selector = Selector::parse(".kiji").unwrap();
+    let kiji_selector = Selector::parse("#mainArea article").unwrap();
 
     let mut results = Vec::new();
 
@@ -24,12 +24,13 @@ pub async fn get(str: &str) -> Result<Vec<String>, reqwest::Error> {
             .unwrap();
         results.push(text);
     }
+
     Ok(results)
 }
 
 #[cfg(test)]
 mod test {
-    use crate::weblio::get;
+    use crate::kotobakku::get;
 
     #[tokio::test]
     async fn get_test() {
