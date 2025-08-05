@@ -1,8 +1,9 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::Arc};
 
 use teloxide::{
     RequestError,
     dispatching::{DefaultKey, DpHandlerDescription, dialogue::GetChatId},
+    error_handlers::ErrorHandler,
     prelude::*,
     sugar::request::RequestLinkPreviewExt,
     types::{InlineKeyboardButton, InlineKeyboardMarkup, ReplyParameters, Update, UserId},
@@ -10,6 +11,7 @@ use teloxide::{
 };
 
 use crate::{ai::Workers, d1::D1, google, jp, kotobakku, weblio};
+use futures::future::BoxFuture;
 
 #[derive(BotCommands, PartialEq, Clone, Debug)]
 #[command(
@@ -51,9 +53,19 @@ pub async fn run_bot(run_opt: RunOpt) -> Dispatcher<Bot, RequestError, DefaultKe
     let dispatcher = Dispatcher::builder(bot, handler)
         .dependencies(deps)
         .enable_ctrlc_handler()
+        .error_handler(Arc::new(TErrorHandler {}))
         .build();
 
     return dispatcher;
+}
+
+pub struct TErrorHandler {}
+
+impl ErrorHandler<RequestError> for TErrorHandler {
+    fn handle_error(self: std::sync::Arc<Self>, error: RequestError) -> BoxFuture<'static, ()> {
+        println!("error: {}", error);
+        Box::pin(async move {})
+    }
 }
 
 pub fn handler() -> Handler<'static, Result<(), RequestError>, DpHandlerDescription> {
@@ -113,19 +125,39 @@ pub async fn answer(
     let (word, reply) = match cmd {
         Command::CNJP(word) => match jp::get(word.as_str(), "cj").await {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
-            Ok(v) => (word, markdown::escape(format!("{:?}", v).as_str())),
+            Ok(v) => (
+                word,
+                vec_string_markdown_escape(v.iter().map(|x| x.markdown()).collect()),
+            ),
         },
         Command::JPCN(word) => match jp::get(word.as_str(), "jc").await {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
-            Ok(v) => (word, markdown::escape(format!("{:?}", v).as_str())),
+            Ok(v) => (
+                word,
+                vec_string_markdown_escape(v.iter().map(|x| x.markdown()).collect()),
+            ),
         },
         Command::Ktbk(word) => match kotobakku::get(word.as_str()).await {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
-            Ok(v) => (word, markdown::escape(format!("{:?}", v).as_str())),
+            Ok(v) => {
+                let reply = vec_string_markdown_escape(v.clone());
+                if reply.len() > 4096 {
+                    (word, markdown::escape(&v[0].clone()))
+                } else {
+                    (word, reply)
+                }
+            }
         },
         Command::Weblio(word) => match weblio::get(word.as_str()).await {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
-            Ok(v) => (word, markdown::escape(format!("{:?}", v).as_str())),
+            Ok(v) => {
+                let reply = vec_string_markdown_escape(v.clone());
+                if reply.len() > 4096 {
+                    (word, markdown::escape(&v[0].clone()))
+                } else {
+                    (word, reply)
+                }
+            }
         },
         Command::UserID => (
             "".to_string(),
@@ -165,21 +197,44 @@ pub async fn answer(
         },
     };
 
-    let mut req = bot
-        .send_message(msg.chat.id, reply)
-        .reply_parameters(ReplyParameters::new(msg.id))
-        .parse_mode(parse_mode);
+    for v in split_message(&reply, 4096) {
+        let mut req = bot
+            .send_message(msg.chat.id, v)
+            .reply_parameters(ReplyParameters::new(msg.id))
+            .parse_mode(parse_mode)
+            .disable_link_preview(true);
 
-    if !word.is_empty() {
-        let keyboard = InlineKeyboardMarkup::new(vec![vec![
-            InlineKeyboardButton::callback("🗑️", "/delete"),
-            InlineKeyboardButton::callback("💾", format!("/save {}", word)),
-        ]]);
-        req = req.reply_markup(keyboard);
+        if !word.is_empty() {
+            let keyboard = InlineKeyboardMarkup::new(vec![vec![
+                InlineKeyboardButton::callback("🗑️", "/delete"),
+                InlineKeyboardButton::callback("💾", format!("/save {}", word)),
+            ]]);
+            req = req.reply_markup(keyboard);
+        }
+
+        req.await?;
     }
 
-    req.disable_link_preview(true).await?;
     Ok(())
+}
+
+fn split_message(text: &str, max_len: usize) -> Vec<String> {
+    let mut chunks = Vec::new();
+    let mut current = String::new();
+
+    for c in text.chars() {
+        if current.len() + c.len_utf8() > max_len {
+            chunks.push(current);
+            current = String::new();
+        }
+        current.push(c);
+    }
+
+    if !current.is_empty() {
+        chunks.push(current);
+    }
+
+    chunks
 }
 
 #[derive(BotCommands, PartialEq, Clone, Debug)]
@@ -286,4 +341,13 @@ pub async fn callback_query(
 
 fn get_callback_message(c: CallbackQuery) -> Option<Message> {
     Some(c.message?.regular_message()?.clone())
+}
+
+pub fn vec_string_markdown_escape(v: Vec<String>) -> String {
+    let mut s = String::new();
+    for i in v {
+        s.push_str(markdown::escape(i.as_str()).as_str());
+        s.push_str("\n");
+    }
+    s
 }

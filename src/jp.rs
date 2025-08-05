@@ -1,4 +1,5 @@
 use scraper::{ElementRef, Selector};
+use std::fmt::Write;
 
 #[derive(Debug)]
 pub struct Simple {
@@ -32,6 +33,60 @@ pub struct Word {
     pub audio_url: String,
     pub simple: Vec<Simple>,
     pub detail: Vec<Detail>,
+}
+
+impl Word {
+    pub fn markdown(&self) -> String {
+        let mut s = String::new();
+
+        // Add word, katakana, and audio
+        write!(s, "{}\n", self.word).unwrap();
+        write!(s, "{}\n", self.katakana).unwrap();
+        write!(
+            s,
+            r#"<audio controls controlsList="nodownload" preload="none" src="{}"></audio>"#,
+            self.audio_url
+        )
+        .unwrap();
+        s.push('\n');
+
+        // Handle simple explanations
+        for (i2, simple) in self.simple.iter().enumerate() {
+            if i2 == 0 {
+                s.push_str("\n- simple explain\n");
+            }
+
+            if !simple.attribute.is_empty() {
+                write!(s, "  - {}\n", simple.attribute).unwrap();
+            } else {
+                s.push_str("  - *\n");
+            }
+
+            for explain in &simple.explains {
+                write!(s, "    - {}\n", explain).unwrap();
+            }
+        }
+
+        // Handle detailed explanations
+        for (i2, detail) in self.detail.iter().enumerate() {
+            if i2 == 0 {
+                s.push_str("\n- More Detail\n");
+            }
+
+            write!(s, "  - {}\n", detail.attribute).unwrap();
+
+            for example in &detail.explains {
+                write!(s, "    - {}\n", example.explain).unwrap();
+
+                for e in &example.examples {
+                    write!(s, "      - {}\n", e.original).unwrap();
+                    write!(s, "        {}\n", e.translate).unwrap();
+                }
+            }
+        }
+
+        s
+    }
 }
 
 static USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36";
@@ -264,6 +319,14 @@ mod tes {
 
         println!("{:?}", parse(test1.as_str()));
         println!("{:?}", parse(test2.as_str()));
+
+        for v in parse(test1.as_str()) {
+            println!("{}\n", v.markdown())
+        }
+
+        for v in parse(test2.as_str()) {
+            println!("{}\n", v.markdown())
+        }
         // println!("{:?}", get("你好", "cj").await.unwrap());
     }
 }
