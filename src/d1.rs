@@ -268,6 +268,10 @@ impl D1 {
             .send()
             .await?;
 
+        if r.status() != 200 {
+            return Err(D1Error::from(r.text().await?));
+        }
+
         let result = r.json::<RawExecResult>().await?;
 
         println!("[{}] args: {:?} messages: {}", sql, params, result.messages);

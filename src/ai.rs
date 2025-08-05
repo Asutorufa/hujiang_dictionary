@@ -17,6 +17,15 @@ pub struct Workers {
     api_token: String,
 }
 
+static SYSTEM_MSG: &str = r#"
+You are a professional translator.
+Translate the input text according to the user's instructions and return the result in the user’s original language (unless the user requests otherwise).
+The total output must not exceed 4096 characters, including spaces and line breaks.
+If the translated content is approaching the limit, prioritize preserving core meaning and compress the expression when necessary. Paraphrase or summarize if required.
+Do not output in Markdown format.
+Strictly follow the character limit to prevent truncation.
+"#;
+
 impl Workers {
     pub fn new(account_id: &str, api_key: &str) -> Self {
         let openai_config = OpenAIConfig::default()
@@ -60,36 +69,44 @@ impl Workers {
     }
 
     pub async fn gemma3_12b(&mut self, prompt: String) -> Result<String, OpenAIError> {
-        self.completion(vec![
-        ChatCompletionRequestMessage::System(
-        ChatCompletionRequestSystemMessage {
-            content:ChatCompletionRequestSystemMessageContent::Text("You are the professional translator. You need translate input text by user's instruction. Don't print with markdown format.".to_string()),
-            name:None,
-        }),
-        ChatCompletionRequestMessage::User(
-        ChatCompletionRequestUserMessage {
-            content:ChatCompletionRequestUserMessageContent::Text(prompt),
-            name:None,
-        }),
-    ], "@cf/google/gemma-3-12b-it").await
+        self.completion(
+            vec![
+                ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
+                    content: ChatCompletionRequestSystemMessageContent::Text(
+                        SYSTEM_MSG.to_string(),
+                    ),
+                    name: None,
+                }),
+                ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                    content: ChatCompletionRequestUserMessageContent::Text(prompt),
+                    name: None,
+                }),
+            ],
+            "@cf/google/gemma-3-12b-it",
+        )
+        .await
     }
 
     pub async fn llama4_scout_17b_16e_instruct(
         &mut self,
         prompt: String,
     ) -> Result<String, OpenAIError> {
-        self.completion(vec![
-        ChatCompletionRequestMessage::System(
-        ChatCompletionRequestSystemMessage {
-            content:ChatCompletionRequestSystemMessageContent::Text("You are the professional translator. You need translate input text by user's instruction. Don't print with markdown format.".to_string()),
-            name:None,
-        }),
-        ChatCompletionRequestMessage::User(
-        ChatCompletionRequestUserMessage {
-            content:ChatCompletionRequestUserMessageContent::Text(prompt),
-            name:None,
-        }),
-    ], "@cf/meta/llama-4-scout-17b-16e-instruct").await
+        self.completion(
+            vec![
+                ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
+                    content: ChatCompletionRequestSystemMessageContent::Text(
+                        SYSTEM_MSG.to_string(),
+                    ),
+                    name: None,
+                }),
+                ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                    content: ChatCompletionRequestUserMessageContent::Text(prompt),
+                    name: None,
+                }),
+            ],
+            "@cf/meta/llama-4-scout-17b-16e-instruct",
+        )
+        .await
     }
 
     pub async fn m2m100_1_2b(
@@ -106,7 +123,11 @@ impl Workers {
         }
 
         let body = serde_json::to_string(&Request {
-            source_lang: source_lang.to_string(),
+            source_lang: if source_lang.is_empty() {
+                "english".to_string()
+            } else {
+                source_lang.to_string()
+            },
             target_lang: target_lang.to_string(),
             text: text.to_string(),
         })
@@ -123,12 +144,21 @@ impl Workers {
             .send()
             .await?;
 
+        if r.status() != 200 {
+            return Ok(r.text().await?);
+        }
+
         #[derive(Debug, Serialize, Deserialize)]
         struct Output {
             translated_text: String,
         }
 
-        Ok(r.json::<Output>().await?.translated_text)
+        #[derive(Debug, Serialize, Deserialize)]
+        struct Result {
+            result: Output,
+        }
+
+        Ok(r.json::<Result>().await?.result.translated_text)
     }
 }
 
@@ -148,14 +178,29 @@ mod test {
     pub async fn completion() {
         let auth_json = fs::read_to_string("src/.api.json").unwrap();
         let auth = serde_json::from_str::<Auth>(&auth_json).unwrap();
-        let mut ai = Workers::new(auth.api_token.as_str(), auth.account_id.as_str());
+        let mut ai = Workers::new(auth.account_id.as_str(), auth.api_token.as_str());
         println!(
             "{}",
-            ai.gemma3_12b("生意気の意味は？".to_string()).await.unwrap()
+            ai.gemma3_12b("辿るは何の意味ですか？".to_string())
+                .await
+                .unwrap()
         );
         println!(
             "{}",
             ai.llama4_scout_17b_16e_instruct("生意気の意味は？".to_string())
+                .await
+                .unwrap()
+        );
+    }
+
+    #[tokio::test]
+    pub async fn translate() {
+        let auth_json = fs::read_to_string("src/.api.json").unwrap();
+        let auth = serde_json::from_str::<Auth>(&auth_json).unwrap();
+        let ai = Workers::new(auth.account_id.as_str(), auth.api_token.as_str());
+        println!(
+            "{}",
+            ai.m2m100_1_2b("辿るは何の意味ですか？", "ja", "zh")
                 .await
                 .unwrap()
         );

@@ -1,5 +1,6 @@
 use std::{collections::HashSet, sync::Arc};
 
+use teloxide::utils::command::ParseError;
 use teloxide::{
     RequestError,
     dispatching::{DefaultKey, DpHandlerDescription, dialogue::GetChatId},
@@ -27,15 +28,49 @@ pub enum Command {
     Weblio(String),
     #[command(description = "コトバック")]
     Ktbk(String),
+    #[command(description = "gemma3 12b it")]
+    Gemma(String),
+    #[command(description = "llama4 scout 17b 16e instruct")]
+    Llama4(String),
     #[command(description = "get current user id")]
     UserID,
     #[command(
         description = "google translate, eg: /gg en_ja hello, /gg ja hello",
-        parse_with = "split"
+        parse_with = split_command
     )]
-    GG(String, String),
+    GG(String, String, String),
+    #[command(
+        description = "google translate, eg: /cfai en_ja hello, /cfai ja hello",
+        parse_with = split_command
+    )]
+    CFAI(String, String, String),
     #[command(description = "get a random word from d1 database")]
     Random,
+    #[command(description = "save a message by word")]
+    Save(String),
+}
+
+fn split_command(input: String) -> Result<(String, String, String), ParseError> {
+    let mut parts = input.trim().splitn(2, ' ');
+    let from_to = parts
+        .next()
+        .ok_or(ParseError::UnknownCommand("arg1 is not exist".to_string()))?
+        .to_string();
+
+    let args = from_to.split("_").collect::<Vec<_>>();
+    let mut target = from_to.as_str();
+    let mut src = "";
+
+    if args.len() > 1 {
+        src = args[0];
+        target = args[1];
+    }
+
+    let text = parts
+        .next()
+        .ok_or(ParseError::UnknownCommand("arg2 is not exist".to_string()))?
+        .to_string();
+    Ok((src.to_string(), target.to_string(), text))
 }
 
 pub async fn run_bot(run_opt: RunOpt) -> Dispatcher<Bot, RequestError, DefaultKey> {
@@ -103,7 +138,7 @@ pub struct RunOpt {
 }
 
 pub async fn answer(
-    opt: RunOpt,
+    mut opt: RunOpt,
     bot: teloxide::prelude::Bot,
     msg: Message,
     cmd: Command,
@@ -163,22 +198,51 @@ pub async fn answer(
             "".to_string(),
             format!("your id is: {}", from_user).to_string(),
         ),
-        Command::GG(arg, text) => {
-            let args = arg.split("_").collect::<Vec<_>>();
-            let mut target = arg.as_str();
-            let mut src = "";
-
-            if args.len() > 1 {
-                src = args[0];
-                target = args[1];
-            }
-
-            match google::translate(&text, src, target).await {
+        Command::GG(from, to, text) => match google::translate(&text, &from, &to).await {
+            Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
+            Ok(v) => (
+                text,
+                markdown::escape(google::merge_translation(v).as_str()),
+            ),
+        },
+        Command::CFAI(from, to, text) => {
+            match opt.workers_ai.m2m100_1_2b(&text, &from, &to).await {
                 Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
-                Ok(v) => (
-                    text,
-                    markdown::escape(google::merge_translation(v).as_str()),
-                ),
+                Ok(v) => (text, markdown::escape(v.as_str())),
+            }
+        }
+        Command::Gemma(v) => match opt.workers_ai.gemma3_12b(v.clone()).await {
+            Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
+            Ok(x) => (v, markdown::escape(x.as_str())),
+        },
+        Command::Llama4(v) => match opt
+            .workers_ai
+            .llama4_scout_17b_16e_instruct(v.clone())
+            .await
+        {
+            Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
+            Ok(x) => (v, markdown::escape(x.as_str())),
+        },
+        Command::Save(v) => {
+            if v.is_empty() {
+                ("".to_string(), "empty word".to_string())
+            } else if msg.reply_to_message().is_none() {
+                ("".to_string(), "explain message is empty".to_string())
+            } else {
+                let reply_to = msg.reply_to_message().unwrap();
+                if reply_to.text().is_none() || reply_to.text().unwrap().is_empty() {
+                    ("".to_string(), "explain is empty".to_string())
+                } else {
+                    let reply_to_text = reply_to.text().unwrap().trim();
+
+                    match opt.d1.save_word(v.clone(), reply_to_text.to_string()).await {
+                        Err(e) => ("".to_string(), e.to_string()),
+                        Ok(_) => (
+                            v.clone(),
+                            format!("save <b>{}</b> to d1 database", html::escape(v.as_str())),
+                        ),
+                    }
+                }
             }
         }
         Command::Random => match opt.d1.random_word().await {
@@ -207,7 +271,17 @@ pub async fn answer(
         if !word.is_empty() {
             let keyboard = InlineKeyboardMarkup::new(vec![vec![
                 InlineKeyboardButton::callback("🗑️", "/delete"),
-                InlineKeyboardButton::callback("💾", format!("/save {}", word)),
+                InlineKeyboardButton::callback(
+                    "💾",
+                    format!(
+                        "/save {}",
+                        if word.len() < 58 {
+                            word.clone()
+                        } else {
+                            "".to_string()
+                        }
+                    ),
+                ),
             ]]);
             req = req.reply_markup(keyboard);
         }

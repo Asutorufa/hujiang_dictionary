@@ -4,6 +4,7 @@ use hj_rust::{
     opts::run_opts,
     telegram::{Command, RunOpt, handler},
 };
+use serde::Serialize;
 use teloxide::{
     dptree::{self},
     prelude::*,
@@ -27,6 +28,11 @@ async fn main() -> Result<(), lambda_runtime::Error> {
     .await
 }
 
+#[derive(Serialize)]
+struct Response {
+    msg: String,
+}
+
 struct LambdaHandler {
     bot: Bot,
     me: Me,
@@ -37,7 +43,7 @@ impl LambdaHandler {
     async fn bot_handler(
         &self,
         event: lambda_runtime::LambdaEvent<LambdaFunctionUrlRequest>,
-    ) -> Result<(), lambda_runtime::Error> {
+    ) -> Result<Response, lambda_runtime::Error> {
         match event.payload.raw_path {
             Some(path) if path == "/tgbot/register" => {
                 let url = format!(
@@ -54,7 +60,9 @@ impl LambdaHandler {
                 let _ = self.bot.set_my_commands(Command::bot_commands()).await;
                 let _ = self.bot.set_webhook(url::Url::parse(&url)?).send().await?;
 
-                return Ok(());
+                return Ok(Response {
+                    msg: format!("register telegram bot to {} successful", url).to_string(),
+                });
             }
             _ => {}
         }
@@ -85,7 +93,9 @@ impl LambdaHandler {
         match result {
             ControlFlow::Break(Ok(())) => {
                 println!("Update was handled by bot.");
-                Ok(())
+                Ok(Response {
+                    msg: "Update was handled by bot.".to_string(),
+                })
             }
             ControlFlow::Break(Err(e)) => {
                 println!("Error: {}", e);
@@ -93,7 +103,9 @@ impl LambdaHandler {
             }
             ControlFlow::Continue(_) => {
                 println!("Update was not handled by bot.");
-                Ok(())
+                Ok(Response {
+                    msg: "Update was not handled by bot.".to_string(),
+                })
             }
         }
     }
