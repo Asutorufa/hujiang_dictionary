@@ -55,19 +55,59 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: "--locked --release"
           strip: true
+    
+      - id: rename-binary-name
+        run: |
+         cp target/${{ matrix.platform.target }}/release/lambda${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }} lambda-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
+         cp target/${{ matrix.platform.target }}/release/tg${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }} tg-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
+         cp target/${{ matrix.platform.target }}/release/hj${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }} hj-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
+
       - name: lambda-${{ matrix.platform.target }}
         uses: actions/upload-artifact@v4
         with:
           name: lambda-${{ matrix.platform.target }}
-          path: target/${{ matrix.platform.target }}/release/lambda${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
+          path: lambda-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
       - name: tg-${{ matrix.platform.target }}
         uses: actions/upload-artifact@v4
         with:
           name: tg-${{ matrix.platform.target }}
-          path: target/${{ matrix.platform.target }}/release/tg${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
+          path: tg-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
       - name: hj-${{ matrix.platform.target }}
         uses: actions/upload-artifact@v4
         with:
           name: hj-${{ matrix.platform.target }}
-          path: target/${{ matrix.platform.target }}/release/hj${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
+          path: hj-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
 
+  release:
+    if: github.ref_type == 'tag' || (github.ref_type == 'branch' && github.ref_name == 'rust')
+    needs: 
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: "0"
+          fetch-tags: "true"
+
+      - id: generate-release-notes
+        run: |
+          bash .github/release_note > release_notes.txt
+
+      - name: download_artifacts
+        id: download-artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release_notes.txt
+          name: ${{ github.ref_type == 'tag' && github.ref_name || 'draft release' }}
+          draft: ${{ github.ref_type != 'tag' }}
+          make_latest: ${{ github.ref_type == 'tag' && !contains(github.ref_name, 'beta') && !contains(github.ref_name, 'alpha') }}
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          # see: https://github.com/softprops/action-gh-release/issues/79#issuecomment-930339070
+          files: |
+            release_notes.txt
+            artifacts/*/*
