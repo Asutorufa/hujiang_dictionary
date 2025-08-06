@@ -11,7 +11,7 @@ use teloxide::{
     utils::{command::BotCommands, html, markdown},
 };
 
-use crate::{ai::Workers, d1::D1, google, jp, kotobakku, weblio};
+use crate::{ai::Workers, d1::D1, en, google, jp, kotobakku, weblio};
 use futures::future::BoxFuture;
 
 #[derive(BotCommands, PartialEq, Clone, Debug)]
@@ -24,6 +24,8 @@ pub enum Command {
     JPCN(String),
     #[command(description = "cn -> jp")]
     CNJP(String),
+    #[command(description = "en <-> cn")]
+    EN(String),
     #[command(description = "weblio")]
     Weblio(String),
     #[command(description = "コトバック")]
@@ -159,6 +161,13 @@ pub async fn answer(
 
     let (word, reply) = match cmd {
         Command::CNJP(word) => match jp::get(word.as_str(), "cj").await {
+            Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
+            Ok(v) => (
+                word,
+                vec_string_markdown_escape(v.iter().map(|x| x.markdown()).collect()),
+            ),
+        },
+        Command::EN(word) => match en::get(word.as_str()).await {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
             Ok(v) => (
                 word,

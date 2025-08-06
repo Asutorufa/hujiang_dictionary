@@ -1,3 +1,4 @@
+use crate::en::{AttrOrEmpty, COOKIE, StringOrEmpty, TrimText, USER_AGENT};
 use scraper::{ElementRef, Selector};
 use std::fmt::Write;
 
@@ -89,9 +90,6 @@ impl Word {
     }
 }
 
-static USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36";
-static COOKIE: &str = "HJ_UID=0f406091-be97-6b64-f1fc-f7b2470883e9; HJ_CST=1; HJ_CSST_3=1;TRACKSITEMAP=3%2C; HJ_SID=393c85c7-abac-f408-6a32-a1f125d7e8c6; _REF=; HJ_SSID_3=4a460f19-c0ae-12a7-8e86-6e360f69ec9b; _SREF_3=; HJ_CMATCH=1";
-
 pub async fn get(word: &str, t: &str) -> Result<Vec<Word>, reqwest::Error> {
     let r = reqwest::Client::builder()
         .build()?
@@ -114,20 +112,14 @@ fn parse_detail(element: ElementRef) -> Vec<Detail> {
     let details = element.select(&detail_selector);
     for detail in details {
         let source_selector = Selector::parse(".detail-source").unwrap();
-        let source = match detail.select(&source_selector).next() {
-            None => "unknown".to_string(),
-            Some(v) => v.text().collect::<Vec<_>>().join(" "),
-        };
+        let source = detail.select(&source_selector).string_or_empty();
 
         let dl_selector = Selector::parse(".word-details-item-content .detail-groups dl").unwrap();
         let dls = detail.select(&dl_selector);
 
         for dl in dls {
             let attr_selector = Selector::parse("dt").unwrap();
-            let attr = match dl.select(&attr_selector).next() {
-                None => "unknown".to_string(),
-                Some(v) => v.text().collect::<Vec<_>>().join(" ").trim().to_string(),
-            };
+            let attr = dl.select(&attr_selector).string_or_empty();
 
             let mut d = Detail {
                 attribute: attr,
@@ -140,33 +132,27 @@ fn parse_detail(element: ElementRef) -> Vec<Detail> {
 
             for dd in dds {
                 let explain_selector = Selector::parse("h3 p").unwrap();
-                let mut explain_str = "".to_string();
-                for explain in dd.select(&explain_selector) {
-                    explain_str += explain.text().collect::<Vec<_>>().join(" ").as_str();
-                }
-
                 let mut ep = ExplainsAndExample {
-                    explain: explain_str.split_whitespace().collect::<Vec<_>>().join(" "),
+                    explain: dd
+                        .select(&explain_selector)
+                        .map(|x| x.trim_text())
+                        .collect::<Vec<_>>()
+                        .join(""),
                     examples: vec![],
                 };
+
                 let example_selector = Selector::parse("ul li").unwrap();
                 for example in dd.select(&example_selector) {
                     let from_selector = Selector::parse(".def-sentence-from").unwrap();
                     let to_selector = Selector::parse(".def-sentence-to").unwrap();
 
-                    let from = match example.select(&from_selector).next() {
-                        None => "".to_string(),
-                        Some(v) => v.text().collect::<Vec<_>>().join(" "),
-                    };
+                    let from = example.select(&from_selector).string_or_empty();
 
-                    let to = match example.select(&to_selector).next() {
-                        None => "".to_string(),
-                        Some(v) => v.text().collect::<Vec<_>>().join(" "),
-                    };
+                    let to = example.select(&to_selector).string_or_empty();
 
                     ep.examples.push(Example {
-                        original: from.split_whitespace().collect::<Vec<_>>().join(" "),
-                        translate: to.split_whitespace().collect::<Vec<_>>().join(" "),
+                        original: from,
+                        translate: to,
                     });
                 }
 
@@ -191,28 +177,13 @@ fn parse_simple(element: ElementRef) -> Vec<Simple> {
         let attributes_selector = Selector::parse("h2").unwrap();
         let mut attributes = simple.select(&attributes_selector);
 
-        let attribute = match attributes.next() {
-            None => String::from(""),
-            Some(x) => x.inner_html(),
-        };
+        let attribute = attributes.string_or_empty();
 
         if attribute == "" {
             let definition_selector = Selector::parse("span.simple-definition").unwrap();
+            let html = simple.select(&definition_selector).string_or_empty();
 
-            let definition = match simple.select(&definition_selector).next() {
-                None => continue,
-                Some(v) => v,
-            };
-
-            let html = definition
-                .text()
-                .collect::<Vec<_>>()
-                .join(" ")
-                .split_whitespace()
-                .collect::<Vec<_>>()
-                .join(" ");
-
-            if html != "" {
+            if !html.is_empty() {
                 sps.push(Simple {
                     attribute: "".to_string(),
                     explains: vec![html],
@@ -234,16 +205,7 @@ fn parse_simple(element: ElementRef) -> Vec<Simple> {
             let lis = li.select(&li_selector);
 
             for li in lis {
-                let mut li_text = String::new();
-                for child in li.children() {
-                    if let Some(text_node) = child.value().as_text() {
-                        let trimmed = text_node.trim();
-                        if !trimmed.is_empty() {
-                            li_text.push_str(trimmed);
-                        }
-                    }
-                }
-
+                let li_text = li.trim_text();
                 if li_text.len() == 0 {
                     continue;
                 }
@@ -269,38 +231,27 @@ fn parse(text: &str) -> Vec<Word> {
     for element in res {
         let word_selector = Selector::parse(".word-text h2").unwrap();
         let pronounce_selector = Selector::parse(".pronounces").unwrap();
-        let pronounce = element.select(&pronounce_selector).next().unwrap();
         let katakana_selector = Selector::parse("span").unwrap();
         let audio_selector = Selector::parse(".word-audio").unwrap();
-        let audio = pronounce
-            .select(&audio_selector)
-            .next()
-            .unwrap()
-            .value()
-            .attr("data-src")
-            .unwrap();
 
-        let mut katakana = String::new();
-
-        for p in pronounce.select(&katakana_selector) {
-            katakana.push_str(p.text().collect::<Vec<_>>().join("").trim());
-        }
-
-        ws.push(Word {
-            word: element
-                .select(&word_selector)
-                .next()
-                .unwrap()
-                .text()
-                .collect::<Vec<_>>()
-                .join("")
-                .trim()
-                .to_string(),
-            katakana: katakana,
-            audio_url: audio.to_string(),
+        let mut w = Word {
+            word: element.select(&word_selector).string_or_empty(),
+            katakana: "".to_string(),
+            audio_url: "".to_string(),
             simple: parse_simple(element),
             detail: parse_detail(element),
-        });
+        };
+
+        if let Some(pronounce) = element.select(&pronounce_selector).next() {
+            w.audio_url = pronounce.select(&audio_selector).attr_or_empty("data-src");
+            w.katakana = pronounce
+                .select(&katakana_selector)
+                .map(|x| x.trim_text())
+                .collect::<Vec<_>>()
+                .join("");
+        }
+
+        ws.push(w);
     }
 
     return ws;

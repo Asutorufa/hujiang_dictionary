@@ -1,15 +1,39 @@
 #
 
-- WIP
-- Current only support telegram bot, please use golang version for full function
-- Golang Version: [branch golang](https://github.com/Asutorufa/hujiang_dictionary/tree/golang)
-
 - cloudflare api token need `d1` and `workers ai` permission.
-- Either `d1 database id` or `d1 database name` must be provided. 
+- Either `d1 database id` or `d1 database name` must be provided.
 
 ## build and run
 
 ```bash
+cargo build --release
+./target/release/hj jc こんにちは
+```
+
+## cli
+
+- `jc <word>` - Japanese to Chinese
+- `cj <word>` - Chinese to Japanese
+- `en <word>` - English to Japanese
+- `weblio <word>` - weblio
+- `ktbk <word>` - コトバック
+- `google <target> <words>` - Google Translate, eg: google en こんにちは
+
+Example:
+
+```shell
+./target/release/hj jc こんにちは
+./target/release/hj cj 你好
+./target/release/hj en hello
+./target/release/hj en 你好
+./target/release/hj weblio こんにちは
+./target/release/hj ktbk 子供
+./target/release/hj google ja Hello world!
+```
+
+## telegram bot
+
+```shell
 cargo build --release
 
 export TELOXIDE_TOKEN=12312313:sadsadasda
@@ -48,3 +72,7 @@ build and deploy lambda
 cargo lambda build --release --bin lambda
 cargo lambda deploy --binary-name lambda hj-telegram-bot
 ```
+
+## Others
+
+- Golang Version: [branch golang](https://github.com/Asutorufa/hujiang_dictionary/tree/golang)
