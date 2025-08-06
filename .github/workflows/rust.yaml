@@ -3,6 +3,7 @@ name: build rust musl ci
 on:
   push:
     branches: [ "rust" ]
+    tags: [v*]
   pull_request:
     branches: [ "rust" ]
 
@@ -91,7 +92,9 @@ jobs:
 
       - id: generate-release-notes
         run: |
-          bash .github/release_note > release_notes.txt
+          echo "## Release Notes" > release_notes.txt
+          echo "" >> release_notes.txt
+          bash .github/release_note >> release_notes.txt
 
       - name: download_artifacts
         id: download-artifacts

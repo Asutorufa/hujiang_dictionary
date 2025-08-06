@@ -4,6 +4,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use value2struct::FromValueVec;
+use worker::{D1Database, Env};
 
 #[derive(Debug)]
 pub struct D1Error(String);
@@ -37,6 +38,11 @@ impl From<serde_json::Error> for D1Error {
 impl From<String> for D1Error {
     fn from(s: String) -> Self {
         D1Error(s)
+    }
+}
+impl From<worker::Error> for D1Error {
+    fn from(s: worker::Error) -> Self {
+        D1Error(s.to_string())
     }
 }
 
@@ -134,7 +140,7 @@ pub struct Word {
     pub explain: String,
     add_time: i64,
     update_time: i64,
-    triger_time: i64,
+    reminder_time: i64,
 }
 
 pub struct Empty {}
@@ -348,6 +354,93 @@ impl D1 {
         {
             Err(e) => println!("update reminder_time error: {}", e),
             _ => {}
+        }
+
+        Ok(v)
+    }
+}
+
+pub struct Wasm {
+    d1: D1Database,
+}
+
+impl Wasm {
+    pub async fn new(env: Env, binding: &str) -> Result<Wasm, worker::Error> {
+        let d1 = env.d1(binding)?;
+
+        Ok(Wasm { d1 })
+    }
+
+    pub async fn save_word(&self, word: String, explain: String) -> Result<(), D1Error> {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            .to_string();
+
+        let result =  self.d1
+            .prepare(
+                "INSERT INTO words (word, explain, add_time, update_time) VALUES (?, ?, ?, ?) ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = ?",
+            )
+            .bind(&[word.into(), explain.clone().into(), now.clone().into(), now.clone().into(), explain.into(), now.into()])
+            ?.run().await?;
+
+        if !result.error().is_none() {
+            return Err(D1Error(result.error().unwrap().to_string()));
+        }
+
+        Ok(())
+    }
+
+    pub async fn delete_word(&self, word: String) -> Result<(), D1Error> {
+        let result = self
+            .d1
+            .prepare("DELETE FROM words WHERE word = ?")
+            .bind(&[word.into()])?
+            .run()
+            .await?;
+
+        if !result.error().is_none() {
+            return Err(D1Error(result.error().unwrap().to_string()));
+        }
+
+        Ok(())
+    }
+
+    pub async fn random_word(&self) -> Result<Word, D1Error> {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            .to_string();
+
+        let words = match self
+            .d1
+            .prepare("SELECT * FROM words WHERE reminder_time <= ? ORDER BY RANDOM() LIMIT 1")
+            .bind(&[now.clone().into()])?
+            .first::<Word>(None)
+            .await
+        {
+            Ok(v) if !v.is_none() => v.unwrap(),
+            _ => self
+                .d1
+                .prepare("SELECT * FROM words ORDER BY RANDOM() LIMIT 1")
+                .first::<Word>(None)
+                .await?
+                .ok_or(D1Error("can't get random word".to_string()))?,
+        };
+
+        let v = words.clone();
+
+        let result = self
+            .d1
+            .prepare("UPDATE words SET reminder_time = ? WHERE word = ?")
+            .bind(&[now.clone().into(), v.word.clone().into()])?
+            .run()
+            .await?;
+
+        if !result.error().is_none() {
+            return Err(D1Error(result.error().unwrap().to_string()));
         }
 
         Ok(v)
