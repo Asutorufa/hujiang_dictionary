@@ -729,7 +729,6 @@ dependencies = [
  "async-openai",
  "aws_lambda_events",
  "base64 0.22.1",
- "console_error_panic_hook",
  "ego-tree",
  "futures",
  "html2text",
@@ -744,8 +743,6 @@ dependencies = [
  "tokio",
  "url",
  "value2struct",
- "worker",
- "worker-macros",
 ]
 
 [[package]]
@@ -3064,6 +3061,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "worker"
+version = "0.1.0"
+dependencies = [
+ "console_error_panic_hook",
+ "hj-rust",
+ "reqwest",
+ "teloxide",
+ "teloxide-macros",
+ "url",
+ "worker 0.6.1",
+ "worker-macros",
 ]
 
 [[package]]

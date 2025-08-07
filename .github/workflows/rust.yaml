@@ -14,19 +14,19 @@ jobs:
       matrix:
         platform:
           - os-name: FreeBSD-x86_64
-            runs-on: ubuntu-24.04
+            runs-on: ubuntu-latest
             target: x86_64-unknown-freebsd
 
           - os-name: Linux-x86_64
-            runs-on: ubuntu-24.04
+            runs-on: ubuntu-latest
             target: x86_64-unknown-linux-musl
 
           - os-name: Linux-aarch64
-            runs-on: ubuntu-24.04
+            runs-on: ubuntu-latest
             target: aarch64-unknown-linux-musl
 
           - os-name: Linux-riscv64
-            runs-on: ubuntu-24.04
+            runs-on: ubuntu-latest
             target: riscv64gc-unknown-linux-gnu
 
           - os-name: Windows-x86_64
@@ -45,6 +45,14 @@ jobs:
             runs-on: macOS-latest
             target: aarch64-apple-darwin
 
+          - os-name: android-x86_64
+            runs-on: ubuntu-latest
+            target: x86_64-linux-android
+
+          - os-name: android-aarch64
+            runs-on: ubuntu-latest
+            target: aarch64-linux-android
+
     runs-on: ${{ matrix.platform.runs-on }}
     steps:
       - name: Checkout
@@ -56,6 +64,7 @@ jobs:
           target: ${{ matrix.platform.target }}
           args: "--locked --release"
           strip: true
+          cross-version: "e281947ca900da425e4ecea7483cfde646c8a1ea"
     
       - id: rename-binary-name
         run: |

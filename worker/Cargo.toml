@@ -1,0 +1,24 @@
+[package]
+name = "worker"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+worker = { version = "0.6.1", features = ["d1"] }
+worker-macros = "0.6.1"
+teloxide = { version = "0.17.0", default-features = false, features = [
+    "macros",
+    "rustls",
+    "ctrlc_handler",
+] }
+teloxide-macros = "0.10.0"
+console_error_panic_hook = "0.1.7"
+hj-rust = { path = "../" }
+url = "2.5.4"
+reqwest = { version = "0.12.22", default-features = false, features = [
+    "blocking",
+    "rustls-tls",
+] }

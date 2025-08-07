@@ -3,6 +3,9 @@ name = "hj-rust"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+members = ["worker"]
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
@@ -10,7 +13,6 @@ crate-type = ["cdylib", "rlib"]
 async-openai = "0.29.0"
 aws_lambda_events = "0.17.0"
 base64 = "0.22.1"
-console_error_panic_hook = "0.1.7"
 ego-tree = "0.10.0"
 futures = "0.3.31"
 html2text = "0.15.3"
@@ -32,8 +34,6 @@ teloxide-macros = "0.10.0"
 tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 url = "2.5.4"
 value2struct = { path = "./value2struct" }
-worker = { version = "0.6.1", features = ["d1"] }
-worker-macros = "0.6.1"
 
 [profile.release]
 lto = true
