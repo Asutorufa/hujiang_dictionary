@@ -31,6 +31,8 @@ Example:
 ./target/release/hj google ja Hello world!
 ```
 
+![screenshot](https://raw.githubusercontent.com/Asutorufa/hujiang_dictionary/rust/assets/images/image.png)
+
 ## telegram bot
 
 ```shell

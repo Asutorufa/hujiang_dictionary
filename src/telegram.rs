@@ -87,7 +87,7 @@ pub async fn run_bot(run_opt: RunOpt) -> Dispatcher<Bot, RequestError, DefaultKe
 
     let deps = dptree::deps![run_opt];
 
-    let dispatcher = Dispatcher::builder(bot, handler)
+    let dispatcher: Dispatcher<Bot, RequestError, DefaultKey> = Dispatcher::builder(bot, handler)
         .dependencies(deps)
         .enable_ctrlc_handler()
         .error_handler(Arc::new(TErrorHandler {}))
@@ -135,6 +135,7 @@ pub fn handler() -> Handler<'static, Result<(), RequestError>, DpHandlerDescript
 #[derive(Clone)]
 pub struct RunOpt {
     pub allow_users: HashSet<UserId>,
+    pub matainer: UserId,
     pub d1: D1,
     pub workers_ai: Workers,
 }
@@ -323,9 +324,7 @@ fn split_message(text: &str, max_len: usize) -> Vec<String> {
 #[derive(BotCommands, PartialEq, Clone, Debug)]
 #[command(
     rename_rule = "lowercase",
-    description = "These commands are supported:",
-    parse_with = "split",
-    command_separator = "_"
+    description = "These commands are supported:"
 )]
 pub enum CallbackQueryCommand {
     #[command(description = "delete current message")]

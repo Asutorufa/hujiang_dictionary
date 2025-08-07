@@ -15,8 +15,7 @@ async fn main() {
   weblio <word> - weblio
   ktbk <word> - コトバック
   google <target> <words> - Google Translate, eg: google en こんにちは
-  help - show this message
-"#
+  help - show this message"#
         );
         return;
     }

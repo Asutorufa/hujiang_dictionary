@@ -38,6 +38,7 @@ pub async fn run_opts() -> Result<RunOpt, Box<dyn std::error::Error>> {
 
     Ok(RunOpt {
         allow_users: set,
+        matainer: UserId(maintainer_id),
         d1,
         workers_ai: workers,
     })
