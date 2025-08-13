@@ -179,23 +179,9 @@ fn parse_simple(element: ElementRef) -> Vec<Simple> {
 
         let attribute = attributes.string_or_empty();
 
-        if attribute == "" {
-            let definition_selector = Selector::parse("span.simple-definition").unwrap();
-            let html = simple.select(&definition_selector).string_or_empty();
-
-            if !html.is_empty() {
-                sps.push(Simple {
-                    attribute: "".to_string(),
-                    explains: vec![html],
-                });
-            }
-            continue;
-        }
-
         let list_selector = Selector::parse("ul").unwrap();
-        let list = simple.select(&list_selector);
 
-        for li in list {
+        for li in simple.select(&list_selector) {
             let mut sp = Simple {
                 attribute: attribute.clone(),
                 explains: vec![],
@@ -213,7 +199,21 @@ fn parse_simple(element: ElementRef) -> Vec<Simple> {
                 sp.explains.push(li_text);
             }
 
+            if sp.explains.is_empty() {
+                continue;
+            }
+
             sps.push(sp);
+        }
+
+        if sps.is_empty() {
+            let html = simple.trim_text();
+            if !html.is_empty() {
+                sps.push(Simple {
+                    attribute: attribute.clone(),
+                    explains: vec![html],
+                });
+            }
         }
     }
     return sps;
@@ -222,7 +222,19 @@ fn parse_simple(element: ElementRef) -> Vec<Simple> {
 fn parse(text: &str) -> Vec<Word> {
     let mut ws: Vec<Word> = vec![];
 
-    let q = scraper::Html::parse_document(&text);
+    let mut q = scraper::Html::parse_document(&text);
+
+    // remove useless nodes
+    for selector_str in vec![".simple ul li span"] {
+        let selector = Selector::parse(selector_str).unwrap();
+        for id in q
+            .select(&selector)
+            .map(|p_node| p_node.id())
+            .collect::<Vec<_>>()
+        {
+            q.tree.get_mut(id).unwrap().detach();
+        }
+    }
 
     let selector = scraper::Selector::parse(".word-details-pane").unwrap();
 
@@ -261,7 +273,7 @@ fn parse(text: &str) -> Vec<Word> {
 mod tes {
     use std::fs;
 
-    use crate::jp::parse;
+    use crate::jp::{get, parse};
 
     #[tokio::test]
     async fn run_parse() {
@@ -278,6 +290,16 @@ mod tes {
         for v in parse(test2.as_str()) {
             println!("{}\n", v.markdown())
         }
-        // println!("{:?}", get("你好", "cj").await.unwrap());
+
+        println!(
+            "{}",
+            get("オセロ", "jc")
+                .await
+                .unwrap()
+                .iter()
+                .map(|v| v.markdown())
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
     }
 }

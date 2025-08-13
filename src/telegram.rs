@@ -68,10 +68,7 @@ fn split_command(input: String) -> Result<(String, String, String), ParseError> 
         target = args[1];
     }
 
-    let text = parts
-        .next()
-        .ok_or(ParseError::UnknownCommand("arg2 is not exist".to_string()))?
-        .to_string();
+    let text = parts.next().or(Some("")).unwrap().to_string();
     Ok((src.to_string(), target.to_string(), text))
 }
 
@@ -160,29 +157,35 @@ pub async fn answer(
 
     let mut parse_mode = teloxide::types::ParseMode::MarkdownV2;
 
+    let quote = get_quote_or_reply_message(msg.clone());
+
+    let text_or_quote = |v: String| {
+        if v.is_empty() { quote.clone() } else { v }
+    };
+
     let (word, reply) = match cmd {
-        Command::CNJP(word) => match jp::get(word.as_str(), "cj").await {
+        Command::CNJP(word) => match jp::get(text_or_quote(word.clone()).as_str(), "cj").await {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
             Ok(v) => (
                 word,
                 vec_string_markdown_escape(v.iter().map(|x| x.markdown()).collect()),
             ),
         },
-        Command::EN(word) => match en::get(word.as_str()).await {
+        Command::EN(word) => match en::get(text_or_quote(word.clone()).as_str()).await {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
             Ok(v) => (
                 word,
                 vec_string_markdown_escape(v.iter().map(|x| x.markdown()).collect()),
             ),
         },
-        Command::JPCN(word) => match jp::get(word.as_str(), "jc").await {
+        Command::JPCN(word) => match jp::get(text_or_quote(word.clone()).as_str(), "jc").await {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
             Ok(v) => (
                 word,
                 vec_string_markdown_escape(v.iter().map(|x| x.markdown()).collect()),
             ),
         },
-        Command::Ktbk(word) => match kotobakku::get(word.as_str()).await {
+        Command::Ktbk(word) => match kotobakku::get(text_or_quote(word.clone()).as_str()).await {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
             Ok(v) => {
                 let reply = vec_string_markdown_escape(v.clone());
@@ -193,7 +196,7 @@ pub async fn answer(
                 }
             }
         },
-        Command::Weblio(word) => match weblio::get(word.as_str()).await {
+        Command::Weblio(word) => match weblio::get(text_or_quote(word.clone()).as_str()).await {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
             Ok(v) => {
                 let reply = vec_string_markdown_escape(v.clone());
@@ -208,26 +211,36 @@ pub async fn answer(
             "".to_string(),
             format!("your id is: {}", from_user).to_string(),
         ),
-        Command::GG(from, to, text) => match google::translate(&text, &from, &to).await {
-            Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
-            Ok(v) => (
-                text,
-                markdown::escape(google::merge_translation(v).as_str()),
-            ),
-        },
+        Command::GG(from, to, text) => {
+            match google::translate(&text_or_quote(text.clone()), &from, &to).await {
+                Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
+                Ok(v) => (
+                    text,
+                    markdown::escape(google::merge_translation(v).as_str()),
+                ),
+            }
+        }
         Command::CFAI(from, to, text) => {
-            match opt.workers_ai.m2m100_1_2b(&text, &from, &to).await {
+            match opt
+                .workers_ai
+                .m2m100_1_2b(&text_or_quote(text.clone()), &from, &to)
+                .await
+            {
                 Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
                 Ok(v) => (text, markdown::escape(v.as_str())),
             }
         }
-        Command::Gemma(v) => match opt.workers_ai.gemma3_12b(v.clone()).await {
+        Command::Gemma(v) => match opt
+            .workers_ai
+            .gemma3_12b(format!("{}\n{}", quote, v.clone()))
+            .await
+        {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
             Ok(x) => (v, markdown::escape(x.as_str())),
         },
         Command::Llama4(v) => match opt
             .workers_ai
-            .llama4_scout_17b_16e_instruct(v.clone())
+            .llama4_scout_17b_16e_instruct(format!("{}\n{}", quote, v.clone()))
             .await
         {
             Err(e) => ("".to_string(), markdown::escape(e.to_string().as_str())),
@@ -432,4 +445,14 @@ pub fn vec_string_markdown_escape(v: Vec<String>) -> String {
         s.push_str("\n");
     }
     s
+}
+
+pub fn get_quote_or_reply_message(msg: Message) -> String {
+    return match msg.quote() {
+        Some(v) => v.text.clone(),
+        None => match msg.reply_to_message() {
+            Some(v) => v.text().unwrap_or_default().to_string(),
+            None => "".to_string(),
+        },
+    };
 }
