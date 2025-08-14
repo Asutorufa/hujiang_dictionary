@@ -8,6 +8,7 @@ use async_openai::{
         ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs,
     },
 };
+use hjdef::ai::{AI, Error};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
@@ -45,7 +46,7 @@ impl Workers {
     }
 
     pub async fn completion(
-        &mut self,
+        &self,
         msgs: Vec<ChatCompletionRequestMessage>,
         model: &str,
     ) -> Result<String, OpenAIError> {
@@ -67,30 +68,34 @@ impl Workers {
 
         Ok(content)
     }
+}
 
-    pub async fn gemma3_12b(&mut self, prompt: String) -> Result<String, OpenAIError> {
-        self.completion(
-            vec![
-                ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
-                    content: ChatCompletionRequestSystemMessageContent::Text(
-                        SYSTEM_MSG.to_string(),
-                    ),
-                    name: None,
-                }),
-                ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
-                    content: ChatCompletionRequestUserMessageContent::Text(prompt),
-                    name: None,
-                }),
-            ],
-            "@cf/google/gemma-3-12b-it",
-        )
-        .await
+impl AI for Workers {
+    async fn gemma3_12b(&self, prompt: String) -> Result<String, Error> {
+        match self
+            .completion(
+                vec![
+                    ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
+                        content: ChatCompletionRequestSystemMessageContent::Text(
+                            SYSTEM_MSG.to_string(),
+                        ),
+                        name: None,
+                    }),
+                    ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
+                        content: ChatCompletionRequestUserMessageContent::Text(prompt),
+                        name: None,
+                    }),
+                ],
+                "@cf/google/gemma-3-12b-it",
+            )
+            .await
+        {
+            Ok(content) => Ok(content.clone()),
+            Err(e) => Err(Error::from(e.to_string())),
+        }
     }
 
-    pub async fn llama4_scout_17b_16e_instruct(
-        &mut self,
-        prompt: String,
-    ) -> Result<String, OpenAIError> {
+    async fn llama4_scout_17b_16e_instruct(&self, prompt: String) -> Result<String, Error> {
         self.completion(
             vec![
                 ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
@@ -107,14 +112,15 @@ impl Workers {
             "@cf/meta/llama-4-scout-17b-16e-instruct",
         )
         .await
+        .map_err(|e| Error::from(e.to_string()))
     }
 
-    pub async fn m2m100_1_2b(
+    async fn m2m100_1_2b(
         &self,
         text: &str,
         source_lang: &str,
         target_lang: &str,
-    ) -> Result<String, reqwest::Error> {
+    ) -> Result<String, Error> {
         #[derive(Debug, Serialize, Deserialize)]
         struct Request {
             text: String,
@@ -167,6 +173,7 @@ mod test {
     use std::fs;
 
     use crate::ai::Workers;
+    use hjdef::ai::AI;
 
     #[derive(serde::Deserialize)]
     struct Auth {
@@ -178,7 +185,7 @@ mod test {
     pub async fn completion() {
         let auth_json = fs::read_to_string("src/.api.json").unwrap();
         let auth = serde_json::from_str::<Auth>(&auth_json).unwrap();
-        let mut ai = Workers::new(auth.account_id.as_str(), auth.api_token.as_str());
+        let ai = Workers::new(auth.account_id.as_str(), auth.api_token.as_str());
         println!(
             "{}",
             ai.gemma3_12b("辿るは何の意味ですか？".to_string())

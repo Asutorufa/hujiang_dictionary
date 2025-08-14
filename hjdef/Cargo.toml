@@ -1,0 +1,10 @@
+[package]
+name = "hjdef"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { version = "1.0.219", features = ["derive"] }
+value2struct = { path = "../value2struct" }
+serde_json = "1.0.141"
+reqwest = { version = "0.12.22", default-features = false }

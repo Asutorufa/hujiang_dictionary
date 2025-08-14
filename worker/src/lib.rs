@@ -1,39 +1,31 @@
+pub mod ai;
 pub mod d1;
 
-use std::ops::ControlFlow;
-use teloxide::{
-    dptree::{self},
-    types::Update,
-    utils::command::BotCommands,
+use crate::{ai::WasmAI, d1::WasmD1};
+use frankenstein::{
+    AsyncTelegramApi,
+    methods::{SetMyCommandsParams, SetWebhookParams},
+    updates::Update,
 };
-
-use teloxide::{
-    Bot,
-    prelude::{Request, Requester},
-};
+use hjdef::opts::RunOpt;
+use hjtg::tg::{self, bot_commands};
+use std::{collections::HashSet, env};
 use worker::*;
-
-use hj_rust::{
-    opts::run_opts,
-    telegram::{Command, handler},
-};
 
 // TODO split to different package, because the reqwest dep hyper which can't compile to
 // wasm
 #[event(fetch)]
 async fn main(req: worker::Request, _env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
-    let bot = Bot::from_env();
 
-    let me = bot
-        .get_me()
-        .await
-        .map_err(|e| worker::Error::from(e.to_string()))?;
-
-    // TODO worker env
-    let run_opt = run_opts().await.unwrap();
-
-    println!("Bot: {}, {}", me.username.as_ref().unwrap(), me.id.0);
+    let token = env::var("TELOXIDE_TOKEN").unwrap();
+    let opt = RunOpt {
+        allow_users: HashSet::new(),
+        d1: WasmD1::new(_env.clone(), "d1").await.unwrap(),
+        workers_ai: WasmAI {},
+        matainer: 0,
+    };
+    let bot = frankenstein::client_reqwest::Bot::new(&token);
 
     let mut router = Router::new();
 
@@ -42,12 +34,17 @@ async fn main(req: worker::Request, _env: Env, _ctx: Context) -> Result<Response
 
         println!("Registering webhook: {}", url.clone());
 
-        let _ = bot.set_my_commands(Command::bot_commands());
-        let _ = bot
-            .set_webhook(url::Url::parse(&url)?)
-            .send()
+        bot.set_my_commands(
+            &SetMyCommandsParams::builder()
+                .commands(bot_commands())
+                .build(),
+        )
+        .await
+        .map_err(|e| worker::Error::from(e.to_string()))?;
+
+        bot.set_webhook(&SetWebhookParams::builder().url(url.clone()).build())
             .await
-            .map_err(|x| worker::Error::from(x.to_string()))?;
+            .map_err(|e| worker::Error::from(e.to_string()))?;
 
         Response::ok(format!("register telegram bot to {} successful", url))
     });
@@ -55,27 +52,19 @@ async fn main(req: worker::Request, _env: Env, _ctx: Context) -> Result<Response
     router = router.post_async("/tgbot", async |mut req, _ctx| {
         let update = req.json::<Update>().await?;
 
-        let handler = handler();
+        let result = tg::handle(opt.clone(), &token, update).await;
 
-        let dependencies = dptree::deps![me.clone(), bot.clone(), update, run_opt.clone()];
-
-        let result = handler.dispatch(dependencies).await;
-
-        match result {
-            ControlFlow::Break(Ok(())) => {
+        return match result {
+            Ok(_) => {
                 println!("Update was handled by bot.");
                 Response::ok("Update was handled by bot.")
             }
-            ControlFlow::Break(Err(e)) => {
-                println!("Error: {}", e);
-                Err(worker::Error::from(e.to_string()))
+            Err(e) => {
+                println!("Update was not handled by bot: {}", e);
+                Response::error(format!("Update was not handled by bot: {}", e), 500)
             }
-            ControlFlow::Continue(_) => {
-                println!("Update was not handled by bot.");
-                Response::ok("Update was not handled by bot.")
-            }
-        }
+        };
     });
 
-    router.run(req, _env).await
+    router.run(req, _env.clone()).await
 }

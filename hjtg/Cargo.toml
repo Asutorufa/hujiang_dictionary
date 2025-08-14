@@ -1,0 +1,9 @@
+[package]
+name = "hjtg"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+frankenstein = { version = "0.44", features = ["client-reqwest"] }
+hjdict = { path = "../hjdict" }
+hjdef = { path = "../hjdef" }

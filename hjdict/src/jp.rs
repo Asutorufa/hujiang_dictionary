@@ -271,14 +271,13 @@ fn parse(text: &str) -> Vec<Word> {
 
 #[cfg(test)]
 mod tes {
-    use std::fs;
-
     use crate::jp::{get, parse};
+    use std::fs;
 
     #[tokio::test]
     async fn run_parse() {
-        let test1 = fs::read_to_string("assets/test_data/jpcn.html.txt").unwrap();
-        let test2 = fs::read_to_string("assets/test_data/cnjp.html.txt").unwrap();
+        let test1 = fs::read_to_string("../assets/test_data/jpcn.html.txt").unwrap();
+        let test2 = fs::read_to_string("../assets/test_data/cnjp.html.txt").unwrap();
 
         println!("{:?}", parse(test1.as_str()));
         println!("{:?}", parse(test2.as_str()));

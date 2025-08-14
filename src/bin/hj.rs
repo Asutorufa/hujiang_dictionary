@@ -1,6 +1,6 @@
 use std::env::args;
 
-use hj_rust::{en, google, jp, kotobakku, weblio};
+use hjdict::{en, google, jp, kotobakku, weblio};
 
 #[tokio::main]
 async fn main() {
