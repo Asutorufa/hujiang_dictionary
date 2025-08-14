@@ -1,44 +1,6 @@
+use hjdef::d1::{D1Error, DB, Word};
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::{self},
-    time::{SystemTime, UNIX_EPOCH},
-};
-use value2struct::FromValueVec;
-
-#[derive(Debug)]
-pub struct D1Error(String);
-
-impl fmt::Display for D1Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl std::error::Error for D1Error {}
-
-impl From<&str> for D1Error {
-    fn from(s: &str) -> Self {
-        D1Error(s.to_string())
-    }
-}
-
-impl From<reqwest::Error> for D1Error {
-    fn from(value: reqwest::Error) -> Self {
-        D1Error(value.to_string())
-    }
-}
-
-impl From<serde_json::Error> for D1Error {
-    fn from(value: serde_json::Error) -> Self {
-        D1Error(value.to_string())
-    }
-}
-
-impl From<String> for D1Error {
-    fn from(s: String) -> Self {
-        D1Error(s)
-    }
-}
+use std::time::{SystemTime, UNIX_EPOCH};
 
 // see: https://developers.cloudflare.com/api/resources/d1/subresources/database
 #[derive(Clone)]
@@ -128,15 +90,6 @@ pub struct Timings {
     pub sql_duration_ms: f64,
 }
 
-#[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
-pub struct Word {
-    pub word: String,
-    pub explain: String,
-    add_time: i64,
-    update_time: i64,
-    reminder_time: i64,
-}
-
 pub struct Empty {}
 
 impl From<Vec<serde_json::Value>> for Empty {
@@ -166,7 +119,7 @@ impl D1 {
         Ok(d1)
     }
 
-    async fn get_database_id(&self, database_name: &str) -> Result<String, D1Error> {
+    pub async fn get_database_id(&self, database_name: &str) -> Result<String, D1Error> {
         let r = reqwest::Client::builder()
             .build()?
             .get(format!("/accounts/{}/d1/database", self.account_id,))
@@ -290,8 +243,10 @@ impl D1 {
 
         Ok(rs)
     }
+}
 
-    pub async fn save_word(&self, word: String, explain: String) -> Result<(), D1Error> {
+impl DB for D1 {
+    async fn save_word(&self, word: String, explain: String) -> Result<(), D1Error> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -306,13 +261,13 @@ impl D1 {
         Ok(())
     }
 
-    pub async fn delete_word(&self, word: String) -> Result<(), D1Error> {
+    async fn delete_word(&self, word: String) -> Result<(), D1Error> {
         self.raw::<Empty>("DELETE FROM words WHERE word = ?", vec![word])
             .await?;
         Ok(())
     }
 
-    pub async fn random_word(&self) -> Result<Word, D1Error> {
+    async fn random_word(&self) -> Result<Word, D1Error> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()

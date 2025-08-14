@@ -341,7 +341,7 @@ mod tes {
 
     #[tokio::test]
     async fn run_parse() {
-        let test1 = fs::read_to_string("assets/test_data/en.html.txt").unwrap();
+        let test1 = fs::read_to_string("../assets/test_data/en.html.txt").unwrap();
         println!("{:?}", parse(test1.as_str()));
 
         for v in parse(test1.as_str()) {

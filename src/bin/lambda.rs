@@ -1,30 +1,26 @@
+use std::env;
+
 use aws_lambda_events::lambda_function_urls::LambdaFunctionUrlRequest;
 use base64::{Engine, engine::general_purpose};
-use hj_rust::{
-    opts::run_opts,
-    telegram::{Command, RunOpt, handler},
-};
+use frankenstein::AsyncTelegramApi;
+use frankenstein::methods::{SendMessageParams, SetMyCommandsParams, SetWebhookParams};
+use hjcommon::opts::run_opts;
+use hjcommon::{ai::Workers, d1::D1};
+use hjdef::d1::DB;
+use hjdef::opts::RunOpt;
+use hjtg::tg::{bot_commands, html_escape};
 use lambda_runtime::LambdaEvent;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use teloxide::{
-    dptree::{self},
-    prelude::{Request, *},
-    sugar::request::RequestLinkPreviewExt,
-    types::{Me, Update},
-    utils::{command::BotCommands, html},
-};
 
 #[tokio::main]
 async fn main() -> Result<(), lambda_runtime::Error> {
-    let bot = Bot::from_env();
-
-    let me = bot.get_me().await?;
-    println!("Bot: {}, {}", me.username.as_ref().unwrap(), me.id.0);
-
     let run_opt = run_opts().await.unwrap();
 
-    let handler = LambdaHandler { bot, me, run_opt };
+    let handler = LambdaHandler {
+        telegram_api: env::var("TELOXIDE_TOKEN").unwrap(),
+        run_opt,
+    };
     lambda_runtime::run(lambda_runtime::service_fn(|event| handler.handler(event))).await
 }
 
@@ -45,9 +41,8 @@ struct LambdaRequest {
 }
 
 struct LambdaHandler {
-    bot: Bot,
-    me: Me,
-    run_opt: RunOpt,
+    telegram_api: String,
+    run_opt: RunOpt<D1, Workers>,
 }
 
 impl LambdaHandler {
@@ -73,17 +68,26 @@ impl LambdaHandler {
                     Ok(v) => {
                         format!(
                             "<b>{}</b>\n<tg-spoiler><blockquote expandable>{}</blockquote></tg-spoiler>",
-                            html::escape(v.word.as_str()),
-                            html::escape(v.explain.as_str())
+                            html_escape(v.word.as_str()),
+                            html_escape(v.explain.as_str())
                         )
                     }
                 };
 
-                self.bot
-                    .send_message(self.run_opt.matainer, reply)
-                    .parse_mode(teloxide::types::ParseMode::Html)
-                    .disable_link_preview(true)
-                    .await?;
+                let bot =
+                    frankenstein::client_reqwest::Bot::new(self.telegram_api.clone().as_str());
+
+                bot.send_message(
+                    &SendMessageParams::builder()
+                        .chat_id(frankenstein::types::ChatId::Integer(
+                            self.run_opt.matainer as i64,
+                        ))
+                        .text(reply)
+                        .parse_mode(frankenstein::ParseMode::Html)
+                        .link_preview_options(frankenstein::types::LinkPreviewOptions::DISABLED)
+                        .build(),
+                )
+                .await?;
 
                 return Ok(Response {
                     msg: "Send successful.".to_string(),
@@ -108,8 +112,36 @@ impl LambdaHandler {
 
                 println!("Registering webhook: {}", url);
 
-                let _ = self.bot.set_my_commands(Command::bot_commands()).await;
-                let _ = self.bot.set_webhook(url::Url::parse(&url)?).send().await?;
+                let bot =
+                    frankenstein::client_reqwest::Bot::new(self.telegram_api.clone().as_str());
+
+                match bot
+                    .set_my_commands(
+                        &SetMyCommandsParams::builder()
+                            .commands(bot_commands())
+                            .build(),
+                    )
+                    .await
+                {
+                    Ok(_) => println!("Set my commands successful."),
+                    Err(e) => {
+                        return Ok(Response {
+                            msg: format!("Set my commands failed: {}", e).to_string(),
+                        });
+                    }
+                };
+
+                match bot
+                    .set_webhook(&SetWebhookParams::builder().url(url.clone()).build())
+                    .await
+                {
+                    Ok(_) => println!("Set webhook successful."),
+                    Err(e) => {
+                        return Ok(Response {
+                            msg: format!("Set webhook failed: {}", e).to_string(),
+                        });
+                    }
+                };
 
                 return Ok(Response {
                     msg: format!("register telegram bot to {} successful", url).to_string(),
@@ -127,34 +159,21 @@ impl LambdaHandler {
 
                 println!("body: {}", String::from_utf8_lossy(&body));
 
-                let update: Update = serde_json::from_slice(&body)?;
-
-                let handler = handler();
-
-                let dependencies = dptree::deps![
-                    self.me.clone(),
-                    self.bot.clone(),
-                    update,
-                    self.run_opt.clone()
-                ];
-
-                let result = handler.dispatch(dependencies).await;
+                let update2: frankenstein::updates::Update = serde_json::from_slice(&body)?;
+                let result =
+                    hjtg::tg::handle(self.run_opt.clone(), &self.telegram_api, update2).await;
 
                 return match result {
-                    ControlFlow::Break(Ok(())) => {
+                    Ok(_) => {
                         println!("Update was handled by bot.");
                         Ok(Response {
                             msg: "Update was handled by bot.".to_string(),
                         })
                     }
-                    ControlFlow::Break(Err(e)) => {
-                        println!("Error: {}", e);
-                        Err(lambda_runtime::Error::from(e))
-                    }
-                    ControlFlow::Continue(_) => {
-                        println!("Update was not handled by bot.");
+                    Err(e) => {
+                        println!("Update was not handled by bot: {}", e);
                         Ok(Response {
-                            msg: "Update was not handled by bot.".to_string(),
+                            msg: format!("Update was not handled by bot: {}", e).to_string(),
                         })
                     }
                 };

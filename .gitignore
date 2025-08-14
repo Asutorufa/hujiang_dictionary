@@ -2,3 +2,4 @@
 .api.json
 /.vscode
 /test.sh
+/worker/dist
