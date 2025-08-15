@@ -3,29 +3,63 @@ pub mod d1;
 
 use crate::{ai::WasmAI, d1::WasmD1};
 use frankenstein::{
-    AsyncTelegramApi,
+    AsyncTelegramApi, client_reqwest,
     methods::{SetMyCommandsParams, SetWebhookParams},
     updates::Update,
 };
 use hjdef::opts::RunOpt;
-use hjtg::tg::{self, bot_commands};
-use std::{collections::HashSet, env};
+use hjtg::tg::{self, bot_commands, send_random_word};
+use std::{collections::HashSet, sync::Arc};
 use worker::*;
 
-// TODO split to different package, because the reqwest dep hyper which can't compile to
-// wasm
+async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
+    let token = env
+        .var("TELEGRAM_TOKEN")
+        .unwrap()
+        .as_ref()
+        .as_string()
+        .unwrap();
+
+    let maintainer_id = env
+        .var("MAINTAINER_ID")
+        .unwrap()
+        .as_ref()
+        .as_string()
+        .unwrap()
+        .parse::<i64>()
+        .unwrap();
+
+    let allow_users = match env.var("ALLOW_USERS") {
+        Ok(v) => v
+            .as_ref()
+            .as_string()
+            .unwrap_or("".to_string())
+            .split(",")
+            .map(|v| return v.parse::<i64>().unwrap_or(0))
+            .collect::<Vec<_>>(),
+        _ => vec![],
+    };
+
+    let mut set = HashSet::from([maintainer_id]);
+
+    for v in allow_users {
+        set.insert(v);
+    }
+
+    Arc::new(RunOpt {
+        allow_users: set,
+        d1: WasmD1::new(env.clone(), "DB").await,
+        workers_ai: WasmAI::new(env.clone(), "AI"),
+        matainer: maintainer_id,
+        bot: client_reqwest::Bot::new(&token),
+    })
+}
+
 #[event(fetch)]
-async fn main(req: worker::Request, _env: Env, _ctx: Context) -> Result<Response> {
+async fn main(req: worker::Request, env: Env, _ctx: Context) -> Result<Response> {
     console_error_panic_hook::set_once();
 
-    let token = env::var("TELOXIDE_TOKEN").unwrap();
-    let opt = RunOpt {
-        allow_users: HashSet::new(),
-        d1: WasmD1::new(_env.clone(), "d1").await.unwrap(),
-        workers_ai: WasmAI {},
-        matainer: 0,
-    };
-    let bot = frankenstein::client_reqwest::Bot::new(&token);
+    let opt = get_opt(env.clone()).await;
 
     let mut router = Router::new();
 
@@ -34,15 +68,17 @@ async fn main(req: worker::Request, _env: Env, _ctx: Context) -> Result<Response
 
         println!("Registering webhook: {}", url.clone());
 
-        bot.set_my_commands(
-            &SetMyCommandsParams::builder()
-                .commands(bot_commands())
-                .build(),
-        )
-        .await
-        .map_err(|e| worker::Error::from(e.to_string()))?;
+        opt.bot
+            .set_my_commands(
+                &SetMyCommandsParams::builder()
+                    .commands(bot_commands())
+                    .build(),
+            )
+            .await
+            .map_err(|e| worker::Error::from(e.to_string()))?;
 
-        bot.set_webhook(&SetWebhookParams::builder().url(url.clone()).build())
+        opt.bot
+            .set_webhook(&SetWebhookParams::builder().url(url.clone()).build())
             .await
             .map_err(|e| worker::Error::from(e.to_string()))?;
 
@@ -52,7 +88,7 @@ async fn main(req: worker::Request, _env: Env, _ctx: Context) -> Result<Response
     router = router.post_async("/tgbot", async |mut req, _ctx| {
         let update = req.json::<Update>().await?;
 
-        let result = tg::handle(opt.clone(), &token, update).await;
+        let result = tg::handle(opt.clone(), update).await;
 
         return match result {
             Ok(_) => {
@@ -66,5 +102,19 @@ async fn main(req: worker::Request, _env: Env, _ctx: Context) -> Result<Response
         };
     });
 
-    router.run(req, _env.clone()).await
+    router.run(req, env.clone()).await
+}
+
+#[event(scheduled)]
+pub async fn scheduled(_: ScheduledEvent, env: Env, _: ScheduleContext) {
+    console_error_panic_hook::set_once();
+
+    let opt = get_opt(env.clone()).await;
+
+    match send_random_word(opt).await {
+        Err(e) => {
+            println!("Error: {}", e);
+        }
+        Ok(_) => {}
+    }
 }

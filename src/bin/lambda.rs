@@ -1,14 +1,13 @@
-use std::env;
+use std::sync::Arc;
 
 use aws_lambda_events::lambda_function_urls::LambdaFunctionUrlRequest;
 use base64::{Engine, engine::general_purpose};
 use frankenstein::AsyncTelegramApi;
-use frankenstein::methods::{SendMessageParams, SetMyCommandsParams, SetWebhookParams};
+use frankenstein::methods::{SetMyCommandsParams, SetWebhookParams};
 use hjcommon::opts::run_opts;
 use hjcommon::{ai::Workers, d1::D1};
-use hjdef::d1::DB;
 use hjdef::opts::RunOpt;
-use hjtg::tg::{bot_commands, html_escape};
+use hjtg::tg::{bot_commands, send_random_word};
 use lambda_runtime::LambdaEvent;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -18,8 +17,7 @@ async fn main() -> Result<(), lambda_runtime::Error> {
     let run_opt = run_opts().await.unwrap();
 
     let handler = LambdaHandler {
-        telegram_api: env::var("TELOXIDE_TOKEN").unwrap(),
-        run_opt,
+        run_opt: Arc::new(run_opt),
     };
     lambda_runtime::run(lambda_runtime::service_fn(|event| handler.handler(event))).await
 }
@@ -41,8 +39,7 @@ struct LambdaRequest {
 }
 
 struct LambdaHandler {
-    telegram_api: String,
-    run_opt: RunOpt<D1, Workers>,
+    run_opt: Arc<RunOpt<D1, Workers>>,
 }
 
 impl LambdaHandler {
@@ -63,32 +60,7 @@ impl LambdaHandler {
     ) -> Result<Response, lambda_runtime::Error> {
         match request.command {
             RequestCommand::SendRandomWord => {
-                let reply = match self.run_opt.d1.random_word().await {
-                    Err(e) => e.to_string(),
-                    Ok(v) => {
-                        format!(
-                            "<b>{}</b>\n<tg-spoiler><blockquote expandable>{}</blockquote></tg-spoiler>",
-                            html_escape(v.word.as_str()),
-                            html_escape(v.explain.as_str())
-                        )
-                    }
-                };
-
-                let bot =
-                    frankenstein::client_reqwest::Bot::new(self.telegram_api.clone().as_str());
-
-                bot.send_message(
-                    &SendMessageParams::builder()
-                        .chat_id(frankenstein::types::ChatId::Integer(
-                            self.run_opt.matainer as i64,
-                        ))
-                        .text(reply)
-                        .parse_mode(frankenstein::ParseMode::Html)
-                        .link_preview_options(frankenstein::types::LinkPreviewOptions::DISABLED)
-                        .build(),
-                )
-                .await?;
-
+                send_random_word(self.run_opt.clone()).await?;
                 return Ok(Response {
                     msg: "Send successful.".to_string(),
                 });
@@ -112,10 +84,9 @@ impl LambdaHandler {
 
                 println!("Registering webhook: {}", url);
 
-                let bot =
-                    frankenstein::client_reqwest::Bot::new(self.telegram_api.clone().as_str());
-
-                match bot
+                match self
+                    .run_opt
+                    .bot
                     .set_my_commands(
                         &SetMyCommandsParams::builder()
                             .commands(bot_commands())
@@ -131,7 +102,9 @@ impl LambdaHandler {
                     }
                 };
 
-                match bot
+                match self
+                    .run_opt
+                    .bot
                     .set_webhook(&SetWebhookParams::builder().url(url.clone()).build())
                     .await
                 {
@@ -160,8 +133,7 @@ impl LambdaHandler {
                 println!("body: {}", String::from_utf8_lossy(&body));
 
                 let update2: frankenstein::updates::Update = serde_json::from_slice(&body)?;
-                let result =
-                    hjtg::tg::handle(self.run_opt.clone(), &self.telegram_api, update2).await;
+                let result = hjtg::tg::handle(self.run_opt.clone(), update2).await;
 
                 return match result {
                     Ok(_) => {

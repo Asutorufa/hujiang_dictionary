@@ -13,3 +13,4 @@ serde_json = "1.0.141"
 tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 value2struct = { path = "../value2struct" }
 hjdef = { path = "../hjdef" }
+frankenstein = { version = "0.44", features = ["client-reqwest"] }

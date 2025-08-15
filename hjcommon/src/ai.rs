@@ -8,7 +8,7 @@ use async_openai::{
         ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs,
     },
 };
-use hjdef::ai::{AI, Error};
+use hjdef::ai::{AI, Error, Models, SYSTEM_MSG};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
@@ -17,15 +17,6 @@ pub struct Workers {
     account_id: String,
     api_token: String,
 }
-
-static SYSTEM_MSG: &str = r#"
-You are a professional translator.
-Translate the input text according to the user's instructions and return the result in the user’s original language (unless the user requests otherwise).
-The total output must not exceed 4096 characters, including spaces and line breaks.
-If the translated content is approaching the limit, prioritize preserving core meaning and compress the expression when necessary. Paraphrase or summarize if required.
-Do not output in Markdown format.
-Strictly follow the character limit to prevent truncation.
-"#;
 
 impl Workers {
     pub fn new(account_id: &str, api_key: &str) -> Self {
@@ -45,11 +36,24 @@ impl Workers {
         }
     }
 
+    pub fn is_valid(&self) -> Result<(), OpenAIError> {
+        if self.account_id.is_empty() || self.api_token.is_empty() {
+            return Err(OpenAIError::InvalidArgument(
+                "account_id or api_token is empty".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+
     pub async fn completion(
         &self,
         msgs: Vec<ChatCompletionRequestMessage>,
         model: &str,
     ) -> Result<String, OpenAIError> {
+        self.is_valid()?;
+
+        let model = model.to_string();
         let request = CreateChatCompletionRequestArgs::default()
             .model(model)
             .messages(msgs)
@@ -60,11 +64,11 @@ impl Workers {
         let content = result
             .choices
             .first()
-            .unwrap()
+            .ok_or(OpenAIError::InvalidArgument("choice is empty".to_string()))?
             .message
             .content
             .clone()
-            .unwrap();
+            .ok_or(OpenAIError::InvalidArgument("content is empty".to_string()))?;
 
         Ok(content)
     }
@@ -86,7 +90,7 @@ impl AI for Workers {
                         name: None,
                     }),
                 ],
-                "@cf/google/gemma-3-12b-it",
+                Models::Gemma3_12bIt.as_str(),
             )
             .await
         {
@@ -109,7 +113,7 @@ impl AI for Workers {
                     name: None,
                 }),
             ],
-            "@cf/meta/llama-4-scout-17b-16e-instruct",
+            Models::Llama4Scout17B16EInstruct.as_str(),
         )
         .await
         .map_err(|e| Error::from(e.to_string()))
@@ -117,33 +121,34 @@ impl AI for Workers {
 
     async fn m2m100_1_2b(
         &self,
-        text: &str,
-        source_lang: &str,
-        target_lang: &str,
+        text: String,
+        source_lang: Option<String>,
+        target_lang: String,
     ) -> Result<String, Error> {
+        self.is_valid().map_err(|e| Error(e.to_string()))?;
+
         #[derive(Debug, Serialize, Deserialize)]
         struct Request {
             text: String,
-            source_lang: String,
             target_lang: String,
+
+            #[serde(skip_serializing_if = "Option::is_none")]
+            source_lang: Option<String>,
         }
 
         let body = serde_json::to_string(&Request {
-            source_lang: if source_lang.is_empty() {
-                "english".to_string()
-            } else {
-                source_lang.to_string()
-            },
-            target_lang: target_lang.to_string(),
-            text: text.to_string(),
+            source_lang,
+            target_lang,
+            text,
         })
         .unwrap();
 
         let r = reqwest::Client::builder()
             .build()?
             .post(format!(
-                "https://api.cloudflare.com/client/v4/accounts/{}/ai/run/@cf/meta/m2m100-1.2b",
-                self.account_id
+                "https://api.cloudflare.com/client/v4/accounts/{}/ai/run/{}",
+                self.account_id,
+                Models::M2M100_1_2B.as_str(),
             ))
             .header("Authorization", format!("Bearer {}", self.api_token))
             .body(body)
@@ -207,7 +212,7 @@ mod test {
         let ai = Workers::new(auth.account_id.as_str(), auth.api_token.as_str());
         println!(
             "{}",
-            ai.m2m100_1_2b("辿るは何の意味ですか？", "ja", "zh")
+            ai.m2m100_1_2b("辿るは何の意味ですか？".to_string(), None, "zh".to_string())
                 .await
                 .unwrap()
         );

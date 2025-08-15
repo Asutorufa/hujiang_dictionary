@@ -47,13 +47,13 @@ async fn main() {
         "ktbk" => kotobakku::get(&word).await.unwrap().join("\n"),
         "google" => {
             let target = args[1].clone();
-            let words = &args[2..].join(" ");
+            let words = args[2..].join(" ");
 
             if words.is_empty() {
                 return;
             }
 
-            google::translate(&words, "", &target)
+            google::translate(words, None, target)
                 .await
                 .unwrap()
                 .iter()

@@ -16,8 +16,17 @@ console_error_panic_hook = "0.1.7"
 reqwest = { version = "0.12.22", default-features = false, features = [
     "rustls-tls",
 ] }
+serde = { version = "1.0.219", features = ["derive"] }
 wasm-bindgen = "0.2.100"
 frankenstein = { version = "0.44", features = ["client-reqwest"] }
 
 hjtg = { path = "../hjtg" }
 hjdef = { path = "../hjdef" }
+cloudflare = "0.14.0"
+
+[profile.release]
+lto = true
+opt-level = "z"
+codegen-units = 1 # Reduce number of codegen units to increase optimizations.
+panic = 'abort'   # Abort on panic
+strip = true      # Strip symbols from binary*

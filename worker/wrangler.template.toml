@@ -1,0 +1,25 @@
+name = "hj-rust"
+main = "build/worker/shim.mjs"
+compatibility_date = "2023-03-22"
+
+[build]
+command = "worker-build --release"
+
+[vars]
+TELEGRAM_TOKEN = "****:*****"
+ALLOW_USERS = "40,42"
+MAINTAINER_ID = "40"          # send random word to the chat id when cron job run
+
+[ai]
+binding = "AI"
+
+[observability.logs]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dict"
+database_id = "xxx-xxx-xxxx"
+
+[triggers]
+crons = ["0 * * * *"]
