@@ -1,11 +1,12 @@
+use std::sync::Arc;
+
 use frankenstein::{
-    AsyncTelegramApi, client_reqwest,
+    AsyncTelegramApi,
     methods::{DeleteWebhookParams, GetUpdatesParams, SendMessageParams},
     types::ChatId,
 };
 use hjcommon::opts::run_opts;
 use hjtg::tg::handle;
-use std::env;
 
 /*
  telegram bot token env: TELOXIDE_TOKEN=
@@ -18,39 +19,38 @@ use std::env;
 */
 #[tokio::main]
 async fn main() {
-    let token = env::var("TELOXIDE_TOKEN").unwrap();
-    let opt = run_opts().await.unwrap();
-    let bot = client_reqwest::Bot::new(&token);
+    let opt = Arc::new(run_opts().await.unwrap());
 
-    bot.delete_webhook(
-        &DeleteWebhookParams::builder()
-            .drop_pending_updates(true)
-            .build(),
-    )
-    .await
-    .unwrap();
+    opt.bot
+        .delete_webhook(
+            &DeleteWebhookParams::builder()
+                .drop_pending_updates(true)
+                .build(),
+        )
+        .await
+        .unwrap();
 
-    bot.send_message(
-        &SendMessageParams::builder()
-            .chat_id(ChatId::Integer(opt.matainer as i64))
-            .text("start new bot")
-            .build(),
-    )
-    .await
-    .unwrap();
+    opt.bot
+        .send_message(
+            &SendMessageParams::builder()
+                .chat_id(ChatId::Integer(opt.matainer as i64))
+                .text("start new bot")
+                .build(),
+        )
+        .await
+        .unwrap();
 
     let mut update_params = GetUpdatesParams::builder().build();
 
     loop {
-        let result = bot.get_updates(&update_params).await;
+        let result = opt.bot.get_updates(&update_params).await;
         match result {
             Ok(response) => {
                 for update in response.result {
-                    let tk = token.clone();
                     let opt = opt.clone();
                     let update_id = update.update_id;
                     tokio::spawn(async move {
-                        match handle(opt, &tk, update).await {
+                        match handle(opt, update).await {
                             Ok(_) => {}
                             Err(e) => println!("Failed to handle update: {e:?}"),
                         }

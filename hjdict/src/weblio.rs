@@ -85,23 +85,20 @@ pub fn parse(text: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod test {
-    use std::{
-        fs::{self, OpenOptions},
-        io::{self, Write},
-    };
+    use std::fs::{self};
 
     use crate::weblio::{get, parse};
 
-    fn append_to_file(filename: &str, content: &str) -> io::Result<()> {
-        let mut file = OpenOptions::new()
-            .append(true)
-            .create(true)
-            .open(filename)?;
+    // fn append_to_file(filename: &str, content: &str) -> io::Result<()> {
+    //     let mut file = OpenOptions::new()
+    //         .append(true)
+    //         .create(true)
+    //         .open(filename)?;
 
-        file.write_all(content.as_bytes())?;
+    //     file.write_all(content.as_bytes())?;
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     #[tokio::test]
     async fn get_test() {
