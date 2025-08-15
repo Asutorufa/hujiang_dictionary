@@ -3,3 +3,6 @@
 /.vscode
 /test.sh
 /worker/dist
+/worker/.wrangler
+/worker/node_modules
+/worker/wrangler.toml

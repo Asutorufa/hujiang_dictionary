@@ -49,12 +49,70 @@ impl From<String> for D1Error {
     }
 }
 
-pub trait DB: Send + Sync + Clone + 'static {
-    fn save_word(
-        &self,
-        word: String,
-        explain: String,
-    ) -> impl Future<Output = Result<(), D1Error>> + Send;
-    fn delete_word(&self, word: String) -> impl Future<Output = Result<(), D1Error>> + Send;
-    fn random_word(&self) -> impl Future<Output = Result<Word, D1Error>> + Send;
+pub trait DB {
+    fn save_word(&self, word: String, explain: String)
+    -> impl Future<Output = Result<(), D1Error>>;
+    fn delete_word(&self, word: String) -> impl Future<Output = Result<(), D1Error>>;
+    fn random_word(&self) -> impl Future<Output = Result<Word, D1Error>>;
+}
+
+pub struct EmptyDB {}
+
+impl DB for EmptyDB {
+    async fn delete_word(&self, _: String) -> Result<(), D1Error> {
+        Ok(())
+    }
+    async fn random_word(&self) -> Result<Word, D1Error> {
+        Err(D1Error("EmptyDB".to_string()))
+    }
+    async fn save_word(&self, _: String, _: String) -> Result<(), D1Error> {
+        Ok(())
+    }
+}
+
+pub enum SQL {
+    SaveWord(String, String),
+    DeleteWord(String),
+    RandomNotRemind,
+    Random,
+    UpdateRemindTime(String),
+}
+
+impl SQL {
+    pub fn sql(&self) -> &str {
+        match self {
+            SQL::SaveWord(_, _) => {
+                "INSERT INTO words (word, explain, add_time, update_time) VALUES (?, ?, strftime('%s', 'now'), strftime('%s', 'now')) ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = strftime('%s', 'now')"
+            }
+            SQL::DeleteWord(_) => "DELETE FROM words WHERE word = ?",
+            SQL::RandomNotRemind => {
+                "SELECT * FROM words WHERE reminder_time <= strftime('%s', 'now') - 43200 ORDER BY RANDOM() LIMIT 1"
+            }
+            SQL::Random => "SELECT * FROM words ORDER BY RANDOM() LIMIT 1",
+            SQL::UpdateRemindTime(_) => {
+                "UPDATE words SET reminder_time = strftime('%s', 'now') WHERE word = ?"
+            }
+        }
+    }
+
+    pub fn params<T: From<String>>(&self) -> Vec<T> {
+        match self {
+            SQL::SaveWord(word, explain) => {
+                vec![
+                    (*word).clone().into(),
+                    (*explain).clone().into(),
+                    (*explain).clone().into(),
+                ]
+            }
+            SQL::DeleteWord(word) => {
+                vec![(*word).clone().into()]
+            }
+            SQL::RandomNotRemind | SQL::Random => {
+                vec![]
+            }
+            SQL::UpdateRemindTime(word) => {
+                vec![(*word).clone().into()]
+            }
+        }
+    }
 }

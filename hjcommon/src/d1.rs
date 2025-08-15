@@ -1,6 +1,5 @@
-use hjdef::d1::{D1Error, DB, Word};
+use hjdef::d1::{D1Error, DB, SQL, Word};
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 // see: https://developers.cloudflare.com/api/resources/d1/subresources/database
 #[derive(Clone)]
@@ -104,7 +103,7 @@ pub enum Database {
 }
 
 impl D1 {
-    pub async fn new(account_id: &str, api_token: &str, database: Database) -> Result<D1, D1Error> {
+    pub async fn new(account_id: &str, api_token: &str, database: Database) -> D1 {
         let mut d1 = D1 {
             account_id: account_id.to_string(),
             database_id: "".to_string(),
@@ -112,11 +111,11 @@ impl D1 {
         };
 
         d1.database_id = match database {
-            Database::Name(v) => d1.get_database_id(&v).await?,
+            Database::Name(v) => d1.get_database_id(&v).await.unwrap_or("".to_string()),
             Database::UUID(v) => v,
         };
 
-        Ok(d1)
+        d1
     }
 
     pub async fn get_database_id(&self, database_name: &str) -> Result<String, D1Error> {
@@ -139,71 +138,29 @@ impl D1 {
         Ok(lr.result[0].name.clone())
     }
 
+    pub async fn exec_sql<T: From<Vec<serde_json::Value>>>(
+        &self,
+        sql: SQL,
+    ) -> Result<Vec<T>, D1Error> {
+        self.raw(sql.sql(), sql.params()).await
+    }
+
     pub async fn raw<T: From<Vec<serde_json::Value>>>(
         &self,
         sql: &str,
         params: Vec<String>,
     ) -> Result<Vec<T>, D1Error> {
-        /*
-                     curl https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/d1/database/$DATABASE_ID/raw \
-                 -H 'Content-Type: application/json' \
-                 -H "X-Auth-Email: $CLOUDFLARE_EMAIL" \
-                 -H "X-Auth-Key: $CLOUDFLARE_API_KEY" \
-                 -d '{
-                       "sql": "SELECT * FROM myTable WHERE field = ? OR field = ?;",
-                       "params": [
-                         "firstParam",
-                         "secondParam"
-                       ]
-                     }'
+        if self.database_id == "" {
+            return Err(D1Error("database_id is empty".to_string()));
+        }
 
+        if self.account_id == "" {
+            return Err(D1Error("account_id is empty".to_string()));
+        }
 
-         {
-           "errors": [
-             {
-               "code": 1000,
-               "message": "message",
-               "documentation_url": "documentation_url",
-               "source": {
-                 "pointer": "pointer"
-               }
-             }
-           ],
-           "messages": [
-             {
-               "code": 1000,
-               "message": "message",
-               "documentation_url": "documentation_url",
-               "source": {
-                 "pointer": "pointer"
-               }
-             }
-           ],
-           "result": [
-             {
-               "meta": {
-                 "changed_db": true,
-                 "changes": 0,
-                 "duration": 0,
-                 "last_row_id": 0,
-                 "rows_read": 0,
-                 "rows_written": 0,
-                 "served_by_primary": true,
-                 "served_by_region": "EEUR",
-                 "size_after": 0,
-                 "timings": {
-                   "sql_duration_ms": 0
-                 }
-               },
-               "results": [
-                 {}
-               ],
-               "success": true
-             }
-           ],
-           "success": true
-         }
-        */
+        if self.api_token == "" {
+            return Err(D1Error("api_token is empty".to_string()));
+        }
 
         let body = serde_json::to_string(&QueryBody {
             sql: sql.to_string(),
@@ -247,45 +204,20 @@ impl D1 {
 
 impl DB for D1 {
     async fn save_word(&self, word: String, explain: String) -> Result<(), D1Error> {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            .to_string();
-
-        self.raw::<Empty>(
-            "INSERT INTO words (word, explain, add_time, update_time) VALUES (?, ?, ?, ?) ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = ?", 
-            vec![word,explain.clone(),now.clone(),now.clone(),explain,now],
-        ).await?;
-
-        Ok(())
-    }
-
-    async fn delete_word(&self, word: String) -> Result<(), D1Error> {
-        self.raw::<Empty>("DELETE FROM words WHERE word = ?", vec![word])
+        self.exec_sql::<Empty>(SQL::SaveWord(word.clone(), explain.clone()))
             .await?;
         Ok(())
     }
 
-    async fn random_word(&self) -> Result<Word, D1Error> {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            .to_string();
+    async fn delete_word(&self, word: String) -> Result<(), D1Error> {
+        self.exec_sql::<Empty>(SQL::DeleteWord(word)).await?;
+        Ok(())
+    }
 
-        let words = match self
-            .raw::<Word>(
-                "SELECT * FROM words WHERE reminder_time <= ? ORDER BY RANDOM() LIMIT 1",
-                vec![now.clone()],
-            )
-            .await
-        {
+    async fn random_word(&self) -> Result<Word, D1Error> {
+        let words = match self.exec_sql::<Word>(SQL::RandomNotRemind).await {
             Ok(v) if !v.is_empty() => v,
-            _ => {
-                self.raw::<Word>("SELECT * FROM words ORDER BY RANDOM() LIMIT 1", vec![])
-                    .await?
-            }
+            _ => self.exec_sql::<Word>(SQL::Random).await?,
         };
 
         if words.len() == 0 {
@@ -295,10 +227,7 @@ impl DB for D1 {
         let v = words[0].clone();
 
         match self
-            .raw::<Empty>(
-                "UPDATE words SET reminder_time = ? WHERE word = ?",
-                vec![now.clone(), v.word.clone()],
-            )
+            .exec_sql::<Empty>(SQL::UpdateRemindTime(v.word.clone()))
             .await
         {
             Err(e) => println!("update reminder_time error: {}", e),
@@ -313,6 +242,7 @@ impl DB for D1 {
 mod test {
     use std::fs;
 
+    use hjdef::d1::DB;
     use serde::{Deserialize, Serialize};
 
     use crate::d1::{D1, Word};
@@ -335,8 +265,9 @@ mod test {
             auth.api_token.as_str(),
             crate::d1::Database::UUID(auth.database_id),
         )
-        .await
-        .unwrap();
+        .await;
+
+        println!("random: {:?}", d1.random_word().await.unwrap());
 
         let result = d1
             .raw::<Word>("select * from words limit 10", vec![])

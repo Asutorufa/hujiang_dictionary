@@ -5,6 +5,7 @@ use frankenstein::types::{LinkPreviewOptions, MaybeInaccessibleMessage, MessageE
 use frankenstein::updates::UpdateContent;
 use hjdef::{ai::AI, d1::DB, opts::RunOpt};
 use hjdict::{en, google, jp, kotobakku, weblio};
+use std::sync::Arc;
 
 #[derive(Debug)]
 pub enum Command {
@@ -16,8 +17,8 @@ pub enum Command {
     Gemma(String),
     Llama4(String),
     UserID,
-    GG(String, String, String),
-    CFAI(String, String, String),
+    GG(Option<String>, String, String),
+    CFAI(Option<String>, String, String),
     Random,
     Save(String),
 }
@@ -137,8 +138,7 @@ pub fn vec_string_markdown_escape(v: Vec<String>) -> String {
 }
 
 pub async fn handle<T: DB, T2: AI>(
-    opt: RunOpt<T, T2>,
-    telegram_bot_token: &str,
+    opt: Arc<RunOpt<T, T2>>,
     update: frankenstein::updates::Update,
 ) -> Result<(), Error> {
     match update.content {
@@ -164,7 +164,7 @@ pub async fn handle<T: DB, T2: AI>(
 
             println!("command: {:?}, argument: {:?}", cmd, text);
 
-            answer(opt, telegram_bot_token, msg.clone(), cmd).await?;
+            answer(opt, msg.clone(), cmd).await?;
         }
         UpdateContent::CallbackQuery(msg) => {
             let (command, argument) = match msg.data.clone() {
@@ -182,7 +182,7 @@ pub async fn handle<T: DB, T2: AI>(
 
             println!("command: {:?}, argument: {:?}", cmd, text);
 
-            callback_query(opt, telegram_bot_token, msg.clone(), cmd).await?;
+            callback_query(opt, msg.clone(), cmd).await?;
         }
         _ => return Err(Error("not message".to_string())),
     };
@@ -244,27 +244,25 @@ pub fn parse_command(command: &str, argument: &str) -> Result<(Command, Option<S
         "gg" | "cfai" => {
             let mut parts = argument.splitn(2, ' ');
             let first = parts.next().unwrap_or("");
-            let rest = parts.next().unwrap_or("");
+            let rest = parts.next().unwrap_or("").to_string();
 
             let args = first.split("_").collect::<Vec<_>>();
-            let mut target = first;
-            let mut src = "";
+            let mut target = first.to_string();
+            let mut src: Option<String> = None;
 
             if args.len() > 1 {
-                src = args[0];
-                target = args[1];
+                src = if args[0].is_empty() {
+                    None
+                } else {
+                    Some(args[0].to_string())
+                };
+                target = args[1].to_string();
             }
 
             if command == "cfai" {
-                Ok((
-                    Command::CFAI(src.to_string(), target.to_string(), rest.to_string()),
-                    None,
-                ))
+                Ok((Command::CFAI(src, target, rest), None))
             } else {
-                Ok((
-                    Command::GG(src.to_string(), target.to_string(), rest.to_string()),
-                    None,
-                ))
+                Ok((Command::GG(src, target, rest), None))
             }
         }
         "userid" => Ok((Command::UserID, None)),
@@ -274,8 +272,7 @@ pub fn parse_command(command: &str, argument: &str) -> Result<(Command, Option<S
 }
 
 pub async fn answer<T: DB, T2: AI>(
-    opt: RunOpt<T, T2>,
-    tekegram_bot_token: &str,
+    opt: Arc<RunOpt<T, T2>>,
     msg: Box<frankenstein::types::Message>,
     cmd: Command,
 ) -> Result<(), frankenstein::Error> {
@@ -286,7 +283,7 @@ pub async fn answer<T: DB, T2: AI>(
 
     println!("new request from: {}, cmd: {:?}", from_user, cmd);
 
-    if !opt.allow_users.contains(&from_user) {
+    if !opt.allow_users.contains(&(from_user as i64)) {
         println!("user not allowed: {}", from_user);
         return Ok(());
     }
@@ -341,12 +338,12 @@ pub async fn answer<T: DB, T2: AI>(
             "".to_string(),
             format!("your id is: {}", from_user).to_string(),
         ),
-        Command::GG(from, to, text) => match google::translate(&text, &from, &to).await {
+        Command::GG(from, to, text) => match google::translate(text.clone(), from, to).await {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(v) => (text, markdown_escape(google::merge_translation(v).as_str())),
         },
         Command::CFAI(from, to, text) => {
-            match opt.workers_ai.m2m100_1_2b(&text, &from, &to).await {
+            match opt.workers_ai.m2m100_1_2b(text.clone(), from, to).await {
                 Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
                 Ok(v) => (text, markdown_escape(v.as_str())),
             }
@@ -405,8 +402,6 @@ pub async fn answer<T: DB, T2: AI>(
         },
     };
 
-    let bot = frankenstein::client_reqwest::Bot::new(tekegram_bot_token);
-
     for v in split_message(&reply, 4096) {
         if v.is_empty() {
             continue;
@@ -450,15 +445,14 @@ pub async fn answer<T: DB, T2: AI>(
             ))
         };
 
-        bot.send_message(&req).await?;
+        opt.bot.send_message(&req).await?;
     }
 
     Ok(())
 }
 
 pub async fn callback_query<T: DB, T2: AI>(
-    opt: RunOpt<T, T2>,
-    tekegram_bot_token: &str,
+    opt: Arc<RunOpt<T, T2>>,
     call_query: Box<frankenstein::types::CallbackQuery>,
     command: CallbackQueryCommand,
 ) -> Result<(), Error> {
@@ -466,7 +460,7 @@ pub async fn callback_query<T: DB, T2: AI>(
 
     println!("new request from: {}, cmd: {:?}", from_user, command);
 
-    if !opt.allow_users.contains(&from_user) {
+    if !opt.allow_users.contains(&(from_user as i64)) {
         println!("user not allowed: {}", from_user);
         return Ok(());
     }
@@ -479,8 +473,6 @@ pub async fn callback_query<T: DB, T2: AI>(
         },
     };
 
-    let bot = frankenstein::client_reqwest::Bot::new(tekegram_bot_token);
-
     match command {
         CallbackQueryCommand::Delete => {
             let req = frankenstein::methods::DeleteMessageParams::builder()
@@ -488,7 +480,7 @@ pub async fn callback_query<T: DB, T2: AI>(
                 .message_id(msg_id)
                 .build();
 
-            bot.delete_message(&req).await?;
+            opt.bot.delete_message(&req).await?;
         }
 
         CallbackQueryCommand::Save(v) => {
@@ -524,7 +516,7 @@ pub async fn callback_query<T: DB, T2: AI>(
                 )
                 .build();
 
-            bot.edit_message_reply_markup(&req).await?;
+            opt.bot.edit_message_reply_markup(&req).await?;
         }
         CallbackQueryCommand::Remove(v) => {
             match opt.d1.delete_word(v.clone()).await {
@@ -554,9 +546,37 @@ pub async fn callback_query<T: DB, T2: AI>(
                 )
                 .build();
 
-            bot.edit_message_reply_markup(&req).await?;
+            opt.bot.edit_message_reply_markup(&req).await?;
         }
     };
+
+    Ok(())
+}
+
+pub async fn send_random_word<T: DB, T2: AI>(
+    opt: Arc<RunOpt<T, T2>>,
+) -> Result<(), frankenstein::Error> {
+    let reply = match opt.d1.random_word().await {
+        Err(e) => e.to_string(),
+        Ok(v) => {
+            format!(
+                "<b>{}</b>\n<tg-spoiler><blockquote expandable>{}</blockquote></tg-spoiler>",
+                html_escape(v.word.as_str()),
+                html_escape(v.explain.as_str())
+            )
+        }
+    };
+
+    opt.bot
+        .send_message(
+            &SendMessageParams::builder()
+                .chat_id(frankenstein::types::ChatId::Integer(opt.matainer as i64))
+                .text(reply)
+                .parse_mode(frankenstein::ParseMode::Html)
+                .link_preview_options(frankenstein::types::LinkPreviewOptions::DISABLED)
+                .build(),
+        )
+        .await?;
 
     Ok(())
 }

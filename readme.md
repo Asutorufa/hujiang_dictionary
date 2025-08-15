@@ -75,6 +75,52 @@ cargo lambda build --release --bin lambda
 cargo lambda deploy --binary-name lambda hj-telegram-bot
 ```
 
+## cloudflare workers
+
+create wrangler config
+
+```shell
+cd worker
+vim wrangler.toml
+```
+
+```toml
+name = "hj-rust"
+main = "build/worker/shim.mjs"
+compatibility_date = "2023-03-22"
+
+[build]
+command = "worker-build --release"
+
+[vars]
+TELEGRAM_TOKEN = "****:*****"
+ALLOW_USERS = "42xxxxx"
+MAINTAINER_ID = "40xxxxxx" # send random word to the chat id when cron job run
+
+[ai]
+binding = "AI"
+
+[observability.logs]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dict"
+database_id = "xxx-xxx-xxxx"
+
+[triggers]
+crons = ["0 * * * *"]
+```
+
+build/dev/deploy
+
+```shell
+cargo install worker-build
+npx wrangler build
+npx wrangler dev
+npx wrangler deploy
+```
+
 ## Others
 
 - Golang Version: [branch golang](https://github.com/Asutorufa/hujiang_dictionary/tree/golang)

@@ -1,8 +1,5 @@
-use hjdef::d1::{D1Error, DB};
-use std::{
-    sync::Arc,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use hjdef::d1::{D1Error, DB, SQL};
+use std::sync::Arc;
 use wasm_bindgen::JsValue;
 use worker::{D1Database, Env};
 
@@ -21,22 +18,26 @@ impl From<MyError> for D1Error {
 }
 
 pub struct WasmD1 {
-    env: Env,
-    binding: String,
-    d1: Arc<D1Database>,
+    d1: Option<Arc<D1Database>>,
 }
 
 unsafe impl Send for WasmD1 {}
 
 impl WasmD1 {
-    pub async fn new(env: Env, binding: &str) -> Result<WasmD1, worker::Error> {
-        let d1 = env.d1(binding)?;
+    pub async fn new(env: Env, binding: &str) -> WasmD1 {
+        WasmD1 {
+            d1: match env.d1(binding) {
+                Ok(v) => Some(Arc::new(v)),
+                Err(_) => None,
+            },
+        }
+    }
 
-        Ok(WasmD1 {
-            d1: Arc::new(d1),
-            env,
-            binding: binding.to_string(),
-        })
+    fn get_d1(&self) -> Result<Arc<D1Database>, D1Error> {
+        match self.d1.clone() {
+            Some(v) => Ok(v),
+            None => Err(D1Error("d1 is not initialized".to_string())),
+        }
     }
 
     pub async fn exec(&self, sql: &str, args: Vec<String>) -> Result<(), D1Error> {
@@ -46,7 +47,7 @@ impl WasmD1 {
         }
 
         let result = self
-            .d1
+            .get_d1()?
             .prepare(sql)
             .bind(&a)
             .map_err(|v| MyError(v))?
@@ -62,20 +63,16 @@ impl WasmD1 {
     }
 
     pub async fn save_word(&self, word: String, explain: String) -> Result<(), D1Error> {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            .to_string();
+        let sql = SQL::SaveWord(word.clone(), explain.clone());
 
-        let d1 = self.env.d1(&self.binding).map_err(|v| MyError(v))?;
-
-        let result =  d1
-            .prepare(
-                "INSERT INTO words (word, explain, add_time, update_time) VALUES (?, ?, ?, ?) ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = ?",
-            )
-            .bind(&[word.into(), explain.clone().into(), now.clone().into(), now.clone().into(), explain.into(), now.into()])
-           .map_err(|v| MyError(v))?.run().await.map_err(|v| MyError(v))?;
+        let result = self
+            .get_d1()?
+            .prepare(sql.sql())
+            .bind(&sql.params())
+            .map_err(|v| MyError(v))?
+            .run()
+            .await
+            .map_err(|v| MyError(v))?;
 
         if !result.error().is_none() {
             return Err(D1Error(result.error().unwrap().to_string()));
@@ -85,10 +82,12 @@ impl WasmD1 {
     }
 
     pub async fn delete_word(&self, word: String) -> Result<(), D1Error> {
+        let sql = SQL::DeleteWord(word.clone());
+
         let result = self
-            .d1
-            .prepare("DELETE FROM words WHERE word = ?")
-            .bind(&[word.into()])
+            .get_d1()?
+            .prepare(sql.sql())
+            .bind(&sql.params())
             .map_err(|v| MyError(v))?
             .run()
             .await
@@ -102,24 +101,16 @@ impl WasmD1 {
     }
 
     pub async fn random_word(&self) -> Result<hjdef::d1::Word, D1Error> {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            .to_string();
-
         let words = match self
-            .d1
-            .prepare("SELECT * FROM words WHERE reminder_time <= ? ORDER BY RANDOM() LIMIT 1")
-            .bind(&[now.clone().into()])
-            .map_err(|v| MyError(v))?
+            .get_d1()?
+            .prepare(SQL::RandomNotRemind.sql())
             .first::<hjdef::d1::Word>(None)
             .await
         {
             Ok(v) if !v.is_none() => v.unwrap(),
             _ => self
-                .d1
-                .prepare("SELECT * FROM words ORDER BY RANDOM() LIMIT 1")
+                .get_d1()?
+                .prepare(SQL::Random.sql())
                 .first::<hjdef::d1::Word>(None)
                 .await
                 .map_err(|v| MyError(v))?
@@ -128,10 +119,12 @@ impl WasmD1 {
 
         let v = words.clone();
 
+        let update_sql = SQL::UpdateRemindTime(v.word.clone());
+
         let result = self
-            .d1
-            .prepare("UPDATE words SET reminder_time = ? WHERE word = ?")
-            .bind(&[now.clone().into(), v.word.clone().into()])
+            .get_d1()?
+            .prepare(update_sql.sql())
+            .bind(&update_sql.params())
             .map_err(|v| MyError(v))?
             .run()
             .await
@@ -149,23 +142,20 @@ impl Clone for WasmD1 {
     fn clone(&self) -> Self {
         WasmD1 {
             d1: self.d1.clone(),
-            binding: self.binding.clone(),
-            env: self.env.clone(),
         }
     }
 }
 
-// see: https://github.com/teloxide/teloxide/issues/1210
 impl DB for WasmD1 {
-    async fn delete_word(&self, _word: String) -> Result<(), D1Error> {
-        Err(D1Error("teloxide not support wasm".to_string()))
+    async fn delete_word(&self, word: String) -> Result<(), D1Error> {
+        self.delete_word(word).await
     }
 
     async fn random_word(&self) -> Result<hjdef::d1::Word, D1Error> {
-        Err(D1Error("teloxide not support wasm".to_string()))
+        self.random_word().await
     }
 
-    async fn save_word(&self, _word: String, _explain: String) -> Result<(), D1Error> {
-        Err(D1Error("teloxide not support wasm".to_string()))
+    async fn save_word(&self, word: String, explain: String) -> Result<(), D1Error> {
+        self.save_word(word, explain).await
     }
 }
