@@ -8,7 +8,7 @@ use async_openai::{
         ChatCompletionRequestUserMessageContent, CreateChatCompletionRequestArgs,
     },
 };
-use hjdef::ai::{AI, Error, Models, SYSTEM_MSG};
+use hjcommon::ai::{AI, Error, Models, SYSTEM_MSG};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
@@ -178,7 +178,7 @@ mod test {
     use std::fs;
 
     use crate::ai::Workers;
-    use hjdef::ai::AI;
+    use hjcommon::ai::AI;
 
     #[derive(serde::Deserialize)]
     struct Auth {

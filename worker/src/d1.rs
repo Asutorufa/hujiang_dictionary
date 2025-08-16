@@ -1,4 +1,4 @@
-use hjdef::d1::{D1Error, DB, SQL};
+use hjcommon::d1::{D1Error, DB, SQL};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use worker::{D1Database, Env};
@@ -78,11 +78,11 @@ impl DB for WasmD1 {
         Ok(())
     }
 
-    async fn random_word(&self) -> Result<hjdef::d1::Word, D1Error> {
-        let words = match self.exec::<hjdef::d1::Word>(SQL::RandomNotRemind).await {
+    async fn random_word(&self) -> Result<hjcommon::d1::Word, D1Error> {
+        let words = match self.exec::<hjcommon::d1::Word>(SQL::RandomNotRemind).await {
             Ok(v) if !v.is_empty() => v[0].clone(),
             _ => self
-                .exec::<hjdef::d1::Word>(SQL::Random)
+                .exec::<hjcommon::d1::Word>(SQL::Random)
                 .await?
                 .first()
                 .ok_or(D1Error("no word found".to_string()))?

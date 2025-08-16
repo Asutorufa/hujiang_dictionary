@@ -1,4 +1,4 @@
-use hjdef::d1::{D1Error, DB, SQL, Word};
+use hjcommon::d1::{D1Error, DB, SQL, Word};
 use serde::{Deserialize, Serialize};
 
 // see: https://developers.cloudflare.com/api/resources/d1/subresources/database
@@ -242,7 +242,7 @@ impl DB for D1 {
 mod test {
     use std::fs;
 
-    use hjdef::d1::DB;
+    use hjcommon::d1::DB;
     use serde::{Deserialize, Serialize};
 
     use crate::d1::{D1, Word};

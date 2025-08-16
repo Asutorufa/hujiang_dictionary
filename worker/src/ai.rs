@@ -4,7 +4,7 @@ use cloudflare::endpoints::ai::execute_model::{
     Message, MessageRole, MessagesParams, ResponseAndToolCallsResult, TranslationParams,
     TranslationResult,
 };
-use hjdef::ai::{AI, Models, SYSTEM_MSG};
+use hjcommon::ai::{AI, Models, SYSTEM_MSG};
 use worker::{Ai, Env};
 
 pub struct WasmAI {
@@ -21,10 +21,10 @@ impl WasmAI {
         }
     }
 
-    fn get_ai(&self) -> Result<Arc<Ai>, hjdef::ai::Error> {
+    fn get_ai(&self) -> Result<Arc<Ai>, hjcommon::ai::Error> {
         match self.ai.as_ref() {
             Some(v) => Ok(v.clone()),
-            None => Err(hjdef::ai::Error("ai not found".to_string())),
+            None => Err(hjcommon::ai::Error("ai not found".to_string())),
         }
     }
 
@@ -32,7 +32,7 @@ impl WasmAI {
         &self,
         prompt: String,
         model: &str,
-    ) -> Result<String, hjdef::ai::Error> {
+    ) -> Result<String, hjcommon::ai::Error> {
         let msg = MessagesParams {
             messages: vec![
                 Message {
@@ -52,7 +52,7 @@ impl WasmAI {
             .get_ai()?
             .run(model, msg)
             .await
-            .map_err(|v| hjdef::ai::Error(v.to_string()))?;
+            .map_err(|v| hjcommon::ai::Error(v.to_string()))?;
 
         Ok(result.response)
     }
@@ -67,14 +67,14 @@ impl Clone for WasmAI {
 }
 
 impl AI for WasmAI {
-    async fn gemma3_12b(&self, prompt: String) -> Result<String, hjdef::ai::Error> {
+    async fn gemma3_12b(&self, prompt: String) -> Result<String, hjcommon::ai::Error> {
         self.completion(prompt, Models::Gemma3_12bIt.as_str()).await
     }
 
     async fn llama4_scout_17b_16e_instruct(
         &self,
         prompt: String,
-    ) -> Result<String, hjdef::ai::Error> {
+    ) -> Result<String, hjcommon::ai::Error> {
         self.completion(prompt, Models::Llama4Scout17B16EInstruct.as_str())
             .await
     }
@@ -84,7 +84,7 @@ impl AI for WasmAI {
         text: String,
         source_lang: Option<String>,
         target_lang: String,
-    ) -> Result<String, hjdef::ai::Error> {
+    ) -> Result<String, hjcommon::ai::Error> {
         let msg = TranslationParams {
             target_lang,
             text,
@@ -94,7 +94,7 @@ impl AI for WasmAI {
             .get_ai()?
             .run(Models::M2M100_1_2B.as_str(), msg)
             .await
-            .map_err(|v| hjdef::ai::Error(v.to_string()))?;
+            .map_err(|v| hjcommon::ai::Error(v.to_string()))?;
 
         Ok(result.translated_text)
     }

@@ -786,9 +786,8 @@ dependencies = [
  "base64 0.22.1",
  "frankenstein",
  "hjcommon",
- "hjdef",
  "hjdict",
- "hjtg",
+ "hjnative",
  "lambda_runtime",
  "serde",
  "serde_json",
@@ -799,21 +798,8 @@ dependencies = [
 name = "hjcommon"
 version = "0.1.0"
 dependencies = [
- "async-openai",
  "frankenstein",
- "hjdef",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "value2struct",
-]
-
-[[package]]
-name = "hjdef"
-version = "0.1.0"
-dependencies = [
- "frankenstein",
+ "hjdict",
  "reqwest",
  "serde",
  "serde_json",
@@ -833,12 +819,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "hjtg"
+name = "hjnative"
 version = "0.1.0"
 dependencies = [
+ "async-openai",
  "frankenstein",
- "hjdef",
- "hjdict",
+ "hjcommon",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "value2struct",
 ]
 
 [[package]]
@@ -2423,9 +2414,9 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "syn"
-version = "2.0.105"
+version = "2.0.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bc3fcb250e53458e712715cf74285c1f889686520d79294a9ef3bd7aa1fc619"
+checksum = "ede7c438028d4436d71104916910f5bb611972c5cfd7f89b8300a8186e6fada6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3230,8 +3221,7 @@ dependencies = [
  "cloudflare",
  "console_error_panic_hook",
  "frankenstein",
- "hjdef",
- "hjtg",
+ "hjcommon",
  "reqwest",
  "serde",
  "wasm-bindgen",

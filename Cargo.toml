@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace]
-members = ["hjcommon", "hjdef", "hjdict", "hjtg", "worker"]
+members = ["native", "common", "dict", "worker"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -18,10 +18,9 @@ serde_json = "1.0.141"
 tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 frankenstein = { version = "0.44", features = ["client-reqwest"] }
 
-hjcommon = { path = "./hjcommon" }
-hjdef = { path = "./hjdef" }
-hjdict = { path = "./hjdict" }
-hjtg = { path = "./hjtg" }
+hjnative = { path = "./native" }
+hjcommon = { path = "./common" }
+hjdict = { path = "./dict" }
 
 [profile.release]
 lto = true

@@ -56,20 +56,6 @@ pub trait DB {
     fn random_word(&self) -> impl Future<Output = Result<Word, D1Error>>;
 }
 
-pub struct EmptyDB {}
-
-impl DB for EmptyDB {
-    async fn delete_word(&self, _: String) -> Result<(), D1Error> {
-        Ok(())
-    }
-    async fn random_word(&self) -> Result<Word, D1Error> {
-        Err(D1Error("EmptyDB".to_string()))
-    }
-    async fn save_word(&self, _: String, _: String) -> Result<(), D1Error> {
-        Ok(())
-    }
-}
-
 pub enum SQL {
     SaveWord(String, String),
     DeleteWord(String),

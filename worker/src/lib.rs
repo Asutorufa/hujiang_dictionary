@@ -2,13 +2,9 @@ pub mod ai;
 pub mod d1;
 
 use crate::{ai::WasmAI, d1::WasmD1};
-use frankenstein::{
-    AsyncTelegramApi, client_reqwest,
-    methods::{SetMyCommandsParams, SetWebhookParams},
-    updates::Update,
-};
-use hjdef::opts::RunOpt;
-use hjtg::tg::{self, bot_commands, send_random_word};
+use frankenstein::{client_reqwest, updates::Update};
+use hjcommon::opts::RunOpt;
+use hjcommon::tg::{self, send_random_word};
 use std::{collections::HashSet, sync::Arc};
 use worker::*;
 
@@ -66,19 +62,7 @@ async fn main(req: worker::Request, env: Env, _ctx: Context) -> Result<Response>
     router = router.on_async("/tgbot/register", async |req, _ctx| {
         let url = format!("https://{}/tgbot", req.url()?.host().unwrap().to_string());
 
-        println!("Registering webhook: {}", url.clone());
-
-        opt.bot
-            .set_my_commands(
-                &SetMyCommandsParams::builder()
-                    .commands(bot_commands())
-                    .build(),
-            )
-            .await
-            .map_err(|e| worker::Error::from(e.to_string()))?;
-
-        opt.bot
-            .set_webhook(&SetWebhookParams::builder().url(url.clone()).build())
+        tg::set_webhook(opt.bot.clone(), url.clone())
             .await
             .map_err(|e| worker::Error::from(e.to_string()))?;
 
@@ -88,9 +72,9 @@ async fn main(req: worker::Request, env: Env, _ctx: Context) -> Result<Response>
     router = router.post_async("/tgbot", async |mut req, _ctx| {
         let update = req.json::<Update>().await?;
 
-        let result = tg::handle(opt.clone(), update).await;
+        println!("body: {:?}", update);
 
-        return match result {
+        return match tg::handle(opt.clone(), update).await {
             Ok(_) => {
                 println!("Update was handled by bot.");
                 Response::ok("Update was handled by bot.")

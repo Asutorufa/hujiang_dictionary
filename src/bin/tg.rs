@@ -5,8 +5,8 @@ use frankenstein::{
     methods::{DeleteWebhookParams, GetUpdatesParams, SendMessageParams},
     types::ChatId,
 };
-use hjcommon::opts::run_opts;
-use hjtg::tg::handle;
+use hjcommon::tg::handle;
+use hjnative::opts::run_opts;
 
 /*
  telegram bot token env: TELOXIDE_TOKEN=

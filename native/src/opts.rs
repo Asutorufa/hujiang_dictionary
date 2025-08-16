@@ -1,7 +1,7 @@
 use crate::ai::Workers;
 use crate::d1::{D1, Database};
 use frankenstein::client_reqwest;
-use hjdef::opts::RunOpt;
+use hjcommon::opts::RunOpt;
 use std::collections::HashSet;
 
 pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error>> {

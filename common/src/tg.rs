@@ -1,9 +1,10 @@
+use crate::{ai::AI, d1::DB, opts::RunOpt};
 use core::fmt;
 use frankenstein::AsyncTelegramApi;
-use frankenstein::methods::SendMessageParams;
+use frankenstein::client_reqwest::Bot;
+use frankenstein::methods::{SendMessageParams, SetMyCommandsParams, SetWebhookParams};
 use frankenstein::types::{LinkPreviewOptions, MaybeInaccessibleMessage, MessageEntityType};
 use frankenstein::updates::UpdateContent;
-use hjdef::{ai::AI, d1::DB, opts::RunOpt};
 use hjdict::{en, google, jp, kotobakku, weblio};
 use std::sync::Arc;
 
@@ -576,6 +577,22 @@ pub async fn send_random_word<T: DB, T2: AI>(
                 .link_preview_options(frankenstein::types::LinkPreviewOptions::DISABLED)
                 .build(),
         )
+        .await?;
+
+    Ok(())
+}
+
+pub async fn set_webhook(bot: Bot, url: String) -> Result<(), Error> {
+    println!("Registering webhook: {}", url);
+
+    bot.set_my_commands(
+        &SetMyCommandsParams::builder()
+            .commands(bot_commands())
+            .build(),
+    )
+    .await?;
+
+    bot.set_webhook(&SetWebhookParams::builder().url(url.clone()).build())
         .await?;
 
     Ok(())
