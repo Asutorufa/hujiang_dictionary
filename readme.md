@@ -75,6 +75,14 @@ cargo lambda build --release --bin lambda
 cargo lambda deploy --binary-name lambda hj-telegram-bot
 ```
 
+init d1 table and register webhook
+
+```bash
+curl https://<lambda-url>/d1/create_table
+curl https://<lambda-url>/tgbot/register
+```
+
+
 ## cloudflare workers
 
 create wrangler config
@@ -119,6 +127,13 @@ cargo install worker-build
 npx wrangler build
 npx wrangler dev
 npx wrangler deploy
+```
+
+init d1 table and register webhook
+
+```bash
+curl https://<workers-url>/d1/create_table
+curl https://<workers-url>/tgbot/register
 ```
 
 ## Others

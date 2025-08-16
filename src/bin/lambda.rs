@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use aws_lambda_events::lambda_function_urls::LambdaFunctionUrlRequest;
 use base64::{Engine, engine::general_purpose};
+use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{send_random_word, set_webhook};
 use hjnative::opts::run_opts;
@@ -80,13 +81,23 @@ impl LambdaHandler {
                         .ok_or("domain name is none")?
                 );
 
-                let result = match set_webhook(self.run_opt.bot.clone(), url.clone()).await {
-                    Ok(_) => format!("register telegram bot to {} successful", url),
-                    Err(e) => format!("Set webhook failed: {}", e),
-                };
+                let result =
+                    match set_webhook(self.run_opt.bot.clone(), url.clone(), self.run_opt.matainer)
+                        .await
+                    {
+                        Ok(_) => format!("register telegram bot to {} successful", url),
+                        Err(e) => format!("Set webhook failed: {}", e),
+                    };
 
                 println!("{}", result);
                 return Ok(Response { msg: result });
+            }
+
+            "/d1/create_table" => {
+                self.run_opt.d1.create_table().await?;
+                return Ok(Response {
+                    msg: "create table [words] successful".to_string(),
+                });
             }
 
             "/tgbot" => {

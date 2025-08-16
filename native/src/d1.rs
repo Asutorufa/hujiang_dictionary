@@ -203,6 +203,11 @@ impl D1 {
 }
 
 impl DB for D1 {
+    async fn create_table(&self) -> Result<(), D1Error> {
+        self.exec_sql::<Empty>(SQL::CreateTable).await?;
+        Ok(())
+    }
+
     async fn save_word(&self, word: String, explain: String) -> Result<(), D1Error> {
         self.exec_sql::<Empty>(SQL::SaveWord(word.clone(), explain.clone()))
             .await?;

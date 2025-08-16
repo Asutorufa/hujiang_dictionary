@@ -3,6 +3,7 @@ pub mod d1;
 
 use crate::{ai::WasmAI, d1::WasmD1};
 use frankenstein::{client_reqwest, updates::Update};
+use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{self, send_random_word};
 use std::{collections::HashSet, sync::Arc};
@@ -62,11 +63,19 @@ async fn main(req: worker::Request, env: Env, _ctx: Context) -> Result<Response>
     router = router.on_async("/tgbot/register", async |req, _ctx| {
         let url = format!("https://{}/tgbot", req.url()?.host().unwrap().to_string());
 
-        tg::set_webhook(opt.bot.clone(), url.clone())
+        tg::set_webhook(opt.bot.clone(), url.clone(), opt.matainer)
             .await
             .map_err(|e| worker::Error::from(e.to_string()))?;
 
         Response::ok(format!("register telegram bot to {} successful", url))
+    });
+
+    router = router.on_async("/d1/create_table", async |_, _ctx| {
+        opt.d1
+            .create_table()
+            .await
+            .map_err(|e| worker::Error::from(e.to_string()))?;
+        Response::ok(format!("create table [words] successful"))
     });
 
     router = router.post_async("/tgbot", async |mut req, _ctx| {

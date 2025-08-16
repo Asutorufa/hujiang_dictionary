@@ -72,6 +72,11 @@ impl Clone for WasmD1 {
 }
 
 impl DB for WasmD1 {
+    async fn create_table(&self) -> Result<(), D1Error> {
+        self.exec::<Empty>(SQL::CreateTable).await?;
+        Ok(())
+    }
+
     async fn delete_word(&self, word: String) -> Result<(), D1Error> {
         let sql = SQL::DeleteWord(word.clone());
         self.exec::<Empty>(sql).await?;

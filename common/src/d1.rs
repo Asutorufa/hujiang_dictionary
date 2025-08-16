@@ -54,9 +54,11 @@ pub trait DB {
     -> impl Future<Output = Result<(), D1Error>>;
     fn delete_word(&self, word: String) -> impl Future<Output = Result<(), D1Error>>;
     fn random_word(&self) -> impl Future<Output = Result<Word, D1Error>>;
+    fn create_table(&self) -> impl Future<Output = Result<(), D1Error>>;
 }
 
 pub enum SQL {
+    CreateTable,
     SaveWord(String, String),
     DeleteWord(String),
     RandomNotRemind,
@@ -78,6 +80,17 @@ impl SQL {
             SQL::UpdateRemindTime(_) => {
                 "UPDATE words SET reminder_time = strftime('%s', 'now') WHERE word = ?"
             }
+            SQL::CreateTable => {
+                r#"
+CREATE TABLE IF NOT EXISTS [words] (
+    "word" TEXT PRIMARY KEY,
+    "explain" TEXT,
+    "add_time" INTEGER,
+    "update_time" INTEGER,
+    "reminder_time" INTEGER DEFAULT 0
+);
+               "#
+            }
         }
     }
 
@@ -93,11 +106,11 @@ impl SQL {
             SQL::DeleteWord(word) => {
                 vec![(*word).clone().into()]
             }
-            SQL::RandomNotRemind | SQL::Random => {
-                vec![]
-            }
             SQL::UpdateRemindTime(word) => {
                 vec![(*word).clone().into()]
+            }
+            SQL::RandomNotRemind | SQL::Random | SQL::CreateTable => {
+                vec![]
             }
         }
     }

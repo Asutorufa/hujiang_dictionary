@@ -5,6 +5,7 @@ use frankenstein::{
     methods::{DeleteWebhookParams, GetUpdatesParams, SendMessageParams},
     types::ChatId,
 };
+use hjcommon::d1::DB;
 use hjcommon::tg::handle;
 use hjnative::opts::run_opts;
 
@@ -20,6 +21,21 @@ use hjnative::opts::run_opts;
 #[tokio::main]
 async fn main() {
     let opt = Arc::new(run_opts().await.unwrap());
+
+    match opt.d1.create_table().await {
+        Ok(_) => println!("create table [words] successful"),
+        Err(e) => {
+            let _ = opt
+                .bot
+                .send_message(
+                    &SendMessageParams::builder()
+                        .chat_id(ChatId::Integer(opt.matainer as i64))
+                        .text(format!("create_table [words] error: {}", e))
+                        .build(),
+                )
+                .await;
+        }
+    }
 
     opt.bot
         .delete_webhook(
