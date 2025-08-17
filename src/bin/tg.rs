@@ -8,6 +8,7 @@ use frankenstein::{
 use hjcommon::d1::DB;
 use hjcommon::tg::handle;
 use hjnative::opts::run_opts;
+use log::*;
 
 /*
  telegram bot token env: TELOXIDE_TOKEN=
@@ -20,10 +21,14 @@ use hjnative::opts::run_opts;
 */
 #[tokio::main]
 async fn main() {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .init();
+
     let opt = Arc::new(run_opts().await.unwrap());
 
     match opt.d1.create_table().await {
-        Ok(_) => println!("create table [words] successful"),
+        Ok(_) => info!("create table [words] successful"),
         Err(e) => {
             let _ = opt
                 .bot
@@ -68,14 +73,14 @@ async fn main() {
                     tokio::spawn(async move {
                         match handle(opt, update).await {
                             Ok(_) => {}
-                            Err(e) => println!("Failed to handle update: {e:?}"),
+                            Err(e) => error!("Failed to handle update: {e:?}"),
                         }
                     });
                     update_params.offset = Some(i64::from(update_id) + 1);
                 }
             }
             Err(error) => {
-                println!("Failed to get updates: {error:?}");
+                error!("Failed to get updates: {error:?}");
             }
         }
     }

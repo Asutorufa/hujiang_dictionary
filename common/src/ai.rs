@@ -2,11 +2,11 @@ pub trait AI {
     fn gemma3_12b(&self, prompt: String) -> impl Future<Output = Result<String, Error>>;
     fn llama4_scout_17b_16e_instruct(
         &self,
-        prompt: String,
+        prompt: &str,
     ) -> impl Future<Output = Result<String, Error>>;
     fn m2m100_1_2b(
         &self,
-        text: String,
+        text: &str,
         source_lang: Option<String>,
         target_lang: String,
     ) -> impl Future<Output = Result<String, Error>>;
@@ -18,10 +18,10 @@ impl AI for EmptyAI {
     async fn gemma3_12b(&self, _: String) -> Result<String, Error> {
         Err(Error("empty ai".to_string()))
     }
-    async fn llama4_scout_17b_16e_instruct(&self, _: String) -> Result<String, Error> {
+    async fn llama4_scout_17b_16e_instruct(&self, _: &str) -> Result<String, Error> {
         Err(Error("empty ai".to_string()))
     }
-    async fn m2m100_1_2b(&self, _: String, _: Option<String>, _: String) -> Result<String, Error> {
+    async fn m2m100_1_2b(&self, _: &str, _: Option<String>, _: String) -> Result<String, Error> {
         Err(Error("empty ai".to_string()))
     }
 }

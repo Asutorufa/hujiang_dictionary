@@ -22,6 +22,8 @@ frankenstein = { version = "0.44", features = ["client-reqwest"] }
 
 hjcommon = { path = "../common" }
 cloudflare = "0.14.0"
+console_log = "1.0.0"
+log = "0.4.27"
 
 [profile.release]
 lto = true

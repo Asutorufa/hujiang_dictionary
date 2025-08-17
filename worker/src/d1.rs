@@ -26,7 +26,7 @@ pub struct WasmD1 {
 unsafe impl Send for WasmD1 {}
 
 impl WasmD1 {
-    pub async fn new(env: Env, binding: &str) -> WasmD1 {
+    pub async fn new(env: Arc<Env>, binding: &str) -> WasmD1 {
         WasmD1 {
             d1: match env.d1(binding) {
                 Ok(v) => Some(Arc::new(v)),
@@ -36,13 +36,13 @@ impl WasmD1 {
     }
 
     fn get_d1(&self) -> Result<Arc<D1Database>, D1Error> {
-        match self.d1.clone() {
-            Some(v) => Ok(v),
+        match self.d1.as_ref() {
+            Some(v) => Ok(v.clone()),
             None => Err(D1Error("d1 is not initialized".to_string())),
         }
     }
 
-    pub async fn exec<T>(&self, sql: SQL) -> Result<Vec<T>, D1Error>
+    pub async fn exec<T>(&self, sql: SQL<'_>) -> Result<Vec<T>, D1Error>
     where
         T: for<'a> Deserialize<'a>,
     {
@@ -77,8 +77,8 @@ impl DB for WasmD1 {
         Ok(())
     }
 
-    async fn delete_word(&self, word: String) -> Result<(), D1Error> {
-        let sql = SQL::DeleteWord(word.clone());
+    async fn delete_word(&self, word: &str) -> Result<(), D1Error> {
+        let sql = SQL::DeleteWord(word);
         self.exec::<Empty>(sql).await?;
         Ok(())
     }
@@ -94,15 +94,15 @@ impl DB for WasmD1 {
                 .clone(),
         };
 
-        let update_sql = SQL::UpdateRemindTime(words.word.clone());
+        let update_sql = SQL::UpdateRemindTime(words.word.as_ref());
 
         self.exec::<Empty>(update_sql).await?;
 
         Ok(words)
     }
 
-    async fn save_word(&self, word: String, explain: String) -> Result<(), D1Error> {
-        let sql = SQL::SaveWord(word.clone(), explain.clone());
+    async fn save_word(&self, word: &str, explain: &str) -> Result<(), D1Error> {
+        let sql = SQL::SaveWord(word, explain);
         self.exec::<Empty>(sql).await?;
         Ok(())
     }

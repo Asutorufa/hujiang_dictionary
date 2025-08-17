@@ -50,23 +50,22 @@ impl From<String> for D1Error {
 }
 
 pub trait DB {
-    fn save_word(&self, word: String, explain: String)
-    -> impl Future<Output = Result<(), D1Error>>;
-    fn delete_word(&self, word: String) -> impl Future<Output = Result<(), D1Error>>;
+    fn save_word(&self, word: &str, explain: &str) -> impl Future<Output = Result<(), D1Error>>;
+    fn delete_word(&self, word: &str) -> impl Future<Output = Result<(), D1Error>>;
     fn random_word(&self) -> impl Future<Output = Result<Word, D1Error>>;
     fn create_table(&self) -> impl Future<Output = Result<(), D1Error>>;
 }
 
-pub enum SQL {
+pub enum SQL<'a> {
     CreateTable,
-    SaveWord(String, String),
-    DeleteWord(String),
+    SaveWord(&'a str, &'a str),
+    DeleteWord(&'a str),
     RandomNotRemind,
     Random,
-    UpdateRemindTime(String),
+    UpdateRemindTime(&'a str),
 }
 
-impl SQL {
+impl<'a> SQL<'a> {
     pub fn sql(&self) -> &str {
         match self {
             SQL::SaveWord(_, _) => {
@@ -98,16 +97,16 @@ CREATE TABLE IF NOT EXISTS [words] (
         match self {
             SQL::SaveWord(word, explain) => {
                 vec![
-                    (*word).clone().into(),
-                    (*explain).clone().into(),
-                    (*explain).clone().into(),
+                    (*word).to_string().into(),
+                    (*explain).to_string().into(),
+                    (*explain).to_string().into(),
                 ]
             }
             SQL::DeleteWord(word) => {
-                vec![(*word).clone().into()]
+                vec![(*word).to_string().into()]
             }
             SQL::UpdateRemindTime(word) => {
-                vec![(*word).clone().into()]
+                vec![(*word).to_string().into()]
             }
             SQL::RandomNotRemind | SQL::Random | SQL::CreateTable => {
                 vec![]

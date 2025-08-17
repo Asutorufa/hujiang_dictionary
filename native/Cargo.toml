@@ -14,3 +14,4 @@ tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 value2struct = { path = "../value2struct" }
 hjcommon = { path = "../common" }
 frankenstein = { version = "0.44", features = ["client-reqwest"] }
+log = "0.4.27"

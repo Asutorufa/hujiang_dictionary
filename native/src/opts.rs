@@ -32,7 +32,7 @@ pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error
     let database: Database = if cloudflare_d1_database_id.is_empty() {
         Database::Name(cloudflare_d1_database_name)
     } else {
-        Database::UUID(cloudflare_d1_database_id.clone())
+        Database::UUID(cloudflare_d1_database_id)
     };
 
     let d1 = D1::new(&cloudflare_account_id, &cloudflare_api_token, database).await;

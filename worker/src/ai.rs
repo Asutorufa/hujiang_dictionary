@@ -12,7 +12,7 @@ pub struct WasmAI {
 }
 
 impl WasmAI {
-    pub fn new(env: Env, binding: &str) -> WasmAI {
+    pub fn new(env: Arc<Env>, binding: &str) -> WasmAI {
         Self {
             ai: match env.ai(binding) {
                 Ok(v) => Some(Arc::new(v)),
@@ -73,21 +73,24 @@ impl AI for WasmAI {
 
     async fn llama4_scout_17b_16e_instruct(
         &self,
-        prompt: String,
+        prompt: &str,
     ) -> Result<String, hjcommon::ai::Error> {
-        self.completion(prompt, Models::Llama4Scout17B16EInstruct.as_str())
-            .await
+        self.completion(
+            prompt.to_string(),
+            Models::Llama4Scout17B16EInstruct.as_str(),
+        )
+        .await
     }
 
     async fn m2m100_1_2b(
         &self,
-        text: String,
+        text: &str,
         source_lang: Option<String>,
         target_lang: String,
     ) -> Result<String, hjcommon::ai::Error> {
         let msg = TranslationParams {
             target_lang,
-            text,
+            text: text.to_string(),
             source_lang,
         };
         let result: TranslationResult = self

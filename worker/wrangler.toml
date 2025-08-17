@@ -1,0 +1,28 @@
+name = "${WORKER_NAME}"
+main = "build/worker/shim.mjs"
+compatibility_date = "2023-03-22"
+
+[build]
+command = "worker-build --release"
+
+[vars]
+TELEGRAM_TOKEN = "${TELEGRAM_TOKEN}"
+ALLOW_USERS = "${ALLOW_USERS}"
+MAINTAINER_ID = "${MAINTAINER_ID}"          # send random word to the chat id when cron job run
+
+[ai]
+binding = "AI"
+
+[observability.logs]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "${D1_DATABASE_NAME}"
+database_id = "${D1_DATABASE_ID}"
+
+[triggers]
+crons = ["${SCHEDULE}"] # UTC timezone
+
+[placement]
+mode = "smart"

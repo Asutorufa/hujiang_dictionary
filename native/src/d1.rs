@@ -1,4 +1,5 @@
 use hjcommon::d1::{D1Error, DB, SQL, Word};
+use log::*;
 use serde::{Deserialize, Serialize};
 
 // see: https://developers.cloudflare.com/api/resources/d1/subresources/database
@@ -135,12 +136,12 @@ impl D1 {
             ));
         }
 
-        Ok(lr.result[0].name.clone())
+        Ok(lr.result[0].name.to_owned())
     }
 
     pub async fn exec_sql<T: From<Vec<serde_json::Value>>>(
         &self,
-        sql: SQL,
+        sql: SQL<'_>,
     ) -> Result<Vec<T>, D1Error> {
         self.raw(sql.sql(), sql.params()).await
     }
@@ -162,9 +163,11 @@ impl D1 {
             return Err(D1Error("api_token is empty".to_string()));
         }
 
+        let pre_log = format!("exec sql: [{}] args: {:?}", sql, params);
+
         let body = serde_json::to_string(&QueryBody {
             sql: sql.to_string(),
-            params: params.clone(),
+            params: params,
         })?;
 
         let r = reqwest::Client::builder()
@@ -184,7 +187,7 @@ impl D1 {
 
         let result = r.json::<RawExecResult>().await?;
 
-        println!("[{}] args: {:?} messages: {}", sql, params, result.messages);
+        info!("{} messages: {}", pre_log, result.messages);
 
         if !result.success {
             return Err(D1Error::from(format!("query failed: {}", result.errors)));
@@ -208,13 +211,12 @@ impl DB for D1 {
         Ok(())
     }
 
-    async fn save_word(&self, word: String, explain: String) -> Result<(), D1Error> {
-        self.exec_sql::<Empty>(SQL::SaveWord(word.clone(), explain.clone()))
-            .await?;
+    async fn save_word(&self, word: &str, explain: &str) -> Result<(), D1Error> {
+        self.exec_sql::<Empty>(SQL::SaveWord(word, explain)).await?;
         Ok(())
     }
 
-    async fn delete_word(&self, word: String) -> Result<(), D1Error> {
+    async fn delete_word(&self, word: &str) -> Result<(), D1Error> {
         self.exec_sql::<Empty>(SQL::DeleteWord(word)).await?;
         Ok(())
     }
@@ -232,10 +234,10 @@ impl DB for D1 {
         let v = words[0].clone();
 
         match self
-            .exec_sql::<Empty>(SQL::UpdateRemindTime(v.word.clone()))
+            .exec_sql::<Empty>(SQL::UpdateRemindTime(v.word.as_ref()))
             .await
         {
-            Err(e) => println!("update reminder_time error: {}", e),
+            Err(e) => error!("update reminder_time error: {}", e),
             _ => {}
         }
 

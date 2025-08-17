@@ -8,11 +8,16 @@ use hjcommon::tg::{send_random_word, set_webhook};
 use hjnative::opts::run_opts;
 use hjnative::{ai::Workers, d1::D1};
 use lambda_runtime::LambdaEvent;
+use log::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[tokio::main]
 async fn main() -> Result<(), lambda_runtime::Error> {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .init();
+
     let run_opt = run_opts().await.unwrap();
 
     let handler = LambdaHandler {
@@ -82,14 +87,13 @@ impl LambdaHandler {
                 );
 
                 let result =
-                    match set_webhook(self.run_opt.bot.clone(), url.clone(), self.run_opt.matainer)
-                        .await
+                    match set_webhook(&self.run_opt.bot, url.as_ref(), self.run_opt.matainer).await
                     {
                         Ok(_) => format!("register telegram bot to {} successful", url),
                         Err(e) => format!("Set webhook failed: {}", e),
                     };
 
-                println!("{}", result);
+                info!("{}", result);
                 return Ok(Response { msg: result });
             }
 
@@ -109,19 +113,19 @@ impl LambdaHandler {
                     bytes.as_bytes().to_vec()
                 };
 
-                println!("body: {}", String::from_utf8_lossy(&body));
+                debug!("body: {}", String::from_utf8_lossy(&body));
 
                 let update2: frankenstein::updates::Update = serde_json::from_slice(&body)?;
 
                 return match hjcommon::tg::handle(self.run_opt.clone(), update2).await {
                     Ok(_) => {
-                        println!("Update was handled by bot.");
+                        debug!("Update was handled by bot.");
                         Ok(Response {
                             msg: "Update was handled by bot.".to_string(),
                         })
                     }
                     Err(e) => {
-                        println!("Update was not handled by bot: {}", e);
+                        error!("Update was not handled by bot: {}", e);
                         Ok(Response {
                             msg: format!("Update was not handled by bot: {}", e).to_string(),
                         })
@@ -137,15 +141,25 @@ impl LambdaHandler {
 
 #[cfg(test)]
 mod test {
+    use log::info;
+
     use crate::LambdaRequest;
+
+    fn init() {
+        let _ = env_logger::builder()
+            .filter_level(log::LevelFilter::Debug)
+            .init();
+    }
 
     #[test]
     fn marshal() {
+        init();
+
         let data = serde_json::to_string(&LambdaRequest {
             command: crate::RequestCommand::SendRandomWord,
         })
         .unwrap();
 
-        println!("{}", data);
+        info!("{}", data);
     }
 }

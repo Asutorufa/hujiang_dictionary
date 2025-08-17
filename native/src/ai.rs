@@ -67,10 +67,10 @@ impl Workers {
             .ok_or(OpenAIError::InvalidArgument("choice is empty".to_string()))?
             .message
             .content
-            .clone()
+            .as_ref()
             .ok_or(OpenAIError::InvalidArgument("content is empty".to_string()))?;
 
-        Ok(content)
+        Ok(content.to_owned())
     }
 }
 
@@ -94,12 +94,12 @@ impl AI for Workers {
             )
             .await
         {
-            Ok(content) => Ok(content.clone()),
+            Ok(content) => Ok(content),
             Err(e) => Err(Error::from(e.to_string())),
         }
     }
 
-    async fn llama4_scout_17b_16e_instruct(&self, prompt: String) -> Result<String, Error> {
+    async fn llama4_scout_17b_16e_instruct(&self, prompt: &str) -> Result<String, Error> {
         self.completion(
             vec![
                 ChatCompletionRequestMessage::System(ChatCompletionRequestSystemMessage {
@@ -109,7 +109,7 @@ impl AI for Workers {
                     name: None,
                 }),
                 ChatCompletionRequestMessage::User(ChatCompletionRequestUserMessage {
-                    content: ChatCompletionRequestUserMessageContent::Text(prompt),
+                    content: ChatCompletionRequestUserMessageContent::Text(prompt.to_string()),
                     name: None,
                 }),
             ],
@@ -121,7 +121,7 @@ impl AI for Workers {
 
     async fn m2m100_1_2b(
         &self,
-        text: String,
+        text: &str,
         source_lang: Option<String>,
         target_lang: String,
     ) -> Result<String, Error> {
@@ -139,7 +139,7 @@ impl AI for Workers {
         let body = serde_json::to_string(&Request {
             source_lang,
             target_lang,
-            text,
+            text: text.to_string(),
         })
         .unwrap();
 
@@ -199,7 +199,7 @@ mod test {
         );
         println!(
             "{}",
-            ai.llama4_scout_17b_16e_instruct("生意気の意味は？".to_string())
+            ai.llama4_scout_17b_16e_instruct("生意気の意味は？")
                 .await
                 .unwrap()
         );
@@ -212,7 +212,7 @@ mod test {
         let ai = Workers::new(auth.account_id.as_str(), auth.api_token.as_str());
         println!(
             "{}",
-            ai.m2m100_1_2b("辿るは何の意味ですか？".to_string(), None, "zh".to_string())
+            ai.m2m100_1_2b("辿るは何の意味ですか？", None, "zh".to_string())
                 .await
                 .unwrap()
         );

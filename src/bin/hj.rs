@@ -4,6 +4,10 @@ use hjdict::{en, google, jp, kotobakku, weblio};
 
 #[tokio::main]
 async fn main() {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Debug)
+        .init();
+
     let args = &args().collect::<Vec<_>>()[1..];
 
     if args.len() == 0 || args[0] == "help" || args.len() < 2 {
@@ -46,18 +50,18 @@ async fn main() {
         "weblio" => weblio::get(&word).await.unwrap().join("\n"),
         "ktbk" => kotobakku::get(&word).await.unwrap().join("\n"),
         "google" => {
-            let target = args[1].clone();
+            let target = &args[1];
             let words = args[2..].join(" ");
 
             if words.is_empty() {
                 return;
             }
 
-            google::translate(words, None, target)
+            google::translate(words.as_str(), None, target)
                 .await
                 .unwrap()
                 .iter()
-                .map(|x| x.translation.clone())
+                .map(|x| x.translation.as_ref())
                 .collect::<Vec<_>>()
                 .join("")
         }

@@ -70,14 +70,14 @@ set blow env in lambda
 
 build and deploy lambda
 
-```bash
+```shell
 cargo lambda build --release --bin lambda
 cargo lambda deploy --binary-name lambda hj-telegram-bot
 ```
 
 init d1 table and register webhook
 
-```bash
+```shell
 curl https://<lambda-url>/d1/create_table
 curl https://<lambda-url>/tgbot/register
 ```
@@ -85,55 +85,55 @@ curl https://<lambda-url>/tgbot/register
 
 ## cloudflare workers
 
-create wrangler config
+set wrangler config in .env
 
 ```shell
 cd worker
-vim wrangler.toml
+vim .env
+
+# build and deploy
+cargo install worker-build
+sh deploy.sh
 ```
 
-```toml
-name = "hj-rust"
-main = "build/worker/shim.mjs"
-compatibility_date = "2023-03-22"
-
-[build]
-command = "worker-build --release"
-
-[vars]
-TELEGRAM_TOKEN = "****:*****"
-ALLOW_USERS = "42xxxxx"
-MAINTAINER_ID = "40xxxxxx" # send random word to the chat id when cron job run
-
-[ai]
-binding = "AI"
-
-[observability.logs]
-enabled = true
-
-[[d1_databases]]
-binding = "DB"
-database_name = "dict"
-database_id = "xxx-xxx-xxxx"
-
-[triggers]
-crons = ["0 * * * *"]
-```
-
-build/dev/deploy
+`.env` example
 
 ```shell
-cargo install worker-build
-npx wrangler build
-npx wrangler dev
-npx wrangler deploy
+D1_DATABASE_NAME=dict # d1 database name
+D1_DATABASE_ID="57ccd046-bd5c-42a3-90a3-21da43bc119d" # d1 database id
+TELEGRAM_TOKEN="****:*****" # telegram bot token
+ALLOW_USERS="12345678,-23456789,34567890" # allow telegram user id, split by comma
+MAINTAINER_ID="12345678" # send random word to the chat id when cron job run
+WORKER_NAME="hj-dict" # cloudflare workers name
+SCHEDULE="*/20 0-15 * * *" # cron schedule
 ```
 
 init d1 table and register webhook
 
-```bash
+```shell
 curl https://<workers-url>/d1/create_table
 curl https://<workers-url>/tgbot/register
+```
+
+If use workers CI/CD, you can add following script in  `Build Command` and `Deploy Command`
+
+Build Command
+
+```shell
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
+sh rustup.sh -y
+export PATH="$HOME/.cargo/bin:$PATH"
+cd worker
+cargo install worker-build
+worker-build --release
+```
+
+Deploy Command
+
+```shell
+export PATH="$HOME/.cargo/bin:$PATH"
+cd worker
+sh deploy.sh
 ```
 
 ## Others

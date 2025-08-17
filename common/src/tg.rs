@@ -8,6 +8,7 @@ use frankenstein::types::{
 };
 use frankenstein::updates::UpdateContent;
 use hjdict::{en, google, jp, kotobakku, weblio};
+use log::*;
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -131,7 +132,7 @@ pub fn html_escape(s: &str) -> String {
     })
 }
 
-pub fn vec_string_markdown_escape(v: Vec<String>) -> String {
+pub fn vec_string_markdown_escape(v: &Vec<String>) -> String {
     let mut s = String::new();
     for i in v {
         s.push_str(markdown_escape(i.as_str()).as_str());
@@ -146,14 +147,14 @@ pub async fn handle<T: DB, T2: AI>(
 ) -> Result<(), Error> {
     match update.content {
         UpdateContent::Message(msg) | UpdateContent::EditedMessage(msg) => {
-            let entity = match msg.entities.clone() {
+            let entity = match msg.entities.as_ref() {
                 Some(v) if !v.is_empty() && v[0].type_field == MessageEntityType::BotCommand => {
-                    v[0].clone()
+                    &v[0]
                 }
                 _ => return Err(Error("no command entity".to_string())),
             };
 
-            let txt = match msg.text.clone() {
+            let txt = match msg.text.as_ref() {
                 Some(v) => v,
                 None => return Err(Error("no text".to_string())),
             };
@@ -165,14 +166,13 @@ pub async fn handle<T: DB, T2: AI>(
 
             let (cmd, text) = parse_command(command, argument)?;
 
-            println!("command: {:?}, argument: {:?}", cmd, text);
+            info!("message command: {:?}, argument: {:?}", cmd, text);
 
-            answer(opt, msg.clone(), cmd).await?;
+            answer(opt, msg, cmd).await?;
         }
         UpdateContent::CallbackQuery(msg) => {
-            let (command, argument) = match msg.data.clone() {
+            let (command, argument) = match msg.data.as_ref() {
                 Some(v) => {
-                    let v = v.clone();
                     let mut data = v.splitn(2, ' ');
                     let command = data.next().unwrap_or("");
                     let argument = data.next().unwrap_or("");
@@ -183,9 +183,9 @@ pub async fn handle<T: DB, T2: AI>(
 
             let (cmd, text) = parse_callback_query_command(command.as_str(), argument.as_str())?;
 
-            println!("command: {:?}, argument: {:?}", cmd, text);
+            info!("callback query command: {:?}, argument: {:?}", cmd, text);
 
-            callback_query(opt, msg.clone(), cmd).await?;
+            callback_query(opt, msg, cmd).await?;
         }
         _ => return Err(Error("not message".to_string())),
     };
@@ -284,10 +284,10 @@ pub async fn answer<T: DB, T2: AI>(
         Some(v) => v.id,
     };
 
-    println!("new request from: {}, cmd: {:?}", from_user, cmd);
+    info!("new request from: {}, cmd: {:?}", from_user, cmd);
 
     if !opt.allow_users.contains(&(from_user as i64)) {
-        println!("user not allowed: {}", from_user);
+        warn!("user not allowed: {}", from_user);
         return Ok(());
     }
 
@@ -298,29 +298,29 @@ pub async fn answer<T: DB, T2: AI>(
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(v) => (
                 word,
-                vec_string_markdown_escape(v.iter().map(|x| x.markdown()).collect()),
+                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
             ),
         },
         Command::EN(word) => match en::get(word.as_str()).await {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(v) => (
                 word,
-                vec_string_markdown_escape(v.iter().map(|x| x.markdown()).collect()),
+                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
             ),
         },
         Command::JPCN(word) => match jp::get(word.as_str(), "jc").await {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(v) => (
                 word,
-                vec_string_markdown_escape(v.iter().map(|x| x.markdown()).collect()),
+                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
             ),
         },
         Command::Ktbk(word) => match kotobakku::get(word.as_str()).await {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(v) => {
-                let reply = vec_string_markdown_escape(v.clone());
+                let reply = vec_string_markdown_escape(&v);
                 if reply.len() > 4096 {
-                    (word, markdown_escape(&v[0].clone()))
+                    (word, markdown_escape(&v[0]))
                 } else {
                     (word, reply)
                 }
@@ -329,9 +329,9 @@ pub async fn answer<T: DB, T2: AI>(
         Command::Weblio(word) => match weblio::get(word.as_str()).await {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(v) => {
-                let reply = vec_string_markdown_escape(v.clone());
+                let reply = vec_string_markdown_escape(&v);
                 if reply.len() > 4096 {
-                    (word, markdown_escape(&v[0].clone()))
+                    (word, markdown_escape(&v[0]))
                 } else {
                     (word, reply)
                 }
@@ -341,27 +341,25 @@ pub async fn answer<T: DB, T2: AI>(
             "".to_string(),
             format!("your id is: {}", from_user).to_string(),
         ),
-        Command::GG(from, to, text) => match google::translate(text.clone(), from, to).await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
-            Ok(v) => (text, markdown_escape(google::merge_translation(v).as_str())),
-        },
+        Command::GG(from, to, text) => {
+            match google::translate(text.as_ref(), from, to.as_ref()).await {
+                Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+                Ok(v) => (text, markdown_escape(google::merge_translation(v).as_str())),
+            }
+        }
         Command::CFAI(from, to, text) => {
-            match opt.workers_ai.m2m100_1_2b(text.clone(), from, to).await {
+            match opt.workers_ai.m2m100_1_2b(text.as_ref(), from, to).await {
                 Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
                 Ok(v) => (text, markdown_escape(v.as_str())),
             }
         }
-        Command::Gemma(v) => match opt
-            .workers_ai
-            .gemma3_12b(format!("{}\n{}", "", v.clone()))
-            .await
-        {
+        Command::Gemma(v) => match opt.workers_ai.gemma3_12b(format!("{}\n{}", "", v)).await {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(x) => (v, markdown_escape(x.as_str())),
         },
         Command::Llama4(v) => match opt
             .workers_ai
-            .llama4_scout_17b_16e_instruct(v.clone())
+            .llama4_scout_17b_16e_instruct(v.as_ref())
             .await
         {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
@@ -374,14 +372,14 @@ pub async fn answer<T: DB, T2: AI>(
                 ("".to_string(), "explain message is empty".to_string())
             } else {
                 let reply_to = msg.reply_to_message.unwrap();
-                match reply_to.text {
+                match reply_to.text.as_ref() {
                     None => ("".to_string(), "explain is empty".to_string()),
                     Some(v) => {
                         let reply_to_text = v.trim();
-                        match opt.d1.save_word(v.clone(), reply_to_text.to_string()).await {
+                        match opt.d1.save_word(v.as_ref(), reply_to_text.as_ref()).await {
                             Err(e) => ("".to_string(), e.to_string()),
                             Ok(_) => (
-                                v.clone(),
+                                v.to_owned(),
                                 format!("save <b>{}</b> to d1 database", html_escape(v.as_str())),
                             ),
                         }
@@ -389,12 +387,12 @@ pub async fn answer<T: DB, T2: AI>(
                 }
             }
         }
-        Command::Random => match opt.d1.random_word().await {
+        Command::Random => match opt.d1.random_word().await.as_ref() {
             Err(e) => ("".to_string(), e.to_string()),
             Ok(v) => {
                 parse_mode = frankenstein::ParseMode::Html;
                 (
-                    v.word.clone(),
+                    v.word.to_owned(),
                     format!(
                         "<b>{}</b>\n<tg-spoiler><blockquote expandable>{}</blockquote></tg-spoiler>",
                         html_escape(v.word.as_str()),
@@ -436,11 +434,7 @@ pub async fn answer<T: DB, T2: AI>(
                             .text("💾")
                             .callback_data(format!(
                                 "/save {}",
-                                if word.len() < 58 {
-                                    word.clone()
-                                } else {
-                                    "".to_string()
-                                }
+                                if word.len() < 58 { word.as_ref() } else { "" }
                             ))
                             .build(),
                     ]])
@@ -459,12 +453,12 @@ pub async fn callback_query<T: DB, T2: AI>(
     call_query: Box<frankenstein::types::CallbackQuery>,
     command: CallbackQueryCommand,
 ) -> Result<(), Error> {
-    let from_user = call_query.from.id.clone();
+    let from_user = call_query.from.id;
 
-    println!("new request from: {}, cmd: {:?}", from_user, command);
+    info!("new request from: {}, cmd: {:?}", from_user, command);
 
     if !opt.allow_users.contains(&(from_user as i64)) {
-        println!("user not allowed: {}", from_user);
+        warn!("user not allowed: {}", from_user);
         return Ok(());
     }
 
@@ -492,9 +486,9 @@ pub async fn callback_query<T: DB, T2: AI>(
                 Some(v) => v.to_string(),
             };
 
-            match opt.d1.save_word(v.clone(), explain).await {
+            match opt.d1.save_word(v.as_ref(), explain.as_ref()).await {
                 Err(e) => {
-                    println!("save word failed: {}", e);
+                    error!("save word failed: {}", e);
                     return Ok(());
                 }
                 _ => {}
@@ -522,9 +516,9 @@ pub async fn callback_query<T: DB, T2: AI>(
             opt.bot.edit_message_reply_markup(&req).await?;
         }
         CallbackQueryCommand::Remove(v) => {
-            match opt.d1.delete_word(v.clone()).await {
+            match opt.d1.delete_word(v.as_ref()).await {
                 Err(e) => {
-                    println!("delete word failed: {}", e);
+                    error!("delete word failed: {}", e);
                     return Ok(());
                 }
                 _ => {}
@@ -584,8 +578,8 @@ pub async fn send_random_word<T: DB, T2: AI>(
     Ok(())
 }
 
-pub async fn set_webhook(bot: Bot, url: String, matainer: i64) -> Result<(), Error> {
-    println!("Registering webhook: {}", url);
+pub async fn set_webhook(bot: &Bot, url: &str, matainer: i64) -> Result<(), Error> {
+    info!("Registering webhook: {}", url);
 
     bot.set_my_commands(
         &SetMyCommandsParams::builder()
@@ -594,7 +588,7 @@ pub async fn set_webhook(bot: Bot, url: String, matainer: i64) -> Result<(), Err
     )
     .await?;
 
-    bot.set_webhook(&SetWebhookParams::builder().url(url.clone()).build())
+    bot.set_webhook(&SetWebhookParams::builder().url(url).build())
         .await?;
 
     bot.send_message(

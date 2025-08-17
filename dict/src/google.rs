@@ -18,8 +18,8 @@ pub fn merge_output(outputs: Vec<Output>) -> (String, String) {
     let mut merged_translation = String::new();
 
     for output in outputs {
-        merged_source.push_str(&output.source.clone());
-        merged_translation.push_str(&output.translation.clone());
+        merged_source.push_str(&output.source);
+        merged_translation.push_str(&output.translation);
     }
 
     (merged_source, merged_translation)
@@ -29,7 +29,7 @@ pub fn merge_source(outputs: Vec<Output>) -> String {
     let mut merged_source = String::new();
 
     for output in outputs {
-        merged_source.push_str(&output.source.clone());
+        merged_source.push_str(&output.source);
     }
 
     merged_source
@@ -39,20 +39,20 @@ pub fn merge_translation(outputs: Vec<Output>) -> String {
     let mut merged_translation = String::new();
 
     for output in outputs {
-        merged_translation.push_str(&output.translation.clone());
+        merged_translation.push_str(&output.translation);
     }
 
     merged_translation
 }
 
 pub async fn translate(
-    text: String,
+    text: &str,
     src: Option<String>,
-    target: String,
+    target: &str,
 ) -> Result<Vec<Output>, reqwest::Error> {
     let resp = reqwest::Client::builder()
         .build()?
-        .get("https://translate.google.com/translate_a/single")
+        .get("https://translate.googleapis.com/translate_a/single")
         .query(&vec![
             ("client".to_string(), "gtx".to_string()),
             ("dt".to_string(), "at".to_string()),
@@ -86,8 +86,11 @@ pub async fn translate(
         .await?;
 
     if resp.status() != 200 {
-        println!("{}", resp.text().await?);
-        return Ok(vec![]);
+        let text = resp.text().await?;
+        return Ok(vec![Output {
+            source: text.clone(),
+            translation: text,
+        }]);
     }
 
     let body: Vec<serde_json::Value> = resp.json().await?;
@@ -133,9 +136,7 @@ mod test {
         let text = "Rust is blazingly fast and memory-efficient: with no runtime or garbage collector, it can power performance-critical services, run on embedded devices, and easily integrate with other languages.Rust’s rich type system and ownership model guarantee memory-safety and thread-safety — enabling you to eliminate many classes of bugs at compile-time.Rust has great documentation, a friendly compiler with useful error messages, and top-notch tooling — an integrated package manager and build tool, smart multi-editor support with auto-completion and type inspections, an auto-formatter, and more.";
         let target = "ja";
 
-        let out = super::translate(text.to_string(), None, target.to_string())
-            .await
-            .unwrap();
+        let out = super::translate(text, None, target).await.unwrap();
 
         println!("{:?}", merge_source(out.clone()));
         println!("{:?}", merge_translation(out.clone()));

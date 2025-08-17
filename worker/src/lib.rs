@@ -6,10 +6,23 @@ use frankenstein::{client_reqwest, updates::Update};
 use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{self, send_random_word};
+use log::{debug, error};
+use std::ops::Deref;
+use std::sync::Once;
 use std::{collections::HashSet, sync::Arc};
 use worker::*;
 
-async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
+static INIT: Once = Once::new();
+
+async fn get_opt(env: Arc<Env>) -> Arc<RunOpt<WasmD1, WasmAI>> {
+    console_error_panic_hook::set_once();
+    INIT.call_once(|| {
+        match console_log::init_with_level(log::Level::Debug) {
+            Err(e) => console_error!("Failed to init console log: {}", e),
+            _ => console_log!("Console log initialized"),
+        };
+    });
+
     let token = env
         .var("TELEGRAM_TOKEN")
         .unwrap()
@@ -54,16 +67,15 @@ async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
 
 #[event(fetch)]
 async fn main(req: worker::Request, env: Env, _ctx: Context) -> Result<Response> {
-    console_error_panic_hook::set_once();
-
+    let env = Arc::new(env);
     let opt = get_opt(env.clone()).await;
 
     let mut router = Router::new();
 
     router = router.on_async("/tgbot/register", async |req, _ctx| {
-        let url = format!("https://{}/tgbot", req.url()?.host().unwrap().to_string());
+        let url = format!("https://{}/tgbot", req.url()?.host().unwrap());
 
-        tg::set_webhook(opt.bot.clone(), url.clone(), opt.matainer)
+        tg::set_webhook(&opt.bot, url.as_ref(), opt.matainer)
             .await
             .map_err(|e| worker::Error::from(e.to_string()))?;
 
@@ -81,32 +93,30 @@ async fn main(req: worker::Request, env: Env, _ctx: Context) -> Result<Response>
     router = router.post_async("/tgbot", async |mut req, _ctx| {
         let update = req.json::<Update>().await?;
 
-        println!("body: {:?}", update);
+        debug!("body: {:?}", update);
 
         return match tg::handle(opt.clone(), update).await {
             Ok(_) => {
-                println!("Update was handled by bot.");
+                debug!("Update was handled by bot.");
                 Response::ok("Update was handled by bot.")
             }
             Err(e) => {
-                println!("Update was not handled by bot: {}", e);
-                Response::error(format!("Update was not handled by bot: {}", e), 500)
+                error!("Update was not handled by bot: {}", e);
+                Response::ok(format!("Update was not handled by bot: {}", e))
             }
         };
     });
 
-    router.run(req, env.clone()).await
+    router.run(req, env.deref().clone()).await
 }
 
 #[event(scheduled)]
 pub async fn scheduled(_: ScheduledEvent, env: Env, _: ScheduleContext) {
-    console_error_panic_hook::set_once();
-
-    let opt = get_opt(env.clone()).await;
+    let opt = get_opt(env.into()).await;
 
     match send_random_word(opt).await {
         Err(e) => {
-            println!("Error: {}", e);
+            error!("Error: {}", e);
         }
         Ok(_) => {}
     }

@@ -5,5 +5,6 @@
 /worker/dist
 /worker/.wrangler
 /worker/node_modules
-/worker/wrangler.toml
 .DS_Store
+/worker/wrangler.deploy.toml
+.env
