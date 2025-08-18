@@ -24,7 +24,7 @@ pub enum Command {
     GG(Option<String>, String, String),
     CFAI(Option<String>, String, String),
     Random,
-    Save(String),
+    Save(String, String),
 }
 
 pub fn bot_commands() -> Vec<frankenstein::types::BotCommand> {
@@ -159,12 +159,23 @@ pub async fn handle<T: DB, T2: AI>(
                 None => return Err(Error("no text".to_string())),
             };
 
+            let quote_or_reply_message = match msg.quote.as_ref() {
+                None => match msg.reply_to_message.as_ref() {
+                    None => "",
+                    Some(v) => match v.text.as_ref() {
+                        Some(v) => v,
+                        None => "",
+                    },
+                },
+                Some(v) => v.text.as_ref(),
+            };
+
             let command =
                 &txt[entity.offset as usize..entity.offset as usize + entity.length as usize];
 
             let argument = txt[entity.offset as usize + entity.length as usize..].trim();
 
-            let (cmd, text) = parse_command(command, argument)?;
+            let (cmd, text) = parse_command(command, argument, quote_or_reply_message)?;
 
             info!("message command: {:?}, argument: {:?}", cmd, text);
 
@@ -223,7 +234,11 @@ pub fn parse_callback_query_command(
     }
 }
 
-pub fn parse_command(command: &str, argument: &str) -> Result<(Command, Option<String>), Error> {
+pub fn parse_command(
+    command: &str,
+    argument: &str,
+    quote: &str,
+) -> Result<(Command, Option<String>), Error> {
     let command = command
         .trim_start_matches("/")
         .split('@')
@@ -234,33 +249,29 @@ pub fn parse_command(command: &str, argument: &str) -> Result<(Command, Option<S
         return Err(Error("command is empty".to_string()));
     }
 
+    let quote_or_argument = if argument.is_empty() { quote } else { argument }.to_string();
+
     match command {
-        "cnjp" => Ok((Command::CNJP(argument.to_string()), None)),
-        "jpcn" => Ok((Command::JPCN(argument.to_string()), None)),
-        "en" => Ok((Command::EN(argument.to_string()), None)),
-        "weblio" => Ok((Command::Weblio(argument.to_string()), None)),
-        "ktbk" => Ok((Command::Ktbk(argument.to_string()), None)),
-        "gemma" => Ok((Command::Gemma(argument.to_string()), None)),
+        "cnjp" => Ok((Command::CNJP(quote_or_argument), None)),
+        "jpcn" => Ok((Command::JPCN(quote_or_argument), None)),
+        "en" => Ok((Command::EN(quote_or_argument), None)),
+        "weblio" => Ok((Command::Weblio(quote_or_argument), None)),
+        "ktbk" => Ok((Command::Ktbk(quote_or_argument), None)),
         "random" => Ok((Command::Random, None)),
-        "llama4" => Ok((Command::Llama4(argument.to_string()), None)),
-        "save" => Ok((Command::Save(argument.to_string()), None)),
+        "gemma" => Ok((Command::Gemma(format!("{}\n{}", quote, argument)), None)),
+        "llama4" => Ok((Command::Llama4(format!("{}\n{}", quote, argument)), None)),
+        "save" => Ok((Command::Save(argument.to_string(), quote.to_string()), None)),
         "gg" | "cfai" => {
             let mut parts = argument.splitn(2, ' ');
             let first = parts.next().unwrap_or("");
-            let rest = parts.next().unwrap_or("").to_string();
+            let rest = parts.next().unwrap_or(quote).to_string();
 
             let args = first.split("_").collect::<Vec<_>>();
-            let mut target = first.to_string();
-            let mut src: Option<String> = None;
 
-            if args.len() > 1 {
-                src = if args[0].is_empty() {
-                    None
-                } else {
-                    Some(args[0].to_string())
-                };
-                target = args[1].to_string();
-            }
+            let (src, target) = match args.len() > 1 {
+                true => (Some(args[0].to_string()), args[1].to_string()),
+                false => (None, first.to_string()),
+            };
 
             if command == "cfai" {
                 Ok((Command::CFAI(src, target, rest), None))
@@ -365,25 +376,17 @@ pub async fn answer<T: DB, T2: AI>(
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(x) => (v, markdown_escape(x.as_str())),
         },
-        Command::Save(v) => {
-            if v.is_empty() {
-                ("".to_string(), "empty word".to_string())
-            } else if msg.reply_to_message.is_none() {
-                ("".to_string(), "explain message is empty".to_string())
+        Command::Save(word, explain) => {
+            if word.is_empty() || explain.is_empty() {
+                ("".to_string(), "empty word or explain".to_string())
             } else {
-                let reply_to = msg.reply_to_message.unwrap();
-                match reply_to.text.as_ref() {
-                    None => ("".to_string(), "explain is empty".to_string()),
-                    Some(v) => {
-                        let reply_to_text = v.trim();
-                        match opt.d1.save_word(v.as_ref(), reply_to_text.as_ref()).await {
-                            Err(e) => ("".to_string(), e.to_string()),
-                            Ok(_) => (
-                                v.to_owned(),
-                                format!("save <b>{}</b> to d1 database", html_escape(v.as_str())),
-                            ),
-                        }
-                    }
+                parse_mode = frankenstein::ParseMode::Html;
+                match opt.d1.save_word(&word, &explain).await {
+                    Err(e) => ("".to_string(), e.to_string()),
+                    Ok(_) => (
+                        "".to_string(),
+                        format!("save <b>{}</b> to d1 database", html_escape(word.as_str())),
+                    ),
                 }
             }
         }

@@ -1,4 +1,5 @@
 use hjcommon::d1::{D1Error, DB, SQL};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use worker::{D1Database, Env};
@@ -54,6 +55,13 @@ impl WasmD1 {
             .run()
             .await
             .map_err(|v| MyError(v))?;
+
+        info!(
+            "exec sql [{}], args: [{:?}], result: {:?}",
+            sql.sql(),
+            sql.params::<String>(),
+            result,
+        );
 
         if !result.error().is_none() {
             return Err(D1Error(result.error().unwrap().to_string()));

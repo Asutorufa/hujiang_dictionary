@@ -82,13 +82,11 @@ curl https://<lambda-url>/d1/create_table
 curl https://<lambda-url>/tgbot/register
 ```
 
-
 ## cloudflare workers
 
 set wrangler config in .env
 
 ```shell
-cd worker
 vim .env
 
 # build and deploy
@@ -123,16 +121,13 @@ Build Command
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
 sh rustup.sh -y
 export PATH="$HOME/.cargo/bin:$PATH"
-cd worker
 cargo install worker-build
-worker-build --release
 ```
 
 Deploy Command
 
 ```shell
 export PATH="$HOME/.cargo/bin:$PATH"
-cd worker
 sh deploy.sh
 ```
 

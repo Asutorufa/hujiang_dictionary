@@ -1,9 +1,10 @@
 name = "${WORKER_NAME}"
-main = "build/worker/shim.mjs"
+main = "worker/build/worker/shim.mjs"
 compatibility_date = "2023-03-22"
 
 [build]
 command = "worker-build --release"
+cwd = "worker"
 
 [vars]
 TELEGRAM_TOKEN = "${TELEGRAM_TOKEN}"

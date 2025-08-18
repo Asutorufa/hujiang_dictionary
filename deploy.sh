@@ -3,7 +3,7 @@
 set -x
 
 if [ -f .env ]; then
-    set -a;. .env;set +a
+    set -a;. ./.env;set +a
 fi
 
 export D1_DATABASE_NAME="${D1_DATABASE_NAME:-dict}"
