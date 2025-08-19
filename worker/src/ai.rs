@@ -4,7 +4,8 @@ use cloudflare::endpoints::ai::execute_model::{
     Message, MessageRole, MessagesParams, ResponseAndToolCallsResult, TranslationParams,
     TranslationResult,
 };
-use hjcommon::ai::{AI, Models, SYSTEM_MSG};
+use hjcommon::ai::{AI, Error, Models, ResponseResponse, ResponsesRequest, SYSTEM_MSG};
+use serde::{Serialize, de::DeserializeOwned};
 use worker::{Ai, Env};
 
 pub struct WasmAI {
@@ -21,18 +22,27 @@ impl WasmAI {
         }
     }
 
-    fn get_ai(&self) -> Result<Arc<Ai>, hjcommon::ai::Error> {
+    fn get_ai(&self) -> Result<Arc<Ai>, Error> {
         match self.ai.as_ref() {
             Some(v) => Ok(v.clone()),
-            None => Err(hjcommon::ai::Error("ai not found".to_string())),
+            None => Err(Error("ai not found".to_string())),
         }
     }
 
-    pub async fn completion(
+    pub async fn exec<I: Serialize, O: DeserializeOwned>(
         &self,
-        prompt: String,
-        model: &str,
-    ) -> Result<String, hjcommon::ai::Error> {
+        model: Models,
+        msg: I,
+    ) -> Result<O, Error> {
+        let result: O = self
+            .get_ai()?
+            .run(model.as_str(), msg)
+            .await
+            .map_err(|v| Error(v.to_string()))?;
+        Ok(result)
+    }
+
+    pub async fn completion(&self, prompt: &str, model: Models) -> Result<String, Error> {
         let msg = MessagesParams {
             messages: vec![
                 Message {
@@ -41,20 +51,27 @@ impl WasmAI {
                 },
                 Message {
                     role: MessageRole::User,
-                    content: prompt,
+                    content: prompt.to_string(),
                 },
             ],
             stream: Some(false),
             ..Default::default()
         };
 
-        let result: ResponseAndToolCallsResult = self
-            .get_ai()?
-            .run(model, msg)
-            .await
-            .map_err(|v| hjcommon::ai::Error(v.to_string()))?;
+        let result: ResponseAndToolCallsResult = self.exec(model, msg).await?;
 
         Ok(result.response)
+    }
+
+    pub async fn response(
+        &self,
+        prompt: &str,
+        model: Models,
+    ) -> Result<Vec<(String, String)>, Error> {
+        let resp: ResponseResponse = self
+            .exec(model.clone(), ResponsesRequest::new(model, prompt))
+            .await?;
+        Ok(resp.content())
     }
 }
 
@@ -67,19 +84,25 @@ impl Clone for WasmAI {
 }
 
 impl AI for WasmAI {
-    async fn gemma3_12b(&self, prompt: String) -> Result<String, hjcommon::ai::Error> {
-        self.completion(prompt, Models::Gemma3_12bIt.as_str()).await
+    async fn gemma3_12b(&self, prompt: &str) -> Result<String, Error> {
+        self.completion(prompt, Models::Gemma3_12bIt).await
     }
 
-    async fn llama4_scout_17b_16e_instruct(
-        &self,
-        prompt: &str,
-    ) -> Result<String, hjcommon::ai::Error> {
-        self.completion(
-            prompt.to_string(),
-            Models::Llama4Scout17B16EInstruct.as_str(),
-        )
-        .await
+    async fn llama4_scout_17b_16e_instruct(&self, prompt: &str) -> Result<String, Error> {
+        self.completion(prompt, Models::Llama4Scout17B16EInstruct)
+            .await
+    }
+
+    async fn gpt_oss_20b(&self, prompt: &str) -> Result<String, Error> {
+        let content = self.response(prompt, Models::GPTOss20B).await?;
+
+        let text = content
+            .iter()
+            .map(|(a, b)| format!("{}:\n{}", a, b))
+            .collect::<Vec<String>>()
+            .join("\n\n");
+
+        Ok(text)
     }
 
     async fn m2m100_1_2b(
@@ -87,18 +110,13 @@ impl AI for WasmAI {
         text: &str,
         source_lang: Option<String>,
         target_lang: String,
-    ) -> Result<String, hjcommon::ai::Error> {
+    ) -> Result<String, Error> {
         let msg = TranslationParams {
             target_lang,
             text: text.to_string(),
             source_lang,
         };
-        let result: TranslationResult = self
-            .get_ai()?
-            .run(Models::M2M100_1_2B.as_str(), msg)
-            .await
-            .map_err(|v| hjcommon::ai::Error(v.to_string()))?;
-
+        let result: TranslationResult = self.exec(Models::M2M100_1_2B, msg).await?;
         Ok(result.translated_text)
     }
 }

@@ -20,6 +20,7 @@ pub enum Command {
     Ktbk(String),
     Gemma(String),
     Llama4(String),
+    GPT(String),
     UserID,
     GG(Option<String>, String, String),
     CFAI(Option<String>, String, String),
@@ -56,6 +57,10 @@ pub fn bot_commands() -> Vec<frankenstein::types::BotCommand> {
         frankenstein::types::BotCommand {
             command: "llama4".to_string(),
             description: "llama4 scout 17b 16e instruct".to_string(),
+        },
+        frankenstein::types::BotCommand {
+            command: "gpt".to_string(),
+            description: "gpt-oss-20b".to_string(),
         },
         frankenstein::types::BotCommand {
             command: "userid".to_string(),
@@ -260,6 +265,7 @@ pub fn parse_command(
         "random" => Ok((Command::Random, None)),
         "gemma" => Ok((Command::Gemma(format!("{}\n{}", quote, argument)), None)),
         "llama4" => Ok((Command::Llama4(format!("{}\n{}", quote, argument)), None)),
+        "gpt" => Ok((Command::GPT(format!("{}\n{}", quote, argument)), None)),
         "save" => Ok((Command::Save(argument.to_string(), quote.to_string()), None)),
         "gg" | "cfai" => {
             let mut parts = argument.splitn(2, ' ');
@@ -364,7 +370,11 @@ pub async fn answer<T: DB, T2: AI>(
                 Ok(v) => (text, markdown_escape(v.as_str())),
             }
         }
-        Command::Gemma(v) => match opt.workers_ai.gemma3_12b(format!("{}\n{}", "", v)).await {
+        Command::Gemma(v) => match opt.workers_ai.gemma3_12b(v.as_ref()).await {
+            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Ok(x) => (v, markdown_escape(x.as_str())),
+        },
+        Command::GPT(v) => match opt.workers_ai.gpt_oss_20b(v.as_ref()).await {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(x) => (v, markdown_escape(x.as_str())),
         },
@@ -406,7 +416,13 @@ pub async fn answer<T: DB, T2: AI>(
         },
     };
 
-    for v in split_message(&reply, 4096) {
+    let (word, reply) = if reply.is_empty() {
+        ("", "can't found explain")
+    } else {
+        (word.as_ref(), reply.as_ref())
+    };
+
+    for v in split_message(reply, 4096) {
         if v.is_empty() {
             continue;
         }
@@ -437,7 +453,7 @@ pub async fn answer<T: DB, T2: AI>(
                             .text("💾")
                             .callback_data(format!(
                                 "/save {}",
-                                if word.len() < 58 { word.as_ref() } else { "" }
+                                if word.len() < 58 { word } else { "" }
                             ))
                             .build(),
                     ]])
