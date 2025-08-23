@@ -1,0 +1,32 @@
+name: React
+
+on:
+  push:
+    branches: [react]
+  pull_request:
+    branches: [react]
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Use Node.js 23.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 23.x
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+      - run: |
+          ls -la
+          npm install
+          npm run build
+
+      - name: upload_static
+        uses: actions/upload-artifact@v4
+        with:
+          name: statics
+          path: |
+            out

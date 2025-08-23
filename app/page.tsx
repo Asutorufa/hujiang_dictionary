@@ -11,7 +11,7 @@ type QueryWordResponse = {
 
 async function queryWord(selected: string, query: string, srcLang: string, dstLang: string,
   callback: (data?: string, error?: string) => void) {
-  fetch("https://hj-dict.2429um0f9.workers.dev/word/query", {
+  fetch("/word/query", {
     method: "POST",
     headers: {
     },
