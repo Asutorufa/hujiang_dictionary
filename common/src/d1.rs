@@ -1,6 +1,5 @@
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use value2struct::FromValueVec;
 
 #[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
@@ -12,48 +11,114 @@ pub struct Word {
     reminder_time: i64,
 }
 
+#[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
+pub struct Empty {}
+
 #[derive(Debug)]
-pub struct D1Error(pub String);
+pub struct Error(pub String);
 
-unsafe impl Send for D1Error {}
+unsafe impl Send for Error {}
 
-impl fmt::Display for D1Error {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl std::error::Error for D1Error {}
+impl std::error::Error for Error {}
 
-impl From<&str> for D1Error {
+impl From<&str> for Error {
     fn from(s: &str) -> Self {
-        D1Error(s.to_string())
+        Error(s.to_string())
     }
 }
 
-impl From<reqwest::Error> for D1Error {
+impl From<reqwest::Error> for Error {
     fn from(value: reqwest::Error) -> Self {
-        D1Error(value.to_string())
+        Error(value.to_string())
     }
 }
 
-impl From<serde_json::Error> for D1Error {
+impl From<serde_json::Error> for Error {
     fn from(value: serde_json::Error) -> Self {
-        D1Error(value.to_string())
+        Error(value.to_string())
     }
 }
 
-impl From<String> for D1Error {
+impl From<String> for Error {
     fn from(s: String) -> Self {
-        D1Error(s)
+        Error(s)
     }
 }
 
 pub trait DB {
-    fn save_word(&self, word: &str, explain: &str) -> impl Future<Output = Result<(), D1Error>>;
-    fn delete_word(&self, word: &str) -> impl Future<Output = Result<(), D1Error>>;
-    fn random_word(&self) -> impl Future<Output = Result<Word, D1Error>>;
-    fn create_table(&self) -> impl Future<Output = Result<(), D1Error>>;
+    fn save_word(&self, word: &str, explain: &str) -> impl Future<Output = Result<(), Error>>;
+    fn delete_word(&self, word: &str) -> impl Future<Output = Result<(), Error>>;
+    fn random_word(&self) -> impl Future<Output = Result<Word, Error>>;
+    fn list_word(
+        &self,
+        page_size: u64,
+        page_number: u64,
+    ) -> impl Future<Output = Result<Vec<Word>, Error>>;
+    fn create_table(&self) -> impl Future<Output = Result<(), Error>>;
+}
+
+pub trait DBv2 {
+    fn exec<T>(&self, sql: SQL<'_>) -> impl Future<Output = Result<Vec<T>, Error>>
+    where
+        T: for<'a> Deserialize<'a>;
+
+    fn save_word(&self, word: &str, explain: &str) -> impl Future<Output = Result<(), Error>> {
+        async move {
+            self.exec::<Empty>(SQL::SaveWord(word, explain)).await?;
+            Ok(())
+        }
+    }
+
+    fn delete_word(&self, word: &str) -> impl Future<Output = Result<(), Error>> {
+        async move {
+            self.exec::<Empty>(SQL::DeleteWord(word)).await?;
+            Ok(())
+        }
+    }
+
+    fn list_word(
+        &self,
+        page_size: u64,
+        page_number: u64,
+    ) -> impl Future<Output = Result<Vec<Word>, Error>> {
+        async move {
+            self.exec::<Word>(SQL::ListWord(page_size, page_number))
+                .await
+        }
+    }
+
+    fn random_word(&self) -> impl Future<Output = Result<Word, Error>> {
+        async move {
+            let words = match self.exec::<Word>(SQL::RandomNotRemind).await {
+                Ok(v) if !v.is_empty() => v[0].clone(),
+                _ => self
+                    .exec::<Word>(SQL::Random)
+                    .await?
+                    .first()
+                    .ok_or(Error("no word found".to_string()))?
+                    .clone(),
+            };
+
+            let update_sql = SQL::UpdateRemindTime(words.word.as_ref());
+
+            self.exec::<Empty>(update_sql).await?;
+
+            Ok(words)
+        }
+    }
+
+    fn create_table(&self) -> impl Future<Output = Result<(), Error>> {
+        async move {
+            self.exec::<Empty>(SQL::CreateTable).await?;
+            Ok(())
+        }
+    }
 }
 
 pub enum SQL<'a> {
@@ -63,6 +128,7 @@ pub enum SQL<'a> {
     RandomNotRemind,
     Random,
     UpdateRemindTime(&'a str),
+    ListWord(u64, u64),
 }
 
 impl<'a> SQL<'a> {
@@ -90,6 +156,7 @@ CREATE TABLE IF NOT EXISTS [words] (
 );
                "#
             }
+            SQL::ListWord(_, _) => "SELECT * FROM words ORDER BY word LIMIT ? OFFSET ?",
         }
     }
 
@@ -110,6 +177,12 @@ CREATE TABLE IF NOT EXISTS [words] (
             }
             SQL::RandomNotRemind | SQL::Random | SQL::CreateTable => {
                 vec![]
+            }
+            SQL::ListWord(page_size, page_number) => {
+                let size = if *page_size > 0 { 10 } else { *page_size };
+                let offset = (*page_number - 1) * size;
+
+                vec![size.to_string().into(), offset.to_string().into()]
             }
         }
     }

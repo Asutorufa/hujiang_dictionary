@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace]
-members = ["native", "common", "dict", "worker"]
+members = ["native", "common", "dict", "worker", "web"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

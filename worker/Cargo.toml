@@ -24,3 +24,4 @@ hjcommon = { path = "../common" }
 cloudflare = "0.14.0"
 console_log = "1.0.0"
 log = "0.4.27"
+hjweb = { path = "../web" }

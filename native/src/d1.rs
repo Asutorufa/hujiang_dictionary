@@ -1,26 +1,33 @@
-use hjcommon::d1::{D1Error, DB, SQL, Word};
+use hjcommon::d1::{DBv2, Error, SQL};
 use log::*;
 use serde::{Deserialize, Serialize};
 
 // see: https://developers.cloudflare.com/api/resources/d1/subresources/database
 #[derive(Clone)]
 pub struct D1 {
-    account_id: String,
-    database_id: String,
-    api_token: String,
+    pub(crate) account_id: String,
+    pub(crate) database_id: String,
+    pub(crate) api_token: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct QueryBody {
-    sql: String,
-    params: Vec<String>,
+pub struct QueryBody {
+    pub sql: String,
+    pub params: Vec<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RawExecResult {
+pub struct RawQueryResult {
     pub errors: serde_json::Value,
     pub messages: serde_json::Value,
-    pub result: Vec<RawResult>,
+    pub result: Vec<QueryResult>,
+    pub success: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct QueryResult {
+    pub meta: Meta,
+    pub results: Vec<serde_json::Value>,
     pub success: bool,
 }
 
@@ -59,19 +66,6 @@ pub struct Source {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct RawResult {
-    pub meta: Meta,
-    pub results: RawResults,
-    pub success: bool,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RawResults {
-    columns: Vec<String>,
-    rows: Vec<Vec<serde_json::Value>>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct Meta {
     pub changed_db: bool,
     pub changes: i32,
@@ -88,14 +82,6 @@ pub struct Meta {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Timings {
     pub sql_duration_ms: f64,
-}
-
-pub struct Empty {}
-
-impl From<Vec<serde_json::Value>> for Empty {
-    fn from(_: Vec<serde_json::Value>) -> Self {
-        Empty {}
-    }
 }
 
 pub enum Database {
@@ -119,7 +105,7 @@ impl D1 {
         d1
     }
 
-    pub async fn get_database_id(&self, database_name: &str) -> Result<String, D1Error> {
+    pub async fn get_database_id(&self, database_name: &str) -> Result<String, Error> {
         let r = reqwest::Client::builder()
             .build()?
             .get(format!("/accounts/{}/d1/database", self.account_id,))
@@ -131,7 +117,7 @@ impl D1 {
         let lr = r.json::<ListDatabaseResult>().await?;
 
         if lr.result.len() == 0 {
-            return Err(D1Error(
+            return Err(Error(
                 format!("database {} not found", database_name).to_string(),
             ));
         }
@@ -139,42 +125,38 @@ impl D1 {
         Ok(lr.result[0].name.to_owned())
     }
 
-    pub async fn exec_sql<T: From<Vec<serde_json::Value>>>(
-        &self,
-        sql: SQL<'_>,
-    ) -> Result<Vec<T>, D1Error> {
-        self.raw(sql.sql(), sql.params()).await
-    }
-
-    pub async fn raw<T: From<Vec<serde_json::Value>>>(
-        &self,
-        sql: &str,
-        params: Vec<String>,
-    ) -> Result<Vec<T>, D1Error> {
+    pub async fn post<T>(&self, path: &str, sql: SQL<'_>) -> Result<T, Error>
+    where
+        T: for<'a> Deserialize<'a>,
+    {
         if self.database_id == "" {
-            return Err(D1Error("database_id is empty".to_string()));
+            return Err(Error("database_id is empty".to_string()));
         }
 
         if self.account_id == "" {
-            return Err(D1Error("account_id is empty".to_string()));
+            return Err(Error("account_id is empty".to_string()));
         }
 
         if self.api_token == "" {
-            return Err(D1Error("api_token is empty".to_string()));
+            return Err(Error("api_token is empty".to_string()));
         }
 
-        let pre_log = format!("exec sql: [{}] args: {:?}", sql, params);
+        info!(
+            "exec sql: [{}] args: {:?}",
+            sql.sql(),
+            sql.params::<String>()
+        );
 
         let body = serde_json::to_string(&QueryBody {
-            sql: sql.to_string(),
-            params: params,
+            sql: sql.sql().to_string(),
+            params: sql.params::<String>(),
         })?;
 
         let r = reqwest::Client::builder()
             .build()?
             .post(format!(
-                "https://api.cloudflare.com/client/v4/accounts/{}/d1/database/{}/raw",
-                self.account_id, self.database_id
+                "https://api.cloudflare.com/client/v4/accounts/{}/d1/database/{}/{}",
+                self.account_id, self.database_id, path
             ))
             .header("Authorization", format!("Bearer {}", self.api_token))
             .body(body)
@@ -182,22 +164,31 @@ impl D1 {
             .await?;
 
         if r.status() != 200 {
-            return Err(D1Error::from(r.text().await?));
+            return Err(Error::from(r.text().await?));
         }
 
-        let result = r.json::<RawExecResult>().await?;
+        let result = r.json::<T>().await?;
 
-        info!("{} messages: {}", pre_log, result.messages);
+        Ok(result)
+    }
+
+    pub async fn query<T>(&self, sql: SQL<'_>) -> Result<Vec<T>, Error>
+    where
+        T: for<'a> Deserialize<'a>,
+    {
+        let result = self.post::<RawQueryResult>("query", sql).await?;
+
+        info!("result messages: {}", result.messages);
 
         if !result.success {
-            return Err(D1Error::from(format!("query failed: {}", result.errors)));
+            return Err(Error::from(format!("query failed: {}", result.errors)));
         }
 
         let mut rs: Vec<T> = vec![];
 
         for v in result.result {
-            for rv in v.results.rows {
-                rs.push(T::from(rv));
+            for rv in v.results {
+                rs.push(serde_json::from_value(rv)?);
             }
         }
 
@@ -205,43 +196,12 @@ impl D1 {
     }
 }
 
-impl DB for D1 {
-    async fn create_table(&self) -> Result<(), D1Error> {
-        self.exec_sql::<Empty>(SQL::CreateTable).await?;
-        Ok(())
-    }
-
-    async fn save_word(&self, word: &str, explain: &str) -> Result<(), D1Error> {
-        self.exec_sql::<Empty>(SQL::SaveWord(word, explain)).await?;
-        Ok(())
-    }
-
-    async fn delete_word(&self, word: &str) -> Result<(), D1Error> {
-        self.exec_sql::<Empty>(SQL::DeleteWord(word)).await?;
-        Ok(())
-    }
-
-    async fn random_word(&self) -> Result<Word, D1Error> {
-        let words = match self.exec_sql::<Word>(SQL::RandomNotRemind).await {
-            Ok(v) if !v.is_empty() => v,
-            _ => self.exec_sql::<Word>(SQL::Random).await?,
-        };
-
-        if words.len() == 0 {
-            return Err(D1Error::from("no word found"));
-        }
-
-        let v = words[0].clone();
-
-        match self
-            .exec_sql::<Empty>(SQL::UpdateRemindTime(v.word.as_ref()))
-            .await
-        {
-            Err(e) => error!("update reminder_time error: {}", e),
-            _ => {}
-        }
-
-        Ok(v)
+impl DBv2 for D1 {
+    async fn exec<T>(&self, sql: SQL<'_>) -> Result<Vec<T>, Error>
+    where
+        T: for<'a> Deserialize<'a>,
+    {
+        self.query::<T>(sql).await
     }
 }
 
@@ -249,10 +209,10 @@ impl DB for D1 {
 mod test {
     use std::fs;
 
-    use hjcommon::d1::DB;
+    use hjcommon::d1::{DBv2, SQL, Word};
     use serde::{Deserialize, Serialize};
 
-    use crate::d1::{D1, Word};
+    use crate::d1::D1;
 
     #[derive(Serialize, Deserialize)]
     struct Auth {
@@ -261,8 +221,7 @@ mod test {
         api_token: String,
     }
 
-    #[tokio::test]
-    async fn test() {
+    async fn new_d1() -> D1 {
         let auth_json = fs::read_to_string("src/.api.json").unwrap();
 
         let auth = serde_json::from_str::<Auth>(&auth_json).unwrap();
@@ -274,13 +233,24 @@ mod test {
         )
         .await;
 
+        d1
+    }
+
+    #[tokio::test]
+    async fn test() {
+        let d1 = new_d1().await;
+
         println!("random: {:?}", d1.random_word().await.unwrap());
 
-        let result = d1
-            .raw::<Word>("select * from words limit 10", vec![])
-            .await
-            .unwrap();
+        let result = d1.raw::<Word>(SQL::ListWord(10, 1)).await.unwrap();
 
         println!("{:?}", result);
+    }
+
+    #[tokio::test]
+    async fn test_list_word() {
+        let d1 = new_d1().await;
+
+        println!("{:?}", d1.list_word(10, 1).await.unwrap());
     }
 }

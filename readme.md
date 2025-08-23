@@ -33,7 +33,19 @@ Example:
 
 ![screenshot](https://raw.githubusercontent.com/Asutorufa/hujiang_dictionary/rust/assets/images/image.png)
 
+## web
+
+see [telegram bot](#telegram-bot)
+
+![screenshot](https://raw.githubusercontent.com/Asutorufa/hujiang_dictionary/rust/assets/images/web.png)
+
 ## telegram bot
+
+Support run telegram at local, lambda and cloudflare workers.
+
+![screenshot](https://raw.githubusercontent.com/Asutorufa/hujiang_dictionary/rust/assets/images/telegram.png)
+
+### service
 
 ```shell
 cargo build --release
@@ -49,7 +61,7 @@ export CLOUDFLARE_D1_DATABASE_NAME=hujiang_dictionary
 ./target/release/tg
 ```
 
-## lambda
+### lambda
 
 set blow env in lambda
 
@@ -118,6 +130,9 @@ If use workers CI/CD, you can add following script in  `Build Command` and `Depl
 Build Command
 
 ```shell
+git clone -b react https://github.com/Asutorufa/hujiang_dictionary.git react
+cd react && npm install && npm run build && cd ..
+cp -r react/out web/out
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
 sh rustup.sh -y
 export PATH="$HOME/.cargo/bin:$PATH"

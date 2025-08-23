@@ -1,24 +1,22 @@
-use hjcommon::d1::{D1Error, DB, SQL};
+use hjcommon::d1::{DBv2, Error as D1Error, SQL};
 use log::info;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Arc;
 use worker::{D1Database, Env};
 
-pub struct MyError(worker::Error);
+pub struct Error(worker::Error);
 
-impl From<worker::Error> for MyError {
+impl From<worker::Error> for Error {
     fn from(err: worker::Error) -> Self {
-        MyError(err)
+        Error(err)
     }
 }
 
-impl From<MyError> for D1Error {
-    fn from(err: MyError) -> Self {
+impl From<Error> for D1Error {
+    fn from(err: Error) -> Self {
         D1Error(err.0.to_string())
     }
 }
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Empty {}
 
 pub struct WasmD1 {
     d1: Option<Arc<D1Database>>,
@@ -51,10 +49,10 @@ impl WasmD1 {
             .get_d1()?
             .prepare(sql.sql())
             .bind(&sql.params())
-            .map_err(|v| MyError(v))?
+            .map_err(|v| Error(v))?
             .run()
             .await
-            .map_err(|v| MyError(v))?;
+            .map_err(|v| Error(v))?;
 
         info!(
             "exec sql [{}], args: [{:?}], result: {:?}",
@@ -79,39 +77,11 @@ impl Clone for WasmD1 {
     }
 }
 
-impl DB for WasmD1 {
-    async fn create_table(&self) -> Result<(), D1Error> {
-        self.exec::<Empty>(SQL::CreateTable).await?;
-        Ok(())
-    }
-
-    async fn delete_word(&self, word: &str) -> Result<(), D1Error> {
-        let sql = SQL::DeleteWord(word);
-        self.exec::<Empty>(sql).await?;
-        Ok(())
-    }
-
-    async fn random_word(&self) -> Result<hjcommon::d1::Word, D1Error> {
-        let words = match self.exec::<hjcommon::d1::Word>(SQL::RandomNotRemind).await {
-            Ok(v) if !v.is_empty() => v[0].clone(),
-            _ => self
-                .exec::<hjcommon::d1::Word>(SQL::Random)
-                .await?
-                .first()
-                .ok_or(D1Error("no word found".to_string()))?
-                .clone(),
-        };
-
-        let update_sql = SQL::UpdateRemindTime(words.word.as_ref());
-
-        self.exec::<Empty>(update_sql).await?;
-
-        Ok(words)
-    }
-
-    async fn save_word(&self, word: &str, explain: &str) -> Result<(), D1Error> {
-        let sql = SQL::SaveWord(word, explain);
-        self.exec::<Empty>(sql).await?;
-        Ok(())
+impl DBv2 for WasmD1 {
+    async fn exec<T>(&self, sql: SQL<'_>) -> Result<Vec<T>, D1Error>
+    where
+        T: for<'a> Deserialize<'a>,
+    {
+        self.exec(sql).await
     }
 }

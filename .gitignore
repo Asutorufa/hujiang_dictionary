@@ -4,9 +4,10 @@
 /test.sh
 /worker/dist
 /worker/.wrangler
-/worker/node_modules
+node_modules
 .DS_Store
 wrangler.deploy.toml
 .env
 .wrangler
 /dist
+/web/out

@@ -19,6 +19,7 @@ async fn main() {
   weblio <word> - weblio
   ktbk <word> - コトバック
   google <target> <words> - Google Translate, eg: google en こんにちは
+  googlev1 <target> <words> - Old Google Translate API, eg: googlev1 en こんにちは
   help - show this message"#
         );
         return;
@@ -49,7 +50,7 @@ async fn main() {
             .join("\n"),
         "weblio" => weblio::get(&word).await.unwrap().join("\n"),
         "ktbk" => kotobakku::get(&word).await.unwrap().join("\n"),
-        "google" => {
+        "google" | "googlev1" => {
             let target = &args[1];
             let words = args[2..].join(" ");
 
@@ -57,7 +58,15 @@ async fn main() {
                 return;
             }
 
-            google::translate(words.as_str(), None, target)
+            let query = async |text: &str, src: Option<String>, target: &str| {
+                if args[0] == "googlev1" {
+                    return google::translate(text, src, target).await;
+                } else {
+                    return google::translatev2(text, src, target).await;
+                }
+            };
+
+            query(words.as_str(), None, target)
                 .await
                 .unwrap()
                 .iter()

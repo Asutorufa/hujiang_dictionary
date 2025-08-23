@@ -1,4 +1,5 @@
-use crate::{ai::AI, d1::DB, opts::RunOpt};
+use crate::d1::DBv2;
+use crate::{ai::AI, opts::RunOpt};
 use core::fmt;
 use frankenstein::AsyncTelegramApi;
 use frankenstein::client_reqwest::Bot;
@@ -23,6 +24,7 @@ pub enum Command {
     GPT(String),
     UserID,
     GG(Option<String>, String, String),
+    GG1(Option<String>, String, String),
     CFAI(Option<String>, String, String),
     Random,
     Save(String, String),
@@ -69,6 +71,11 @@ pub fn bot_commands() -> Vec<frankenstein::types::BotCommand> {
         frankenstein::types::BotCommand {
             command: "gg".to_string(),
             description: "google translate, eg: /gg en_ja hello, /gg ja hello".to_string(),
+        },
+        frankenstein::types::BotCommand {
+            command: "gg1".to_string(),
+            description: "google old translate api, eg: /gg1 en_ja hello, /gg1 ja hello"
+                .to_string(),
         },
         frankenstein::types::BotCommand {
             command: "cfai".to_string(),
@@ -146,7 +153,7 @@ pub fn vec_string_markdown_escape(v: &Vec<String>) -> String {
     s
 }
 
-pub async fn handle<T: DB, T2: AI>(
+pub async fn handle<T: DBv2, T2: AI>(
     opt: Arc<RunOpt<T, T2>>,
     update: frankenstein::updates::Update,
 ) -> Result<(), Error> {
@@ -267,7 +274,7 @@ pub fn parse_command(
         "llama4" => Ok((Command::Llama4(format!("{}\n{}", quote, argument)), None)),
         "gpt" => Ok((Command::GPT(format!("{}\n{}", quote, argument)), None)),
         "save" => Ok((Command::Save(argument.to_string(), quote.to_string()), None)),
-        "gg" | "cfai" => {
+        "gg" | "cfai" | "gg1" => {
             let mut parts = argument.splitn(2, ' ');
             let first = parts.next().unwrap_or("");
             let rest = parts.next().unwrap_or(quote).to_string();
@@ -281,6 +288,8 @@ pub fn parse_command(
 
             if command == "cfai" {
                 Ok((Command::CFAI(src, target, rest), None))
+            } else if command == "gg1" {
+                Ok((Command::GG1(src, target, rest), None))
             } else {
                 Ok((Command::GG(src, target, rest), None))
             }
@@ -291,7 +300,7 @@ pub fn parse_command(
     }
 }
 
-pub async fn answer<T: DB, T2: AI>(
+pub async fn answer<T: DBv2, T2: AI>(
     opt: Arc<RunOpt<T, T2>>,
     msg: Box<frankenstein::types::Message>,
     cmd: Command,
@@ -359,6 +368,12 @@ pub async fn answer<T: DB, T2: AI>(
             format!("your id is: {}", from_user).to_string(),
         ),
         Command::GG(from, to, text) => {
+            match google::translatev2(text.as_ref(), from, to.as_ref()).await {
+                Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+                Ok(v) => (text, markdown_escape(google::merge_translation(v).as_str())),
+            }
+        }
+        Command::GG1(from, to, text) => {
             match google::translate(text.as_ref(), from, to.as_ref()).await {
                 Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
                 Ok(v) => (text, markdown_escape(google::merge_translation(v).as_str())),
@@ -467,7 +482,7 @@ pub async fn answer<T: DB, T2: AI>(
     Ok(())
 }
 
-pub async fn callback_query<T: DB, T2: AI>(
+pub async fn callback_query<T: DBv2, T2: AI>(
     opt: Arc<RunOpt<T, T2>>,
     call_query: Box<frankenstein::types::CallbackQuery>,
     command: CallbackQueryCommand,
@@ -569,7 +584,7 @@ pub async fn callback_query<T: DB, T2: AI>(
     Ok(())
 }
 
-pub async fn send_random_word<T: DB, T2: AI>(
+pub async fn send_random_word<T: DBv2, T2: AI>(
     opt: Arc<RunOpt<T, T2>>,
 ) -> Result<(), frankenstein::Error> {
     let reply = match opt.d1.random_word().await {

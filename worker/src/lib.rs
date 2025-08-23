@@ -1,12 +1,14 @@
 pub mod ai;
 pub mod d1;
+pub mod d1v1;
 
 use crate::{ai::WasmAI, d1::WasmD1};
 use frankenstein::{client_reqwest, updates::Update};
 use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{self, send_random_word};
-use log::{debug, error};
+use hjweb::r#static::Assets;
+use log::{debug, error, info};
 use std::ops::Deref;
 use std::sync::Once;
 use std::{collections::HashSet, sync::Arc};
@@ -66,7 +68,7 @@ async fn get_opt(env: Arc<Env>) -> Arc<RunOpt<WasmD1, WasmAI>> {
 }
 
 #[event(fetch)]
-async fn main(req: worker::Request, env: Env, _ctx: Context) -> Result<Response> {
+async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     let env = Arc::new(env);
     let opt = get_opt(env.clone()).await;
 
@@ -107,7 +109,28 @@ async fn main(req: worker::Request, env: Env, _ctx: Context) -> Result<Response>
         };
     });
 
-    router.run(req, env.deref().clone()).await
+    router = router.post_async("/word/:path", async |mut req, _ctx| {
+        info!("new word request, path: {}", req.url()?.path());
+
+        let body = req.bytes().await?;
+
+        let words = opt
+            .route(req.url()?.path(), body)
+            .await
+            .map_err(|e| worker::Error::from(e.to_string()))?;
+
+        Response::ok(String::from_utf8_lossy(&words).to_string())
+    });
+
+    let resp = router
+        .run(req.clone().unwrap(), env.deref().clone())
+        .await?;
+
+    if resp.status_code() == 404 {
+        return static_file(req.clone().unwrap()).await;
+    }
+
+    Ok(resp)
 }
 
 #[event(scheduled)]
@@ -120,4 +143,63 @@ pub async fn scheduled(_: ScheduledEvent, env: Env, _: ScheduleContext) {
         }
         Ok(_) => {}
     }
+}
+
+pub async fn static_file(req: Request) -> worker::Result<Response> {
+    let mut path = req.path().clone();
+    if path.ends_with("/") {
+        path = path.strip_suffix("/").unwrap().to_string();
+    }
+
+    if path.starts_with("/") {
+        path = path.strip_prefix("/").unwrap().to_string();
+    }
+
+    let (path, file) = match Assets::get(&path) {
+        Some(file) => (path.to_string(), file),
+        None => {
+            let path = format!(
+                "{}{}",
+                path,
+                if path.is_empty() {
+                    "index.html"
+                } else {
+                    "/index.html"
+                }
+            );
+
+            let pp = path.clone();
+            match Assets::get(&pp) {
+                Some(file) => (pp.clone(), file),
+                None => return Response::error("file not found", 404),
+            }
+        }
+    };
+
+    let ext = if let Some((_, ext)) = path.rsplit_once(".") {
+        ext
+    } else {
+        ""
+    };
+
+    let ct = match ext {
+        "html" => "text/html",
+        "css" => "text/css",
+        "js" => "text/javascript",
+        "json" => "application/json",
+        "png" => "image/png",
+        "jpg" => "image/jpeg",
+        "jpeg" => "image/jpeg",
+        "ico" => "image/x-icon",
+        "wasm" => "application/wasm",
+        _ => "",
+    };
+
+    let mut resp = ResponseBuilder::new();
+
+    if !ct.is_empty() {
+        resp = resp.with_header("content-type", ct)?;
+    }
+
+    Ok(resp.fixed(file.data.to_vec()))
 }

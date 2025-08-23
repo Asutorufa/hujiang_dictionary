@@ -8,6 +8,34 @@ on:
     branches: [ "rust" ]
 
 jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: get run id
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "GITHUB_RUN_ID=$(gh run list -b react -w React -L 1 -s success --json databaseId -q .[0].databaseId)" >> $GITHUB_ENV
+
+      - uses: actions/download-artifact@v5
+        with:
+          name: statics
+          path: web/out
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ env.GITHUB_RUN_ID }}
+
+      - run: |
+          ls -lh web/out
+
+      - name: Cache Web
+        id: cache-web
+        uses: actions/cache@v4
+        with:
+          path: web/out
+          key: cache-web-${{ github.run_id }}-${{ github.run_attempt }}
+
   build:
     name: Build - ${{ matrix.platform.os-name }}
     strategy:
@@ -57,6 +85,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Cache Web
+        id: cache-web
+        uses: actions/cache@v4
+        with:
+          path: web/out
+          key: cache-web-${{ github.run_id }}-${{ github.run_attempt }}
+
       - name: Build binary
         uses: houseabsolute/actions-rust-cross@v1
         with:
