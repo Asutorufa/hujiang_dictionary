@@ -64,8 +64,13 @@ impl DB for D1 {
         Ok(v)
     }
 
-    async fn list_word(&self, page_size: u64, page_number: u64) -> Result<Vec<Word>, Error> {
-        self.raw::<Word>(SQL::ListWord(page_size, page_number))
+    async fn list_word(
+        &self,
+        page_size: u64,
+        page_number: u64,
+        order_by: &str,
+    ) -> Result<Vec<Word>, Error> {
+        self.raw::<Word>(SQL::ListWord(page_size, page_number, order_by))
             .await
     }
 }

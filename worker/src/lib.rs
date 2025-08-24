@@ -7,7 +7,6 @@ use frankenstein::{client_reqwest, updates::Update};
 use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{self, send_random_word};
-use hjweb::r#static::Assets;
 use log::{debug, error, info};
 use std::ops::Deref;
 use std::sync::Once;
@@ -69,6 +68,10 @@ async fn get_opt(env: Arc<Env>) -> Arc<RunOpt<WasmD1, WasmAI>> {
 
 #[event(fetch)]
 async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
+    if req.method() == Method::Options {
+        return Response::ok("");
+    }
+
     let env = Arc::new(env);
     let opt = get_opt(env.clone()).await;
 
@@ -127,7 +130,10 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .await?;
 
     if resp.status_code() == 404 {
-        return static_file(req.clone().unwrap()).await;
+        return env
+            .assets("ASSETS")?
+            .fetch_request(req.clone().unwrap())
+            .await;
     }
 
     Ok(resp)
@@ -145,6 +151,7 @@ pub async fn scheduled(_: ScheduledEvent, env: Env, _: ScheduleContext) {
     }
 }
 
+/*
 pub async fn static_file(req: Request) -> worker::Result<Response> {
     let mut path = req.path().clone();
     if path.ends_with("/") {
@@ -155,26 +162,24 @@ pub async fn static_file(req: Request) -> worker::Result<Response> {
         path = path.strip_prefix("/").unwrap().to_string();
     }
 
-    let (path, file) = match Assets::get(&path) {
-        Some(file) => (path.to_string(), file),
-        None => {
-            let path = format!(
-                "{}{}",
-                path,
-                if path.is_empty() {
-                    "index.html"
-                } else {
-                    "/index.html"
-                }
-            );
-
-            let pp = path.clone();
-            match Assets::get(&pp) {
-                Some(file) => (pp.clone(), file),
-                None => return Response::error("file not found", 404),
+    let mut paths = vec![
+        path.clone(),
+        format!(
+            "{}{}",
+            path,
+            if path.is_empty() {
+                "index.html"
+            } else {
+                "/index.html"
             }
-        }
-    };
+        ),
+    ];
+
+    if !path.is_empty() {
+        paths.push(format!("{}.html", path));
+    }
+
+    let (path, file) = get_file(paths)?;
 
     let ext = if let Some((_, ext)) = path.rsplit_once(".") {
         ext
@@ -203,3 +208,15 @@ pub async fn static_file(req: Request) -> worker::Result<Response> {
 
     Ok(resp.fixed(file.data.to_vec()))
 }
+
+fn get_file(paths: Vec<String>) -> Result<(String, EmbeddedFile)> {
+    for p in paths {
+        match Assets::get(p.as_str()) {
+            Some(file) => return Ok((p, file)),
+            None => {}
+        };
+    }
+
+    Err(worker::Error::from("file not found"))
+}
+*/

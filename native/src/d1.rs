@@ -148,7 +148,7 @@ impl D1 {
         );
 
         let body = serde_json::to_string(&QueryBody {
-            sql: sql.sql().to_string(),
+            sql: sql.sql(),
             params: sql.params::<String>(),
         })?;
 
@@ -242,7 +242,7 @@ mod test {
 
         println!("random: {:?}", d1.random_word().await.unwrap());
 
-        let result = d1.raw::<Word>(SQL::ListWord(10, 1)).await.unwrap();
+        let result = d1.raw::<Word>(SQL::ListWord(10, 1, "word")).await.unwrap();
 
         println!("{:?}", result);
     }
@@ -251,6 +251,6 @@ mod test {
     async fn test_list_word() {
         let d1 = new_d1().await;
 
-        println!("{:?}", d1.list_word(10, 1).await.unwrap());
+        println!("{:?}", d1.list_word(10, 1, "word").await.unwrap());
     }
 }

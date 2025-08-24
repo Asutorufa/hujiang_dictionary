@@ -27,3 +27,7 @@ crons = ["${SCHEDULE}"] # UTC timezone
 
 [placement]
 mode = "smart"
+
+[assets]
+directory = "./web/out"
+binding = "ASSETS"

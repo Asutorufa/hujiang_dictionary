@@ -11,6 +11,24 @@ use crate::{
 pub struct ListWordRequest {
     pub page_size: Option<u64>,
     pub page_number: Option<u64>,
+    pub order_by: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct SaveWordRequest {
+    pub word: String,
+    pub explain: String,
+}
+
+#[derive(Deserialize)]
+pub struct SingleWordRequest {
+    pub word: String,
+}
+
+#[derive(Deserialize)]
+pub struct ChangeWordPriorityRequest {
+    pub word: String,
+    pub priority: u64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -24,6 +42,11 @@ pub struct WordQueryRequest {
 #[derive(Debug, Clone, Serialize)]
 pub struct WordQueryResponse {
     pub result: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct WordCountResponse {
+    pub size: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -63,6 +86,11 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
         match path {
             "/word/list" => self.list_word(body).await,
             "/word/query" => self.word_query(body).await,
+            "/word/count" => self.count_word().await,
+            "/word/save" => self.save_word(body).await,
+            "/word/delete" => self.delete_word(body).await,
+            "/word/remind_count_increment" => self.increment_remind_count(body).await,
+            "/word/priority" => self.change_priority(body).await,
             _ => Err(Error("not found".to_string())),
         }
     }
@@ -70,12 +98,63 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
     pub async fn list_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<ListWordRequest>(&body)?;
 
+        let order_by = req.order_by.clone().unwrap_or("word".to_string());
+
+        let order_by = if order_by.ends_with(" desc") {
+            order_by.strip_suffix(" desc").unwrap().to_string()
+        } else {
+            order_by
+        };
+
+        match order_by.as_str() {
+            "word" | "update_time" | "priority" => {}
+            _ => return Err(Error("invalid order_by".to_string())),
+        }
+
         let words = self
             .d1
-            .list_word(req.page_size.unwrap_or(10), req.page_number.unwrap_or(1))
+            .list_word(
+                req.page_size.unwrap_or(10),
+                req.page_number.unwrap_or(1),
+                req.order_by.unwrap_or("word".to_string()).as_ref(),
+            )
             .await?;
 
         Ok(serde_json::to_vec(&words)?)
+    }
+
+    pub async fn save_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        let req = serde_json::from_slice::<SaveWordRequest>(&body)?;
+
+        self.d1.save_word(&req.word, &req.explain).await?;
+
+        Ok(['{' as u8, '}' as u8].to_vec())
+    }
+
+    pub async fn delete_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        let req = serde_json::from_slice::<SingleWordRequest>(&body)?;
+
+        self.d1.delete_word(&req.word).await?;
+
+        Ok(['{' as u8, '}' as u8].to_vec())
+    }
+
+    pub async fn count_word(&self) -> Result<Vec<u8>, Error> {
+        let size = self.d1.count_word().await?;
+
+        Ok(serde_json::to_vec(&WordCountResponse { size })?)
+    }
+
+    pub async fn increment_remind_count(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        let req = serde_json::from_slice::<SingleWordRequest>(&body)?;
+        self.d1.increment_remind_count(&req.word).await?;
+        Ok(['{' as u8, '}' as u8].to_vec())
+    }
+
+    pub async fn change_priority(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        let req = serde_json::from_slice::<ChangeWordPriorityRequest>(&body)?;
+        self.d1.change_priority(&req.word, req.priority).await?;
+        Ok(['{' as u8, '}' as u8].to_vec())
     }
 
     fn llm_query(&self, req: WordQueryRequest) -> String {

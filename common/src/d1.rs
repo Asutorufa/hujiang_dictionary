@@ -9,6 +9,13 @@ pub struct Word {
     add_time: i64,
     update_time: i64,
     reminder_time: i64,
+    anki_count: u64,
+    priority: u64,
+}
+
+#[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
+pub struct Count {
+    pub size: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
@@ -59,6 +66,7 @@ pub trait DB {
         &self,
         page_size: u64,
         page_number: u64,
+        order_by: &str,
     ) -> impl Future<Output = Result<Vec<Word>, Error>>;
     fn create_table(&self) -> impl Future<Output = Result<(), Error>>;
 }
@@ -86,10 +94,42 @@ pub trait DBv2 {
         &self,
         page_size: u64,
         page_number: u64,
+        order_by: &str,
     ) -> impl Future<Output = Result<Vec<Word>, Error>> {
         async move {
-            self.exec::<Word>(SQL::ListWord(page_size, page_number))
+            self.exec::<Word>(SQL::ListWord(page_size, page_number, order_by))
                 .await
+        }
+    }
+
+    fn count_word(&self) -> impl Future<Output = Result<u64, Error>> {
+        async move {
+            let c = self.exec::<Count>(SQL::CountWord).await?;
+
+            if c.is_empty() {
+                Err(Error("get count failed".to_string()))
+            } else {
+                Ok(c[0].size)
+            }
+        }
+    }
+
+    fn increment_remind_count(&self, word: &str) -> impl Future<Output = Result<(), Error>> {
+        async move {
+            self.exec::<Empty>(SQL::IncrementRemindCount(word)).await?;
+            Ok(())
+        }
+    }
+
+    fn change_priority(
+        &self,
+        word: &str,
+        priority: u64,
+    ) -> impl Future<Output = Result<(), Error>> {
+        async move {
+            self.exec::<Empty>(SQL::ChangePriority(word, priority))
+                .await?;
+            Ok(())
         }
     }
 
@@ -128,22 +168,25 @@ pub enum SQL<'a> {
     RandomNotRemind,
     Random,
     UpdateRemindTime(&'a str),
-    ListWord(u64, u64),
+    ListWord(u64, u64, &'a str),
+    CountWord,
+    IncrementRemindCount(&'a str),
+    ChangePriority(&'a str, u64),
 }
 
 impl<'a> SQL<'a> {
-    pub fn sql(&self) -> &str {
+    pub fn sql(&self) -> String {
         match self {
             SQL::SaveWord(_, _) => {
-                "INSERT INTO words (word, explain, add_time, update_time) VALUES (?, ?, strftime('%s', 'now'), strftime('%s', 'now')) ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = strftime('%s', 'now')"
+                "INSERT INTO words (word, explain, add_time, update_time) VALUES (?, ?, strftime('%s', 'now'), strftime('%s', 'now')) ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = strftime('%s', 'now')".to_string()
             }
-            SQL::DeleteWord(_) => "DELETE FROM words WHERE word = ?",
+            SQL::DeleteWord(_) => "DELETE FROM words WHERE word = ?".to_string(),
             SQL::RandomNotRemind => {
-                "SELECT * FROM words WHERE reminder_time <= strftime('%s', 'now') - 43200 ORDER BY RANDOM() LIMIT 1"
+                "SELECT * FROM words WHERE reminder_time <= strftime('%s', 'now') - 43200 ORDER BY RANDOM() LIMIT 1".to_string()
             }
-            SQL::Random => "SELECT * FROM words ORDER BY RANDOM() LIMIT 1",
+            SQL::Random => "SELECT * FROM words ORDER BY RANDOM() LIMIT 1".to_string(),
             SQL::UpdateRemindTime(_) => {
-                "UPDATE words SET reminder_time = strftime('%s', 'now') WHERE word = ?"
+                "UPDATE words SET reminder_time = strftime('%s', 'now') WHERE word = ?".to_string()
             }
             SQL::CreateTable => {
                 r#"
@@ -152,11 +195,21 @@ CREATE TABLE IF NOT EXISTS [words] (
     "explain" TEXT,
     "add_time" INTEGER,
     "update_time" INTEGER,
-    "reminder_time" INTEGER DEFAULT 0
+    "reminder_time" INTEGER DEFAULT 0,
+    "anki_count" INTEGER DEFAULT 1,
+    "priority" INTEGER DEFAULT 0
 );
-               "#
+ALTER TABLE words ADD COLUMN anki_count INTEGER DEFAULT 1;
+ALTER TABLE words ADD COLUMN priority INTEGER DEFAULT 0;
+               "#.to_string()
             }
-            SQL::ListWord(_, _) => "SELECT * FROM words ORDER BY word LIMIT ? OFFSET ?",
+            SQL::ListWord(_, _, order_by) => format!("SELECT * FROM words ORDER BY {} LIMIT ? OFFSET ?", order_by),
+            
+            SQL::CountWord => "SELECT count(*) as size FROM words".to_string(),
+            SQL::IncrementRemindCount(_) => {
+                "UPDATE words SET anki_count = anki_count + 1 WHERE word = ?".to_string()
+            }
+            SQL::ChangePriority(_, _) => "UPDATE words SET priority = ? WHERE word = ?".to_string(),
         }
     }
 
@@ -178,11 +231,18 @@ CREATE TABLE IF NOT EXISTS [words] (
             SQL::RandomNotRemind | SQL::Random | SQL::CreateTable => {
                 vec![]
             }
-            SQL::ListWord(page_size, page_number) => {
+            SQL::ListWord(page_size, page_number, _) => {
                 let size = if *page_size > 0 { 10 } else { *page_size };
                 let offset = (*page_number - 1) * size;
 
                 vec![size.to_string().into(), offset.to_string().into()]
+            }
+            SQL::CountWord => vec![],
+            SQL::IncrementRemindCount(word) => {
+                vec![(*word).to_string().into()]
+            }
+            SQL::ChangePriority(word, priority) => {
+                vec![(*priority).to_string().into(), (*word).to_string().into()]
             }
         }
     }

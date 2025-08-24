@@ -37,8 +37,13 @@ impl DB for WasmD1 {
         Ok(())
     }
 
-    async fn list_word(&self, page_size: u64, page_number: u64) -> Result<Vec<Word>, D1Error> {
-        self.exec::<Word>(SQL::ListWord(page_size, page_number))
+    async fn list_word(
+        &self,
+        page_size: u64,
+        page_number: u64,
+        order_by: &str,
+    ) -> Result<Vec<Word>, D1Error> {
+        self.exec::<Word>(SQL::ListWord(page_size, page_number, order_by))
             .await
     }
 }
