@@ -4,6 +4,7 @@ import { Avatar, Button, Card, CardBody, CardFooter, Select, SelectItem, Textare
 import { useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { SaveWordModal } from "./docs/words/page";
 
 type QueryWordResponse = {
   result: string;
@@ -57,10 +58,12 @@ export default function Home() {
   const [srcLang, setSrcLang] = useState("");
   const [dstLang, setDstLang] = useState("ja");
   const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
 
 
   return (
     <>
+      <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={query} explain={result} />
       <div className="p-2">
         <div className="flex w-full justify-center flex-wrap md:flex-nowrap gap-4 items-center">
           <Select label="Translate Type"
@@ -111,13 +114,22 @@ export default function Home() {
         <div className="mt-2">
           <Card>
             <CardBody>
-              <Textarea label="Query" type="textarea"
-                value={query} onChange={(e) => setQuery(e.target.value)} />
+              <Textarea
+                isInvalid={query.length === 0}
+                errorMessage={"Query is empty"}
+                label="Query"
+                type="textarea"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
             </CardBody>
             <CardFooter className="flex justify-center">
-              <Button color="primary"
+              <Button
+                variant="bordered"
+                color="primary"
                 isLoading={loading}
                 onPress={() => {
+                  if (!query) return;
                   setLoading(true);
                   queryWord(selected, query, srcLang, dstLang, (data, error) => {
                     console.log(data);
@@ -154,9 +166,19 @@ export default function Home() {
                 </>
               }
             </CardBody>
+
+            <CardFooter className="flex justify-center">
+              <Button
+                color="primary"
+                variant="bordered"
+                onPress={() => setOpen(true)}
+              >
+                Save
+              </Button>
+            </CardFooter>
           </Card>
         </div>
-      </div>
+      </div >
     </>
   );
 }
