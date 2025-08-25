@@ -4,7 +4,7 @@ import { Avatar, Button, Card, CardBody, CardFooter, Select, SelectItem, Textare
 import { useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { SaveWordModal } from "./docs/words/page";
+import { SaveWordModal } from "./components";
 
 type QueryWordResponse = {
   result: string;

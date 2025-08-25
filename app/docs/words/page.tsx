@@ -1,33 +1,35 @@
 "use client"
 
-import { Button, Listbox, ListboxItem, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Pagination, Spinner, Textarea, useDisclosure } from "@heroui/react";
-import { FC, SVGProps, useEffect, useState } from "react";
+import { changePriority, countWord, incrementRemindCount, ListWordResponse, queryWord, SaveWordModal } from "@/app/components";
+import { Button, Card, CardBody, CardFooter, CardHeader, Modal, ModalBody, ModalContent, ModalFooter, Pagination, Select, SelectItem, Spinner, Tab, Tabs } from "@heroui/react";
+import { FC, useEffect, useState } from "react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 
-export const ChevronRightIcon = (props: SVGProps<SVGSVGElement>) => {
-    return (
-        <svg
-            aria-hidden="true"
-            fill="none"
-            focusable="false"
-            height="1em"
-            role="presentation"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="1.5"
-            viewBox="0 0 24 24"
-            width="1em"
-            {...props}
-        >
-            <path d="m9 18 6-6-6-6" />
-        </svg>
-    );
-};
+// const ChevronRightIcon = (props: SVGProps<SVGSVGElement>) => {
+//     return (
+//         <svg
+//             aria-hidden="true"
+//             fill="none"
+//             focusable="false"
+//             height="1em"
+//             role="presentation"
+//             stroke="currentColor"
+//             strokeLinecap="round"
+//             strokeLinejoin="round"
+//             strokeWidth="1.5"
+//             viewBox="0 0 24 24"
+//             width="1em"
+//             {...props}
+//         >
+//             <path d="m9 18 6-6-6-6" />
+//         </svg>
+//     );
+// };
 
 
-export const PlusIcon = ({ size = 24, width, height, ...props }: { size?: number, width?: number, height?: number }) => {
+const PlusIcon = ({ size = 24, width, height, ...props }: { size?: number, width?: number, height?: number }) => {
     return (
         <svg
             aria-hidden="true"
@@ -53,154 +55,40 @@ export const PlusIcon = ({ size = 24, width, height, ...props }: { size?: number
     );
 };
 
-export const ItemCounter = ({ number }: { number: number }) => (
-    <div className="flex items-center gap-1 text-default-400">
-        <span className="text-small">{number}</span>
-        <ChevronRightIcon className="text-xl" />
-    </div>
-);
+// const ItemCounter = ({ number }: { number: number }) => (
+//     <div className="flex items-center gap-1 text-default-400">
+//         <span className="text-small">{number}</span>
+//         <ChevronRightIcon className="text-xl" />
+//     </div>
+// );
 
 
-type ListWordResponse = {
-    word: string,
-    explain: string,
-    add_time: number,
-    update_time: number,
-    reminder_time: number,
-}
-
-async function queryWord(page: number, size: number, callback: (data?: ListWordResponse[], error?: string) => void) {
-    fetch("/word/list", {
-        method: "POST",
-        headers: {},
-        body: JSON.stringify({
-            page_size: size,
-            page_number: page,
-        }),
-    })
-        .then((res) => res.json() as Promise<ListWordResponse[]>)
-        .then((data) => {
-            callback(data, undefined);
-        })
-        .catch((error) => {
-            callback(undefined, error.message);
-        });
-}
-
-
-type CountWordResponse = {
-    size: number,
-}
-
-async function countWord(callback: (size?: number, error?: string) => void) {
-    fetch("/word/count", {
-        method: "POST",
-        headers: {},
-    })
-        .then((res) => res.json() as Promise<CountWordResponse>)
-        .then((data) => {
-            callback(data.size, undefined);
-        })
-        .catch((error) => {
-            callback(undefined, error.message);
-        });
-}
-
-export async function saveWord(word: string, explain: string, callback: (error?: string) => void) {
-    fetch("/word/save", {
-        method: "POST",
-        headers: {},
-        body: JSON.stringify({
-            word: word,
-            explain: explain,
-        }),
-    })
-        .then(() => {
-            callback(undefined);
-        })
-        .catch((error) => {
-            callback(error.message);
-        });
-}
-
-export const SaveWordModal: FC<{
-    open: boolean,
-    onChange: (open: boolean) => void,
-    word?: string,
-    explain?: string,
-}> = ({ open, onChange, word, explain }) => {
-    const [saving, setSaving] = useState(false)
-    const { isOpen, onOpen, onOpenChange } = useDisclosure();
-
-    useEffect(() => {
-        if (open) {
-            onOpen()
-        }
-    }, [open, onOpen])
-
-    const [newWord, setNewWord] = useState(word || "");
-    const [newExplain, setNewExplain] = useState(explain || "");
-
-    useEffect(() => {
-        setNewWord(word || "");
-        setNewExplain(explain || "");
-    }, [word, explain])
-
-    return <Modal isOpen={isOpen} backdrop="blur" placement="top-center" onOpenChange={(p) => {
-        onChange(p)
-        onOpenChange()
-    }}>
-        <ModalContent>
-            {(onClose) => (
-                <>
-                    <ModalHeader className="flex flex-col gap-1">Save Word</ModalHeader>
-                    <ModalBody>
-                        <Textarea
-                            label="Word"
-                            isInvalid={newWord.length === 0}
-                            errorMessage={"Word is empty"}
-                            value={newWord}
-                            onChange={(p) => setNewWord(p.target.value)}
-                            placeholder="Enter Word"
-                            variant="bordered"
-                        />
-                        <Textarea
-                            label="Explain"
-                            isInvalid={newExplain.length === 0}
-                            errorMessage={"Explain is empty"}
-                            value={newExplain}
-                            onChange={(p) => setNewExplain(p.target.value)}
-                            placeholder="Enter explain"
-                            variant="bordered"
-                        />
-                    </ModalBody>
-                    <ModalFooter>
-                        <Button color="danger" variant="flat" onPress={onClose}>
-                            Close
-                        </Button>
-                        <Button color="primary" isLoading={saving} onPress={() => {
-                            if (newWord.length === 0 || newExplain.length === 0) return
-                            setSaving(true)
-                            saveWord(newWord, newExplain, () => {
-                                setSaving(false)
-                                onClose()
-                            })
-                        }}>
-                            Save
-                        </Button>
-                    </ModalFooter>
-                </>
-            )}
-        </ModalContent>
-    </Modal>
-}
 
 export default function Words() {
-    const [words, setWords] = useState<ListWordResponse[]>([]);
+    const [words, setWords] = useState<ListWordResponse[]>([{
+        word: "",
+        explain: "",
+        add_time: 0,
+        update_time: 0,
+        reminder_time: 0,
+        anki_count: 0,
+        priority: 0,
+    }]);
     const [page, setPage] = useState<number>(1);
     const [total, setTotal] = useState<number>(1);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
+    const [newWord, setNewWord] = useState<ListWordResponse>({
+        word: "",
+        explain: "",
+        add_time: 0,
+        update_time: 0,
+        reminder_time: 0,
+        anki_count: 0,
+        priority: 0,
+    });
+    const [priority, setPriority] = useState({ index: 0, value: 0, open: false });
+    const [orderBy, setOrderBy] = useState("word");
 
 
     useEffect(() => {
@@ -213,14 +101,14 @@ export default function Words() {
 
     useEffect(() => {
         setLoading(true)
-        queryWord(page, 10, (data) => {
+        queryWord(page, 10, orderBy, (data) => {
             if (data) {
                 setWords(data)
             }
 
             setLoading(false)
         })
-    }, [page, setWords])
+    }, [page, orderBy])
 
     // if (loading) {
     //     return <>
@@ -231,7 +119,21 @@ export default function Words() {
     // }
 
     return <>
-        <SaveWordModal open={open} onChange={(p) => setOpen(p)} />
+        <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={newWord.word} explain={newWord.explain} />
+        <ConfirmModal
+            title={`Are you sure want to change ${words[priority.index].word}'s priority to ${getPriorityText(priority.value)}?`}
+            open={priority.open}
+            onChange={(p) => setPriority(prev => ({ ...prev, open: p }))}
+            onConfirm={async () => {
+                setWords(prev => {
+                    const newWords = [...prev]
+                    newWords[priority.index].priority = priority.value
+                    return newWords
+                })
+            }}
+        />
+
+        <div className="h-15" />
 
         <div className="p-2">
             {loading &&
@@ -239,6 +141,23 @@ export default function Words() {
                     <Spinner />
                 </div>
             }
+            <Select
+                variant="bordered"
+                className="fixed z-50 top-5 w-25"
+                classNames={{
+                    base: "backdrop-blur-sm"
+                }}
+                selectedKeys={[orderBy]}
+                onChange={(e) => setOrderBy(e.target.value)}
+            >
+                <SelectItem key="word">Word</SelectItem>
+                <SelectItem key="word desc">Word DESC</SelectItem>
+                <SelectItem key="priority">Priority</SelectItem>
+                <SelectItem key="priority desc">Priority DESC</SelectItem>
+                <SelectItem key="update_time">Time</SelectItem>
+                <SelectItem key="update_time desc">Time DESC</SelectItem>
+            </Select>
+
             <div className="flex fixed z-50 top-5 left-1/2 -translate-x-1/2">
                 <Pagination
                     // isCompact
@@ -254,33 +173,166 @@ export default function Words() {
                     page={page}
                     className="items-center"
                     siblings={0} initialPage={page} total={total}
-                />
-                <Button isIconOnly onPress={() => setOpen(true)} size="md" variant="bordered" className="items-center ms-2 shadow-md backdrop-blur-sm"><PlusIcon /></Button>
 
+
+                />
+                <Button isIconOnly onPress={() => setOpen(true)} size="md" variant="bordered" className="ms-2 shadow-md backdrop-blur-sm"><PlusIcon /></Button>
             </div>
 
-            <Listbox>
+            <div className="gap-2 top-5">
                 {
-                    words.map((w) =>
-                        <ListboxItem
-                            key={w.word}
-                        // endContent={<ItemCounter number={w.reminder_time} />}
+                    words.length && words.filter(w => w.word.length > 0).map((w, i) =>
+                        <Card
+                            key={w.word + i}
+                            // endContent={<ItemCounter number={w.reminder_time} />}
+                            onClick={() => {
+                                setNewWord(w)
+                                setOpen(true)
+                            }}
+                            className="mt-2"
                         >
-                            <div className="flex flex-col gap-1">
-                                <div className="flex justify-between">
-                                    <span>{w.word}</span>
-                                    <span className="text-default-500">{new Date(w.update_time * 1000).toLocaleString()}</span>
+                            <CardHeader className="flex justify-between">
+                                <div className="flex gap-2">
+                                    <Tabs
+                                        size="sm"
+                                        variant="bordered"
+                                        color={getPriorityColor(w.priority)}
+                                        selectedKey={w.priority.toString()}
+                                        onSelectionChange={(e) => {
+                                            changePriority(w.word, parseInt(e.toString()), (error) => {
+                                                if (!error) {
+                                                    setPriority({ index: i, value: parseInt(e.toString()), open: true })
+                                                }
+                                            })
+                                        }}
+                                    >
+                                        <Tab title="Low" key={0} />
+                                        <Tab title="Medium" key={1} />
+                                        <Tab title="High" key={2} />
+                                    </Tabs>
+                                    <div className="flex">
+                                        <Button
+                                            isIconOnly
+                                            variant="bordered"
+                                            size="md"
+                                            onPress={() => {
+                                                incrementRemindCount(w.word, (error) => {
+                                                    if (!error) {
+                                                        setWords(prev => {
+                                                            const newWords = [...prev]
+                                                            newWords[i].anki_count = newWords[i].anki_count + 1
+                                                            return newWords
+                                                        })
+                                                    }
+                                                })
+                                            }}
+                                        >
+                                            <Up />
+                                        </Button>
+                                        <span className="flex z-10 flex-wrap relative box-border rounded-full whitespace-nowrap place-content-center origin-center items-center select-none font-regular scale-100 opacity-100 subpixel-antialiased data-[invisible=true]:scale-0 data-[invisible=true]:opacity-0 text-small px-0 transition-transform-opacity !ease-soft-spring !duration-300 border-transparent border-0 bg-default text-default-foreground w-5 h-5 min-w-5 min-h-5 top-[20%] right-[35%] translate-x-1/2 -translate-y-1/2">
+                                            {w.anki_count}
+                                        </span>
+                                    </div>
                                 </div>
+                                {/* <Chip
+                                    className="ms-2"
+                                    size="sm"
+                                    variant="dot"
+                                    color={w.priority === 0 ? "success" : w.priority === 1 ? "warning" : "secondary"}
+                                    onClick={(e) => { e.stopPropagation() }}
+                                >
+                                    {w.priority === 0 ? "Low" : w.priority === 1 ? "Medium" : "High"}
+                                </Chip> */}
+
+                                <span>{w.word}</span>
+                                <span className="text-default-500">{new Date(w.update_time * 1000).toLocaleString()}</span>
+                            </CardHeader>
+                            <CardBody>
                                 <div className="px-2 py-1 rounded-small bg-default-100 group-data-[hover=true]:bg-default-200">
                                     <span className="text-tiny text-default-600">
-                                        <Markdown>{w.explain}</Markdown>
+                                        <Markdown remarkPlugins={[remarkGfm]}>{w.explain}</Markdown>
                                     </span>
                                 </div>
-                            </div>
-                        </ListboxItem>
+                            </CardBody>
+
+                            <CardFooter className="gap-2">
+                                <Button
+                                    fullWidth
+                                    className="border-small border-white/20 bg-white/10 text-white"
+                                    onPress={() => {
+                                        setNewWord(w)
+                                        setOpen(true)
+                                    }}
+                                >
+                                    Edit
+                                </Button>
+
+                                <Button
+                                    fullWidth
+                                    className="border-small border-white/20 bg-white/10 text-white"
+                                >
+                                    {getPriorityText(w.priority)}
+                                </Button>
+                            </CardFooter>
+
+                        </Card>
                     )
                 }
-            </Listbox>
+            </div>
         </div>
     </>
+}
+
+
+function getPriorityColor(priority: number) {
+    if (priority === 0) {
+        return "success"
+    } else if (priority === 1) {
+        return "warning"
+    } else {
+        return "secondary"
+    }
+}
+
+function getPriorityText(priority: number) {
+    if (priority === 0) {
+        return "Low"
+    } else if (priority === 1) {
+        return "Medium"
+    } else {
+        return "High"
+    }
+}
+
+const ConfirmModal: FC<{ title: string, open: boolean, onChange: (open: boolean) => void, onConfirm: () => Promise<void> }> = ({ title, open, onConfirm, onChange }) => {
+    const [loading, setLoading] = useState(false)
+
+    return <Modal isOpen={open} onOpenChange={onChange} hideCloseButton>
+        <ModalContent>
+            <>
+                <ModalBody className="text-center">{title}</ModalBody>
+                <ModalFooter>
+                    <Button onPress={() => onChange(false)}>Close</Button>
+                    <Button
+                        isLoading={loading} color="primary"
+                        onPress={async () => {
+                            setLoading(true)
+                            await onConfirm()
+                            setLoading(false)
+                            onChange(false)
+                        }}
+                    >
+                        Ok
+                    </Button>
+                </ModalFooter>
+            </>
+        </ModalContent>
+    </Modal>
+}
+
+
+function Up() {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 20V4m0 0l6 6m-6-6l-6 6" /></svg>
+    )
 }
