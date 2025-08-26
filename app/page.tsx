@@ -1,10 +1,11 @@
 "use client"
 
-import { Avatar, Button, Card, CardBody, CardFooter, Select, SelectItem, Textarea } from "@heroui/react";
+import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Textarea } from "@heroui/react";
 import { useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { SaveWordModal } from "./components";
+import { useLocalStorage } from "usehooks-ts";
+import { DiskIcon, PlayIcon, SaveWordModal } from "./components";
 
 type QueryWordResponse = {
   result: string;
@@ -46,17 +47,47 @@ function showSelectLang(selected: string) {
 }
 
 const languages = [
+  { key: "", name: "Auto", icon: "un" },
   { key: "ja", name: "Japanese", icon: "jp" },
   { key: "zh", name: "Chinese", icon: "cn" },
   { key: "en", name: "English", icon: "us" },
 ]
 
+
+const languageMap = Object.fromEntries(
+  languages.map(({ key, name, icon }) => [key, { name, icon }])
+) as Record<typeof translationSources[number]["key"], { name: string, icon: string }>;
+
+
+type TranslationSource = {
+  key: string;
+  name: string;
+};
+
+const translationSources: TranslationSource[] = [
+  { key: "weblio", name: "Weblio" },
+  { key: "ktbk", name: "コトバンク" },
+  { key: "google", name: "Google Translate" },
+  { key: "googlev1", name: "Google Translate(old API)" },
+  { key: "gpt", name: "GPT OSS 20B" },
+  { key: "gemma", name: "Gemma3 27B IT" },
+  { key: "llama4", name: "Llama 4 Scout 17B 16E Instruct" },
+  { key: "jc", name: "Japanese to Chinese" },
+  { key: "cj", name: "Chinese to Japanese" },
+  { key: "en", name: "English to Chinese" },
+];
+
+const translationMap = Object.fromEntries(
+  translationSources.map(({ key, name }) => [key, name])
+) as Record<typeof translationSources[number]["key"], string>;
+
+
 export default function Home() {
-  const [selected, setSelected] = useState("ktbk");
-  const [query, setQuery] = useState("");
-  const [result, setResult] = useState("");
-  const [srcLang, setSrcLang] = useState("");
-  const [dstLang, setDstLang] = useState("ja");
+  const [selected, setSelected] = useLocalStorage("translate_type", "ktbk");
+  const [query, setQuery] = useLocalStorage("query", "");
+  const [result, setResult] = useLocalStorage("result", "");
+  const [srcLang, setSrcLang] = useLocalStorage("src_lang", "");
+  const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
@@ -65,90 +96,141 @@ export default function Home() {
     <>
       <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={query} explain={result} />
       <div className="p-2">
-        <div className="flex w-full justify-center flex-wrap md:flex-nowrap gap-4 items-center">
-          <Select label="Translate Type"
-            value={selected}
-            defaultSelectedKeys={[selected]}
-            onChange={(e) => setSelected(e.target.value)}>
-            <SelectItem key="weblio">Weblio</SelectItem>
-            <SelectItem key="ktbk">コトバンク</SelectItem>
-            <SelectItem key="google">Google Translate</SelectItem>
-            <SelectItem key="googlev1">Google Translate(old API)</SelectItem>
-            <SelectItem key="gpt">GPT OSS 20B</SelectItem>
-            <SelectItem key="gemma">Gemma3 27B IT</SelectItem>
-            <SelectItem key="llama4">Llama 4 Scout 17B 16E Instruct</SelectItem>
-            <SelectItem key="jc">Japanese to Chinese</SelectItem>
-            <SelectItem key="cj">Chinese to Japanese</SelectItem>
-            <SelectItem key="en">English to Chinese</SelectItem>
-          </Select>
 
-          <Select
-            isDisabled={!showSelectLang(selected)}
-            label="Source Language"
-            value={srcLang}
-            defaultSelectedKeys={[srcLang]}
-            onChange={(e) => setSrcLang(e.target.value)}>
-            {[{ key: "", name: "Auto", icon: "un" }, ...languages].map((lang) => (
-              <SelectItem key={lang.key}
-                startContent={lang.icon ? <Avatar alt={lang.name} className="w-6 h-6" src={`https://flagcdn.com/${lang.icon}.svg`} /> : undefined}>
-                {lang.name}
-              </SelectItem>
-            ))}
-          </Select>
+        <div className="sticky flex flex-wrap justify-center top-1 z-50 gap-1">
 
-          <Select
-            isDisabled={!showSelectLang(selected)}
-            label="Destination Language"
-            defaultSelectedKeys={[dstLang]}
-            value={dstLang}
-            onChange={(e) => setDstLang(e.target.value)}>
-            {languages.map((lang) => (
-              <SelectItem key={lang.key} startContent={lang.icon && (
-                <Avatar alt={lang.name} className="w-6 h-6" src={`https://flagcdn.com/${lang.icon}.svg`} />
-              )}>
-                {lang.name}
-              </SelectItem>
-            ))}
-          </Select>
-        </div>
-        <div className="mt-2">
-          <Card>
-            <CardBody>
-              <Textarea
-                isInvalid={query.length === 0}
-                errorMessage={"Query is empty"}
-                label="Query"
-                type="textarea"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </CardBody>
-            <CardFooter className="flex justify-center">
-              <Button
-                variant="bordered"
-                color="primary"
-                isLoading={loading}
-                onPress={() => {
-                  if (!query) return;
-                  setLoading(true);
-                  queryWord(selected, query, srcLang, dstLang, (data, error) => {
-                    console.log(data);
-                    if (error) {
-                      setResult(error)
-                    } else if (data) {
-                      setResult(data)
-                    } else {
-                      setResult("NOT FOUND")
-                    }
-                    setLoading(false);
-                  })
-                }}
+          <div className="flex gap-1">
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  variant="bordered"
+                  className="shadow-md backdrop-blur-sm capitalize"
+                >
+                  {translationMap[selected] || "Select"}
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                selectionMode="single"
+                selectedKeys={[selected]}
+                onSelectionChange={(e) => e.currentKey && setSelected(e.currentKey)}
               >
-                Translate
-              </Button>
-            </CardFooter>
-          </Card>
+                {
+                  translationSources.map((source) => (
+                    <DropdownItem key={source.key}>{source.name}</DropdownItem>
+                  ))
+                }
+              </DropdownMenu>
+            </Dropdown>
+
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  isIconOnly
+                  isDisabled={!showSelectLang(selected)}
+                  variant="bordered"
+                  className="shadow-md backdrop-blur-sm capitalize"
+                >
+                  <Avatar alt={languageMap[srcLang].name} className="w-6 h-6" src={`https://flagcdn.com/${languageMap[srcLang].icon}.svg`} />
+                  {/* {languageMap[srcLang].name || "Auto"} */}
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                selectionMode="single"
+                selectedKeys={[srcLang]}
+                onSelectionChange={(e) => e.currentKey !== undefined && e.currentKey !== null && setSrcLang(e.currentKey)}
+              >
+                {
+                  languages.map((lang) => (
+                    <DropdownItem
+                      key={lang.key}
+                      startContent={lang.icon ? <Avatar alt={lang.name} className="w-6 h-6" src={`https://flagcdn.com/${lang.icon}.svg`} /> : undefined}
+                    >
+                      {lang.name}
+                    </DropdownItem>
+                  ))
+                }
+              </DropdownMenu>
+            </Dropdown>
+
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  isIconOnly
+                  isDisabled={!showSelectLang(selected)}
+                  variant="bordered"
+                  className="shadow-md backdrop-blur-sm capitalize"
+                >
+                  <Avatar alt={languageMap[dstLang].name} className="w-6 h-6" src={`https://flagcdn.com/${languageMap[dstLang].icon}.svg`} />
+                  {/* {languageMap[dstLang].name || "Auto"} */}
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                selectionMode="single"
+                selectedKeys={[dstLang]}
+                onSelectionChange={(e) => e.currentKey !== undefined && e.currentKey !== null && setDstLang(e.currentKey)}
+              >
+                {
+                  languages.filter((lang) => lang.key !== "").map((lang) => (
+                    <DropdownItem
+                      key={lang.key}
+                      startContent={lang.icon ? <Avatar alt={lang.name} className="w-6 h-6" src={`https://flagcdn.com/${lang.icon}.svg`} /> : undefined}
+                    >
+                      {lang.name}
+                    </DropdownItem>
+                  ))
+                }
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+
+          <div className="flex justify-center gap-1">
+            <Button
+              isIconOnly
+              variant="bordered"
+              className="shadow-md backdrop-blur-sm"
+              isLoading={loading}
+              onPress={() => {
+                if (!query) return;
+                setLoading(true);
+                queryWord(selected, query, srcLang, dstLang, (data, error) => {
+                  console.log(data);
+                  if (error) {
+                    setResult(error)
+                  } else if (data) {
+                    setResult(data)
+                  } else {
+                    setResult("NOT FOUND")
+                  }
+                  setLoading(false);
+                })
+              }}
+            >
+              <PlayIcon />
+            </Button>
+            <Button
+              isIconOnly
+              variant="bordered"
+              className="shadow-md backdrop-blur-sm"
+              onPress={() => setOpen(true)}
+            >
+              <DiskIcon />
+            </Button>
+          </div>
         </div>
+
+        <Textarea
+          className="mt-2"
+          isInvalid={query.length === 0}
+          errorMessage={"Query is empty"}
+          label="Text"
+          type="textarea"
+          value={query}
+          height={"full"}
+          classNames={{
+            input: "resize-y min-h-[40px]",
+          }}
+          onChange={(e) => setQuery(e.target.value)}
+        />
 
         <div className="mt-2">
           <Card>
@@ -166,16 +248,6 @@ export default function Home() {
                 </>
               }
             </CardBody>
-
-            <CardFooter className="flex justify-center">
-              <Button
-                color="primary"
-                variant="bordered"
-                onPress={() => setOpen(true)}
-              >
-                Save
-              </Button>
-            </CardFooter>
           </Card>
         </div>
       </div >

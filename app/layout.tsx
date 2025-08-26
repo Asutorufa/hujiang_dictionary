@@ -1,7 +1,7 @@
 "use client"
 
 import { HeroUIProvider, Tab, Tabs, ToastProvider } from "@heroui/react";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import { usePathname, useRouter } from "next/navigation";
 import "./globals.css";
 
@@ -13,12 +13,14 @@ export default function RootLayout({
   const pathname = usePathname();
   const router = useRouter();
 
+  const { systemTheme } = useTheme();
+
   return (
     <html lang="en">
       <body>
         <HeroUIProvider navigate={router.push}>
           <ToastProvider />
-          <NextThemesProvider attribute="class" defaultTheme="light">
+          <NextThemesProvider attribute="class" defaultTheme={systemTheme}>
             <div className="fixed bottom-15 left-1/2 -translate-x-1/2 z-50">
               <Tabs
                 variant="bordered"

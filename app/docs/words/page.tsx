@@ -1,10 +1,11 @@
 "use client"
 
-import { changePriority, countWord, incrementRemindCount, ListWordResponse, queryWord, SaveWordModal } from "@/app/components";
-import { Button, Card, CardBody, CardFooter, CardHeader, Modal, ModalBody, ModalContent, ModalFooter, Pagination, Select, SelectItem, Spinner, Tab, Tabs } from "@heroui/react";
-import { FC, useEffect, useState } from "react";
+import { changePriority, countWord, EditIcon, FilterIcon, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, TrashIcon } from "@/app/components";
+import { Button, Card, CardBody, CardHeader, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination, Spinner, Tab, Tabs } from "@heroui/react";
+import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useLocalStorage } from "usehooks-ts";
 
 
 // const ChevronRightIcon = (props: SVGProps<SVGSVGElement>) => {
@@ -75,9 +76,10 @@ export default function Words() {
         priority: 0,
     }]);
     const [page, setPage] = useState<number>(1);
-    const [total, setTotal] = useState<number>(1);
+    const [total, setTotal] = useState<number>(100);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
+    const [refresh, setRefresh] = useState(0);
     const [newWord, setNewWord] = useState<ListWordResponse>({
         word: "",
         explain: "",
@@ -87,8 +89,7 @@ export default function Words() {
         anki_count: 0,
         priority: 0,
     });
-    const [priority, setPriority] = useState({ index: 0, value: 0, open: false });
-    const [orderBy, setOrderBy] = useState("word");
+    const [orderBy, setOrderBy] = useLocalStorage("order_by", "word");
 
 
     useEffect(() => {
@@ -97,18 +98,32 @@ export default function Words() {
                 setTotal(Math.ceil(size / 10))
             }
         })
-    }, [setTotal])
+    }, [setTotal, refresh])
 
     useEffect(() => {
         setLoading(true)
-        queryWord(page, 10, orderBy, (data) => {
+        queryWord(page, 10, orderBy, (data, error) => {
             if (data) {
                 setWords(data)
             }
 
+            // if (error) {
+            //     for (let i = 0; i < 10; i++) {
+            //         setWords(prev => [...prev, {
+            //             word: refresh + "tttttttttttttttttttttttest" + i,
+            //             explain: error,
+            //             add_time: 0,
+            //             update_time: 0,
+            //             reminder_time: 0,
+            //             anki_count: 0,
+            //             priority: 0,
+            //         }])
+            //     }
+            // }
+
             setLoading(false)
         })
-    }, [page, orderBy])
+    }, [page, orderBy, refresh])
 
     // if (loading) {
     //     return <>
@@ -120,20 +135,6 @@ export default function Words() {
 
     return <>
         <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={newWord.word} explain={newWord.explain} />
-        <ConfirmModal
-            title={`Are you sure want to change ${words[priority.index].word}'s priority to ${getPriorityText(priority.value)}?`}
-            open={priority.open}
-            onChange={(p) => setPriority(prev => ({ ...prev, open: p }))}
-            onConfirm={async () => {
-                setWords(prev => {
-                    const newWords = [...prev]
-                    newWords[priority.index].priority = priority.value
-                    return newWords
-                })
-            }}
-        />
-
-        <div className="h-15" />
 
         <div className="p-2">
             {loading &&
@@ -141,42 +142,59 @@ export default function Words() {
                     <Spinner />
                 </div>
             }
-            <Select
-                variant="bordered"
-                className="fixed z-50 top-5 w-25"
-                classNames={{
-                    base: "backdrop-blur-sm"
-                }}
-                selectedKeys={[orderBy]}
-                onChange={(e) => setOrderBy(e.target.value)}
-            >
-                <SelectItem key="word">Word</SelectItem>
-                <SelectItem key="word desc">Word DESC</SelectItem>
-                <SelectItem key="priority">Priority</SelectItem>
-                <SelectItem key="priority desc">Priority DESC</SelectItem>
-                <SelectItem key="update_time">Time</SelectItem>
-                <SelectItem key="update_time desc">Time DESC</SelectItem>
-            </Select>
 
-            <div className="flex fixed z-50 top-5 left-1/2 -translate-x-1/2">
+            <div className="sticky flex flex-wrap gap-1 z-50 left-1/2 top-1 justify-center">
                 <Pagination
-                    // isCompact
+                    isCompact
                     showControls
+                    isDisabled={loading}
                     // showShadow
                     classNames={{
-                        prev: "shadow-md backdrop-blur-sm",
-                        next: "shadow-md backdrop-blur-sm",
-                        item: "shadow-md backdrop-blur-sm"
+                        item: "border-0",
+                        wrapper: "shadow-md backdrop-blur-sm border-medium border-default",
+                        cursor: "border-medium bg-transparent border-blue-300",
                     }}
+                    color="default"
                     variant="bordered"
                     onChange={(p) => { setPage(p) }}
                     page={page}
                     className="items-center"
-                    siblings={0} initialPage={page} total={total}
-
-
+                    siblings={0}
+                    initialPage={page}
+                    total={total}
                 />
-                <Button isIconOnly onPress={() => setOpen(true)} size="md" variant="bordered" className="ms-2 shadow-md backdrop-blur-sm"><PlusIcon /></Button>
+
+                <div className="flex flex-wrap gap-1">
+                    <Dropdown>
+                        <DropdownTrigger>
+                            <Button isDisabled={loading} isIconOnly size="md" variant="bordered" className="shadow-md backdrop-blur-sm"><FilterIcon /></Button>
+                        </DropdownTrigger>
+                        <DropdownMenu
+                            selectionMode="single"
+                            selectedKeys={[orderBy]}
+                            onSelectionChange={(e) => setOrderBy(e.currentKey ? e.currentKey : "word")}
+                        >
+                            <DropdownItem key="word">Word</DropdownItem>
+                            <DropdownItem key="word desc">Word DESC</DropdownItem>
+                            <DropdownItem key="priority">Priority</DropdownItem>
+                            <DropdownItem key="priority desc">Priority DESC</DropdownItem>
+                            <DropdownItem key="update_time">Time</DropdownItem>
+                            <DropdownItem key="update_time desc">Time DESC</DropdownItem>
+                        </DropdownMenu>
+                    </Dropdown>
+
+                    <Button isIconOnly onPress={() => setOpen(true)} size="md" variant="bordered" className="shadow-md backdrop-blur-sm">
+                        <PlusIcon />
+                    </Button>
+
+                    <Button isIconOnly
+                        onPress={() => setRefresh(p => p + 1)}
+                        size="md" variant="bordered" className="shadow-md backdrop-blur-sm"
+                        isDisabled={loading}
+                    >
+                        <RefreshIcon />
+                    </Button>
+                </div>
             </div>
 
             <div className="gap-2 top-5">
@@ -191,7 +209,9 @@ export default function Words() {
                             }}
                             className="mt-2"
                         >
-                            <CardHeader className="flex justify-between">
+                            <CardHeader className="flex justify-between flex-wrap">
+                                <span>{w.word}</span>
+
                                 <div className="flex gap-2">
                                     <Tabs
                                         size="sm"
@@ -201,7 +221,11 @@ export default function Words() {
                                         onSelectionChange={(e) => {
                                             changePriority(w.word, parseInt(e.toString()), (error) => {
                                                 if (!error) {
-                                                    setPriority({ index: i, value: parseInt(e.toString()), open: true })
+                                                    setWords(prev => {
+                                                        const newWords = [...prev]
+                                                        newWords[i].priority = parseInt(e.toString())
+                                                        return newWords
+                                                    })
                                                 }
                                             })
                                         }}
@@ -210,42 +234,7 @@ export default function Words() {
                                         <Tab title="Medium" key={1} />
                                         <Tab title="High" key={2} />
                                     </Tabs>
-                                    <div className="flex">
-                                        <Button
-                                            isIconOnly
-                                            variant="bordered"
-                                            size="md"
-                                            onPress={() => {
-                                                incrementRemindCount(w.word, (error) => {
-                                                    if (!error) {
-                                                        setWords(prev => {
-                                                            const newWords = [...prev]
-                                                            newWords[i].anki_count = newWords[i].anki_count + 1
-                                                            return newWords
-                                                        })
-                                                    }
-                                                })
-                                            }}
-                                        >
-                                            <Up />
-                                        </Button>
-                                        <span className="flex z-10 flex-wrap relative box-border rounded-full whitespace-nowrap place-content-center origin-center items-center select-none font-regular scale-100 opacity-100 subpixel-antialiased data-[invisible=true]:scale-0 data-[invisible=true]:opacity-0 text-small px-0 transition-transform-opacity !ease-soft-spring !duration-300 border-transparent border-0 bg-default text-default-foreground w-5 h-5 min-w-5 min-h-5 top-[20%] right-[35%] translate-x-1/2 -translate-y-1/2">
-                                            {w.anki_count}
-                                        </span>
-                                    </div>
                                 </div>
-                                {/* <Chip
-                                    className="ms-2"
-                                    size="sm"
-                                    variant="dot"
-                                    color={w.priority === 0 ? "success" : w.priority === 1 ? "warning" : "secondary"}
-                                    onClick={(e) => { e.stopPropagation() }}
-                                >
-                                    {w.priority === 0 ? "Low" : w.priority === 1 ? "Medium" : "High"}
-                                </Chip> */}
-
-                                <span>{w.word}</span>
-                                <span className="text-default-500">{new Date(w.update_time * 1000).toLocaleString()}</span>
                             </CardHeader>
                             <CardBody>
                                 <div className="px-2 py-1 rounded-small bg-default-100 group-data-[hover=true]:bg-default-200">
@@ -253,28 +242,59 @@ export default function Words() {
                                         <Markdown remarkPlugins={[remarkGfm]}>{w.explain}</Markdown>
                                     </span>
                                 </div>
+
+                                <div className="flex  mt-1">
+
+                                    <span className="text-default-500">{new Date(w.update_time * 1000).toLocaleString()}</span>
+
+                                    <div className="ml-auto flex">
+                                        <div className="flex">
+                                            <Button
+                                                isIconOnly
+                                                className="bg-transparent"
+                                                size="sm"
+                                                radius="lg"
+                                                onPress={() => {
+                                                    incrementRemindCount(w.word, (error) => {
+                                                        if (!error) {
+                                                            setWords(prev => {
+                                                                const newWords = [...prev]
+                                                                newWords[i].anki_count = newWords[i].anki_count + 1
+                                                                return newWords
+                                                            })
+                                                        }
+                                                    })
+                                                }}
+                                            >
+                                                <Up />
+                                                {w.anki_count}
+                                            </Button>
+                                        </div>
+
+                                        <Button
+                                            isIconOnly
+                                            size="sm"
+                                            radius="lg"
+                                            className="bg-transparent"
+                                            onPress={() => {
+                                                setNewWord(w)
+                                                setOpen(true)
+                                            }}
+                                        >
+                                            <EditIcon />
+                                        </Button>
+
+                                        <Button
+                                            isIconOnly
+                                            size="sm"
+                                            radius="lg"
+                                            className="bg-transparent"
+                                        >
+                                            <TrashIcon />
+                                        </Button>
+                                    </div>
+                                </div>
                             </CardBody>
-
-                            <CardFooter className="gap-2">
-                                <Button
-                                    fullWidth
-                                    className="border-small border-white/20 bg-white/10 text-white"
-                                    onPress={() => {
-                                        setNewWord(w)
-                                        setOpen(true)
-                                    }}
-                                >
-                                    Edit
-                                </Button>
-
-                                <Button
-                                    fullWidth
-                                    className="border-small border-white/20 bg-white/10 text-white"
-                                >
-                                    {getPriorityText(w.priority)}
-                                </Button>
-                            </CardFooter>
-
                         </Card>
                     )
                 }
@@ -304,35 +324,8 @@ function getPriorityText(priority: number) {
     }
 }
 
-const ConfirmModal: FC<{ title: string, open: boolean, onChange: (open: boolean) => void, onConfirm: () => Promise<void> }> = ({ title, open, onConfirm, onChange }) => {
-    const [loading, setLoading] = useState(false)
-
-    return <Modal isOpen={open} onOpenChange={onChange} hideCloseButton>
-        <ModalContent>
-            <>
-                <ModalBody className="text-center">{title}</ModalBody>
-                <ModalFooter>
-                    <Button onPress={() => onChange(false)}>Close</Button>
-                    <Button
-                        isLoading={loading} color="primary"
-                        onPress={async () => {
-                            setLoading(true)
-                            await onConfirm()
-                            setLoading(false)
-                            onChange(false)
-                        }}
-                    >
-                        Ok
-                    </Button>
-                </ModalFooter>
-            </>
-        </ModalContent>
-    </Modal>
-}
-
-
 function Up() {
     return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 20V4m0 0l6 6m-6-6l-6 6" /></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 20V4m0 0l6 6m-6-6l-6 6" /></svg>
     )
 }
