@@ -242,7 +242,10 @@ mod test {
 
         println!("random: {:?}", d1.random_word().await.unwrap());
 
-        let result = d1.raw::<Word>(SQL::ListWord(10, 1, "word")).await.unwrap();
+        let result = d1
+            .raw::<Word>(SQL::ListWord(10, 1, "word", 0))
+            .await
+            .unwrap();
 
         println!("{:?}", result);
     }
@@ -251,6 +254,6 @@ mod test {
     async fn test_list_word() {
         let d1 = new_d1().await;
 
-        println!("{:?}", d1.list_word(10, 1, "word").await.unwrap());
+        println!("{:?}", d1.list_word(10, 1, "word", 0).await.unwrap());
     }
 }

@@ -12,12 +12,14 @@ pub struct ListWordRequest {
     pub page_size: Option<u64>,
     pub page_number: Option<u64>,
     pub order_by: Option<String>,
+    pub r#type: Option<i64>,
 }
 
 #[derive(Deserialize)]
 pub struct SaveWordRequest {
     pub word: String,
     pub explain: String,
+    pub r#type: Option<i64>,
 }
 
 #[derive(Deserialize)]
@@ -86,7 +88,7 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
         match path {
             "/word/list" => self.list_word(body).await,
             "/word/query" => self.word_query(body).await,
-            "/word/count" => self.count_word().await,
+            "/word/count" => self.count_word(body).await,
             "/word/save" => self.save_word(body).await,
             "/word/delete" => self.delete_word(body).await,
             "/word/remind_count_increment" => self.increment_remind_count(body).await,
@@ -117,6 +119,7 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
                 req.page_size.unwrap_or(10),
                 req.page_number.unwrap_or(1),
                 req.order_by.unwrap_or("word".to_string()).as_ref(),
+                req.r#type.unwrap_or(0),
             )
             .await?;
 
@@ -126,7 +129,9 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
     pub async fn save_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<SaveWordRequest>(&body)?;
 
-        self.d1.save_word(&req.word, &req.explain).await?;
+        self.d1
+            .save_word(&req.word, &req.explain, req.r#type.unwrap_or(0))
+            .await?;
 
         Ok(['{' as u8, '}' as u8].to_vec())
     }
@@ -139,8 +144,13 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
         Ok(['{' as u8, '}' as u8].to_vec())
     }
 
-    pub async fn count_word(&self) -> Result<Vec<u8>, Error> {
-        let size = self.d1.count_word().await?;
+    pub async fn count_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        let r#type = match serde_json::from_slice::<ListWordRequest>(&body) {
+            Ok(req) => req.r#type.unwrap_or(0),
+            Err(_) => 0,
+        };
+
+        let size = self.d1.count_word(r#type).await?;
 
         Ok(serde_json::to_vec(&WordCountResponse { size })?)
     }

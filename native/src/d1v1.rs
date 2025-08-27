@@ -32,7 +32,7 @@ impl DB for D1 {
     }
 
     async fn save_word(&self, word: &str, explain: &str) -> Result<(), Error> {
-        self.raw::<Empty>(SQL::SaveWord(word, explain)).await?;
+        self.raw::<Empty>(SQL::SaveWord(word, explain, 0)).await?;
         Ok(())
     }
 
@@ -70,7 +70,7 @@ impl DB for D1 {
         page_number: u64,
         order_by: &str,
     ) -> Result<Vec<Word>, Error> {
-        self.raw::<Word>(SQL::ListWord(page_size, page_number, order_by))
+        self.raw::<Word>(SQL::ListWord(page_size, page_number, order_by, 0))
             .await
     }
 }

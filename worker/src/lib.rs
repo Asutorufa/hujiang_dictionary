@@ -4,7 +4,7 @@ pub mod d1v1;
 
 use crate::{ai::WasmAI, d1::WasmD1};
 use frankenstein::{client_reqwest, updates::Update};
-use hjcommon::d1::DB;
+use hjcommon::d1::DBv2;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{self, send_random_word};
 use log::{debug, error, info};
@@ -115,12 +115,15 @@ async fn main(req: Request, env: Env, _ctx: Context) -> Result<Response> {
     router = router.post_async("/word/:path", async |mut req, _ctx| {
         info!("new word request, path: {}", req.url()?.path());
 
-        let body = req.bytes().await?;
+        let body = match req.bytes().await {
+            Ok(v) => v,
+            Err(e) => return Response::error(e.to_string(), 500),
+        };
 
-        let words = opt
-            .route(req.url()?.path(), body)
-            .await
-            .map_err(|e| worker::Error::from(e.to_string()))?;
+        let words = match opt.route(req.url()?.path(), body).await {
+            Ok(v) => v,
+            Err(e) => return Response::error(e.to_string(), 500),
+        };
 
         Response::ok(String::from_utf8_lossy(&words).to_string())
     });

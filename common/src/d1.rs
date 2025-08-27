@@ -21,6 +21,11 @@ pub struct Count {
 #[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
 pub struct Empty {}
 
+#[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
+pub struct ColumnExist {
+    pub exist: u32,
+}
+
 #[derive(Debug)]
 pub struct Error(pub String);
 
@@ -76,9 +81,15 @@ pub trait DBv2 {
     where
         T: for<'a> Deserialize<'a>;
 
-    fn save_word(&self, word: &str, explain: &str) -> impl Future<Output = Result<(), Error>> {
+    fn save_word(
+        &self,
+        word: &str,
+        explain: &str,
+        r#type: i64,
+    ) -> impl Future<Output = Result<(), Error>> {
         async move {
-            self.exec::<Empty>(SQL::SaveWord(word, explain)).await?;
+            self.exec::<Empty>(SQL::SaveWord(word, explain, r#type))
+                .await?;
             Ok(())
         }
     }
@@ -95,16 +106,17 @@ pub trait DBv2 {
         page_size: u64,
         page_number: u64,
         order_by: &str,
+        r#type: i64,
     ) -> impl Future<Output = Result<Vec<Word>, Error>> {
         async move {
-            self.exec::<Word>(SQL::ListWord(page_size, page_number, order_by))
+            self.exec::<Word>(SQL::ListWord(page_size, page_number, order_by, r#type))
                 .await
         }
     }
 
-    fn count_word(&self) -> impl Future<Output = Result<u64, Error>> {
+    fn count_word(&self, r#type: i64) -> impl Future<Output = Result<u64, Error>> {
         async move {
-            let c = self.exec::<Count>(SQL::CountWord).await?;
+            let c = self.exec::<Count>(SQL::CountWord(r#type)).await?;
 
             if c.is_empty() {
                 Err(Error("get count failed".to_string()))
@@ -153,9 +165,48 @@ pub trait DBv2 {
         }
     }
 
+    fn check_column_exists(&self, column: &str) -> impl Future<Output = Result<bool, Error>> {
+        async move {
+            let c = self
+                .exec::<ColumnExist>(SQL::CheckColumnExists(column))
+                .await?;
+            if c.is_empty() {
+                return Ok(false);
+            }
+
+            Ok(c[0].exist == 1)
+        }
+    }
+
+    fn add_column(&self, columns: Vec<(&str, &str)>) -> impl Future<Output = Result<(), Error>> {
+        async move {
+            for (column, r#type) in columns {
+                if self.check_column_exists(column).await? {
+                    continue;
+                }
+
+                self.exec::<Empty>(SQL::AddColumn(column, r#type)).await?;
+            }
+            Ok(())
+        }
+    }
+
     fn create_table(&self) -> impl Future<Output = Result<(), Error>> {
         async move {
             self.exec::<Empty>(SQL::CreateTable).await?;
+
+            /*
+                ALTER TABLE words ADD COLUMN IF NOT EXISTS anki_count INTEGER DEFAULT 1;
+                ALTER TABLE words ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 0;
+                ALTER TABLE words ADD COLUMN IF NOT EXISTS type INTEGER DEFAULT 0;
+            */
+            self.add_column(vec![
+                ("anki_count", "INTEGER DEFAULT 1"),
+                ("priority", "INTEGER DEFAULT 0"),
+                ("type", "INTEGER DEFAULT 0"),
+            ])
+            .await?;
+
             Ok(())
         }
     }
@@ -163,24 +214,23 @@ pub trait DBv2 {
 
 pub enum SQL<'a> {
     CreateTable,
-    SaveWord(&'a str, &'a str),
-    DeleteWord(&'a str),
     RandomNotRemind,
     Random,
     UpdateRemindTime(&'a str),
-    ListWord(u64, u64, &'a str),
-    CountWord,
+    SaveWord(&'a str, &'a str, i64),
+    DeleteWord(&'a str),
+    ListWord(u64, u64, &'a str, i64),
+    CountWord(i64),
     IncrementRemindCount(&'a str),
     ChangePriority(&'a str, u64),
+
+    CheckColumnExists(&'a str),
+    AddColumn(&'a str, &'a str),
 }
 
 impl<'a> SQL<'a> {
     pub fn sql(&self) -> String {
         match self {
-            SQL::SaveWord(_, _) => {
-                "INSERT INTO words (word, explain, add_time, update_time) VALUES (?, ?, strftime('%s', 'now'), strftime('%s', 'now')) ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = strftime('%s', 'now')".to_string()
-            }
-            SQL::DeleteWord(_) => "DELETE FROM words WHERE word = ?".to_string(),
             SQL::RandomNotRemind => {
                 "SELECT * FROM words WHERE reminder_time <= strftime('%s', 'now') - 43200 ORDER BY RANDOM() LIMIT 1".to_string()
             }
@@ -197,29 +247,47 @@ CREATE TABLE IF NOT EXISTS [words] (
     "update_time" INTEGER,
     "reminder_time" INTEGER DEFAULT 0,
     "anki_count" INTEGER DEFAULT 1,
-    "priority" INTEGER DEFAULT 0
+    "priority" INTEGER DEFAULT 0,
+    -- 0: word, 1: grammar
+    "type" INTEGER DEFAULT 0
 );
-ALTER TABLE words ADD COLUMN anki_count INTEGER DEFAULT 1;
-ALTER TABLE words ADD COLUMN priority INTEGER DEFAULT 0;
-               "#.to_string()
+"#.to_string()
             }
-            SQL::ListWord(_, _, order_by) => format!("SELECT * FROM words ORDER BY {} LIMIT ? OFFSET ?", order_by),
-            
-            SQL::CountWord => "SELECT count(*) as size FROM words".to_string(),
+
+            SQL::SaveWord(_, _, _) => {
+                "INSERT INTO words (word, explain, add_time, update_time, type) VALUES (?, ?, strftime('%s', 'now'), strftime('%s', 'now'), ?) ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = strftime('%s', 'now'), type = ?".to_string()
+            }
+            SQL::DeleteWord(_) => "DELETE FROM words WHERE word = ?".to_string(),
+            SQL::ListWord(_, _, order_by, _) => format!("SELECT * FROM words WHERE type = ? ORDER BY {} LIMIT ? OFFSET ?", order_by),
+            SQL::CountWord(_) => "SELECT count(*) as size FROM words WHERE type = ?".to_string(),
             SQL::IncrementRemindCount(_) => {
                 "UPDATE words SET anki_count = anki_count + 1 WHERE word = ?".to_string()
             }
             SQL::ChangePriority(_, _) => "UPDATE words SET priority = ? WHERE word = ?".to_string(),
+
+            SQL::CheckColumnExists(column) => {
+                format!(r#"
+SELECT CASE 
+    WHEN EXISTS (SELECT 1 FROM pragma_table_info('words') WHERE name='{}') 
+    THEN 1 ELSE 0 
+END AS exist;
+"#, column)
+            }
+            SQL::AddColumn(column,r#type) => {
+                format!("ALTER TABLE words ADD COLUMN {} {}", column,r#type)
+            }
         }
     }
 
     pub fn params<T: From<String>>(&self) -> Vec<T> {
         match self {
-            SQL::SaveWord(word, explain) => {
+            SQL::SaveWord(word, explain, r#type) => {
                 vec![
                     (*word).to_string().into(),
                     (*explain).to_string().into(),
+                    (*r#type).to_string().into(),
                     (*explain).to_string().into(),
+                    (*r#type).to_string().into(),
                 ]
             }
             SQL::DeleteWord(word) => {
@@ -228,22 +296,28 @@ ALTER TABLE words ADD COLUMN priority INTEGER DEFAULT 0;
             SQL::UpdateRemindTime(word) => {
                 vec![(*word).to_string().into()]
             }
-            SQL::RandomNotRemind | SQL::Random | SQL::CreateTable => {
-                vec![]
-            }
-            SQL::ListWord(page_size, page_number, _) => {
+            SQL::ListWord(page_size, page_number, _, r#type) => {
                 let size = if *page_size > 0 { 10 } else { *page_size };
                 let offset = (*page_number - 1) * size;
 
-                vec![size.to_string().into(), offset.to_string().into()]
+                vec![
+                    (*r#type).to_string().into(),
+                    size.to_string().into(),
+                    offset.to_string().into(),
+                ]
             }
-            SQL::CountWord => vec![],
-            SQL::IncrementRemindCount(word) => {
-                vec![(*word).to_string().into()]
-            }
+            SQL::CountWord(r#type) => vec![(*r#type).to_string().into()],
+            SQL::IncrementRemindCount(word) => vec![(*word).to_string().into()],
+
             SQL::ChangePriority(word, priority) => {
                 vec![(*priority).to_string().into(), (*word).to_string().into()]
             }
+
+            SQL::CheckColumnExists(_)
+            | SQL::AddColumn(_, _)
+            | SQL::RandomNotRemind
+            | SQL::Random
+            | SQL::CreateTable => vec![],
         }
     }
 }

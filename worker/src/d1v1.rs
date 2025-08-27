@@ -32,7 +32,7 @@ impl DB for WasmD1 {
     }
 
     async fn save_word(&self, word: &str, explain: &str) -> Result<(), D1Error> {
-        let sql = SQL::SaveWord(word, explain);
+        let sql = SQL::SaveWord(word, explain, 0);
         self.exec::<Empty>(sql).await?;
         Ok(())
     }
@@ -43,7 +43,7 @@ impl DB for WasmD1 {
         page_number: u64,
         order_by: &str,
     ) -> Result<Vec<Word>, D1Error> {
-        self.exec::<Word>(SQL::ListWord(page_size, page_number, order_by))
+        self.exec::<Word>(SQL::ListWord(page_size, page_number, order_by, 0))
             .await
     }
 }
