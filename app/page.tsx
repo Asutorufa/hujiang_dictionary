@@ -91,10 +91,9 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
-
   return (
     <>
-      <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={query} explain={result} />
+      <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={query} explain={result} type={0} />
       <div className="p-2">
 
         <div className="sticky flex flex-wrap justify-center top-1 z-50 gap-1">

@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { changePriority, countWord, EditIcon, FilterIcon, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, TrashIcon } from "@/app/components";
+import { BookIcon, changePriority, countWord, EditIcon, FilterIcon, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, TrashIcon } from "@/app/components";
 import { Button, Card, CardBody, CardHeader, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination, Spinner, Tab, Tabs } from "@heroui/react";
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
@@ -74,6 +74,7 @@ export default function Words() {
         reminder_time: 0,
         anki_count: 0,
         priority: 0,
+        type: 0
     }]);
     const [page, setPage] = useState<number>(1);
     const [total, setTotal] = useState<number>(100);
@@ -88,21 +89,24 @@ export default function Words() {
         reminder_time: 0,
         anki_count: 0,
         priority: 0,
+        type: 0
     });
     const [orderBy, setOrderBy] = useLocalStorage("order_by", "word");
+    const [grammar, setGrammar] = useLocalStorage("grammar", false);
+
 
 
     useEffect(() => {
-        countWord((size) => {
+        countWord(grammar, (size) => {
             if (size) {
                 setTotal(Math.ceil(size / 10))
             }
         })
-    }, [setTotal, refresh])
+    }, [setTotal, refresh, grammar])
 
     useEffect(() => {
         setLoading(true)
-        queryWord(page, 10, orderBy, (data, error) => {
+        queryWord(page, 10, orderBy, grammar, (data, error) => {
             if (data) {
                 setWords(data)
             }
@@ -117,13 +121,14 @@ export default function Words() {
             //             reminder_time: 0,
             //             anki_count: 0,
             //             priority: 0,
+            //             type: 0
             //         }])
             //     }
             // }
 
             setLoading(false)
         })
-    }, [page, orderBy, refresh])
+    }, [page, orderBy, refresh, grammar])
 
     // if (loading) {
     //     return <>
@@ -134,7 +139,7 @@ export default function Words() {
     // }
 
     return <>
-        <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={newWord.word} explain={newWord.explain} />
+        <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={newWord.word} explain={newWord.explain} type={newWord.type} />
 
         <div className="p-2">
             {loading &&
@@ -180,6 +185,20 @@ export default function Words() {
                             <DropdownItem key="priority desc">Priority DESC</DropdownItem>
                             <DropdownItem key="update_time">Time</DropdownItem>
                             <DropdownItem key="update_time desc">Time DESC</DropdownItem>
+                        </DropdownMenu>
+                    </Dropdown>
+
+                    <Dropdown>
+                        <DropdownTrigger>
+                            <Button isDisabled={loading} isIconOnly size="md" variant="bordered" className="shadow-md backdrop-blur-sm"><BookIcon /></Button>
+                        </DropdownTrigger>
+                        <DropdownMenu
+                            selectionMode="single"
+                            selectedKeys={[grammar ? "grammar" : "word"]}
+                            onSelectionChange={(e) => setGrammar(e.currentKey == "grammar" ? true : false)}
+                        >
+                            <DropdownItem key="word">Word</DropdownItem>
+                            <DropdownItem key="grammar">Grammar</DropdownItem>
                         </DropdownMenu>
                     </Dropdown>
 
@@ -239,7 +258,11 @@ export default function Words() {
                             <CardBody>
                                 <div className="px-2 py-1 rounded-small bg-default-100 group-data-[hover=true]:bg-default-200">
                                     <span className="text-tiny text-default-600">
-                                        <Markdown remarkPlugins={[remarkGfm]}>{w.explain}</Markdown>
+                                        <div
+                                            className="bg-gray-600 text-transparent select-none hover:bg-inherit hover:text-inherit hover:select-auto"
+                                        >
+                                            <Markdown remarkPlugins={[remarkGfm]}>{w.explain}</Markdown>
+                                        </div>
                                     </span>
                                 </div>
 
@@ -298,8 +321,8 @@ export default function Words() {
                         </Card>
                     )
                 }
-            </div>
-        </div>
+            </div >
+        </div >
     </>
 }
 

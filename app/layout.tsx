@@ -16,7 +16,7 @@ export default function RootLayout({
   const { systemTheme } = useTheme();
 
   return (
-    <html lang="en">
+    <html>
       <body>
         <HeroUIProvider navigate={router.push}>
           <ToastProvider />
