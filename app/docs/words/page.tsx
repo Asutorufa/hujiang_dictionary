@@ -1,6 +1,6 @@
 "use client";
 
-import { BookIcon, changePriority, countWord, EditIcon, FilterIcon, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, TrashIcon } from "@/app/components";
+import { BookIcon, changePriority, ConfirmModal, countWord, deleteWord, EditIcon, FilterIcon, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, Spoiler, TrashIcon } from "@/app/components";
 import { Button, Card, CardBody, CardHeader, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination, Spinner, Tab, Tabs } from "@heroui/react";
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
@@ -80,17 +80,22 @@ export default function Words() {
     const [total, setTotal] = useState<number>(100);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [removeWord, setRemoveWord] = useState("");
     const [refresh, setRefresh] = useState(0);
-    const [newWord, setNewWord] = useState<ListWordResponse>({
-        word: "",
-        explain: "",
-        add_time: 0,
-        update_time: 0,
-        reminder_time: 0,
-        anki_count: 0,
-        priority: 0,
-        type: 0
-    });
+    const [newWord, setNewWord] = useState<{ origin?: string, new: ListWordResponse }>(
+        {
+            new: {
+                word: "",
+                explain: "",
+                add_time: 0,
+                update_time: 0,
+                reminder_time: 0,
+                anki_count: 0,
+                priority: 0,
+                type: 0
+            }
+        });
     const [orderBy, setOrderBy] = useLocalStorage("order_by", "word");
     const [grammar, setGrammar] = useLocalStorage("grammar", false);
 
@@ -115,7 +120,27 @@ export default function Words() {
             //     for (let i = 0; i < 10; i++) {
             //         setWords(prev => [...prev, {
             //             word: refresh + "tttttttttttttttttttttttest" + i,
-            //             explain: error,
+            //             explain: error + `
+            //             xsxzxz
+
+            //             xz
+            //             czxc
+
+            //             x
+            //             zc
+            //             xz
+            //             <!-- xzc
+            //             z
+            //             xc
+
+            //             zx
+            //             callbackz
+            //             czxcc
+
+            //             zc-->
+
+
+            //             `,
             //             add_time: 0,
             //             update_time: 0,
             //             reminder_time: 0,
@@ -139,7 +164,26 @@ export default function Words() {
     // }
 
     return <>
-        <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={newWord.word} explain={newWord.explain} type={newWord.type} />
+        <ConfirmModal
+            title={`Are you sure you want to delete ${removeWord}?`}
+            open={confirmOpen}
+            color="danger"
+            onChange={(p) => setConfirmOpen(p)}
+            onConfirm={async () => {
+                if (removeWord) {
+                    await deleteWord(removeWord, (error) => {
+                        if (!error) {
+                            setRefresh(refresh + 1)
+                        }
+                    })
+                }
+            }}
+        />
+
+        <SaveWordModal open={open} onChange={(p) => setOpen(p)}
+            word={newWord.new.word} explain={newWord.new.explain} type={newWord.new.type} origin={newWord.origin}
+            onSaved={() => { setRefresh(refresh + 1) }}
+        />
 
         <div className="p-2">
             {loading &&
@@ -223,7 +267,10 @@ export default function Words() {
                             key={w.word + i}
                             // endContent={<ItemCounter number={w.reminder_time} />}
                             onClick={() => {
-                                setNewWord(w)
+                                setNewWord({
+                                    origin: w.word,
+                                    new: w
+                                })
                                 setOpen(true)
                             }}
                             className="mt-2"
@@ -258,11 +305,9 @@ export default function Words() {
                             <CardBody>
                                 <div className="px-2 py-1 rounded-small bg-default-100 group-data-[hover=true]:bg-default-200">
                                     <span className="text-tiny text-default-600">
-                                        <div
-                                            className="bg-gray-600 text-transparent select-none hover:bg-inherit hover:text-inherit hover:select-auto"
-                                        >
+                                        <Spoiler>
                                             <Markdown remarkPlugins={[remarkGfm]}>{w.explain}</Markdown>
-                                        </div>
+                                        </Spoiler>
                                     </span>
                                 </div>
 
@@ -300,7 +345,10 @@ export default function Words() {
                                             radius="lg"
                                             className="bg-transparent"
                                             onPress={() => {
-                                                setNewWord(w)
+                                                setNewWord({
+                                                    origin: w.word,
+                                                    new: w
+                                                })
                                                 setOpen(true)
                                             }}
                                         >
@@ -312,6 +360,10 @@ export default function Words() {
                                             size="sm"
                                             radius="lg"
                                             className="bg-transparent"
+                                            onPress={() => {
+                                                setRemoveWord(w.word)
+                                                setConfirmOpen(true)
+                                            }}
                                         >
                                             <TrashIcon />
                                         </Button>

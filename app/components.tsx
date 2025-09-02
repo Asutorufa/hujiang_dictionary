@@ -1,15 +1,19 @@
 'use client';
 
 import { addToast, Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Switch, Textarea, useDisclosure, useDraggable } from "@heroui/react";
-import { FC, useEffect, useRef, useState } from "react";
+import { FC, ReactNode, useEffect, useRef, useState } from "react";
+import './Spoiler.scss';
+
 
 export const SaveWordModal: FC<{
     open: boolean,
     onChange: (open: boolean) => void,
+    origin?: string,
     word?: string,
     explain?: string,
     type: number,
-}> = ({ open, onChange, word, explain, type }) => {
+    onSaved?: () => void
+}> = ({ open, onChange, origin, word, explain, type, onSaved }) => {
     const [saving, setSaving] = useState(false)
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
     const targetRef = useRef<HTMLElement>({} as HTMLElement);
@@ -83,10 +87,12 @@ export const SaveWordModal: FC<{
                         <Button color="primary" isLoading={saving} onPress={() => {
                             if (newWord.length === 0 || newExplain.length === 0) return
                             setSaving(true)
-                            saveWord(newWord, newExplain, newType, () => {
+                            saveWord(newWord, newExplain, newType, (error) => {
                                 setSaving(false)
                                 onClose()
-                            })
+
+                                if (!error && onSaved) onSaved()
+                            }, origin)
                         }}>
                             Save
                         </Button>
@@ -150,11 +156,20 @@ export async function countWord(grammar: boolean, callback: (size?: number, erro
     })
 }
 
-export async function saveWord(word: string, explain: string, type: number, callback: (error?: string) => void) {
+export async function saveWord(word: string, explain: string, type: number, callback: (error?: string) => void, originalWord?: string) {
     await wordRequest<object>("/word/save", JSON.stringify({
+        origin: originalWord,
         word: word,
         explain: explain,
         type: type
+    }), (_, error) => {
+        callback(error);
+    });
+}
+
+export async function deleteWord(word: string, callback: (error?: string) => void) {
+    await wordRequest<object>("/word/delete", JSON.stringify({
+        word: word
     }), (_, error) => {
         callback(error);
     });
@@ -177,17 +192,24 @@ export async function changePriority(word: string, priority: number, callback: (
     });
 }
 
-export const ConfirmModal: FC<{ title: string, open: boolean, onChange: (open: boolean) => void, onConfirm: () => Promise<void> }> = ({ title, open, onConfirm, onChange }) => {
+export const ConfirmModal: FC<{
+    title: string,
+    open: boolean,
+    onChange: (open: boolean) => void,
+    onConfirm: () => Promise<void>,
+    color?: "danger" | "default" | "primary" | "secondary" | "success" | "warning"
+}> = ({ title, open, onConfirm, onChange, color }) => {
     const [loading, setLoading] = useState(false)
 
-    return <Modal isOpen={open} onOpenChange={onChange} hideCloseButton>
+    return <Modal isOpen={open} onOpenChange={onChange} hideCloseButton backdrop="blur">
         <ModalContent>
             <>
                 <ModalBody className="text-center">{title}</ModalBody>
                 <ModalFooter>
                     <Button onPress={() => onChange(false)}>Close</Button>
                     <Button
-                        isLoading={loading} color="primary"
+                        isLoading={loading}
+                        color={color}
                         onPress={async () => {
                             setLoading(true)
                             await onConfirm()
@@ -247,4 +269,15 @@ export function BookIcon() {
     return (
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" fillRule="evenodd" d="M8.945 1.25h6.11c1.367 0 2.47 0 3.337.117c.9.12 1.658.38 2.26.981c.602.602.86 1.36.982 2.26c.116.867.116 1.97.116 3.337v8.11c0 1.367 0 2.47-.116 3.337c-.122.9-.38 1.658-.982 2.26s-1.36.86-2.26.982c-.867.116-1.97.116-3.337.116h-6.11l-.899-.001a1 1 0 0 1-.1 0c-.918-.007-1.693-.029-2.338-.115c-.9-.122-1.658-.38-2.26-.982s-.86-1.36-.981-2.26c-.097-.715-.113-1.59-.116-2.642H2a.75.75 0 0 1 0-1.5h.25v-2.5H2a.75.75 0 0 1 0-1.5h.25v-2.5H2a.75.75 0 0 1 0-1.5h.25c.004-1.052.02-1.927.117-2.642c.12-.9.38-1.658.981-2.26c.602-.602 1.36-.86 2.26-.981c.867-.117 1.97-.117 3.337-.117M3.75 8.75H4a.75.75 0 0 0 0-1.5h-.25c.004-1.046.02-1.826.103-2.442c.099-.734.28-1.122.556-1.399c.277-.277.665-.457 1.4-.556c.4-.054.872-.08 1.441-.092V21.24a13 13 0 0 1-1.442-.092c-.734-.099-1.122-.28-1.399-.556c-.277-.277-.457-.665-.556-1.4c-.083-.615-.099-1.395-.102-2.441H4a.75.75 0 0 0 0-1.5h-.25v-2.5H4a.75.75 0 0 0 0-1.5h-.25zm5 12.5H15c1.435 0 2.436-.002 3.192-.103c.734-.099 1.122-.28 1.399-.556c.277-.277.457-.665.556-1.4c.101-.755.103-1.756.103-3.191V8c0-1.435-.002-2.437-.103-3.192c-.099-.734-.28-1.122-.556-1.399c-.277-.277-.665-.457-1.4-.556c-.755-.101-1.756-.103-3.191-.103H8.75zm2-14.75a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1-.75-.75m0 3.5a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1-.75-.75" clipRule="evenodd" /></svg>
     )
+}
+
+export const Spoiler: FC<{ children: ReactNode }> = ({ children }) => {
+    const [hide, setHide] = useState(true);
+    return (
+        <div className={hide ? "Spoiler Spoiler--concealed Spoiler--animated" : ""} onClick={() => {
+            setHide(prev => !prev);
+        }}>
+            <div className="Spoiler__content">{children}</div>
+        </div>
+    );
 }
