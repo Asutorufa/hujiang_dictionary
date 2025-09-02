@@ -32,7 +32,7 @@ impl DB for WasmD1 {
     }
 
     async fn save_word(&self, word: &str, explain: &str) -> Result<(), D1Error> {
-        let sql = SQL::SaveWord(word, explain, 0);
+        let sql = SQL::SaveWord(None, word, explain, 0);
         self.exec::<Empty>(sql).await?;
         Ok(())
     }

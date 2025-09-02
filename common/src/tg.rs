@@ -406,7 +406,7 @@ pub async fn answer<T: DBv2, T2: AI>(
                 ("".to_string(), "empty word or explain".to_string())
             } else {
                 parse_mode = frankenstein::ParseMode::Html;
-                match opt.d1.save_word(&word, &explain, 0).await {
+                match opt.d1.save_word(None, &word, &explain, 0).await {
                     Err(e) => ("".to_string(), e.to_string()),
                     Ok(_) => (
                         "".to_string(),
@@ -520,7 +520,11 @@ pub async fn callback_query<T: DBv2, T2: AI>(
                 Some(v) => v.to_string(),
             };
 
-            match opt.d1.save_word(v.as_ref(), explain.as_ref(), 0).await {
+            match opt
+                .d1
+                .save_word(None, v.as_ref(), explain.as_ref(), 0)
+                .await
+            {
                 Err(e) => {
                     error!("save word failed: {}", e);
                     return Ok(());

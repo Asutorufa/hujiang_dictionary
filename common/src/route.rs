@@ -17,6 +17,7 @@ pub struct ListWordRequest {
 
 #[derive(Deserialize)]
 pub struct SaveWordRequest {
+    pub origin: Option<String>,
     pub word: String,
     pub explain: String,
     pub r#type: Option<i64>,
@@ -130,7 +131,12 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
         let req = serde_json::from_slice::<SaveWordRequest>(&body)?;
 
         self.d1
-            .save_word(&req.word, &req.explain, req.r#type.unwrap_or(0))
+            .save_word(
+                req.origin.as_deref(),
+                &req.word,
+                &req.explain,
+                req.r#type.unwrap_or(0),
+            )
             .await?;
 
         Ok(['{' as u8, '}' as u8].to_vec())

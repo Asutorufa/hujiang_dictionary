@@ -32,7 +32,8 @@ impl DB for D1 {
     }
 
     async fn save_word(&self, word: &str, explain: &str) -> Result<(), Error> {
-        self.raw::<Empty>(SQL::SaveWord(word, explain, 0)).await?;
+        self.raw::<Empty>(SQL::SaveWord(None, word, explain, 0))
+            .await?;
         Ok(())
     }
 

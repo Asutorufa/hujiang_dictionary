@@ -11,6 +11,7 @@ pub struct Word {
     reminder_time: i64,
     anki_count: u64,
     priority: u64,
+    r#type: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
@@ -83,12 +84,13 @@ pub trait DBv2 {
 
     fn save_word(
         &self,
+        origin: Option<&str>,
         word: &str,
         explain: &str,
         r#type: i64,
     ) -> impl Future<Output = Result<(), Error>> {
         async move {
-            self.exec::<Empty>(SQL::SaveWord(word, explain, r#type))
+            self.exec::<Empty>(SQL::SaveWord(origin, word, explain, r#type))
                 .await?;
             Ok(())
         }
@@ -217,7 +219,7 @@ pub enum SQL<'a> {
     RandomNotRemind,
     Random,
     UpdateRemindTime(&'a str),
-    SaveWord(&'a str, &'a str, i64),
+    SaveWord(Option<&'a str>, &'a str, &'a str, i64),
     DeleteWord(&'a str),
     ListWord(u64, u64, &'a str, i64),
     CountWord(i64),
@@ -254,9 +256,14 @@ CREATE TABLE IF NOT EXISTS [words] (
 "#.to_string()
             }
 
-            SQL::SaveWord(_, _, _) => {
-                "INSERT INTO words (word, explain, add_time, update_time, type) VALUES (?, ?, strftime('%s', 'now'), strftime('%s', 'now'), ?) ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = strftime('%s', 'now'), type = ?".to_string()
-            }
+            SQL::SaveWord(origin, now, _, _) =>   match origin {
+                    Some(word) if word!= now=>"UPDATE words SET word = ?, explain = ?, update_time = strftime('%s', 'now'), type = ? WHERE word = ?".to_string(),
+                    _ => r#"
+                        INSERT INTO words (word, explain, add_time, update_time, type) 
+                        VALUES (?, ?, strftime('%s', 'now'), strftime('%s', 'now'), ?) 
+                        ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = strftime('%s', 'now'), type = ?
+                    "#.to_string(),
+                }
             SQL::DeleteWord(_) => "DELETE FROM words WHERE word = ?".to_string(),
             SQL::ListWord(_, _, order_by, _) => format!("SELECT * FROM words WHERE type = ? ORDER BY {} LIMIT ? OFFSET ?", order_by),
             SQL::CountWord(_) => "SELECT count(*) as size FROM words WHERE type = ?".to_string(),
@@ -281,15 +288,22 @@ END AS exist;
 
     pub fn params<T: From<String>>(&self) -> Vec<T> {
         match self {
-            SQL::SaveWord(word, explain, r#type) => {
-                vec![
+            SQL::SaveWord(origin, word, explain, r#type) => match origin {
+                Some(origin) if origin != word => vec![
+                    (*word).to_string().into(),
+                    (*explain).to_string().into(),
+                    (*r#type).to_string().into(),
+                    (*origin).to_string().into(),
+                ],
+                _ => vec![
                     (*word).to_string().into(),
                     (*explain).to_string().into(),
                     (*r#type).to_string().into(),
                     (*explain).to_string().into(),
                     (*r#type).to_string().into(),
-                ]
-            }
+                ],
+            },
+
             SQL::DeleteWord(word) => {
                 vec![(*word).to_string().into()]
             }
