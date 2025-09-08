@@ -11,7 +11,7 @@ type QueryWordResponse = {
   result: string;
 }
 
-async function queryWord(selected: string, query: string, srcLang: string, dstLang: string,
+async function queryWord(selected: string, query: string, instruction: string, srcLang: string, dstLang: string,
   callback: (data?: string, error?: string) => void) {
   fetch("/word/query", {
     method: "POST",
@@ -20,6 +20,7 @@ async function queryWord(selected: string, query: string, srcLang: string, dstLa
     body: JSON.stringify({
       method: selected,
       word: query,
+      instruction: instruction.length > 0 ? instruction : undefined,
       src_lang: srcLang ? srcLang : undefined,
       dst_lang: dstLang ? dstLang : undefined,
     }),
@@ -62,6 +63,7 @@ const languageMap = Object.fromEntries(
 type TranslationSource = {
   key: string;
   name: string;
+  llm?: boolean;
 };
 
 const translationSources: TranslationSource[] = [
@@ -69,9 +71,9 @@ const translationSources: TranslationSource[] = [
   { key: "ktbk", name: "コトバンク" },
   { key: "google", name: "Google Translate" },
   { key: "googlev1", name: "Google Translate(old API)" },
-  { key: "gpt", name: "GPT OSS 20B" },
-  { key: "gemma", name: "Gemma3 27B IT" },
-  { key: "llama4", name: "Llama 4 Scout 17B 16E Instruct" },
+  { key: "gpt", name: "GPT OSS 20B", llm: true },
+  { key: "gemma", name: "Gemma3 27B IT", llm: true },
+  { key: "llama4", name: "Llama 4 Scout 17B 16E Instruct", llm: true },
   { key: "jc", name: "Japanese to Chinese" },
   { key: "cj", name: "Chinese to Japanese" },
   { key: "en", name: "English to Chinese" },
@@ -82,9 +84,14 @@ const translationMap = Object.fromEntries(
 ) as Record<typeof translationSources[number]["key"], string>;
 
 
+const isLLm = Object.fromEntries(
+  translationSources.map(({ key, llm }) => [key, llm])
+) as Record<typeof translationSources[number]["key"], boolean>;
+
 export default function Home() {
   const [selected, setSelected] = useLocalStorage("translate_type", "ktbk");
   const [query, setQuery] = useLocalStorage("query", "");
+  const [instruction, setInstruction] = useLocalStorage("instruction", "");
   const [result, setResult] = useLocalStorage("result", "");
   const [srcLang, setSrcLang] = useLocalStorage("src_lang", "");
   const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
@@ -191,7 +198,7 @@ export default function Home() {
               onPress={() => {
                 if (!query) return;
                 setLoading(true);
-                queryWord(selected, query, srcLang, dstLang, (data, error) => {
+                queryWord(selected, query, instruction, srcLang, dstLang, (data, error) => {
                   console.log(data);
                   if (error) {
                     setResult(error)
@@ -230,6 +237,22 @@ export default function Home() {
           }}
           onChange={(e) => setQuery(e.target.value)}
         />
+
+
+        {
+          isLLm[selected] &&
+          <Textarea
+            className="mt-2"
+            label="Instruction"
+            type="textarea"
+            value={instruction}
+            height={"full"}
+            classNames={{
+              input: "resize-y min-h-[40px]",
+            }}
+            onChange={(e) => setInstruction(e.target.value)}
+          />
+        }
 
         <div className="mt-2">
           <Card>
