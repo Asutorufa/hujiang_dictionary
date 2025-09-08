@@ -38,8 +38,43 @@ pub struct ChangeWordPriorityRequest {
 pub struct WordQueryRequest {
     pub method: String,
     pub word: String,
+    pub instruction: Option<String>,
     pub src_lang: Option<String>,
     pub dst_lang: Option<String>,
+}
+
+impl WordQueryRequest {
+    pub fn instruction(&self) -> Option<String> {
+        if self.dst_lang.is_none() && self.instruction.is_none() {
+            return None;
+        }
+
+        let mut ret = "".to_string();
+
+        if let Some(i) = &self.instruction {
+            if !ret.is_empty() {
+                ret.push_str("\n");
+            }
+            ret.push_str(i.as_str());
+        }
+
+        if let Some(l) = &self.dst_lang {
+            if !l.is_empty() {
+                if !ret.is_empty() {
+                    ret.push_str("\n");
+                }
+
+                ret.push_str("\nTarget Language: ");
+                ret.push_str(l);
+            }
+        }
+
+        if ret.is_empty() {
+            return None;
+        }
+
+        Some(ret)
+    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -173,14 +208,6 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
         Ok(['{' as u8, '}' as u8].to_vec())
     }
 
-    fn llm_query(&self, req: WordQueryRequest) -> String {
-        return if req.dst_lang.is_some() {
-            format!("{}\nUser Language is: {}", req.word, req.dst_lang.unwrap())
-        } else {
-            req.word.clone()
-        };
-    }
-
     pub async fn word_query(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<WordQueryRequest>(&body)?;
 
@@ -210,17 +237,17 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
             "ktbk" => kotobakku::get(&req.word).await.unwrap().join("\n"),
             "gpt" => self
                 .workers_ai
-                .gpt_oss_20b(self.llm_query(req).as_ref())
+                .gpt_oss_20b(&req.word, req.instruction().as_deref())
                 .await
                 .unwrap(),
             "llama4" => self
                 .workers_ai
-                .llama4_scout_17b_16e_instruct(self.llm_query(req).as_ref())
+                .llama4_scout_17b_16e_instruct(&req.word, req.instruction().as_deref())
                 .await
                 .unwrap(),
             "gemma" => self
                 .workers_ai
-                .gemma3_12b(self.llm_query(req).as_ref())
+                .gemma3_12b(&req.word, req.instruction().as_deref())
                 .await
                 .unwrap(),
             "google" | "googlev1" => {

@@ -385,17 +385,17 @@ pub async fn answer<T: DBv2, T2: AI>(
                 Ok(v) => (text, markdown_escape(v.as_str())),
             }
         }
-        Command::Gemma(v) => match opt.workers_ai.gemma3_12b(v.as_ref()).await {
+        Command::Gemma(v) => match opt.workers_ai.gemma3_12b(v.as_ref(), None).await {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(x) => (v, markdown_escape(x.as_str())),
         },
-        Command::GPT(v) => match opt.workers_ai.gpt_oss_20b(v.as_ref()).await {
+        Command::GPT(v) => match opt.workers_ai.gpt_oss_20b(v.as_ref(), None).await {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(x) => (v, markdown_escape(x.as_str())),
         },
         Command::Llama4(v) => match opt
             .workers_ai
-            .llama4_scout_17b_16e_instruct(v.as_ref())
+            .llama4_scout_17b_16e_instruct(v.as_ref(), None)
             .await
         {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),

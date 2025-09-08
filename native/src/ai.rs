@@ -52,9 +52,17 @@ impl Workers {
         Ok(r.json::<O>().await?)
     }
 
-    pub async fn completion(&self, prompt: &str, model: Models) -> Result<String, Error> {
+    pub async fn completion(
+        &self,
+        prompt: &str,
+        instruction: Option<&str>,
+        model: Models,
+    ) -> Result<String, Error> {
         let r: CompletionResponse = self
-            .exec("v1/chat/completions", CompletionRequest::new(model, prompt))
+            .exec(
+                "v1/chat/completions",
+                CompletionRequest::new(model, prompt, instruction),
+            )
             .await?;
         Ok(r.choices
             .first()
@@ -67,28 +75,37 @@ impl Workers {
     pub async fn response(
         &self,
         prompt: &str,
+        instruction: Option<&str>,
         model: Models,
     ) -> Result<Vec<(String, String)>, Error> {
         let r: ResponseResponse = self
-            .exec("v1/responses", ResponsesRequest::new(model, prompt))
+            .exec(
+                "v1/responses",
+                ResponsesRequest::new(model, prompt, instruction),
+            )
             .await?;
         Ok(r.content())
     }
 }
 
 impl AI for Workers {
-    async fn gemma3_12b(&self, prompt: &str) -> Result<String, Error> {
-        self.completion(prompt, Models::Gemma3_12bIt).await
-    }
-
-    async fn llama4_scout_17b_16e_instruct(&self, prompt: &str) -> Result<String, Error> {
-        self.completion(prompt, Models::Llama4Scout17B16EInstruct)
+    async fn gemma3_12b(&self, prompt: &str, instruction: Option<&str>) -> Result<String, Error> {
+        self.completion(prompt, instruction, Models::Gemma3_12bIt)
             .await
     }
 
-    async fn gpt_oss_20b(&self, prompt: &str) -> Result<String, Error> {
+    async fn llama4_scout_17b_16e_instruct(
+        &self,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> Result<String, Error> {
+        self.completion(prompt, instruction, Models::Llama4Scout17B16EInstruct)
+            .await
+    }
+
+    async fn gpt_oss_20b(&self, prompt: &str, instruction: Option<&str>) -> Result<String, Error> {
         let content = self
-            .response(prompt, Models::GPTOss20B)
+            .response(prompt, instruction, Models::GPTOss20B)
             .await
             .map_err(|e| Error::from(e.to_string()))?;
 
@@ -137,17 +154,30 @@ mod test {
         let ai = Workers::new(auth.account_id.as_str(), auth.api_token.as_str());
         println!(
             "gemma: {}",
-            ai.gemma3_12b("辿るは何の意味ですか？").await.unwrap()
+            ai.gemma3_12b(
+                "辿るは何の意味ですか？",
+                Some("详细解释一下，包括每个词的意思。")
+            )
+            .await
+            .unwrap()
         );
         println!(
             "gpt-oss-20b: {}",
-            ai.gpt_oss_20b("辿るは何の意味ですか？").await.unwrap()
+            ai.gpt_oss_20b(
+                "辿るは何の意味ですか？",
+                Some("详细解释一下，包括每个词的意思。")
+            )
+            .await
+            .unwrap()
         );
         println!(
             "llama4_scout_17b_16e_instruct: {}",
-            ai.llama4_scout_17b_16e_instruct("生意気の意味は？")
-                .await
-                .unwrap()
+            ai.llama4_scout_17b_16e_instruct(
+                "生意気の意味は？",
+                Some("详细解释一下，包括每个词的意思。")
+            )
+            .await
+            .unwrap()
         );
     }
 

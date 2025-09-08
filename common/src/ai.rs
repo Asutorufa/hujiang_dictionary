@@ -1,10 +1,15 @@
 use serde::{Deserialize, Serialize};
 
 pub trait AI {
-    fn gemma3_12b(&self, prompt: &str) -> impl Future<Output = Result<String, Error>>;
+    fn gemma3_12b(
+        &self,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> impl Future<Output = Result<String, Error>>;
     fn llama4_scout_17b_16e_instruct(
         &self,
         prompt: &str,
+        instruction: Option<&str>,
     ) -> impl Future<Output = Result<String, Error>>;
     fn m2m100_1_2b(
         &self,
@@ -12,7 +17,11 @@ pub trait AI {
         source_lang: Option<String>,
         target_lang: String,
     ) -> impl Future<Output = Result<String, Error>>;
-    fn gpt_oss_20b(&self, prompt: &str) -> impl Future<Output = Result<String, Error>>;
+    fn gpt_oss_20b(
+        &self,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> impl Future<Output = Result<String, Error>>;
 }
 
 pub static SYSTEM_MSG: &str = r#"
@@ -71,16 +80,28 @@ impl From<String> for Error {
 pub struct ResponsesRequest {
     pub instructions: String,
     pub model: String,
-    pub input: String,
+    pub input: Vec<Message>,
     pub reasoning: Reasoning,
 }
 
 impl ResponsesRequest {
-    pub fn new(model: Models, prompt: &str) -> Self {
+    pub fn new(model: Models, prompt: &str, instruction: Option<&str>) -> Self {
+        let mut msgs = vec![Message {
+            role: "user".to_string(),
+            content: prompt.to_string(),
+        }];
+
+        if let Some(instruction) = instruction {
+            msgs.push(Message {
+                role: "system".to_string(),
+                content: instruction.to_string(),
+            });
+        }
+
         Self {
             instructions: SYSTEM_MSG.to_string(),
             model: model.as_str().to_string(),
-            input: prompt.to_string(),
+            input: msgs,
             reasoning: Reasoning {
                 effort: "low".to_string(),
                 summary: "concise".to_string(),
@@ -132,19 +153,28 @@ pub struct CompletionRequest {
 }
 
 impl CompletionRequest {
-    pub fn new(model: Models, prompt: &str) -> Self {
+    pub fn new(model: Models, prompt: &str, instruction: Option<&str>) -> Self {
+        let mut msgs = vec![
+            Message {
+                role: "system".to_string(),
+                content: SYSTEM_MSG.to_string(),
+            },
+            Message {
+                role: "user".to_string(),
+                content: prompt.to_string(),
+            },
+        ];
+
+        if let Some(instruction) = instruction {
+            msgs.push(Message {
+                role: "system".to_string(),
+                content: instruction.to_string(),
+            });
+        }
+
         Self {
             model: model.as_str().to_string(),
-            messages: vec![
-                Message {
-                    role: "system".to_string(),
-                    content: SYSTEM_MSG.to_string(),
-                },
-                Message {
-                    role: "user".to_string(),
-                    content: prompt.to_string(),
-                },
-            ],
+            messages: msgs,
         }
     }
 }
