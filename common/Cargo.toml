@@ -10,5 +10,7 @@ serde_json = "1.0.141"
 reqwest = { version = "0.12.22", default-features = false }
 frankenstein = { version = "0.44", features = ["client-reqwest"] }
 log = "0.4.27"
-
 hjdict = { path = "../dict" }
+
+# test only
+tokio = { version = "1", default-features = false, features = ["macros", "rt"] }

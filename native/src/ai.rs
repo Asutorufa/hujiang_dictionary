@@ -62,7 +62,7 @@ impl Workers {
         let r: CompletionResponse = self
             .exec(
                 "v1/chat/completions",
-                CompletionRequest::new(model, system, prompt, instruction),
+                CompletionRequest::new_workers_ai(model, system, prompt, instruction),
             )
             .await?;
         Ok(r.choices

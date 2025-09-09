@@ -1,6 +1,6 @@
 use hjdict::google_search;
 use log::info;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 pub trait AI {
     fn m2m100_1_2b(
@@ -189,12 +189,14 @@ impl ResponsesRequest {
         let mut msgs = vec![Message {
             role: "user".to_string(),
             content: prompt.to_string(),
+            reasoning: None,
         }];
 
         if let Some(instruction) = instruction {
             msgs.push(Message {
                 role: "system".to_string(),
                 content: instruction.to_string(),
+                reasoning: None,
             });
         }
 
@@ -250,18 +252,21 @@ pub struct ResponsesContent {
 pub struct CompletionRequest {
     pub model: String,
     pub messages: Vec<Message>,
+    pub reasoning: Option<Reasoning>,
 }
 
 impl CompletionRequest {
-    pub fn new(model: Models, system: &str, prompt: &str, instruction: Option<&str>) -> Self {
+    pub fn new(model: &str, system: &str, prompt: &str, instruction: Option<&str>) -> Self {
         let mut msgs = vec![
             Message {
                 role: "system".to_string(),
                 content: system.to_string(),
+                reasoning: None,
             },
             Message {
                 role: "user".to_string(),
                 content: prompt.to_string(),
+                reasoning: None,
             },
         ];
 
@@ -269,20 +274,32 @@ impl CompletionRequest {
             msgs.push(Message {
                 role: "system".to_string(),
                 content: instruction.to_string(),
+                reasoning: None,
             });
         }
 
         Self {
-            model: model.as_str().to_string(),
+            model: model.to_string(),
             messages: msgs,
+            reasoning: None,
         }
+    }
+
+    pub fn new_workers_ai(
+        model: Models,
+        system: &str,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> Self {
+        CompletionRequest::new(model.as_str(), system, prompt, instruction)
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Message {
     pub role: String,
     pub content: String,
+    pub reasoning: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -322,4 +339,88 @@ pub struct TranslateOutput {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TranslateResult {
     pub result: TranslateOutput,
+}
+
+#[derive(serde::Deserialize, Clone)]
+pub struct OpenAI {
+    pub base_url: String,
+    pub api_key: String,
+    pub model: String,
+}
+
+impl OpenAI {
+    pub fn new(base_url: &str, api_key: &str, model: &str) -> Self {
+        Self {
+            base_url: base_url.to_string(),
+            api_key: api_key.to_string(),
+            model: model.to_string(),
+        }
+    }
+
+    pub async fn exec<I: Serialize, O: DeserializeOwned>(
+        &self,
+        path: &str,
+        input: I,
+    ) -> Result<O, Error> {
+        let body = serde_json::to_string(&input).unwrap();
+
+        let r = reqwest::Client::builder()
+            .build()?
+            .post(format!("{}{}", self.base_url, path))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header(
+                "HTTP-Referer",
+                "https://github.com/Asutorufa/hujiang_dictionary",
+            )
+            .header("X-Title", "hj-dict")
+            .body(body)
+            .send()
+            .await?;
+
+        if r.status() != 200 {
+            return Err(Error(r.text().await?));
+        }
+
+        Ok(r.json::<O>().await?)
+    }
+
+    pub async fn completion(
+        &self,
+        system: &str,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> Result<Message, Error> {
+        let mut req = CompletionRequest::new(self.model.as_str(), system, prompt, instruction);
+        req.reasoning = Some(Reasoning {
+            effort: "low".to_string(),
+            summary: "concise".to_string(),
+        });
+
+        let r: CompletionResponse = self.exec("/chat/completions", req).await?;
+        Ok(r.choices
+            .first()
+            .ok_or(Error("choice is empty".to_string()))?
+            .message
+            .clone())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::fs;
+
+    use crate::ai::{OpenAI, system_msg};
+
+    #[tokio::test]
+    async fn test() {
+        let auth_json = fs::read_to_string("src/.api.json").unwrap();
+        let oa = serde_json::from_str::<OpenAI>(&auth_json).unwrap();
+
+        println!(
+            "{:?}",
+            oa.completion(system_msg(false), "辿るは何の意味ですか？", None)
+                .await
+                .unwrap()
+        );
+    }
 }
