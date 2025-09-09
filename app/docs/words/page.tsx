@@ -4,6 +4,7 @@ import { BookIcon, changePriority, ConfirmModal, countWord, deleteWord, EditIcon
 import { Button, Card, CardBody, CardHeader, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination, Spinner, Tab, Tabs } from "@heroui/react";
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { useLocalStorage } from "usehooks-ts";
 
@@ -116,40 +117,29 @@ export default function Words() {
                 setWords(data)
             }
 
-            // if (error) {
-            //     for (let i = 0; i < 10; i++) {
-            //         setWords(prev => [...prev, {
-            //             word: refresh + "tttttttttttttttttttttttest" + i,
-            //             explain: error + `
-            //             xsxzxz
+            //             if (error) {
+            //                 for (let i = 0; i < 10; i++) {
+            //                     setWords(prev => [...prev, {
+            //                         word: refresh + "tttttttttttttttttttttttest" + i,
+            //                         explain: error + `
+            // # Test
 
-            //             xz
-            //             czxc
+            // <audio controls controlsList="nodownload" preload="none" src="http://d1.g.hjfile.cn/voice/jpsound/J23794.mp3"></audio>
 
-            //             x
-            //             zc
-            //             xz
-            //             <!-- xzc
-            //             z
-            //             xc
-
-            //             zx
-            //             callbackz
-            //             czxcc
-
-            //             zc-->
-
-
-            //             `,
-            //             add_time: 0,
-            //             update_time: 0,
-            //             reminder_time: 0,
-            //             anki_count: 0,
-            //             priority: 0,
-            //             type: 0
-            //         }])
-            //     }
-            // }
+            //             |a|b|c|
+            //             |--|--|--|
+            //             |dd|dd|dd|
+            //             |ee|ee|ee|
+            //                                     `,
+            //                         add_time: 0,
+            //                         update_time: 0,
+            //                         reminder_time: 0,
+            //                         anki_count: 0,
+            //                         priority: 0,
+            //                         type: 0
+            //                     }])
+            //                 }
+            //             }
 
             setLoading(false)
         })
@@ -304,9 +294,9 @@ export default function Words() {
                             </CardHeader>
                             <CardBody>
                                 <div className="px-2 py-1 rounded-small bg-default-100 group-data-[hover=true]:bg-default-200">
-                                    <span className="text-tiny text-default-600">
+                                    <span className="text-tiny text-default-600 prose max-w-none dark:prose-invert">
                                         <Spoiler>
-                                            <Markdown remarkPlugins={[remarkGfm]}>{w.explain}</Markdown>
+                                            <Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>{w.explain}</Markdown>
                                         </Spoiler>
                                     </span>
                                 </div>

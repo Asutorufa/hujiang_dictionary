@@ -1,37 +1,41 @@
 "use client"
 
-import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Textarea } from "@heroui/react";
+import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Switch, Textarea } from "@heroui/react";
 import { useState } from "react";
 import Markdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { useLocalStorage } from "usehooks-ts";
 import { DiskIcon, PlayIcon, SaveWordModal } from "./components";
 
-type QueryWordResponse = {
-  result: string;
-}
-
-async function queryWord(selected: string, query: string, instruction: string, srcLang: string, dstLang: string,
+async function queryWord(opts: {
+  selected: string,
+  query: string,
+  instruction: string,
+  google_search: boolean,
+  srcLang: string,
+  dstLang: string
+},
   callback: (data?: string, error?: string) => void) {
-  fetch("/word/query", {
+  const resp = await fetch("/word/query", {
     method: "POST",
     headers: {
     },
     body: JSON.stringify({
-      method: selected,
-      word: query,
-      instruction: instruction.length > 0 ? instruction : undefined,
-      src_lang: srcLang ? srcLang : undefined,
-      dst_lang: dstLang ? dstLang : undefined,
+      method: opts.selected,
+      word: opts.query,
+      instruction: opts.instruction.length > 0 ? opts.instruction : undefined,
+      google_search: opts.google_search,
+      src_lang: opts.srcLang ? opts.srcLang : undefined,
+      dst_lang: opts.dstLang ? opts.dstLang : undefined,
     }),
-  })
-    .then((res) => res.json() as Promise<QueryWordResponse>)
-    .then((data) => {
-      callback(data.result, undefined);
-    })
-    .catch((error) => {
-      callback(undefined, error.message);
-    });
+  });
+
+  if (resp.ok) {
+    callback((await resp.json() as { result: string }).result, undefined);
+  } else {
+    callback(undefined, `(${resp.status}) ${await resp.text()}`);
+  }
 }
 
 function showSelectLang(selected: string) {
@@ -92,6 +96,7 @@ export default function Home() {
   const [selected, setSelected] = useLocalStorage("translate_type", "ktbk");
   const [query, setQuery] = useLocalStorage("query", "");
   const [instruction, setInstruction] = useLocalStorage("instruction", "");
+  const [googleSearch, setGoogleSearch] = useLocalStorage("google_search", false);
   const [result, setResult] = useLocalStorage("result", "");
   const [srcLang, setSrcLang] = useLocalStorage("src_lang", "");
   const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
@@ -195,20 +200,28 @@ export default function Home() {
               variant="bordered"
               className="shadow-md backdrop-blur-sm"
               isLoading={loading}
-              onPress={() => {
+              onPress={async () => {
                 if (!query) return;
                 setLoading(true);
-                queryWord(selected, query, instruction, srcLang, dstLang, (data, error) => {
-                  console.log(data);
-                  if (error) {
-                    setResult(error)
-                  } else if (data) {
-                    setResult(data)
-                  } else {
-                    setResult("NOT FOUND")
-                  }
-                  setLoading(false);
-                })
+                await queryWord({
+                  query: query,
+                  srcLang: srcLang,
+                  dstLang: dstLang,
+                  google_search: googleSearch,
+                  instruction: instruction,
+                  selected: selected
+                },
+                  (data, error) => {
+                    console.log(data);
+                    if (error) {
+                      setResult(error)
+                    } else if (data) {
+                      setResult(data)
+                    } else {
+                      setResult("NOT FOUND")
+                    }
+                    setLoading(false);
+                  })
               }}
             >
               <PlayIcon />
@@ -239,28 +252,34 @@ export default function Home() {
         />
 
 
-        {
-          isLLm[selected] &&
-          <Textarea
-            className="mt-2"
-            label="Instruction"
-            type="textarea"
-            value={instruction}
-            height={"full"}
-            classNames={{
-              input: "resize-y min-h-[40px]",
-            }}
-            onChange={(e) => setInstruction(e.target.value)}
-          />
+        {isLLm[selected] &&
+          <>
+            <Switch className="mt-2" isSelected={googleSearch} onValueChange={(e) => setGoogleSearch(e)}>
+              Google Search
+            </Switch>
+
+            {!googleSearch &&
+              <Textarea
+                className="mt-2"
+                label="Instruction"
+                type="textarea"
+                value={instruction}
+                height={"full"}
+                classNames={{
+                  input: "resize-y min-h-[40px]",
+                }}
+                onChange={(e) => setInstruction(e.target.value)}
+              />
+            }
+          </>
         }
 
         <div className="mt-2">
           <Card>
             <CardBody>
-
               {result ?
-                <div className="flex-1">
-                  <Markdown remarkPlugins={[remarkGfm]}>{result}</Markdown>
+                <div className="flex-1 prose max-w-none dark:prose-invert">
+                  <Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>{result}</Markdown>
                 </div>
                 :
                 <>
