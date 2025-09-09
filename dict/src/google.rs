@@ -1,3 +1,4 @@
+use crate::error::Error;
 use serde::Deserialize;
 
 #[derive(Debug)]
@@ -94,7 +95,7 @@ pub async fn translatev2(
     text: &str,
     src: Option<String>,
     target: &str,
-) -> Result<Vec<Output>, reqwest::Error> {
+) -> Result<Vec<Output>, Error> {
     /*
 
     translate-pa.googleapis.com
@@ -151,12 +152,13 @@ pub async fn translatev2(
         .send()
         .await?;
 
-    if resp.status() != 200 {
-        let text = resp.text().await?;
-        return Ok(vec![Output {
-            source: text.clone(),
-            translation: text,
-        }]);
+    let status = resp.status();
+
+    if status != 200 {
+        return Err(Error {
+            message: resp.text().await?,
+            status: Some(status),
+        });
     }
 
     let body = resp.json::<TranslateResponse>().await?;
@@ -179,7 +181,7 @@ pub async fn translate(
     text: &str,
     src: Option<String>,
     target: &str,
-) -> Result<Vec<Output>, reqwest::Error> {
+) -> Result<Vec<Output>, Error> {
     let resp = reqwest::Client::builder()
         .build()?
         .get("https://translate.googleapis.com/translate_a/single")
@@ -215,12 +217,13 @@ pub async fn translate(
         .send()
         .await?;
 
-    if resp.status() != 200 {
-        let text = resp.text().await?;
-        return Ok(vec![Output {
-            source: text.clone(),
-            translation: text,
-        }]);
+    let status = resp.status();
+
+    if status != 200 {
+        return Err(Error {
+            message: resp.text().await?,
+            status: Some(status),
+        });
     }
 
     let body: Vec<serde_json::Value> = resp.json().await?;

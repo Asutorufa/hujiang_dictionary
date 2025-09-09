@@ -1,3 +1,4 @@
+use crate::error::Error;
 use scraper::Selector;
 use std::fmt::Write;
 
@@ -177,7 +178,7 @@ impl AttrOrEmpty for scraper::element_ref::Select<'_, '_> {
 pub static USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 Safari/537.36";
 pub static COOKIE: &str = "HJ_UID=0f406091-be97-6b64-f1fc-f7b2470883e9; HJ_CST=1; HJ_CSST_3=1;TRACKSITEMAP=3%2C; HJ_SID=393c85c7-abac-f408-6a32-a1f125d7e8c6; _REF=; HJ_SSID_3=4a460f19-c0ae-12a7-8e86-6e360f69ec9b; _SREF_3=; HJ_CMATCH=1";
 
-pub async fn get(word: &str) -> Result<Vec<Word>, reqwest::Error> {
+pub async fn get(word: &str) -> Result<Vec<Word>, Error> {
     let r = reqwest::Client::builder()
         .build()?
         .get(format!("https://dict.hjenglish.com/w/{}", word))
@@ -185,6 +186,15 @@ pub async fn get(word: &str) -> Result<Vec<Word>, reqwest::Error> {
         .header("Cookie", COOKIE)
         .send()
         .await?;
+
+    let status = r.status();
+
+    if status != 200 {
+        return Err(Error {
+            message: r.text().await?,
+            status: Some(status),
+        });
+    }
 
     let text = r.text().await?;
 

@@ -1,11 +1,22 @@
 use scraper::Selector;
 
-pub async fn get(str: &str) -> Result<Vec<String>, reqwest::Error> {
+use crate::error::Error;
+
+pub async fn get(str: &str) -> Result<Vec<String>, Error> {
     let r = reqwest::Client::builder()
         .build()?
         .get(format!("https://kotobank.jp/word/{}", str))
         .send()
         .await?;
+
+    let status = r.status();
+
+    if status != 200 {
+        return Err(Error {
+            message: r.text().await?,
+            status: Some(status),
+        });
+    }
 
     let text = r.text().await?;
 

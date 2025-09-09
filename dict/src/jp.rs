@@ -1,4 +1,7 @@
-use crate::en::{AttrOrEmpty, COOKIE, StringOrEmpty, TrimText, USER_AGENT};
+use crate::{
+    en::{AttrOrEmpty, COOKIE, StringOrEmpty, TrimText, USER_AGENT},
+    error::Error,
+};
 use scraper::{ElementRef, Selector};
 use std::fmt::Write;
 
@@ -90,7 +93,7 @@ impl Word {
     }
 }
 
-pub async fn get(word: &str, t: &str) -> Result<Vec<Word>, reqwest::Error> {
+pub async fn get(word: &str, t: &str) -> Result<Vec<Word>, Error> {
     let r = reqwest::Client::builder()
         .build()?
         .get(format!("https://dict.hjenglish.com/jp/{}/{}", t, word))
@@ -98,6 +101,15 @@ pub async fn get(word: &str, t: &str) -> Result<Vec<Word>, reqwest::Error> {
         .header("Cookie", COOKIE)
         .send()
         .await?;
+
+    let status = r.status();
+
+    if status != 200 {
+        return Err(Error {
+            message: r.text().await?,
+            status: Some(status),
+        });
+    }
 
     let text = r.text().await?;
 

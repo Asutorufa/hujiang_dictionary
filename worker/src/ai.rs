@@ -4,7 +4,7 @@ use cloudflare::endpoints::ai::execute_model::{
     Message, MessageRole, MessagesParams, ResponseAndToolCallsResult, TranslationParams,
     TranslationResult,
 };
-use hjcommon::ai::{AI, Error, Models, ResponseResponse, ResponsesRequest, SYSTEM_MSG};
+use hjcommon::ai::{AI, Error, Models, ResponseResponse, ResponsesRequest};
 use serde::{Serialize, de::DeserializeOwned};
 use worker::{Ai, Env};
 
@@ -44,6 +44,7 @@ impl WasmAI {
 
     pub async fn completion(
         &self,
+        system: &str,
         prompt: &str,
         instruction: Option<&str>,
         model: Models,
@@ -51,7 +52,7 @@ impl WasmAI {
         let mut mgs = vec![
             Message {
                 role: MessageRole::System,
-                content: SYSTEM_MSG.to_string(),
+                content: system.to_string(),
             },
             Message {
                 role: MessageRole::User,
@@ -79,6 +80,7 @@ impl WasmAI {
 
     pub async fn response(
         &self,
+        system: &str,
         prompt: &str,
         instruction: Option<&str>,
         model: Models,
@@ -86,7 +88,7 @@ impl WasmAI {
         let resp: ResponseResponse = self
             .exec(
                 model.clone(),
-                ResponsesRequest::new(model, prompt, instruction),
+                ResponsesRequest::new(model, system, prompt, instruction),
             )
             .await?;
         Ok(resp.content())
@@ -102,23 +104,39 @@ impl Clone for WasmAI {
 }
 
 impl AI for WasmAI {
-    async fn gemma3_12b(&self, prompt: &str, instruction: Option<&str>) -> Result<String, Error> {
-        self.completion(prompt, instruction, Models::Gemma3_12bIt)
+    async fn gemma3_12b(
+        &self,
+        system: &str,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> Result<String, Error> {
+        self.completion(system, prompt, instruction, Models::Gemma3_12bIt)
             .await
     }
 
     async fn llama4_scout_17b_16e_instruct(
         &self,
+        system: &str,
         prompt: &str,
         instruction: Option<&str>,
     ) -> Result<String, Error> {
-        self.completion(prompt, instruction, Models::Llama4Scout17B16EInstruct)
-            .await
+        self.completion(
+            system,
+            prompt,
+            instruction,
+            Models::Llama4Scout17B16EInstruct,
+        )
+        .await
     }
 
-    async fn gpt_oss_20b(&self, prompt: &str, instruction: Option<&str>) -> Result<String, Error> {
+    async fn gpt_oss_20b(
+        &self,
+        system: &str,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> Result<String, Error> {
         let content = self
-            .response(prompt, instruction, Models::GPTOss20B)
+            .response(system, prompt, instruction, Models::GPTOss20B)
             .await?;
 
         let text = content

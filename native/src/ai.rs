@@ -54,6 +54,7 @@ impl Workers {
 
     pub async fn completion(
         &self,
+        system: &str,
         prompt: &str,
         instruction: Option<&str>,
         model: Models,
@@ -61,7 +62,7 @@ impl Workers {
         let r: CompletionResponse = self
             .exec(
                 "v1/chat/completions",
-                CompletionRequest::new(model, prompt, instruction),
+                CompletionRequest::new(model, system, prompt, instruction),
             )
             .await?;
         Ok(r.choices
@@ -74,6 +75,7 @@ impl Workers {
 
     pub async fn response(
         &self,
+        system: &str,
         prompt: &str,
         instruction: Option<&str>,
         model: Models,
@@ -81,7 +83,7 @@ impl Workers {
         let r: ResponseResponse = self
             .exec(
                 "v1/responses",
-                ResponsesRequest::new(model, prompt, instruction),
+                ResponsesRequest::new(model, system, prompt, instruction),
             )
             .await?;
         Ok(r.content())
@@ -89,23 +91,39 @@ impl Workers {
 }
 
 impl AI for Workers {
-    async fn gemma3_12b(&self, prompt: &str, instruction: Option<&str>) -> Result<String, Error> {
-        self.completion(prompt, instruction, Models::Gemma3_12bIt)
+    async fn gemma3_12b(
+        &self,
+        system: &str,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> Result<String, Error> {
+        self.completion(system, prompt, instruction, Models::Gemma3_12bIt)
             .await
     }
 
     async fn llama4_scout_17b_16e_instruct(
         &self,
+        system: &str,
         prompt: &str,
         instruction: Option<&str>,
     ) -> Result<String, Error> {
-        self.completion(prompt, instruction, Models::Llama4Scout17B16EInstruct)
-            .await
+        self.completion(
+            system,
+            prompt,
+            instruction,
+            Models::Llama4Scout17B16EInstruct,
+        )
+        .await
     }
 
-    async fn gpt_oss_20b(&self, prompt: &str, instruction: Option<&str>) -> Result<String, Error> {
+    async fn gpt_oss_20b(
+        &self,
+        system: &str,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> Result<String, Error> {
         let content = self
-            .response(prompt, instruction, Models::GPTOss20B)
+            .response(system, prompt, instruction, Models::GPTOss20B)
             .await
             .map_err(|e| Error::from(e.to_string()))?;
 
@@ -136,10 +154,9 @@ impl AI for Workers {
 
 #[cfg(test)]
 mod test {
-    use std::fs;
-
     use crate::ai::Workers;
-    use hjcommon::ai::AI;
+    use hjcommon::ai::{AI, system_msg};
+    use std::fs;
 
     #[derive(serde::Deserialize)]
     struct Auth {
@@ -155,6 +172,7 @@ mod test {
         println!(
             "gemma: {}",
             ai.gemma3_12b(
+                system_msg(false),
                 "辿るは何の意味ですか？",
                 Some("详细解释一下，包括每个词的意思。")
             )
@@ -164,6 +182,7 @@ mod test {
         println!(
             "gpt-oss-20b: {}",
             ai.gpt_oss_20b(
+                system_msg(false),
                 "辿るは何の意味ですか？",
                 Some("详细解释一下，包括每个词的意思。")
             )
@@ -173,6 +192,7 @@ mod test {
         println!(
             "llama4_scout_17b_16e_instruct: {}",
             ai.llama4_scout_17b_16e_instruct(
+                system_msg(false),
                 "生意気の意味は？",
                 Some("详细解释一下，包括每个词的意思。")
             )
@@ -191,6 +211,24 @@ mod test {
             ai.m2m100_1_2b("辿るは何の意味ですか？", None, "zh".to_string())
                 .await
                 .unwrap()
+        );
+    }
+
+    #[tokio::test]
+    pub async fn response() {
+        let auth_json = fs::read_to_string("src/.api.json").unwrap();
+        let auth = serde_json::from_str::<Auth>(&auth_json).unwrap();
+        let ai = Workers::new(auth.account_id.as_str(), auth.api_token.as_str());
+
+        println!(
+            "{}",
+            ai.google_search(
+                hjcommon::ai::Models::GPTOss20B,
+                false,
+                "辿るは何の意味ですか？"
+            )
+            .await
+            .unwrap()
         );
     }
 }

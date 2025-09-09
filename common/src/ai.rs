@@ -1,37 +1,137 @@
+use hjdict::google_search;
+use log::info;
 use serde::{Deserialize, Serialize};
 
 pub trait AI {
-    fn gemma3_12b(
-        &self,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> impl Future<Output = Result<String, Error>>;
-    fn llama4_scout_17b_16e_instruct(
-        &self,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> impl Future<Output = Result<String, Error>>;
     fn m2m100_1_2b(
         &self,
         text: &str,
         source_lang: Option<String>,
         target_lang: String,
     ) -> impl Future<Output = Result<String, Error>>;
-    fn gpt_oss_20b(
+
+    fn gemma3_12b(
         &self,
+        system: &str,
         prompt: &str,
         instruction: Option<&str>,
     ) -> impl Future<Output = Result<String, Error>>;
+    fn llama4_scout_17b_16e_instruct(
+        &self,
+        system: &str,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> impl Future<Output = Result<String, Error>>;
+    fn gpt_oss_20b(
+        &self,
+        system: &str,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> impl Future<Output = Result<String, Error>>;
+
+    fn translate(
+        &self,
+        model: Models,
+        chars_limit: bool,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> impl Future<Output = Result<String, Error>> {
+        async move {
+            match model {
+                Models::Gemma3_12bIt => {
+                    self.gemma3_12b(system_msg(chars_limit), prompt, instruction)
+                        .await
+                }
+                Models::Llama4Scout17B16EInstruct => {
+                    self.llama4_scout_17b_16e_instruct(system_msg(chars_limit), prompt, instruction)
+                        .await
+                }
+                Models::GPTOss20B => {
+                    self.gpt_oss_20b(system_msg(chars_limit), prompt, instruction)
+                        .await
+                }
+                _ => Err(Error("model not supported".to_string())),
+            }
+        }
+    }
+
+    fn google_search(
+        &self,
+        model: Models,
+        chars_limit: bool,
+        query: &str,
+    ) -> impl Future<Output = Result<String, Error>> {
+        async move {
+            let result = match google_search::get(query).await {
+                Ok(v) => v,
+                Err(e) => return Err(Error::from(e.to_string())),
+            };
+
+            let mut instruct = "<google search result>\n".to_string();
+
+            let length = if result.len() > 3 { 3 } else { result.len() };
+
+            for v in &result[0..length] {
+                let title = v.title.replace("\n", " ");
+                instruct.push_str("<>\n");
+                instruct.push_str(&format!("<title>{}</title>\n", title));
+                instruct.push_str(&format!("<link>{}</link>\n", v.url));
+                instruct.push_str(&format!(
+                    "<content>{}</content>\n",
+                    v.get_raw_page().await.unwrap()
+                ));
+                instruct.push_str("</>\n");
+            }
+
+            instruct.push_str("\n</google search result>\n");
+
+            instruct.push_str("\n**please use above google search result to explain.**\n");
+
+            info!("google search instruct: {}", instruct);
+
+            match model {
+                Models::GPTOss20B => {
+                    self.gpt_oss_20b(system_msg(chars_limit), query, Some(instruct.as_str()))
+                        .await
+                }
+                Models::Gemma3_12bIt => {
+                    self.gemma3_12b(system_msg(chars_limit), query, Some(instruct.as_str()))
+                        .await
+                }
+                Models::Llama4Scout17B16EInstruct => {
+                    self.llama4_scout_17b_16e_instruct(
+                        system_msg(chars_limit),
+                        query,
+                        Some(instruct.as_str()),
+                    )
+                    .await
+                }
+                _ => {
+                    self.gpt_oss_20b(system_msg(chars_limit), query, Some(instruct.as_str()))
+                        .await
+                }
+            }
+        }
+    }
 }
 
 pub static SYSTEM_MSG: &str = r#"
 You are a professional translator.
 Translate the input text according to the user's instructions and return the result in the user’s original language (unless the user requests otherwise).
-The total output must not exceed 4096 characters, including spaces and line breaks.
+"#;
+
+pub static SYSTEM_MSG_LIMIT: &str = r#"
+You are a professional translator.
+Translate the input text according to the user's instructions and return the result in the user’s original language (unless the user requests otherwise).
 If the translated content is approaching the limit, prioritize preserving core meaning and compress the expression when necessary. Paraphrase or summarize if required.
 Do not output in Markdown format.
+The total output must not exceed 4096 characters, including spaces and line breaks.
 Strictly follow the character limit to prevent truncation.
 "#;
+
+pub fn system_msg(limit: bool) -> &'static str {
+    if limit { SYSTEM_MSG_LIMIT } else { SYSTEM_MSG }
+}
 
 #[derive(Debug, Clone)]
 pub enum Models {
@@ -85,7 +185,7 @@ pub struct ResponsesRequest {
 }
 
 impl ResponsesRequest {
-    pub fn new(model: Models, prompt: &str, instruction: Option<&str>) -> Self {
+    pub fn new(model: Models, system: &str, prompt: &str, instruction: Option<&str>) -> Self {
         let mut msgs = vec![Message {
             role: "user".to_string(),
             content: prompt.to_string(),
@@ -99,7 +199,7 @@ impl ResponsesRequest {
         }
 
         Self {
-            instructions: SYSTEM_MSG.to_string(),
+            instructions: system.to_string(),
             model: model.as_str().to_string(),
             input: msgs,
             reasoning: Reasoning {
@@ -153,11 +253,11 @@ pub struct CompletionRequest {
 }
 
 impl CompletionRequest {
-    pub fn new(model: Models, prompt: &str, instruction: Option<&str>) -> Self {
+    pub fn new(model: Models, system: &str, prompt: &str, instruction: Option<&str>) -> Self {
         let mut msgs = vec![
             Message {
                 role: "system".to_string(),
-                content: SYSTEM_MSG.to_string(),
+                content: system.to_string(),
             },
             Message {
                 role: "user".to_string(),

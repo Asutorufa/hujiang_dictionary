@@ -18,7 +18,7 @@ static INIT: Once = Once::new();
 async fn get_opt(env: Arc<Env>) -> Arc<RunOpt<WasmD1, WasmAI>> {
     console_error_panic_hook::set_once();
     INIT.call_once(|| {
-        match console_log::init_with_level(log::Level::Debug) {
+        match console_log::init_with_level(log::Level::Info) {
             Err(e) => console_error!("Failed to init console log: {}", e),
             _ => console_log!("Console log initialized"),
         };

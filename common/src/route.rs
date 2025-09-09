@@ -1,8 +1,9 @@
 use hjdict::{en, google, jp, kotobakku, weblio};
+use log::info;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    ai::AI,
+    ai::{AI, Models},
     d1::{DBv2, Error as D1Error},
     opts::RunOpt,
 };
@@ -39,6 +40,7 @@ pub struct WordQueryRequest {
     pub method: String,
     pub word: String,
     pub instruction: Option<String>,
+    pub google_search: Option<bool>,
     pub src_lang: Option<String>,
     pub dst_lang: Option<String>,
 }
@@ -235,21 +237,27 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
                 .join("\n"),
             "weblio" => weblio::get(&req.word).await.unwrap().join("\n"),
             "ktbk" => kotobakku::get(&req.word).await.unwrap().join("\n"),
-            "gpt" => self
-                .workers_ai
-                .gpt_oss_20b(&req.word, req.instruction().as_deref())
-                .await
-                .unwrap(),
-            "llama4" => self
-                .workers_ai
-                .llama4_scout_17b_16e_instruct(&req.word, req.instruction().as_deref())
-                .await
-                .unwrap(),
-            "gemma" => self
-                .workers_ai
-                .gemma3_12b(&req.word, req.instruction().as_deref())
-                .await
-                .unwrap(),
+            "gpt" | "llama4" | "gemma" => {
+                let model = match req.method.as_str() {
+                    "gpt" => Models::GPTOss20B,
+                    "llama4" => Models::Llama4Scout17B16EInstruct,
+                    "gemma" => Models::Gemma3_12bIt,
+                    _ => unreachable!(),
+                };
+                if req.google_search.is_some_and(|is| is) {
+                    info!("google search enabled, model: {}", model.as_str());
+
+                    self.workers_ai
+                        .google_search(model, false, &req.word)
+                        .await
+                        .unwrap()
+                } else {
+                    self.workers_ai
+                        .translate(model, false, &req.word, req.instruction().as_deref())
+                        .await
+                        .unwrap()
+                }
+            }
             "google" | "googlev1" => {
                 let target = req.dst_lang.clone().unwrap_or("en".to_string());
 
