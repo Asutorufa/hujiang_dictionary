@@ -16,7 +16,7 @@ async function queryWord(opts: {
   srcLang: string,
   dstLang: string
 },
-  callback: (data?: string, error?: string) => void) {
+  callback: (data?: { result: string, reasoning?: string }, error?: string) => void) {
   const resp = await fetch("/word/query", {
     method: "POST",
     headers: {
@@ -32,7 +32,7 @@ async function queryWord(opts: {
   });
 
   if (resp.ok) {
-    callback((await resp.json() as { result: string }).result, undefined);
+    callback((await resp.json() as { result: string, reasoning?: string }), undefined);
   } else {
     callback(undefined, `(${resp.status}) ${await resp.text()}`);
   }
@@ -97,7 +97,7 @@ export default function Home() {
   const [query, setQuery] = useLocalStorage("query", "");
   const [instruction, setInstruction] = useLocalStorage("instruction", "");
   const [googleSearch, setGoogleSearch] = useLocalStorage("google_search", false);
-  const [result, setResult] = useLocalStorage("result", "");
+  const [result, setResult] = useLocalStorage<{ result: string, reasoning?: string }>("result_v2", { result: "" });
   const [srcLang, setSrcLang] = useLocalStorage("src_lang", "");
   const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
   const [loading, setLoading] = useState(false);
@@ -105,7 +105,7 @@ export default function Home() {
 
   return (
     <>
-      <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={query} explain={result} type={0} />
+      <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={query} explain={result.result} type={0} />
       <div className="p-2">
 
         <div className="sticky flex flex-wrap justify-center top-1 z-50 gap-1">
@@ -214,11 +214,11 @@ export default function Home() {
                   (data, error) => {
                     console.log(data);
                     if (error) {
-                      setResult(error)
+                      setResult({ result: error })
                     } else if (data) {
                       setResult(data)
                     } else {
-                      setResult("NOT FOUND")
+                      setResult({ result: "NOT FOUND" })
                     }
                     setLoading(false);
                   })
@@ -274,12 +274,25 @@ export default function Home() {
           </>
         }
 
+
+        {result.reasoning &&
+          <div className="mt-2">
+            <Card>
+              <CardBody>
+                <div className="flex-1 prose max-w-none dark:prose-invert">
+                  <Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>{result.reasoning}</Markdown>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+        }
+
         <div className="mt-2">
           <Card>
             <CardBody>
-              {result ?
+              {result.result ?
                 <div className="flex-1 prose max-w-none dark:prose-invert">
-                  <Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>{result}</Markdown>
+                  <Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>{result.result}</Markdown>
                 </div>
                 :
                 <>

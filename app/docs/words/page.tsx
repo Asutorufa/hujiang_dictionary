@@ -217,8 +217,14 @@ export default function Words() {
                             <DropdownItem key="word desc">Word DESC</DropdownItem>
                             <DropdownItem key="priority">Priority</DropdownItem>
                             <DropdownItem key="priority desc">Priority DESC</DropdownItem>
-                            <DropdownItem key="update_time">Time</DropdownItem>
-                            <DropdownItem key="update_time desc">Time DESC</DropdownItem>
+                            <DropdownItem key="add_time">Add Time</DropdownItem>
+                            <DropdownItem key="add_time desc">Add Time DESC</DropdownItem>
+                            <DropdownItem key="update_time">Update Time</DropdownItem>
+                            <DropdownItem key="update_time desc">Update Time DESC</DropdownItem>
+                            <DropdownItem key="reminder_time">Reminder</DropdownItem>
+                            <DropdownItem key="reminder_time desc">Reminder DESC</DropdownItem>
+                            <DropdownItem key="anki_count">Count</DropdownItem>
+                            <DropdownItem key="anki_count desc">Count DESC</DropdownItem>
                         </DropdownMenu>
                     </Dropdown>
 
