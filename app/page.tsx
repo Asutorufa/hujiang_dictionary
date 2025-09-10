@@ -1,12 +1,12 @@
 "use client"
 
-import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Switch, Textarea } from "@heroui/react";
-import { useState } from "react";
+import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownSection, DropdownTrigger, Switch, Textarea } from "@heroui/react";
+import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { useLocalStorage } from "usehooks-ts";
-import { DiskIcon, PlayIcon, SaveWordModal } from "./components";
+import { DiskIcon, listModel as listModels, PlayIcon, SaveWordModal } from "./components";
 
 async function queryWord(opts: {
   selected: string,
@@ -14,7 +14,8 @@ async function queryWord(opts: {
   instruction: string,
   google_search: boolean,
   srcLang: string,
-  dstLang: string
+  dstLang: string,
+  custom_llm?: { name: string, model: string }
 },
   callback: (data?: { result: string, reasoning?: string }, error?: string) => void) {
   const resp = await fetch("/word/query", {
@@ -28,6 +29,7 @@ async function queryWord(opts: {
       google_search: opts.google_search,
       src_lang: opts.srcLang ? opts.srcLang : undefined,
       dst_lang: opts.dstLang ? opts.dstLang : undefined,
+      custom_llm: opts.custom_llm
     }),
   });
 
@@ -102,6 +104,29 @@ export default function Home() {
   const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [customModels, setCustomModels] =
+    useLocalStorage<{ [key: string]: { name: string, model: string } }[]>("custom_llms_cache", []);
+
+  useEffect(() => {
+    listModels((models, error) => {
+      if (error) {
+        console.log(error);
+      } else if (models) {
+        const customModels: { [key: string]: { name: string, model: string } }[] = [];
+        for (const llm of models) {
+          const cm: { [key: string]: { name: string, model: string } } = {};
+
+          for (const model of llm.models) {
+            cm[`custom-${llm.name}-${model}`] = { name: llm.name, model: model };
+          }
+
+          customModels.push(cm);
+        }
+
+        setCustomModels(customModels);
+      }
+    });
+  }, [setCustomModels]);
 
   return (
     <>
@@ -117,7 +142,7 @@ export default function Home() {
                   variant="bordered"
                   className="shadow-md backdrop-blur-sm capitalize"
                 >
-                  {translationMap[selected] || "Select"}
+                  {translationMap[selected] || customModels.find((cm) => Object.keys(cm).includes(selected))?.[selected].model || "Select"}
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
@@ -125,11 +150,26 @@ export default function Home() {
                 selectedKeys={[selected]}
                 onSelectionChange={(e) => e.currentKey && setSelected(e.currentKey)}
               >
-                {
-                  translationSources.map((source) => (
-                    <DropdownItem key={source.key}>{source.name}</DropdownItem>
-                  ))
-                }
+                <>
+                  <DropdownSection showDivider={customModels.length > 0}>
+                    {
+                      translationSources.map((source) => (
+                        <DropdownItem key={source.key}>{source.name}</DropdownItem>
+                      ))
+                    }
+                  </DropdownSection>
+                  {
+                    customModels.map((cm, i) => (
+                      <DropdownSection key={i} showDivider={i !== customModels.length - 1}>
+                        {
+                          Object.keys(cm).map((key) => (
+                            <DropdownItem shortcut={cm[key].name} key={key}>{cm[key].model}</DropdownItem>
+                          ))
+                        }
+                      </DropdownSection>
+                    ))
+                  }
+                </>
               </DropdownMenu>
             </Dropdown>
 
@@ -202,6 +242,13 @@ export default function Home() {
               isLoading={loading}
               onPress={async () => {
                 if (!query) return;
+                let modelName = selected;
+                let customLLM: { name: string, model: string } | undefined;
+                if (modelName.startsWith("custom-")) {
+                  customLLM = customModels.find((cm) => Object.keys(cm).includes(modelName))?.[modelName];
+                  modelName = "custom_llm";
+                }
+
                 setLoading(true);
                 await queryWord({
                   query: query,
@@ -209,7 +256,8 @@ export default function Home() {
                   dstLang: dstLang,
                   google_search: googleSearch,
                   instruction: instruction,
-                  selected: selected
+                  selected: modelName,
+                  custom_llm: customLLM,
                 },
                   (data, error) => {
                     console.log(data);
@@ -252,7 +300,7 @@ export default function Home() {
         />
 
 
-        {isLLm[selected] &&
+        {isLLm[selected] || selected.startsWith("custom-") &&
           <>
             <Switch className="mt-2" isSelected={googleSearch} onValueChange={(e) => setGoogleSearch(e)}>
               Google Search

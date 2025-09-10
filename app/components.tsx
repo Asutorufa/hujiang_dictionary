@@ -192,6 +192,17 @@ export async function changePriority(word: string, priority: number, callback: (
     });
 }
 
+type ModelResponse = {
+    name: string,
+    models: string[]
+}
+
+export async function listModel(callback: (data?: ModelResponse[], error?: string) => void) {
+    await wordRequest<ModelResponse[]>("/word/ai_custom", "", (data, error) => {
+        callback(data, error);
+    });
+}
+
 export const ConfirmModal: FC<{
     title: string,
     open: boolean,
