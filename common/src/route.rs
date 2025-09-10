@@ -1,9 +1,10 @@
 use hjdict::{en, google, jp, kotobakku, weblio};
 use log::info;
 use serde::{Deserialize, Serialize};
+use std::str;
 
 use crate::{
-    ai::{AI, Models},
+    ai::{self, Models, WorkersAI},
     d1::{DBv2, Error as D1Error},
     opts::RunOpt,
 };
@@ -39,6 +40,7 @@ pub struct ChangeWordPriorityRequest {
 pub struct WordQueryRequest {
     pub method: String,
     pub word: String,
+    pub custom_llm: Option<CustomLLM>,
     pub instruction: Option<String>,
     pub google_search: Option<bool>,
     pub src_lang: Option<String>,
@@ -82,11 +84,24 @@ impl WordQueryRequest {
 #[derive(Debug, Clone, Serialize)]
 pub struct WordQueryResponse {
     pub result: String,
+    pub reasoning: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct WordCountResponse {
     pub size: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CustomLLMResponse {
+    pub name: String,
+    pub models: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CustomLLM {
+    pub name: String,
+    pub model: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -121,7 +136,13 @@ impl From<D1Error> for Error {
     }
 }
 
-impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
+impl From<ai::Error> for Error {
+    fn from(value: ai::Error) -> Self {
+        Self(value.to_string())
+    }
+}
+
+impl<T1: DBv2, T2: WorkersAI> RunOpt<T1, T2> {
     pub async fn route(&self, path: &str, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         match path {
             "/word/list" => self.list_word(body).await,
@@ -131,6 +152,7 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
             "/word/delete" => self.delete_word(body).await,
             "/word/remind_count_increment" => self.increment_remind_count(body).await,
             "/word/priority" => self.change_priority(body).await,
+            "/word/ai_custom" => self.custom_llms().await,
             _ => Err(Error("not found".to_string())),
         }
     }
@@ -147,7 +169,7 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
         };
 
         match order_by.as_str() {
-            "word" | "update_time" | "priority" => {}
+            "word" | "update_time" | "priority" | "reminder_time" | "anki_count" | "add_time" => {}
             _ => return Err(Error("invalid order_by".to_string())),
         }
 
@@ -210,8 +232,86 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
         Ok(['{' as u8, '}' as u8].to_vec())
     }
 
+    pub async fn custom_llms(&self) -> Result<Vec<u8>, Error> {
+        let mut models = vec![];
+        for (name, l) in self.custom_llms.iter() {
+            models.push(CustomLLMResponse {
+                name: name.clone(),
+                models: l.models(),
+            });
+        }
+        Ok(serde_json::to_vec(&models)?)
+    }
+
     pub async fn word_query(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<WordQueryRequest>(&body)?;
+
+        let response = match req.method.as_str() {
+            "gpt" | "llama4" | "gemma" => {
+                let model = match req.method.as_str() {
+                    "gpt" => Models::GPTOss20B,
+                    "llama4" => Models::Llama4Scout17B16EInstruct,
+                    "gemma" => Models::Gemma3_12bIt,
+                    _ => unreachable!(),
+                };
+                if req.google_search.is_some_and(|is| is) {
+                    info!("google search enabled, model: {}", model.as_str());
+
+                    Some(
+                        self.workers_ai
+                            .google_search(model, false, &req.word)
+                            .await
+                            .unwrap(),
+                    )
+                } else {
+                    Some(
+                        self.workers_ai
+                            .translate(model, false, &req.word, req.instruction().as_deref())
+                            .await
+                            .unwrap(),
+                    )
+                }
+            }
+            "custom_llm" => {
+                let llm = match req.custom_llm.as_ref() {
+                    Some(llm) => llm,
+                    None => return Err(Error("custom llm is empty".to_string())),
+                };
+
+                let ai = match self.custom_llms.get(&llm.name) {
+                    Some(llm) => llm,
+                    None => return Err(Error("custom llm not found".to_string())),
+                };
+
+                if req.google_search.is_some_and(|is| is) {
+                    info!("google search enabled, model: {}", llm.model.as_str());
+                    Some(
+                        ai.google_search(llm.model.as_str(), false, &req.word)
+                            .await?,
+                    )
+                } else {
+                    Some(
+                        ai.translate(
+                            llm.model.as_str(),
+                            false,
+                            &req.word,
+                            req.instruction().as_deref(),
+                        )
+                        .await?,
+                    )
+                }
+            }
+            _ => None,
+        };
+
+        if response.is_some() {
+            let r = response.unwrap();
+
+            return Ok(serde_json::to_vec(&WordQueryResponse {
+                result: r.content,
+                reasoning: r.reasoning,
+            })?);
+        }
 
         let result = match req.method.as_str() {
             "jc" => jp::get(req.word.as_str(), "jc")
@@ -237,27 +337,6 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
                 .join("\n"),
             "weblio" => weblio::get(&req.word).await.unwrap().join("\n"),
             "ktbk" => kotobakku::get(&req.word).await.unwrap().join("\n"),
-            "gpt" | "llama4" | "gemma" => {
-                let model = match req.method.as_str() {
-                    "gpt" => Models::GPTOss20B,
-                    "llama4" => Models::Llama4Scout17B16EInstruct,
-                    "gemma" => Models::Gemma3_12bIt,
-                    _ => unreachable!(),
-                };
-                if req.google_search.is_some_and(|is| is) {
-                    info!("google search enabled, model: {}", model.as_str());
-
-                    self.workers_ai
-                        .google_search(model, false, &req.word)
-                        .await
-                        .unwrap()
-                } else {
-                    self.workers_ai
-                        .translate(model, false, &req.word, req.instruction().as_deref())
-                        .await
-                        .unwrap()
-                }
-            }
             "google" | "googlev1" => {
                 let target = req.dst_lang.clone().unwrap_or("en".to_string());
 
@@ -281,6 +360,10 @@ impl<T1: DBv2, T2: AI> RunOpt<T1, T2> {
                 format!("Unknown command: {}", req.method)
             }
         };
-        Ok(serde_json::to_vec(&WordQueryResponse { result })?)
+
+        Ok(serde_json::to_vec(&WordQueryResponse {
+            result,
+            reasoning: None,
+        })?)
     }
 }

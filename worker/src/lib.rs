@@ -4,6 +4,7 @@ pub mod d1v1;
 
 use crate::{ai::WasmAI, d1::WasmD1};
 use frankenstein::{client_reqwest, updates::Update};
+use hjcommon::ai::OpenAI;
 use hjcommon::d1::DBv2;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{self, send_random_word};
@@ -15,6 +16,16 @@ use worker::*;
 
 static INIT: Once = Once::new();
 
+fn get_string_from_env(env: Arc<Env>, key: &str) -> String {
+    match env.var(key) {
+        Ok(v) => match v.as_ref().as_string() {
+            Some(v) => v,
+            None => "".to_string(),
+        },
+        _ => "".to_string(),
+    }
+}
+
 async fn get_opt(env: Arc<Env>) -> Arc<RunOpt<WasmD1, WasmAI>> {
     console_error_panic_hook::set_once();
     INIT.call_once(|| {
@@ -24,36 +35,18 @@ async fn get_opt(env: Arc<Env>) -> Arc<RunOpt<WasmD1, WasmAI>> {
         };
     });
 
-    let token = env
-        .var("TELEGRAM_TOKEN")
-        .unwrap()
-        .as_ref()
-        .as_string()
-        .unwrap();
+    let token = get_string_from_env(env.clone(), "TELEGRAM_TOKEN");
 
-    let maintainer_id = env
-        .var("MAINTAINER_ID")
-        .unwrap()
-        .as_ref()
-        .as_string()
-        .unwrap()
+    let maintainer_id = get_string_from_env(env.clone(), "MAINTAINER_ID")
         .parse::<i64>()
-        .unwrap();
-
-    let allow_users = match env.var("ALLOW_USERS") {
-        Ok(v) => v
-            .as_ref()
-            .as_string()
-            .unwrap_or("".to_string())
-            .split(",")
-            .map(|v| return v.parse::<i64>().unwrap_or(0))
-            .collect::<Vec<_>>(),
-        _ => vec![],
-    };
+        .unwrap_or(0);
 
     let mut set = HashSet::from([maintainer_id]);
 
-    for v in allow_users {
+    for v in get_string_from_env(env.clone(), "ALLOW_USERS")
+        .split(",")
+        .map(|v| return v.parse::<i64>().unwrap_or(0))
+    {
         set.insert(v);
     }
 
@@ -63,6 +56,7 @@ async fn get_opt(env: Arc<Env>) -> Arc<RunOpt<WasmD1, WasmAI>> {
         workers_ai: WasmAI::new(env.clone(), "AI"),
         matainer: maintainer_id,
         bot: client_reqwest::Bot::new(&token),
+        custom_llms: OpenAI::from_env(get_string_from_env(env, "CUSTOM_LLM_JSON_CONFIG")),
     })
 }
 

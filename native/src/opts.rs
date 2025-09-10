@@ -2,7 +2,7 @@ use crate::ai::Workers;
 use crate::d1::{D1, Database};
 use frankenstein::client_reqwest;
 use hjcommon::opts::RunOpt;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error>> {
     let maintainer_id = std::env::var("MAINTAINER_ID")?.parse::<i64>()?;
@@ -43,5 +43,6 @@ pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error
         d1,
         workers_ai: workers,
         bot: client_reqwest::Bot::new(&telegram_bot_token),
+        custom_llms: HashMap::new(),
     })
 }

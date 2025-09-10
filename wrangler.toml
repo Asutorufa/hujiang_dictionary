@@ -10,6 +10,7 @@ cwd = "worker"
 TELEGRAM_TOKEN = "${TELEGRAM_TOKEN}"
 ALLOW_USERS = "${ALLOW_USERS}"
 MAINTAINER_ID = "${MAINTAINER_ID}"          # send random word to the chat id when cron job run
+CUSTOM_LLM_JSON_CONFIG="${CUSTOM_LLM_JSON_CONFIG}"
 
 [ai]
 binding = "AI"

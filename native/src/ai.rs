@@ -1,6 +1,6 @@
 use hjcommon::ai::{
-    AI, CompletionRequest, CompletionResponse, Error, Models, ResponseResponse, ResponsesRequest,
-    TranslateRequest, TranslateResult,
+    CompletionRequest, CompletionResponse, Error, Models, ResponseResponse, ResponsesRequest,
+    TranslateRequest, TranslateResult, WorkersAI,
 };
 use serde::{Serialize, de::DeserializeOwned};
 
@@ -51,89 +51,15 @@ impl Workers {
 
         Ok(r.json::<O>().await?)
     }
-
-    pub async fn completion(
-        &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-        model: Models,
-    ) -> Result<String, Error> {
-        let r: CompletionResponse = self
-            .exec(
-                "v1/chat/completions",
-                CompletionRequest::new_workers_ai(model, system, prompt, instruction),
-            )
-            .await?;
-        Ok(r.choices
-            .first()
-            .ok_or(Error("choice is empty".to_string()))?
-            .message
-            .content
-            .clone())
-    }
-
-    pub async fn response(
-        &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-        model: Models,
-    ) -> Result<Vec<(String, String)>, Error> {
-        let r: ResponseResponse = self
-            .exec(
-                "v1/responses",
-                ResponsesRequest::new(model, system, prompt, instruction),
-            )
-            .await?;
-        Ok(r.content())
-    }
 }
 
-impl AI for Workers {
-    async fn gemma3_12b(
-        &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> Result<String, Error> {
-        self.completion(system, prompt, instruction, Models::Gemma3_12bIt)
-            .await
+impl WorkersAI for Workers {
+    async fn completion(&self, req: CompletionRequest) -> Result<CompletionResponse, Error> {
+        self.exec("v1/chat/completions", req).await
     }
 
-    async fn llama4_scout_17b_16e_instruct(
-        &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> Result<String, Error> {
-        self.completion(
-            system,
-            prompt,
-            instruction,
-            Models::Llama4Scout17B16EInstruct,
-        )
-        .await
-    }
-
-    async fn gpt_oss_20b(
-        &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> Result<String, Error> {
-        let content = self
-            .response(system, prompt, instruction, Models::GPTOss20B)
-            .await
-            .map_err(|e| Error::from(e.to_string()))?;
-
-        let text = content
-            .iter()
-            .map(|(a, b)| format!("{}:\n{}", a, b))
-            .collect::<Vec<String>>()
-            .join("\n\n");
-
-        Ok(text)
+    async fn responses(&self, req: ResponsesRequest) -> Result<ResponseResponse, Error> {
+        self.exec("v1/responses", req).await
     }
 
     async fn m2m100_1_2b(
@@ -155,7 +81,7 @@ impl AI for Workers {
 #[cfg(test)]
 mod test {
     use crate::ai::Workers;
-    use hjcommon::ai::{AI, system_msg};
+    use hjcommon::ai::{Models, WorkersAI};
     use std::fs;
 
     #[derive(serde::Deserialize)]
@@ -169,35 +95,18 @@ mod test {
         let auth_json = fs::read_to_string("src/.api.json").unwrap();
         let auth = serde_json::from_str::<Auth>(&auth_json).unwrap();
         let ai = Workers::new(auth.account_id.as_str(), auth.api_token.as_str());
+
         println!(
             "gemma: {}",
-            ai.gemma3_12b(
-                system_msg(false),
+            ai.translate(
+                Models::Gemma3_12bIt,
+                false,
                 "辿るは何の意味ですか？",
-                Some("详细解释一下，包括每个词的意思。")
+                Some("日本語に翻訳してね。"),
             )
             .await
             .unwrap()
-        );
-        println!(
-            "gpt-oss-20b: {}",
-            ai.gpt_oss_20b(
-                system_msg(false),
-                "辿るは何の意味ですか？",
-                Some("详细解释一下，包括每个词的意思。")
-            )
-            .await
-            .unwrap()
-        );
-        println!(
-            "llama4_scout_17b_16e_instruct: {}",
-            ai.llama4_scout_17b_16e_instruct(
-                system_msg(false),
-                "生意気の意味は？",
-                Some("详细解释一下，包括每个词的意思。")
-            )
-            .await
-            .unwrap()
+            .to_string()
         );
     }
 
@@ -229,6 +138,7 @@ mod test {
             )
             .await
             .unwrap()
+            .to_string()
         );
     }
 }

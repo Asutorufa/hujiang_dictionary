@@ -1,8 +1,27 @@
+use std::collections::{HashMap, HashSet};
+
+use base64::Engine;
 use hjdict::google_search;
 use log::info;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-pub trait AI {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Response {
+    pub content: String,
+    pub reasoning: Option<String>,
+}
+
+impl ToString for Response {
+    fn to_string(&self) -> String {
+        if let Some(reasoning) = &self.reasoning {
+            format!("reasoning:\n{}\ncontent:\n{}", reasoning, self.content)
+        } else {
+            self.content.clone()
+        }
+    }
+}
+
+pub trait WorkersAI {
     fn m2m100_1_2b(
         &self,
         text: &str,
@@ -10,24 +29,15 @@ pub trait AI {
         target_lang: String,
     ) -> impl Future<Output = Result<String, Error>>;
 
-    fn gemma3_12b(
+    fn completion(
         &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> impl Future<Output = Result<String, Error>>;
-    fn llama4_scout_17b_16e_instruct(
+        req: CompletionRequest,
+    ) -> impl Future<Output = Result<CompletionResponse, Error>>;
+
+    fn responses(
         &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> impl Future<Output = Result<String, Error>>;
-    fn gpt_oss_20b(
-        &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> impl Future<Output = Result<String, Error>>;
+        req: ResponsesRequest,
+    ) -> impl Future<Output = Result<ResponseResponse, Error>>;
 
     fn translate(
         &self,
@@ -35,20 +45,37 @@ pub trait AI {
         chars_limit: bool,
         prompt: &str,
         instruction: Option<&str>,
-    ) -> impl Future<Output = Result<String, Error>> {
+    ) -> impl Future<Output = Result<Response, Error>> {
         async move {
             match model {
-                Models::Gemma3_12bIt => {
-                    self.gemma3_12b(system_msg(chars_limit), prompt, instruction)
-                        .await
+                Models::Gemma3_12bIt | Models::Llama4Scout17B16EInstruct => {
+                    let result = self
+                        .completion(CompletionRequest::new_workers_ai(
+                            model,
+                            system_msg(chars_limit),
+                            prompt,
+                            instruction,
+                        ))
+                        .await?;
+
+                    match result.choices.len() {
+                        0 => Err(Error("no choice".to_string())),
+                        _ => Ok(result.choices.first().unwrap().message.to_response()),
+                    }
                 }
-                Models::Llama4Scout17B16EInstruct => {
-                    self.llama4_scout_17b_16e_instruct(system_msg(chars_limit), prompt, instruction)
-                        .await
-                }
+
                 Models::GPTOss20B => {
-                    self.gpt_oss_20b(system_msg(chars_limit), prompt, instruction)
-                        .await
+                    let result = self
+                        .responses(ResponsesRequest::new(
+                            model,
+                            system_msg(chars_limit),
+                            prompt,
+                            instruction,
+                        ))
+                        .await?
+                        .content();
+
+                    Ok(result)
                 }
                 _ => Err(Error("model not supported".to_string())),
             }
@@ -60,59 +87,75 @@ pub trait AI {
         model: Models,
         chars_limit: bool,
         query: &str,
-    ) -> impl Future<Output = Result<String, Error>> {
+    ) -> impl Future<Output = Result<Response, Error>> {
         async move {
-            let result = match google_search::get(query).await {
-                Ok(v) => v,
-                Err(e) => return Err(Error::from(e.to_string())),
-            };
+            let instruction = google_search(query).await?;
+            let system_msg = system_msg(chars_limit);
 
-            let mut instruct = "<google search result>\n".to_string();
-
-            let length = if result.len() > 3 { 3 } else { result.len() };
-
-            for v in &result[0..length] {
-                let title = v.title.replace("\n", " ");
-                instruct.push_str("<>\n");
-                instruct.push_str(&format!("<title>{}</title>\n", title));
-                instruct.push_str(&format!("<link>{}</link>\n", v.url));
-                instruct.push_str(&format!(
-                    "<content>{}</content>\n",
-                    v.get_raw_page().await.unwrap()
-                ));
-                instruct.push_str("</>\n");
-            }
-
-            instruct.push_str("\n</google search result>\n");
-
-            instruct.push_str("\n**please use above google search result to explain.**\n");
-
-            info!("google search instruct: {}", instruct);
+            info!("google search instruct: {}", instruction);
 
             match model {
-                Models::GPTOss20B => {
-                    self.gpt_oss_20b(system_msg(chars_limit), query, Some(instruct.as_str()))
-                        .await
+                Models::Gemma3_12bIt | Models::Llama4Scout17B16EInstruct => {
+                    let result = self
+                        .completion(CompletionRequest::new_workers_ai(
+                            model,
+                            system_msg,
+                            query,
+                            Some(instruction.as_str()),
+                        ))
+                        .await?;
+
+                    match result.choices.len() {
+                        0 => Err(Error("no choice".to_string())),
+                        _ => Ok(result.choices.first().unwrap().message.to_response()),
+                    }
                 }
-                Models::Gemma3_12bIt => {
-                    self.gemma3_12b(system_msg(chars_limit), query, Some(instruct.as_str()))
-                        .await
-                }
-                Models::Llama4Scout17B16EInstruct => {
-                    self.llama4_scout_17b_16e_instruct(
-                        system_msg(chars_limit),
-                        query,
-                        Some(instruct.as_str()),
-                    )
-                    .await
-                }
-                _ => {
-                    self.gpt_oss_20b(system_msg(chars_limit), query, Some(instruct.as_str()))
-                        .await
+
+                Models::GPTOss20B | _ => {
+                    let result = self
+                        .responses(ResponsesRequest::new(
+                            model,
+                            system_msg,
+                            query,
+                            Some(instruction.as_str()),
+                        ))
+                        .await?
+                        .content();
+
+                    Ok(result)
                 }
             }
         }
     }
+}
+
+async fn google_search(query: &str) -> Result<String, Error> {
+    let result = match google_search::get(query).await {
+        Ok(v) => v,
+        Err(e) => return Err(Error::from(e.to_string())),
+    };
+
+    let mut instruct = "<google search result>\n".to_string();
+
+    let length = if result.len() > 3 { 3 } else { result.len() };
+
+    for v in &result[0..length] {
+        let title = v.title.replace("\n", " ");
+        instruct.push_str("<>\n");
+        instruct.push_str(&format!("<title>{}</title>\n", title));
+        instruct.push_str(&format!("<link>{}</link>\n", v.url));
+        instruct.push_str(&format!(
+            "<content>{}</content>\n",
+            v.get_raw_page().await.unwrap()
+        ));
+        instruct.push_str("</>\n");
+    }
+
+    instruct.push_str("\n</google search result>\n");
+
+    instruct.push_str("\n**please use above google search result to explain.**\n");
+
+    Ok(instruct)
 }
 
 pub static SYSTEM_MSG: &str = r#"
@@ -224,22 +267,48 @@ pub struct ResponseResponse {
 }
 
 impl ResponseResponse {
-    pub fn content(&self) -> Vec<(String, String)> {
-        self.output
+    pub fn content(&self) -> Response {
+        let reasoning = self
+            .output
             .iter()
-            .map(|o| {
-                o.content
-                    .iter()
-                    .map(|c| (c.r#type.clone(), c.text.clone()))
-                    .collect()
-            })
-            .collect()
+            .filter(|o| o.r#type == "reasoning")
+            .map(|o| o.content())
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        let content = self
+            .output
+            .iter()
+            .filter(|o| o.r#type == "message")
+            .map(|o| o.content())
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        Response {
+            content,
+            reasoning: if reasoning.is_empty() {
+                None
+            } else {
+                Some(reasoning)
+            },
+        }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResponsesOutput {
+    pub r#type: String,
     pub content: Vec<ResponsesContent>,
+}
+
+impl ResponsesOutput {
+    fn content(&self) -> String {
+        self.content
+            .iter()
+            .map(|c| c.text.clone())
+            .collect::<Vec<String>>()
+            .join("\n")
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -302,6 +371,15 @@ pub struct Message {
     pub reasoning: Option<String>,
 }
 
+impl Message {
+    fn to_response(&self) -> Response {
+        Response {
+            content: self.content.clone(),
+            reasoning: self.reasoning.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CompletionResponse {
     pub choices: Vec<Choice>,
@@ -343,18 +421,40 @@ pub struct TranslateResult {
 
 #[derive(serde::Deserialize, Clone)]
 pub struct OpenAI {
+    pub name: String,
     pub base_url: String,
     pub api_key: String,
-    pub model: String,
+    pub models: HashSet<String>,
 }
 
 impl OpenAI {
-    pub fn new(base_url: &str, api_key: &str, model: &str) -> Self {
+    pub fn from_env(env: String) -> HashMap<String, OpenAI> {
+        let env = match base64::engine::general_purpose::STANDARD.decode(env) {
+            Ok(v) => v,
+            Err(_) => return HashMap::new(),
+        };
+
+        match serde_json::from_slice(&env) {
+            Ok(v) => v,
+            Err(_) => HashMap::new(),
+        }
+    }
+
+    pub fn new(name: &str, base_url: &str, api_key: &str, models: Vec<String>) -> Self {
         Self {
+            name: name.to_string(),
             base_url: base_url.to_string(),
             api_key: api_key.to_string(),
-            model: model.to_string(),
+            models: HashSet::from_iter(models),
         }
+    }
+
+    pub fn enabled(&self) -> bool {
+        !self.base_url.is_empty() && !self.models.is_empty()
+    }
+
+    pub fn models(&self) -> Vec<String> {
+        self.models.iter().cloned().collect()
     }
 
     pub async fn exec<I: Serialize, O: DeserializeOwned>(
@@ -386,22 +486,65 @@ impl OpenAI {
 
     pub async fn completion(
         &self,
+        model: &str,
         system: &str,
         prompt: &str,
         instruction: Option<&str>,
-    ) -> Result<Message, Error> {
-        let mut req = CompletionRequest::new(self.model.as_str(), system, prompt, instruction);
+    ) -> Result<CompletionResponse, Error> {
+        if !self.models.contains(&model.to_string()) {
+            return Err(Error("model not supported".to_string()));
+        }
+
+        let mut req = CompletionRequest::new(model, system, prompt, instruction);
         req.reasoning = Some(Reasoning {
             effort: "low".to_string(),
             summary: "concise".to_string(),
         });
 
         let r: CompletionResponse = self.exec("/chat/completions", req).await?;
-        Ok(r.choices
-            .first()
-            .ok_or(Error("choice is empty".to_string()))?
-            .message
-            .clone())
+        Ok(r)
+    }
+
+    pub fn translate(
+        &self,
+        model: &str,
+        chars_limit: bool,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> impl Future<Output = Result<Response, Error>> {
+        async move {
+            let result = self
+                .completion(model, system_msg(chars_limit), prompt, instruction)
+                .await?;
+
+            match result.choices.len() {
+                0 => Err(Error("no choice".to_string())),
+                _ => Ok(result.choices.first().unwrap().message.to_response()),
+            }
+        }
+    }
+
+    pub fn google_search(
+        &self,
+        model: &str,
+        chars_limit: bool,
+        query: &str,
+    ) -> impl Future<Output = Result<Response, Error>> {
+        async move {
+            let instruction = google_search(query).await?;
+            let system_msg = system_msg(chars_limit);
+
+            info!("google search instruct: {}", instruction);
+
+            let result = self
+                .completion(model, system_msg, query, Some(instruction.as_str()))
+                .await?;
+
+            match result.choices.len() {
+                0 => Err(Error("no choice".to_string())),
+                _ => Ok(result.choices.first().unwrap().message.to_response()),
+            }
+        }
     }
 }
 
@@ -409,18 +552,23 @@ impl OpenAI {
 mod test {
     use std::fs;
 
-    use crate::ai::{OpenAI, system_msg};
+    use crate::ai::OpenAI;
 
     #[tokio::test]
     async fn test() {
         let auth_json = fs::read_to_string("src/.api.json").unwrap();
         let oa = serde_json::from_str::<OpenAI>(&auth_json).unwrap();
 
+        println!("{:?}", oa.models());
+
         println!(
             "{:?}",
-            oa.completion(system_msg(false), "辿るは何の意味ですか？", None)
-                .await
-                .unwrap()
+            oa.google_search(
+                oa.models.iter().next().unwrap(),
+                false,
+                "辿るは何の意味ですか？",
+            )
+            .await
         );
     }
 }

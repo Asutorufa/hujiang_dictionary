@@ -1,6 +1,6 @@
 use crate::ai::Models;
 use crate::d1::DBv2;
-use crate::{ai::AI, opts::RunOpt};
+use crate::{ai::WorkersAI, opts::RunOpt};
 use core::fmt;
 use frankenstein::AsyncTelegramApi;
 use frankenstein::client_reqwest::Bot;
@@ -154,7 +154,7 @@ pub fn vec_string_markdown_escape(v: &Vec<String>) -> String {
     s
 }
 
-pub async fn handle<T: DBv2, T2: AI>(
+pub async fn handle<T: DBv2, T2: WorkersAI>(
     opt: Arc<RunOpt<T, T2>>,
     update: frankenstein::updates::Update,
 ) -> Result<(), Error> {
@@ -247,7 +247,7 @@ pub fn parse_callback_query_command(
     }
 }
 
-pub async fn llm_answer<T: DBv2, T2: AI>(
+pub async fn llm_answer<T: DBv2, T2: WorkersAI>(
     opt: Arc<RunOpt<T, T2>>,
     model: Models,
     v: String,
@@ -258,7 +258,7 @@ pub async fn llm_answer<T: DBv2, T2: AI>(
         .await
     {
         Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
-        Ok(x) => (v, markdown_escape(x.as_str())),
+        Ok(x) => (v, markdown_escape(x.to_string().as_str())),
     }
 }
 
@@ -316,7 +316,7 @@ pub fn parse_command(
     }
 }
 
-pub async fn answer<T: DBv2, T2: AI>(
+pub async fn answer<T: DBv2, T2: WorkersAI>(
     opt: Arc<RunOpt<T, T2>>,
     msg: Box<frankenstein::types::Message>,
     cmd: Command,
@@ -485,7 +485,7 @@ pub async fn answer<T: DBv2, T2: AI>(
     Ok(())
 }
 
-pub async fn callback_query<T: DBv2, T2: AI>(
+pub async fn callback_query<T: DBv2, T2: WorkersAI>(
     opt: Arc<RunOpt<T, T2>>,
     call_query: Box<frankenstein::types::CallbackQuery>,
     command: CallbackQueryCommand,
@@ -591,7 +591,7 @@ pub async fn callback_query<T: DBv2, T2: AI>(
     Ok(())
 }
 
-pub async fn send_random_word<T: DBv2, T2: AI>(
+pub async fn send_random_word<T: DBv2, T2: WorkersAI>(
     opt: Arc<RunOpt<T, T2>>,
 ) -> Result<(), frankenstein::Error> {
     let reply = match opt.d1.random_word().await {

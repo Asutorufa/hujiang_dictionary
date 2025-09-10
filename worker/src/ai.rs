@@ -4,12 +4,51 @@ use cloudflare::endpoints::ai::execute_model::{
     Message, MessageRole, MessagesParams, ResponseAndToolCallsResult, TranslationParams,
     TranslationResult,
 };
-use hjcommon::ai::{AI, Error, Models, ResponseResponse, ResponsesRequest};
+use hjcommon::ai::{
+    Choice, CompletionRequest, CompletionResponse, Error, Message as CommonMessage, Models,
+    ResponseResponse, ResponsesRequest, WorkersAI,
+};
 use serde::{Serialize, de::DeserializeOwned};
 use worker::{Ai, Env};
 
 pub struct WasmAI {
     ai: Option<Arc<Ai>>,
+}
+
+fn completion_request_to_messages_params(msg: &CompletionRequest) -> MessagesParams {
+    let mut messages = vec![];
+
+    for m in msg.messages.iter() {
+        messages.push(Message {
+            role: match m.role.as_str() {
+                "user" => MessageRole::User,
+                "system" => MessageRole::System,
+                "assistant" => MessageRole::Assistant,
+                _ => MessageRole::User,
+            },
+            content: m.content.clone(),
+        });
+    }
+
+    MessagesParams {
+        messages: messages,
+        stream: Some(false),
+        ..Default::default()
+    }
+}
+
+fn response_and_tool_calls_result_to_completion_response(
+    result: ResponseAndToolCallsResult,
+) -> CompletionResponse {
+    CompletionResponse {
+        choices: vec![Choice {
+            message: CommonMessage {
+                role: "assistant".to_string(),
+                content: result.response,
+                reasoning: None,
+            },
+        }],
+    }
 }
 
 impl WasmAI {
@@ -31,67 +70,15 @@ impl WasmAI {
 
     pub async fn exec<I: Serialize, O: DeserializeOwned>(
         &self,
-        model: Models,
+        model: &str,
         msg: I,
     ) -> Result<O, Error> {
         let result: O = self
             .get_ai()?
-            .run(model.as_str(), msg)
+            .run(model, msg)
             .await
             .map_err(|v| Error(v.to_string()))?;
         Ok(result)
-    }
-
-    pub async fn completion(
-        &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-        model: Models,
-    ) -> Result<String, Error> {
-        let mut mgs = vec![
-            Message {
-                role: MessageRole::System,
-                content: system.to_string(),
-            },
-            Message {
-                role: MessageRole::User,
-                content: prompt.to_string(),
-            },
-        ];
-
-        if let Some(instruction) = instruction {
-            mgs.push(Message {
-                role: MessageRole::System,
-                content: instruction.to_string(),
-            })
-        }
-
-        let msg = MessagesParams {
-            messages: mgs,
-            stream: Some(false),
-            ..Default::default()
-        };
-
-        let result: ResponseAndToolCallsResult = self.exec(model, msg).await?;
-
-        Ok(result.response)
-    }
-
-    pub async fn response(
-        &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-        model: Models,
-    ) -> Result<Vec<(String, String)>, Error> {
-        let resp: ResponseResponse = self
-            .exec(
-                model.clone(),
-                ResponsesRequest::new(model, system, prompt, instruction),
-            )
-            .await?;
-        Ok(resp.content())
     }
 }
 
@@ -103,49 +90,19 @@ impl Clone for WasmAI {
     }
 }
 
-impl AI for WasmAI {
-    async fn gemma3_12b(
-        &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> Result<String, Error> {
-        self.completion(system, prompt, instruction, Models::Gemma3_12bIt)
-            .await
-    }
-
-    async fn llama4_scout_17b_16e_instruct(
-        &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> Result<String, Error> {
-        self.completion(
-            system,
-            prompt,
-            instruction,
-            Models::Llama4Scout17B16EInstruct,
-        )
-        .await
-    }
-
-    async fn gpt_oss_20b(
-        &self,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> Result<String, Error> {
-        let content = self
-            .response(system, prompt, instruction, Models::GPTOss20B)
+impl WorkersAI for WasmAI {
+    async fn completion(&self, req: CompletionRequest) -> Result<CompletionResponse, Error> {
+        let result: ResponseAndToolCallsResult = self
+            .exec(&req.model, completion_request_to_messages_params(&req))
             .await?;
 
-        let text = content
-            .iter()
-            .map(|(a, b)| format!("{}:\n{}", a, b))
-            .collect::<Vec<String>>()
-            .join("\n\n");
+        Ok(response_and_tool_calls_result_to_completion_response(
+            result,
+        ))
+    }
 
-        Ok(text)
+    async fn responses(&self, req: ResponsesRequest) -> Result<ResponseResponse, Error> {
+        self.exec(&req.model.clone(), req).await
     }
 
     async fn m2m100_1_2b(
@@ -159,7 +116,7 @@ impl AI for WasmAI {
             text: text.to_string(),
             source_lang,
         };
-        let result: TranslationResult = self.exec(Models::M2M100_1_2B, msg).await?;
+        let result: TranslationResult = self.exec(Models::M2M100_1_2B.as_str(), msg).await?;
         Ok(result.translated_text)
     }
 }
