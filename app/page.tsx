@@ -41,12 +41,14 @@ async function queryWord(opts: {
 }
 
 function showSelectLang(selected: string) {
+  if (selected.startsWith("custom-")) {
+    return true;
+  }
+
   switch (selected) {
     case "google":
     case "googlev1":
-    case "gpt":
-    case "gemma":
-    case "llama4":
+    case "m2m100_1_2b":
       return true;
     default:
       return false;
@@ -69,7 +71,6 @@ const languageMap = Object.fromEntries(
 type TranslationSource = {
   key: string;
   name: string;
-  llm?: boolean;
 };
 
 const translationSources: TranslationSource[] = [
@@ -77,9 +78,7 @@ const translationSources: TranslationSource[] = [
   { key: "ktbk", name: "コトバンク" },
   { key: "google", name: "Google Translate" },
   { key: "googlev1", name: "Google Translate(old API)" },
-  { key: "gpt", name: "GPT OSS 20B", llm: true },
-  { key: "gemma", name: "Gemma3 27B IT", llm: true },
-  { key: "llama4", name: "Llama 4 Scout 17B 16E Instruct", llm: true },
+  { key: "m2m100_1_2b", name: "m2m100-1.2b" },
   { key: "jc", name: "Japanese to Chinese" },
   { key: "cj", name: "Chinese to Japanese" },
   { key: "en", name: "English to Chinese" },
@@ -88,11 +87,6 @@ const translationSources: TranslationSource[] = [
 const translationMap = Object.fromEntries(
   translationSources.map(({ key, name }) => [key, name])
 ) as Record<typeof translationSources[number]["key"], string>;
-
-
-const isLLm = Object.fromEntries(
-  translationSources.map(({ key, llm }) => [key, llm])
-) as Record<typeof translationSources[number]["key"], boolean>;
 
 export default function Home() {
   const [selected, setSelected] = useLocalStorage("translate_type", "ktbk");
@@ -300,7 +294,7 @@ export default function Home() {
         />
 
 
-        {isLLm[selected] || selected.startsWith("custom-") &&
+        {(selected.startsWith("custom-")) &&
           <>
             <Switch className="mt-2" isSelected={googleSearch} onValueChange={(e) => setGoogleSearch(e)}>
               Google Search
