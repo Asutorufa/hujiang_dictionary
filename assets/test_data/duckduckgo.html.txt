@@ -1,0 +1,720 @@
+<!DOCTYPE html
+    PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!--[if IE 6]><html class="ie6" xmlns="http://www.w3.org/1999/xhtml"><![endif]-->
+<!--[if IE 7]><html class="lt-ie8 lt-ie9" xmlns="http://www.w3.org/1999/xhtml"><![endif]-->
+<!--[if IE 8]><html class="lt-ie9" xmlns="http://www.w3.org/1999/xhtml"><![endif]-->
+<!--[if gt IE 8]><!-->
+<html xmlns="http://www.w3.org/1999/xhtml"><!--<![endif]-->
+
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=1" />
+    <meta name="referrer" content="origin" />
+    <meta name="HandheldFriendly" content="true" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>生意気　意味 at DuckDuckGo</title>
+</head>
+
+<body class="body--html">
+    <a name="top" id="top"></a>
+
+    <form action="/html/" method="post">
+        <input type="text" name="state_hidden" id="state_hidden" />
+    </form>
+
+    <div>
+        <div class="site-wrapper-border"></div>
+
+        <div id="header" class="header cw header--html">
+            <a title="DuckDuckGo" href="/html/" class="header__logo-wrap"></a>
+
+            <form name="x" class="header__form" action="/html/" method="post">
+                <div class="search search--header">
+                    <input name="q" autocomplete="off" class="search__input" id="search_form_input_homepage" type="text"
+                        value="生意気　意味" />
+                    <input name="b" id="search_button_homepage" class="search__button search__button--html" value=""
+                        title="Search" alt="Search" type="submit" />
+                </div>
+
+
+
+
+
+
+                <div class="frm__select">
+                    <select name="kl">
+
+                        <option value="">All Regions</option>
+
+                        <option value="ar-es">Argentina</option>
+
+                        <option value="au-en">Australia</option>
+
+                        <option value="at-de">Austria</option>
+
+                        <option value="be-fr">Belgium (fr)</option>
+
+                        <option value="be-nl">Belgium (nl)</option>
+
+                        <option value="br-pt">Brazil</option>
+
+                        <option value="bg-bg">Bulgaria</option>
+
+                        <option value="ca-en">Canada (en)</option>
+
+                        <option value="ca-fr">Canada (fr)</option>
+
+                        <option value="ct-ca">Catalonia</option>
+
+                        <option value="cl-es">Chile</option>
+
+                        <option value="cn-zh">China</option>
+
+                        <option value="co-es">Colombia</option>
+
+                        <option value="hr-hr">Croatia</option>
+
+                        <option value="cz-cs">Czech Republic</option>
+
+                        <option value="dk-da">Denmark</option>
+
+                        <option value="ee-et">Estonia</option>
+
+                        <option value="fi-fi">Finland</option>
+
+                        <option value="fr-fr">France</option>
+
+                        <option value="de-de">Germany</option>
+
+                        <option value="gr-el">Greece</option>
+
+                        <option value="hk-tzh">Hong Kong</option>
+
+                        <option value="hu-hu">Hungary</option>
+
+                        <option value="is-is">Iceland</option>
+
+                        <option value="in-en">India (en)</option>
+
+                        <option value="id-en">Indonesia (en)</option>
+
+                        <option value="ie-en">Ireland</option>
+
+                        <option value="il-en">Israel (en)</option>
+
+                        <option value="it-it">Italy</option>
+
+                        <option value="jp-jp">Japan</option>
+
+                        <option value="kr-kr">Korea</option>
+
+                        <option value="lv-lv">Latvia</option>
+
+                        <option value="lt-lt">Lithuania</option>
+
+                        <option value="my-en">Malaysia (en)</option>
+
+                        <option value="mx-es">Mexico</option>
+
+                        <option value="nl-nl">Netherlands</option>
+
+                        <option value="nz-en">New Zealand</option>
+
+                        <option value="no-no">Norway</option>
+
+                        <option value="pk-en">Pakistan (en)</option>
+
+                        <option value="pe-es">Peru</option>
+
+                        <option value="ph-en">Philippines (en)</option>
+
+                        <option value="pl-pl">Poland</option>
+
+                        <option value="pt-pt">Portugal</option>
+
+                        <option value="ro-ro">Romania</option>
+
+                        <option value="ru-ru">Russia</option>
+
+                        <option value="xa-ar">Saudi Arabia</option>
+
+                        <option value="sg-en">Singapore</option>
+
+                        <option value="sk-sk">Slovakia</option>
+
+                        <option value="sl-sl">Slovenia</option>
+
+                        <option value="za-en">South Africa</option>
+
+                        <option value="es-ca">Spain (ca)</option>
+
+                        <option value="es-es">Spain (es)</option>
+
+                        <option value="se-sv">Sweden</option>
+
+                        <option value="ch-de">Switzerland (de)</option>
+
+                        <option value="ch-fr">Switzerland (fr)</option>
+
+                        <option value="tw-tzh">Taiwan</option>
+
+                        <option value="th-en">Thailand (en)</option>
+
+                        <option value="tr-tr">Turkey</option>
+
+                        <option value="us-en">US (English)</option>
+
+                        <option value="us-es">US (Spanish)</option>
+
+                        <option value="ua-uk">Ukraine</option>
+
+                        <option value="uk-en">United Kingdom</option>
+
+                        <option value="vn-en">Vietnam (en)</option>
+
+                    </select>
+                </div>
+
+                <div class="frm__select frm__select--last">
+                    <select class="" name="df">
+
+                        <option value="" selected>Any Time</option>
+
+                        <option value="d">Past Day</option>
+
+                        <option value="w">Past Week</option>
+
+                        <option value="m">Past Month</option>
+
+                        <option value="y">Past Year</option>
+
+                    </select>
+                </div>
+            </form>
+        </div>
+
+
+
+
+        <!-- Web results are present -->
+        <div>
+            <div class="serp__results">
+                <div id="links" class="results">
+
+
+
+
+                    <div class="result results_links results_links_deep web-result ">
+                        <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+
+                            <h2 class="result__title">
+                                <a rel="nofollow" class="result__a"
+                                    href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fkotobank.jp%2Fword%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%2D589503&amp;rut=dc6288fa639bca0b3d92a5feb966df463b2c8b626ba1a7d584722b798b906acd">生意気
+                                    (ナマイキ)とは？ 意味や使い方 - コトバンク</a>
+                            </h2>
+
+
+
+
+                            <div class="result__extras">
+                                <div class="result__extras__url">
+                                    <span class="result__icon">
+                                        <a rel="nofollow"
+                                            href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fkotobank.jp%2Fword%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%2D589503&amp;rut=dc6288fa639bca0b3d92a5feb966df463b2c8b626ba1a7d584722b798b906acd">
+                                            <img class="result__icon__img" width="16" height="16" alt=""
+                                                src="//external-content.duckduckgo.com/ip3/kotobank.jp.ico"
+                                                name="i15" />
+                                        </a>
+                                    </span>
+                                    <a class="result__url"
+                                        href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fkotobank.jp%2Fword%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%2D589503&amp;rut=dc6288fa639bca0b3d92a5feb966df463b2c8b626ba1a7d584722b798b906acd">
+                                        kotobank.jp/word/生意気-589503
+                                    </a>
+
+                                </div>
+                            </div>
+
+
+
+
+                            <a class="result__snippet"
+                                href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fkotobank.jp%2Fword%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%2D589503&amp;rut=dc6288fa639bca0b3d92a5feb966df463b2c8b626ba1a7d584722b798b906acd">〘
+                                名詞 〙 ( 形動 ) ( 「なま」は 接頭語 ) その柄ではないのに 意気
+                                がった言動をすること。また、それにふさわしい身分や年齢ではないのに出すぎた言動をすること。知ったかぶりをしたり、きざな 態度 をとること。また、そのさまや人。
+                                [初出の実例]「なまいきな事を仕ゃアがるから ...</a>
+
+
+
+                            <div class="clear"></div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="result results_links results_links_deep web-result ">
+                        <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+
+                            <h2 class="result__title">
+                                <a rel="nofollow" class="result__a"
+                                    href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdomani.shogakukan.co.jp%2F420027&amp;rut=d3f31b05fc48029ae4d81a710ffec281027e928f59117c8bfca39bedf8093988">「生意気」の意味とは？生意気な人の7つの特徴や改善するためのポイント
+                                    | Domani</a>
+                            </h2>
+
+
+
+
+                            <div class="result__extras">
+                                <div class="result__extras__url">
+                                    <span class="result__icon">
+                                        <a rel="nofollow"
+                                            href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdomani.shogakukan.co.jp%2F420027&amp;rut=d3f31b05fc48029ae4d81a710ffec281027e928f59117c8bfca39bedf8093988">
+                                            <img class="result__icon__img" width="16" height="16" alt=""
+                                                src="//external-content.duckduckgo.com/ip3/domani.shogakukan.co.jp.ico"
+                                                name="i15" />
+                                        </a>
+                                    </span>
+                                    <a class="result__url"
+                                        href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdomani.shogakukan.co.jp%2F420027&amp;rut=d3f31b05fc48029ae4d81a710ffec281027e928f59117c8bfca39bedf8093988">
+                                        domani.shogakukan.co.jp/420027
+                                    </a>
+
+                                    <span>&nbsp; &nbsp; 2023-09-30T00:00:00.0000000</span>
+
+                                </div>
+                            </div>
+
+
+
+
+                            <a class="result__snippet"
+                                href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdomani.shogakukan.co.jp%2F420027&amp;rut=d3f31b05fc48029ae4d81a710ffec281027e928f59117c8bfca39bedf8093988">「生意気」の意味とは？
+                                生意気な人の7つの特徴や改善するためのポイント あなたの周りにも「生意気だな」と思うような人はいませんか？
+                                もしくは「自分が生意気だと思われて困っている」という方もいるかもしれません。</a>
+
+
+
+                            <div class="clear"></div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="result results_links results_links_deep web-result ">
+                        <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+
+                            <h2 class="result__title">
+                                <a rel="nofollow" class="result__a"
+                                    href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fidiom%2Dencyclopedia.com%2Fthree%2Fnamaiki%2F&amp;rut=b175917dac2fdca592403070be097aae93538485c89869382fb1936953df585d">生意気【なまいき】の意味と使い方や例文（語源由来・類義語）
+                                    - 三字熟語の百科事典</a>
+                            </h2>
+
+
+
+
+                            <div class="result__extras">
+                                <div class="result__extras__url">
+                                    <span class="result__icon">
+                                        <a rel="nofollow"
+                                            href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fidiom%2Dencyclopedia.com%2Fthree%2Fnamaiki%2F&amp;rut=b175917dac2fdca592403070be097aae93538485c89869382fb1936953df585d">
+                                            <img class="result__icon__img" width="16" height="16" alt=""
+                                                src="//external-content.duckduckgo.com/ip3/idiom-encyclopedia.com.ico"
+                                                name="i15" />
+                                        </a>
+                                    </span>
+                                    <a class="result__url"
+                                        href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fidiom%2Dencyclopedia.com%2Fthree%2Fnamaiki%2F&amp;rut=b175917dac2fdca592403070be097aae93538485c89869382fb1936953df585d">
+                                        idiom-encyclopedia.com/three/namaiki/
+                                    </a>
+
+                                </div>
+                            </div>
+
+
+
+
+                            <a class="result__snippet"
+                                href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fidiom%2Dencyclopedia.com%2Fthree%2Fnamaiki%2F&amp;rut=b175917dac2fdca592403070be097aae93538485c89869382fb1936953df585d">生意気（なまいき）の例文
+                                新人のくせに先輩の私に意見してくるなんて <b>生意気</b> で気に入らないな。 息子も五歳になり、 <b>生意気</b> 盛りのわんぱく小僧で毎日が大変だ。
+                                自分の立場も考えず <b>生意気</b> なことばかり言っていた彼がとうとう異動になった。 彼女は <b>生意気</b> だがそこが良いとしてモテて ...</a>
+
+
+
+                            <div class="clear"></div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="result results_links results_links_deep web-result ">
+                        <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+
+                            <h2 class="result__title">
+                                <a rel="nofollow" class="result__a"
+                                    href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fja.hinative.com%2Fdictionaries%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597&amp;rut=e70133af93ed7431db8d1785381b33b746be3cfa12be635fe94e5386bde9712f">【生意気】の例文や意味・使い方
+                                    | HiNative</a>
+                            </h2>
+
+
+
+
+                            <div class="result__extras">
+                                <div class="result__extras__url">
+                                    <span class="result__icon">
+                                        <a rel="nofollow"
+                                            href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fja.hinative.com%2Fdictionaries%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597&amp;rut=e70133af93ed7431db8d1785381b33b746be3cfa12be635fe94e5386bde9712f">
+                                            <img class="result__icon__img" width="16" height="16" alt=""
+                                                src="//external-content.duckduckgo.com/ip3/ja.hinative.com.ico"
+                                                name="i15" />
+                                        </a>
+                                    </span>
+                                    <a class="result__url"
+                                        href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fja.hinative.com%2Fdictionaries%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597&amp;rut=e70133af93ed7431db8d1785381b33b746be3cfa12be635fe94e5386bde9712f">
+                                        ja.hinative.com/dictionaries/生意気
+                                    </a>
+
+                                </div>
+                            </div>
+
+
+
+
+                            <a class="result__snippet"
+                                href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fja.hinative.com%2Fdictionaries%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597&amp;rut=e70133af93ed7431db8d1785381b33b746be3cfa12be635fe94e5386bde9712f">「生意気」の使い方・例文・意味・類義語に関するQ&amp;A。「生意気」の自然な使い方やニュアンスについて116件以上のネイティブスピーカーからの回答が集まっています。</a>
+
+
+
+                            <div class="clear"></div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="result results_links results_links_deep web-result ">
+                        <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+
+                            <h2 class="result__title">
+                                <a rel="nofollow" class="result__a"
+                                    href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wiktionary.org%2Fwiki%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597&amp;rut=a6aa86bc843d767cdd9d62f3056e6046ef30375ad4cc973787f2bcc089f2d6cb">生意気
+                                    - Wiktionary, the free dictionary</a>
+                            </h2>
+
+
+
+
+                            <div class="result__extras">
+                                <div class="result__extras__url">
+                                    <span class="result__icon">
+                                        <a rel="nofollow"
+                                            href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wiktionary.org%2Fwiki%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597&amp;rut=a6aa86bc843d767cdd9d62f3056e6046ef30375ad4cc973787f2bcc089f2d6cb">
+                                            <img class="result__icon__img" width="16" height="16" alt=""
+                                                src="//external-content.duckduckgo.com/ip3/en.wiktionary.org.ico"
+                                                name="i15" />
+                                        </a>
+                                    </span>
+                                    <a class="result__url"
+                                        href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wiktionary.org%2Fwiki%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597&amp;rut=a6aa86bc843d767cdd9d62f3056e6046ef30375ad4cc973787f2bcc089f2d6cb">
+                                        en.wiktionary.org/wiki/生意気
+                                    </a>
+
+                                    <span>&nbsp; &nbsp; 2025-08-28T00:00:00.0000000</span>
+
+                                </div>
+                            </div>
+
+
+
+
+                            <a class="result__snippet"
+                                href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wiktionary.org%2Fwiki%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597&amp;rut=a6aa86bc843d767cdd9d62f3056e6046ef30375ad4cc973787f2bcc089f2d6cb">Ōkubo
+                                no hō mo, sudeni Tokunō-tachi kara,&quot;Shibusawa to iu namaiki na kyū-bakushin ga
+                                iru&quot; to kiite ita no de, sudeni Shibusawa ni taisuru sennyūkan ya kotei kannen ga
+                                atta. Ōkubo for his part had already heard things from Tokunō and others such as,
+                                &quot;There is an impertinent former bakufu retainer called Shibusawa,&quot; and so he
+                                already had some preconception and personal prejudice ...</a>
+
+
+
+                            <div class="clear"></div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="result results_links results_links_deep web-result ">
+                        <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+
+                            <h2 class="result__title">
+                                <a rel="nofollow" class="result__a"
+                                    href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fmeaning%2Dbook.com%2Fblog%2F20191007165346.html&amp;rut=a3af4cc0ee15a58da482001ed7aad3232ea15c10dcea5f38fbb3fae57bab9a5d">「生意気」の意味とは!類語や例文など詳しく解釈
+                                    | Meaning-Book</a>
+                            </h2>
+
+
+
+
+                            <div class="result__extras">
+                                <div class="result__extras__url">
+                                    <span class="result__icon">
+                                        <a rel="nofollow"
+                                            href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fmeaning%2Dbook.com%2Fblog%2F20191007165346.html&amp;rut=a3af4cc0ee15a58da482001ed7aad3232ea15c10dcea5f38fbb3fae57bab9a5d">
+                                            <img class="result__icon__img" width="16" height="16" alt=""
+                                                src="//external-content.duckduckgo.com/ip3/meaning-book.com.ico"
+                                                name="i15" />
+                                        </a>
+                                    </span>
+                                    <a class="result__url"
+                                        href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fmeaning%2Dbook.com%2Fblog%2F20191007165346.html&amp;rut=a3af4cc0ee15a58da482001ed7aad3232ea15c10dcea5f38fbb3fae57bab9a5d">
+                                        meaning-book.com/blog/20191007165346.html
+                                    </a>
+
+                                </div>
+                            </div>
+
+
+
+
+                            <a class="result__snippet"
+                                href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fmeaning%2Dbook.com%2Fblog%2F20191007165346.html&amp;rut=a3af4cc0ee15a58da482001ed7aad3232ea15c10dcea5f38fbb3fae57bab9a5d">「生意気」の意味
+                                「生意気」 というのは 「一人前あるいはその地位でもないのに、偉そうな、あるいは差し出がましい態度や振る舞いをして小憎らしいこと」 という意味です。
+                                「自分の年齢や能力を考えず、出過ぎた言動をする」 という意味もありますし、 「身分や年齢、自分の実力を ...</a>
+
+
+
+                            <div class="clear"></div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="result results_links results_links_deep web-result ">
+                        <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+
+                            <h2 class="result__title">
+                                <a rel="nofollow" class="result__a"
+                                    href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgogen%2Dyurai.jp%2Fnamaiki%2F&amp;rut=ed42defc57c9ed6eef58c3f77477c420fbd9704c1baae84734dcd66bed149b8c">生意気／なまいき
+                                    - 語源由来辞典</a>
+                            </h2>
+
+
+
+
+                            <div class="result__extras">
+                                <div class="result__extras__url">
+                                    <span class="result__icon">
+                                        <a rel="nofollow"
+                                            href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgogen%2Dyurai.jp%2Fnamaiki%2F&amp;rut=ed42defc57c9ed6eef58c3f77477c420fbd9704c1baae84734dcd66bed149b8c">
+                                            <img class="result__icon__img" width="16" height="16" alt=""
+                                                src="//external-content.duckduckgo.com/ip3/gogen-yurai.jp.ico"
+                                                name="i15" />
+                                        </a>
+                                    </span>
+                                    <a class="result__url"
+                                        href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgogen%2Dyurai.jp%2Fnamaiki%2F&amp;rut=ed42defc57c9ed6eef58c3f77477c420fbd9704c1baae84734dcd66bed149b8c">
+                                        gogen-yurai.jp/namaiki/
+                                    </a>
+
+                                </div>
+                            </div>
+
+
+
+
+                            <a class="result__snippet"
+                                href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fgogen%2Dyurai.jp%2Fnamaiki%2F&amp;rut=ed42defc57c9ed6eef58c3f77477c420fbd9704c1baae84734dcd66bed149b8c"><b>意味</b>
+                                生意気とは、自分の年齢・経験・地位・能力を考えず、得意気な言動・差し出がましい言動をすること。また、そのさま。 語源・由来
+                                生意気の「意気」は、「意気揚々」や「意気込み」などと使われるように、「やる気」や「心構え」のこと。 「生」は「生煮え」「生乾き」というよう ...</a>
+
+
+
+                            <div class="clear"></div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="result results_links results_links_deep web-result ">
+                        <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+
+                            <h2 class="result__title">
+                                <a rel="nofollow" class="result__a"
+                                    href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fimijiten.net%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%25E3%2581%25A8%25E3%2581%25AF%25EF%25BC%259F%25E6%2584%258F%25E5%2591%25B3%25E3%2580%2581%25E9%25A1%259E%25E8%25AA%259E%25E3%2580%2581%25E4%25BD%25BF%25E3%2581%2584%25E6%2596%25B9%25E3%2583%25BB%25E4%25BE%258B%25E6%2596%2587%25E3%2582%2592%25E3%2582%258F%25E3%2581%258B%25E3%2582%258A%2F&amp;rut=8bb307083dbeddd7d43338b4754abe67a64a40c263e32ff5c25110878337ce82">生意気とは？意味、類語、使い方・例文をわかりやすく解説
+                                    | 意味大辞典</a>
+                            </h2>
+
+
+
+
+                            <div class="result__extras">
+                                <div class="result__extras__url">
+                                    <span class="result__icon">
+                                        <a rel="nofollow"
+                                            href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fimijiten.net%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%25E3%2581%25A8%25E3%2581%25AF%25EF%25BC%259F%25E6%2584%258F%25E5%2591%25B3%25E3%2580%2581%25E9%25A1%259E%25E8%25AA%259E%25E3%2580%2581%25E4%25BD%25BF%25E3%2581%2584%25E6%2596%25B9%25E3%2583%25BB%25E4%25BE%258B%25E6%2596%2587%25E3%2582%2592%25E3%2582%258F%25E3%2581%258B%25E3%2582%258A%2F&amp;rut=8bb307083dbeddd7d43338b4754abe67a64a40c263e32ff5c25110878337ce82">
+                                            <img class="result__icon__img" width="16" height="16" alt=""
+                                                src="//external-content.duckduckgo.com/ip3/imijiten.net.ico"
+                                                name="i15" />
+                                        </a>
+                                    </span>
+                                    <a class="result__url"
+                                        href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fimijiten.net%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%25E3%2581%25A8%25E3%2581%25AF%25EF%25BC%259F%25E6%2584%258F%25E5%2591%25B3%25E3%2580%2581%25E9%25A1%259E%25E8%25AA%259E%25E3%2580%2581%25E4%25BD%25BF%25E3%2581%2584%25E6%2596%25B9%25E3%2583%25BB%25E4%25BE%258B%25E6%2596%2587%25E3%2582%2592%25E3%2582%258F%25E3%2581%258B%25E3%2582%258A%2F&amp;rut=8bb307083dbeddd7d43338b4754abe67a64a40c263e32ff5c25110878337ce82">
+                                        imijiten.net/生意気とは？意味、類語、使い方・例文をわかり/
+                                    </a>
+
+                                </div>
+                            </div>
+
+
+
+
+                            <a class="result__snippet"
+                                href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fimijiten.net%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%25E3%2581%25A8%25E3%2581%25AF%25EF%25BC%259F%25E6%2584%258F%25E5%2591%25B3%25E3%2580%2581%25E9%25A1%259E%25E8%25AA%259E%25E3%2580%2581%25E4%25BD%25BF%25E3%2581%2584%25E6%2596%25B9%25E3%2583%25BB%25E4%25BE%258B%25E6%2596%2587%25E3%2582%2592%25E3%2582%258F%25E3%2581%258B%25E3%2582%258A%2F&amp;rut=8bb307083dbeddd7d43338b4754abe67a64a40c263e32ff5c25110878337ce82">生意気の意味
+                                「生意気」には次の意味があります。 ・
+                                その柄ではないのに意気がった言動をすること。また、それにふさわしい身分や年齢ではないのに出すぎた言動をすること。知ったかぶりをしたり、きざな態度をとること。 （出典：精選版
+                                日本国語大辞典） 「生意気」とは、「生 ...</a>
+
+
+
+                            <div class="clear"></div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="result results_links results_links_deep web-result ">
+                        <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+
+                            <h2 class="result__title">
+                                <a rel="nofollow" class="result__a"
+                                    href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fadtechmanagement.com%2Fminnadepr%2Dcolumn%2F2025%2F07%2F31%2Fnamaiki%2Dtoha%2F&amp;rut=3d1f3a876fa03323d570df9ee6a386681db53ac52ca3bfe79334c2a6f838a403">生意気とは？意味・使い方・心理を徹底解説｜誤解されやすい印象の背景と対処法</a>
+                            </h2>
+
+
+
+
+                            <div class="result__extras">
+                                <div class="result__extras__url">
+                                    <span class="result__icon">
+                                        <a rel="nofollow"
+                                            href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fadtechmanagement.com%2Fminnadepr%2Dcolumn%2F2025%2F07%2F31%2Fnamaiki%2Dtoha%2F&amp;rut=3d1f3a876fa03323d570df9ee6a386681db53ac52ca3bfe79334c2a6f838a403">
+                                            <img class="result__icon__img" width="16" height="16" alt=""
+                                                src="//external-content.duckduckgo.com/ip3/adtechmanagement.com.ico"
+                                                name="i15" />
+                                        </a>
+                                    </span>
+                                    <a class="result__url"
+                                        href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fadtechmanagement.com%2Fminnadepr%2Dcolumn%2F2025%2F07%2F31%2Fnamaiki%2Dtoha%2F&amp;rut=3d1f3a876fa03323d570df9ee6a386681db53ac52ca3bfe79334c2a6f838a403">
+                                        adtechmanagement.com/minnadepr-column/2025/07/31/namaiki-toha/
+                                    </a>
+
+                                    <span>&nbsp; &nbsp; 2025-07-31T00:00:00.0000000</span>
+
+                                </div>
+                            </div>
+
+
+
+
+                            <a class="result__snippet"
+                                href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fadtechmanagement.com%2Fminnadepr%2Dcolumn%2F2025%2F07%2F31%2Fnamaiki%2Dtoha%2F&amp;rut=3d1f3a876fa03323d570df9ee6a386681db53ac52ca3bfe79334c2a6f838a403">「生意気」は、日常会話や人間関係の中でよく使われる言葉ですが、その意味やニュアンスを正しく理解して使えている人は意外と少ないかもしれません。本記事では、「生意気」という言葉の本来の意味や使われ方、そこに含まれる心理的背景、そして円滑な関係を築くための接し方について
+                                ...</a>
+
+
+
+                            <div class="clear"></div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="result results_links results_links_deep web-result ">
+                        <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+
+                            <h2 class="result__title">
+                                <a rel="nofollow" class="result__a"
+                                    href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fsanji%2Djukugo.com%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%2F&amp;rut=73e59650af21c2fb55f579f9751117f851531c563de71eb231a128021ec80227">生意気（なまいき）
+                                    - 三字熟語2025年最新版</a>
+                            </h2>
+
+
+
+
+                            <div class="result__extras">
+                                <div class="result__extras__url">
+                                    <span class="result__icon">
+                                        <a rel="nofollow"
+                                            href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fsanji%2Djukugo.com%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%2F&amp;rut=73e59650af21c2fb55f579f9751117f851531c563de71eb231a128021ec80227">
+                                            <img class="result__icon__img" width="16" height="16" alt=""
+                                                src="//external-content.duckduckgo.com/ip3/sanji-jukugo.com.ico"
+                                                name="i15" />
+                                        </a>
+                                    </span>
+                                    <a class="result__url"
+                                        href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fsanji%2Djukugo.com%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%2F&amp;rut=73e59650af21c2fb55f579f9751117f851531c563de71eb231a128021ec80227">
+                                        sanji-jukugo.com/生意気/
+                                    </a>
+
+                                </div>
+                            </div>
+
+
+
+
+                            <a class="result__snippet"
+                                href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fsanji%2Djukugo.com%2F%25E7%2594%259F%25E6%2584%258F%25E6%25B0%2597%2F&amp;rut=73e59650af21c2fb55f579f9751117f851531c563de71eb231a128021ec80227">生意気とは
+                                年齢や経験、立場に見合わない言動や態度をとることを指す語である。 特に、子供や若者が目上に対して尊大な口をきいたり、自信過剰な振る舞いをする場合によく用いられる。
+                                否定的な意味で使われることが多いが、時には「しっかりしている」「物怖じしない」など、ある種の ...</a>
+
+
+
+                            <div class="clear"></div>
+                        </div>
+                    </div>
+
+
+
+
+
+
+                    <div class="nav-link">
+                        <form action="/html/" method="post">
+                            <input type="submit" class='btn btn--alt' value="Next" />
+                            <input type="hidden" name="q" value="生意気　意味" />
+                            <input type="hidden" name="s" value="10" />
+                            <input type="hidden" name="nextParams" value="" />
+                            <input type="hidden" name="v" value="l" />
+                            <input type="hidden" name="o" value="json" />
+                            <input type="hidden" name="dc" value="11" />
+                            <input type="hidden" name="api" value="d.js" />
+                            <input type="hidden" name="vqd" value="4-17758314157493265613031012831673583905" />
+
+
+
+
+                            <input name="kl" value="wt-wt" type="hidden" />
+
+
+
+
+                        </form>
+                    </div>
+
+
+
+                    <div class="feedback-btn">
+                        <a rel="nofollow" href="//duckduckgo.com/feedback.html" target="_new">Feedback</a>
+                    </div>
+                    <div class="clear"></div>
+                </div>
+            </div>
+        </div> <!-- links wrapper //-->
+
+    </div>
+
+    <div id="bottom_spacing2"></div>
+
+
+    <img src="//duckduckgo.com/t/sl_h" />
+
+</body>
+
+</html>

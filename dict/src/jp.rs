@@ -61,13 +61,13 @@ impl Word {
             }
 
             if !simple.attribute.is_empty() {
-                write!(s, "  - {}\n", simple.attribute).unwrap();
+                write!(s, "  - {}  \n", simple.attribute).unwrap();
             } else {
                 s.push_str("  - *\n");
             }
 
             for explain in &simple.explains {
-                write!(s, "    - {}\n", explain).unwrap();
+                write!(s, "    - {}  \n", explain).unwrap();
             }
         }
 
@@ -77,14 +77,14 @@ impl Word {
                 s.push_str("\n- More Detail\n");
             }
 
-            write!(s, "  - {}\n", detail.attribute).unwrap();
+            write!(s, "  - {}  \n", detail.attribute).unwrap();
 
             for example in &detail.explains {
-                write!(s, "    - {}\n", example.explain).unwrap();
+                write!(s, "    - {}  \n", example.explain).unwrap();
 
                 for e in &example.examples {
-                    write!(s, "      - {}\n", e.original).unwrap();
-                    write!(s, "        {}\n", e.translate).unwrap();
+                    write!(s, "      - {}  \n", e.original).unwrap();
+                    write!(s, "        {}  \n", e.translate).unwrap();
                 }
             }
         }

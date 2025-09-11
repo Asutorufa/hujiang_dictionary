@@ -1,3 +1,4 @@
+pub mod duckduckgo_search;
 pub mod en;
 pub mod error;
 pub mod google;

@@ -1,0 +1,240 @@
+{
+    "Abstract": "ChatGPT is a generative artificial intelligence chatbot developed by OpenAI and released on November 30, 2022. It currently uses GPT-5, a generative pre-trained transformer, to generate text, speech, and images in response to user prompts. It is credited with accelerating the AI boom, an ongoing period of rapid investment in and public attention to the field of artificial intelligence. OpenAI operates the service on a freemium model. By January 2023, ChatGPT had become the fastest-growing consumer software application in history, gaining over 100 million users in two months. As of May 2025, ChatGPT's website is among the 5 most-visited websites globally. The chatbot is recognized for its versatility and articulate responses. Its capabilities include answering follow-up questions, writing and debugging computer programs, translating, and summarizing text. Users can interact with ChatGPT through text, audio, and image prompts.",
+    "AbstractSource": "Wikipedia",
+    "AbstractText": "ChatGPT is a generative artificial intelligence chatbot developed by OpenAI and released on November 30, 2022. It currently uses GPT-5, a generative pre-trained transformer, to generate text, speech, and images in response to user prompts. It is credited with accelerating the AI boom, an ongoing period of rapid investment in and public attention to the field of artificial intelligence. OpenAI operates the service on a freemium model. By January 2023, ChatGPT had become the fastest-growing consumer software application in history, gaining over 100 million users in two months. As of May 2025, ChatGPT's website is among the 5 most-visited websites globally. The chatbot is recognized for its versatility and articulate responses. Its capabilities include answering follow-up questions, writing and debugging computer programs, translating, and summarizing text. Users can interact with ChatGPT through text, audio, and image prompts.",
+    "AbstractURL": "https://en.wikipedia.org/wiki/ChatGPT",
+    "Answer": "",
+    "AnswerType": "",
+    "Definition": "",
+    "DefinitionSource": "",
+    "DefinitionURL": "",
+    "Entity": "software",
+    "Heading": "ChatGPT",
+    "Image": "/i/24b826883d81f317.png",
+    "ImageHeight": 270,
+    "ImageIsLogo": 1,
+    "ImageWidth": 270,
+    "Infobox": {
+        "content": [
+            {
+                "data_type": "string",
+                "label": "Developer(s)",
+                "value": "OpenAI",
+                "wiki_order": 0
+            },
+            {
+                "data_type": "string",
+                "label": "Initial release",
+                "value": "November 30, 2022",
+                "wiki_order": 1
+            },
+            {
+                "data_type": "string",
+                "label": "Platform",
+                "value": "Cloud computing platforms",
+                "wiki_order": 2
+            },
+            {
+                "data_type": "string",
+                "label": "License",
+                "value": "Proprietary service",
+                "wiki_order": 3
+            },
+            {
+                "data_type": "twitter_profile",
+                "label": "Twitter profile",
+                "value": "ChatGPTapp",
+                "wiki_order": "102"
+            },
+            {
+                "data_type": "instance",
+                "label": "Instance of",
+                "value": {
+                    "entity-type": "item",
+                    "id": "Q133284163",
+                    "numeric-id": 133284163
+                },
+                "wiki_order": "207"
+            },
+            {
+                "data_type": "instance_2",
+                "label": "Instance of",
+                "value": {
+                    "entity-type": "item",
+                    "id": "Q116777014",
+                    "numeric-id": 116777014
+                },
+                "wiki_order": "207"
+            },
+            {
+                "data_type": "instance_3",
+                "label": "Instance of",
+                "value": {
+                    "entity-type": "item",
+                    "id": "Q115305900",
+                    "numeric-id": 115305900
+                },
+                "wiki_order": "207"
+            },
+            {
+                "data_type": "instance_4",
+                "label": "Instance of",
+                "value": {
+                    "entity-type": "item",
+                    "id": "Q19967801",
+                    "numeric-id": 19967801
+                },
+                "wiki_order": "207"
+            },
+            {
+                "data_type": "official_website",
+                "label": "Official Website",
+                "value": "https://chatgpt.com",
+                "wiki_order": "208"
+            },
+            {
+                "data_type": "wd_description",
+                "label": "Wikidata description",
+                "value": "artificial intelligence chatbot developed by OpenAI",
+                "wiki_order": "210"
+            },
+            {
+                "data_type": "wikidata_id",
+                "label": "Wikidata id",
+                "value": "Q115564437",
+                "wiki_order": "211"
+            },
+            {
+                "data_type": "wikidata_aliases",
+                "label": "Wikidata aliases",
+                "value": [
+                    "Chat GPT",
+                    "Chat Generative Pre-trained Transformer",
+                    "Chat.openai.com/chat",
+                    "GPTChat",
+                    "Chatbot GPT",
+                    "Chatbot Generative Pre-trained Transformer",
+                    "Chat generative pre-trained transformer",
+                    "Chat.openai.com"
+                ],
+                "wiki_order": "213"
+            }
+        ],
+        "meta": [
+            {
+                "data_type": "string",
+                "label": "article_title",
+                "value": "ChatGPT"
+            },
+            {
+                "data_type": "string",
+                "label": "template_name",
+                "value": "infobox software"
+            }
+        ]
+    },
+    "OfficialDomain": "chatgpt.com",
+    "OfficialWebsite": "https://chatgpt.com/",
+    "Redirect": "",
+    "RelatedTopics": [
+        {
+            "FirstURL": "https://duckduckgo.com/Artificial_general_intelligence",
+            "Icon": {
+                "Height": "",
+                "URL": "",
+                "Width": ""
+            },
+            "Result": "<a href=\"https://duckduckgo.com/Artificial_general_intelligence\">Artificial general intelligence</a> - Artificial general intelligence\u2014sometimes called human\u2011level intelligence AI\u2014is a type of artificial intelligence that would match or surpass human capabilities across virtually all cognitive tasks.",
+            "Text": "Artificial general intelligence - Artificial general intelligence\u2014sometimes called human\u2011level intelligence AI\u2014is a type of artificial intelligence that would match or surpass human capabilities across virtually all cognitive tasks."
+        },
+        {
+            "FirstURL": "https://duckduckgo.com/c/Interactive_narrative",
+            "Icon": {
+                "Height": "",
+                "URL": "",
+                "Width": ""
+            },
+            "Result": "<a href=\"https://duckduckgo.com/c/Interactive_narrative\">Interactive narrative</a>",
+            "Text": "Interactive narrative"
+        }
+    ],
+    "Results": [
+        {
+            "FirstURL": "https://chatgpt.com/",
+            "Icon": {
+                "Height": 16,
+                "URL": "/i/chatgpt.com.ico",
+                "Width": 16
+            },
+            "Result": "<a href=\"https://chatgpt.com/\"><b>Official site</b></a><a href=\"https://chatgpt.com/\"></a>",
+            "Text": "Official site"
+        },
+        {
+            "FirstURL": "https://chatgpt.com",
+            "Icon": {
+                "Height": 16,
+                "URL": "/i/chatgpt.com.ico",
+                "Width": 16
+            },
+            "Result": "<a href=\"https://chatgpt.com\"><b>Official site</b></a><a href=\"https://chatgpt.com\"> - ChatGPT</a>",
+            "Text": "Official site - ChatGPT"
+        }
+    ],
+    "Type": "A",
+    "meta": {
+        "attribution": null,
+        "blockgroup": null,
+        "created_date": null,
+        "description": "Wikipedia",
+        "designer": null,
+        "dev_date": null,
+        "dev_milestone": "live",
+        "developer": [
+            {
+                "name": "DDG Team",
+                "type": "ddg",
+                "url": "http://www.duckduckhack.com"
+            }
+        ],
+        "example_query": "nikola tesla",
+        "id": "wikipedia_fathead",
+        "is_stackexchange": null,
+        "js_callback_name": "wikipedia",
+        "live_date": null,
+        "maintainer": {
+            "github": "duckduckgo"
+        },
+        "name": "Wikipedia",
+        "perl_module": "DDG::Fathead::Wikipedia",
+        "producer": null,
+        "production_state": "online",
+        "repo": "fathead",
+        "signal_from": "wikipedia_fathead",
+        "src_domain": "en.wikipedia.org",
+        "src_id": 1,
+        "src_name": "Wikipedia",
+        "src_options": {
+            "directory": "",
+            "is_fanon": 0,
+            "is_mediawiki": 1,
+            "is_wikipedia": 1,
+            "language": "en",
+            "min_abstract_length": "20",
+            "skip_abstract": 0,
+            "skip_abstract_paren": 0,
+            "skip_end": "0",
+            "skip_icon": 0,
+            "skip_image_name": 0,
+            "skip_qr": "",
+            "source_skip": "",
+            "src_info": ""
+        },
+        "src_url": null,
+        "status": "live",
+        "tab": "About",
+        "topic": [
+            "productivity"
+        ],
+        "unsafe": 0
+    }
+}

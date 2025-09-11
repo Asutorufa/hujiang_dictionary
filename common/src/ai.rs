@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use base64::Engine;
-use hjdict::google_search;
+use hjdict::google_search::{self, Body};
 use log::info;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
@@ -130,30 +130,44 @@ pub trait WorkersAI {
 }
 
 async fn google_search(query: &str) -> Result<String, Error> {
-    let result = match google_search::get(query).await {
+    let result = match google_search::getv2(query).await {
         Ok(v) => v,
         Err(e) => return Err(Error::from(e.to_string())),
     };
 
-    let mut instruct = "<google search result>\n".to_string();
+    let mut instruct = "<search_result>\n".to_string();
 
-    let length = if result.len() > 3 { 3 } else { result.len() };
+    let mut length = if result.len() > 3 { 3 } else { result.len() };
 
-    for v in &result[0..length] {
-        let title = v.title.replace("\n", " ");
-        instruct.push_str("<>\n");
-        instruct.push_str(&format!("<title>{}</title>\n", title));
-        instruct.push_str(&format!("<link>{}</link>\n", v.url));
-        instruct.push_str(&format!(
-            "<content>{}</content>\n",
-            v.get_raw_page().await.unwrap()
-        ));
-        instruct.push_str("</>\n");
+    for v in &result {
+        match v {
+            Body::Content(s) => {
+                instruct.push_str("<>\n");
+                instruct.push_str(&format!("<content>{}</content>\n", s));
+                instruct.push_str("</>\n");
+            }
+            Body::Link(v) => {
+                if length <= 0 {
+                    continue;
+                }
+
+                length -= 1;
+                let title = v.title.replace("\n", " ");
+                instruct.push_str("<>\n");
+                instruct.push_str(&format!("<title>{}</title>\n", title));
+                instruct.push_str(&format!("<link>{}</link>\n", v.url));
+                instruct.push_str(&format!(
+                    "<content>{}</content>\n",
+                    v.get_raw_page().await.unwrap()
+                ));
+                instruct.push_str("</>\n");
+            }
+        }
     }
 
-    instruct.push_str("\n</google search result>\n");
+    instruct.push_str("\n</search_result>\n");
 
-    instruct.push_str("\n**please use above google search result to explain.**\n");
+    instruct.push_str("\n**please use above search result to explain.**\n");
 
     Ok(instruct)
 }
@@ -248,8 +262,9 @@ impl ResponsesRequest {
             model: model.as_str().to_string(),
             input: msgs,
             reasoning: Reasoning {
-                effort: "low".to_string(),
-                summary: "concise".to_string(),
+                effort: Some("low".to_string()),
+                summary: Some("concise".to_string()),
+                max_tokens: None,
             },
         }
     }
@@ -257,8 +272,9 @@ impl ResponsesRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Reasoning {
-    pub effort: String,
-    pub summary: String,
+    pub effort: Option<String>,
+    pub summary: Option<String>,
+    pub max_tokens: Option<u32>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -321,6 +337,7 @@ pub struct ResponsesContent {
 pub struct CompletionRequest {
     pub model: String,
     pub messages: Vec<Message>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<Reasoning>,
 }
 
@@ -368,6 +385,7 @@ impl CompletionRequest {
 pub struct Message {
     pub role: String,
     pub content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<String>,
 }
 
@@ -495,12 +513,7 @@ impl OpenAI {
             return Err(Error("model not supported".to_string()));
         }
 
-        let mut req = CompletionRequest::new(model, system, prompt, instruction);
-        req.reasoning = Some(Reasoning {
-            effort: "low".to_string(),
-            summary: "concise".to_string(),
-        });
-
+        let req = CompletionRequest::new(model, system, prompt, instruction);
         let r: CompletionResponse = self.exec("/chat/completions", req).await?;
         Ok(r)
     }

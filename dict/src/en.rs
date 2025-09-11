@@ -39,6 +39,40 @@ pub struct Pronounce {
     pub audio_us_url: String,
 }
 
+impl Pronounce {
+    pub fn en_pronounce(&self) -> String {
+        if let Some(first) = self.audio_en_url.split_whitespace().next() {
+            first.to_string()
+        } else {
+            self.audio_en_url.clone()
+        }
+    }
+
+    pub fn en_url(&self) -> String {
+        if let Some(pos) = self.audio_en_url.find("http") {
+            self.audio_en_url[pos..].to_string()
+        } else {
+            "".to_string()
+        }
+    }
+
+    pub fn us_pronounce(&self) -> String {
+        if let Some(first) = self.audio_us_url.split_whitespace().next() {
+            first.to_string()
+        } else {
+            self.audio_us_url.clone()
+        }
+    }
+
+    pub fn us_url(&self) -> String {
+        if let Some(pos) = self.audio_us_url.find("http") {
+            self.audio_us_url[pos..].to_string()
+        } else {
+            "".to_string()
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Word {
     pub word: String,
@@ -60,8 +94,20 @@ impl Word {
 
         write!(s, "{}\n", word.word).unwrap();
         write!(s, "{}   \n", word.pronounce.pronounce).unwrap();
-        write!(s, "{}  \n", word.pronounce.audio_us_url).unwrap();
-        write!(s, "{}  \n", word.pronounce.audio_en_url).unwrap();
+        write!(
+            s,
+            r#"
+{}
+<audio controls controlsList="nodownload" preload="none" src="{}"></audio>
+{}
+<audio controls controlsList="nodownload" preload="none" src="{}"></audio>
+"#,
+            word.pronounce.us_pronounce(),
+            word.pronounce.us_url(),
+            word.pronounce.en_pronounce(),
+            word.pronounce.en_url()
+        )
+        .unwrap();
 
         if !word.simple.is_empty() {
             s.push_str("\n- simple explain\n");
@@ -73,12 +119,12 @@ impl Word {
         if !word.detail.is_empty() {
             s.push_str("\n- More Detail\n");
             for detail in &word.detail {
-                write!(s, "  - {}\n", detail.attribute).unwrap();
+                write!(s, "  - {}  \n", detail.attribute).unwrap();
                 for explain_ex in &detail.explains {
-                    write!(s, "    - {}\n", explain_ex.explain).unwrap();
+                    write!(s, "    - {}  \n", explain_ex.explain).unwrap();
                     for example in &explain_ex.examples {
-                        write!(s, "      - {}\n", example.original).unwrap();
-                        write!(s, "        {}\n", example.translate).unwrap();
+                        write!(s, "      - {}  \n", example.original).unwrap();
+                        write!(s, "        {}  \n", example.translate).unwrap();
                     }
                 }
             }
@@ -87,9 +133,9 @@ impl Word {
         if !word.english_explain.is_empty() {
             s.push_str("\n- English Explain\n");
             for eng in &word.english_explain {
-                write!(s, "  - {}\n", eng.attribute).unwrap();
+                write!(s, "  - {}  \n", eng.attribute).unwrap();
                 for explain in &eng.explains {
-                    write!(s, "    - {}\n", explain).unwrap();
+                    write!(s, "    - {}  \n", explain).unwrap();
                 }
             }
         }
@@ -97,28 +143,28 @@ impl Word {
         if !word.inflections.is_empty() {
             s.push_str("\n- Inflections\n");
             for infl in &word.inflections {
-                write!(s, "  - {}\n", infl).unwrap();
+                write!(s, "  - {}  \n", infl).unwrap();
             }
         }
 
         if !word.phrase.is_empty() {
             s.push_str("\n- Phrase\n");
             for p in &word.phrase {
-                write!(s, "  - {}\n", p).unwrap();
+                write!(s, "  - {}  \n", p).unwrap();
             }
         }
 
         if !word.synonym.is_empty() {
             s.push_str("\n- Synonym\n");
             for syn in &word.synonym {
-                write!(s, "  - {}\n", syn).unwrap();
+                write!(s, "  - {}  \n", syn).unwrap();
             }
         }
 
         if !word.antonym.is_empty() {
             s.push_str("\n- Antonym\n");
             for ant in &word.antonym {
-                write!(s, "  - {}\n", ant).unwrap();
+                write!(s, "  - {}  \n", ant).unwrap();
             }
         }
 

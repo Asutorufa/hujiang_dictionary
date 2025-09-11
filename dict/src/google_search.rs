@@ -1,11 +1,102 @@
 use crate::error::Error;
+use log::info;
 use reqwest::Url;
 
 pub static USER_AGENT: &str = "Lynx/3.8.1";
 
 // curl -H "User-Agent: Lynx/3.8.1" "https://www.google.com/search?q=hello"
 
-pub async fn get(word: &str) -> Result<Vec<SearchLink>, Error> {
+/*
+curl -G "https://www.google.com/search" \
+  --data-urlencode "q=生意気　意味" \
+  --data-urlencode "filter=0" \
+  --data-urlencode "start=0" \
+  --data-urlencode "asearch=arc" \
+  --data-urlencode "async=arc_id:srp_Ez6mgiQ7CjInnjwrnLE06PI_100,use_ac:true,_fmt:prog" \
+  --data-urlencode "ie=UTF-8" \
+  --data-urlencode "oe=UTF-8" \
+  --data-urlencode "hl=ja-JP" \
+  --data-urlencode "lr=lang_ja" \
+  --data-urlencode "cr=countryJA" \
+  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+ */
+
+pub async fn getv2(word: &str) -> Result<Vec<Body>, Error> {
+    let r = reqwest::Client::builder()
+        .build()?
+        .get(format!("https://www.google.com/search?q={}", word))
+        .query(&[
+            ("q", word),
+            ("filter", "0"),
+            ("start", "0"),
+            ("asearch", "arc"),
+            (
+                "async",
+                "arc_id:srp_Ez6mgiQ7CjInnjwrnLE06PI_100,use_ac:true,_fmt:prog",
+            ),
+            ("ie", "UTF-8"),
+            ("oe", "UTF-8"),
+            ("hl", "ja-JP"),
+            ("lr", "lang_ja"),
+            ("cr", "countryJA"),
+        ])
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36")
+        .send()
+        .await?;
+
+    let status = r.status();
+    let body = r.text().await?;
+
+    if !status.is_success() {
+        return Err(Error {
+            status: Some(status),
+            message: body,
+        })?;
+    }
+
+    let q = scraper::Html::parse_document(&body);
+
+    let a_selector = scraper::Selector::parse("a").unwrap();
+    let h3_selector = scraper::Selector::parse("h3").unwrap();
+    let div_selector = scraper::Selector::parse("div").unwrap();
+
+    let mut ws: Vec<Body> = vec![];
+
+    for element in q.select(&div_selector) {
+        match element.attr("data-sncf") {
+            Some(path) if path == "1" => {}
+            _ => continue,
+        };
+
+        ws.push(Body::Content(element.text().collect::<Vec<_>>().join("")));
+    }
+
+    for element in q.select(&a_selector) {
+        let path = match element.attr("href") {
+            Some(path) => path,
+            None => continue,
+        };
+
+        let url = match Url::parse(path) {
+            Ok(url) => url,
+            Err(_) => continue,
+        };
+
+        let title = match element.select(&h3_selector).next() {
+            Some(title) => title.text().collect::<Vec<_>>().join(""),
+            None => "".to_string(),
+        };
+
+        ws.push(Body::Link(SearchLink {
+            url: url.to_string(),
+            title,
+        }));
+    }
+
+    Ok(ws)
+}
+
+pub async fn get(word: &str) -> Result<Vec<Body>, Error> {
     let r = reqwest::Client::builder()
         .build()?
         .get(format!("https://www.google.com/search?q={}", word))
@@ -17,7 +108,10 @@ pub async fn get(word: &str) -> Result<Vec<SearchLink>, Error> {
 
     let text = r.text().await?;
 
-    if status != 200 {
+    println!("{}", text);
+    info!("google search raw result: {}, status: {}", text, status);
+
+    if !status.is_success() {
         return Err(Error {
             status: Some(status),
             message: text,
@@ -28,12 +122,18 @@ pub async fn get(word: &str) -> Result<Vec<SearchLink>, Error> {
 }
 
 #[derive(Debug)]
+pub enum Body {
+    Content(String),
+    Link(SearchLink),
+}
+
+#[derive(Debug)]
 pub struct SearchLink {
     pub url: String,
     pub title: String,
 }
 
-fn clean_text_lines(input: &str) -> String {
+pub(crate) fn clean_text_lines(input: &str) -> String {
     input
         .lines()
         .filter_map(|line| {
@@ -73,8 +173,8 @@ impl SearchLink {
     }
 }
 
-fn parse(text: &str) -> Vec<SearchLink> {
-    let mut ws: Vec<SearchLink> = vec![];
+fn parse(text: &str) -> Vec<Body> {
+    let mut ws: Vec<Body> = vec![];
 
     let q = scraper::Html::parse_document(&text);
 
@@ -108,10 +208,10 @@ fn parse(text: &str) -> Vec<SearchLink> {
         };
 
         let text = element.text().collect::<Vec<_>>().join("");
-        ws.push(SearchLink {
+        ws.push(Body::Link(SearchLink {
             url: ret.to_string(),
             title: clean_text_lines(&text.replace("\n", " ")),
-        });
+        }));
     }
 
     ws
@@ -121,7 +221,7 @@ fn parse(text: &str) -> Vec<SearchLink> {
 mod test {
     use std::fs;
 
-    use crate::google_search::{get, parse};
+    use crate::google_search::{getv2, parse};
 
     #[test]
     fn test() {
@@ -130,14 +230,17 @@ mod test {
     }
 
     #[tokio::test]
-    async fn test_async() {
-        let text = get("子供 意味").await.unwrap();
+    async fn test_asyncv2() {
+        let v2text = getv2("子供 意味").await.unwrap();
+        println!("{:?}", v2text);
 
-        println!("{:?}", text[0].get_raw_page().await.unwrap());
-        println!("{:?}", text[1].get_raw_page().await.unwrap());
+        // let text = get("子供 意味").await.unwrap();
 
-        for v in text {
-            println!("url: {}, title: {}", v.url, v.title);
-        }
+        // println!("{:?}", text[0].get_raw_page().await.unwrap());
+        // println!("{:?}", text[1].get_raw_page().await.unwrap());
+
+        // for v in text {
+        //     println!("url: {}, title: {}", v.url, v.title);
+        // }
     }
 }

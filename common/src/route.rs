@@ -260,15 +260,13 @@ impl<T1: DBv2, T2: WorkersAI> RunOpt<T1, T2> {
                     Some(
                         self.workers_ai
                             .google_search(model, false, &req.word)
-                            .await
-                            .unwrap(),
+                            .await?,
                     )
                 } else {
                     Some(
                         self.workers_ai
                             .translate(model, false, &req.word, req.instruction().as_deref())
-                            .await
-                            .unwrap(),
+                            .await?,
                     )
                 }
             }
