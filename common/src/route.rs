@@ -284,17 +284,25 @@ impl<T1: DBv2, T2: WorkersAI> RunOpt<T1, T2> {
                 if req.google_search.is_some_and(|is| is) {
                     info!("google search enabled, model: {}", llm.model.as_str());
                     Some(
-                        ai.google_search(llm.model.as_str(), false, &req.word)
-                            .await?,
+                        ai.google_search(ai::TranslateRequest {
+                            model: llm.model.as_str(),
+                            chars_limit: false,
+                            query: &req.word,
+                            dst_lang: req.dst_lang.as_deref(),
+                            ..Default::default()
+                        })
+                        .await?,
                     )
                 } else {
                     Some(
-                        ai.translate(
-                            llm.model.as_str(),
-                            false,
-                            &req.word,
-                            req.instruction().as_deref(),
-                        )
+                        ai.translate(ai::TranslateRequest {
+                            model: llm.model.as_str(),
+                            chars_limit: false,
+                            query: &req.word,
+                            instruction: req.instruction().as_deref(),
+                            dst_lang: req.dst_lang.as_deref(),
+                            ..Default::default()
+                        })
                         .await?,
                     )
                 }

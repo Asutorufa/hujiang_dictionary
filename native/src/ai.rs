@@ -1,6 +1,6 @@
 use hjcommon::ai::{
     CompletionRequest, CompletionResponse, Error, Models, ResponseResponse, ResponsesRequest,
-    TranslateRequest, TranslateResult, WorkersAI,
+    TranslateResult, WorkersAI, WorkersAITranslateRequest,
 };
 use serde::{Serialize, de::DeserializeOwned};
 
@@ -71,7 +71,7 @@ impl WorkersAI for Workers {
         let r: TranslateResult = self
             .exec(
                 format!("run/{}", Models::M2M100_1_2B.as_str()).as_str(),
-                TranslateRequest::new(text.as_ref(), target_lang.as_ref(), source_lang),
+                WorkersAITranslateRequest::new(text.as_ref(), target_lang.as_ref(), source_lang),
             )
             .await?;
         Ok(r.result.translated_text)

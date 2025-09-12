@@ -1,5 +1,6 @@
 use crate::error::Error;
-use log::info;
+use dom_smoothie::Readability;
+use log::{info, warn};
 use reqwest::Url;
 
 pub static USER_AGENT: &str = "Lynx/3.8.1";
@@ -45,7 +46,7 @@ pub async fn getv2(word: &str) -> Result<Vec<Body>, Error> {
         .await?;
 
     let status = r.status();
-    let body = r.text().await?;
+    let body = trim_to_html(r.text().await?);
 
     if !status.is_success() {
         return Err(Error {
@@ -144,8 +145,29 @@ pub(crate) fn clean_text_lines(input: &str) -> String {
         .join("\n")
 }
 
+#[derive(Debug)]
+pub struct SearchError(String);
+
+impl std::fmt::Display for SearchError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<reqwest::Error> for SearchError {
+    fn from(value: reqwest::Error) -> Self {
+        SearchError(value.to_string())
+    }
+}
+
+impl From<dom_smoothie::ReadabilityError> for SearchError {
+    fn from(value: dom_smoothie::ReadabilityError) -> Self {
+        SearchError(value.to_string())
+    }
+}
+
 impl SearchLink {
-    pub async fn get_raw_page(&self) -> Result<String, reqwest::Error> {
+    pub async fn get_raw_page(&self) -> Result<(String, String), SearchError> {
         let r = reqwest::Client::builder()
             .build()?
             .get(&self.url)
@@ -154,22 +176,41 @@ impl SearchLink {
             .send()
             .await?;
 
-        let bytes = r
-            .text()
-            .await?
-            .replace("<a", "<span")
-            .replace("</a>", "</span>");
+        let bytes = r.text().await?;
 
-        let text = html2text::config::plain()
-            .no_link_wrapping()
-            .allow_width_overflow()
-            .no_table_borders()
-            .link_footnotes(false)
-            .no_table_borders()
-            .string_from_read(&bytes.as_bytes()[..], 9999)
-            .unwrap();
+        let cfg = dom_smoothie::Config {
+            text_mode: dom_smoothie::TextMode::Formatted,
+            disable_json_ld: true,
+            candidate_select_mode: dom_smoothie::CandidateSelectMode::Readability,
+            ..Default::default()
+        };
 
-        Ok(clean_text_lines(&text))
+        let mut dr = Readability::new(bytes.clone(), Some(&self.url), Some(cfg))?;
+
+        match dr.parse() {
+            Ok(drc) => Ok((drc.title, drc.text_content.to_string())),
+            Err(e) => {
+                warn!("readability parse error: {}", e);
+
+                Ok((
+                    self.title.clone(),
+                    html2text::config::plain()
+                        .no_link_wrapping()
+                        .allow_width_overflow()
+                        .no_table_borders()
+                        .link_footnotes(false)
+                        .string_from_read(
+                            &bytes
+                                .clone()
+                                .replace("<a", "<span")
+                                .replace("</a>", "</span>")
+                                .as_bytes()[..],
+                            9999,
+                        )
+                        .unwrap(),
+                ))
+            }
+        }
     }
 }
 
@@ -217,11 +258,23 @@ fn parse(text: &str) -> Vec<Body> {
     ws
 }
 
+fn trim_to_html(raw: String) -> String {
+    let start = raw.find('<').unwrap_or(0);
+    let end = raw.rfind('>').unwrap_or(raw.len() - 1);
+    if start < end {
+        raw[start..=end].to_string()
+    } else {
+        raw
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::fs;
 
-    use crate::google_search::{getv2, parse};
+    use dom_smoothie::Readability;
+
+    use crate::google_search::{Body, clean_text_lines, getv2, parse, trim_to_html};
 
     #[test]
     fn test() {
@@ -229,18 +282,63 @@ mod test {
         println!("{:?}", parse(&text));
     }
 
+    #[test]
+    fn test_eow() {
+        let text = fs::read_to_string("../assets/test_data/eow.html.txt")
+            .unwrap()
+            .replace("<a", "<a")
+            .replace("</a", "</a");
+
+        let cfg = dom_smoothie::Config {
+            text_mode: dom_smoothie::TextMode::Formatted,
+            disable_json_ld: true,
+            candidate_select_mode: dom_smoothie::CandidateSelectMode::Readability,
+            ..Default::default()
+        };
+
+        let mut dr = Readability::new(
+            text.clone(),
+            Some("https://eow.alc.co.jp/search?q=straw+bale"),
+            Some(cfg),
+        )
+        .unwrap();
+
+        let drc = dr.parse().unwrap();
+
+        println!(
+            "text_content: {}",
+            clean_text_lines(&drc.text_content.to_string())
+        );
+        println!("title: {}", drc.title);
+        println!("excerpt: {:?}", drc.excerpt);
+        println!("site: {:?}", drc.site_name);
+        println!("image: {:?}", drc.image);
+        println!("url: {:?}", drc.url);
+    }
+
     #[tokio::test]
     async fn test_asyncv2() {
         let v2text = getv2("子供 意味").await.unwrap();
         println!("{:?}", v2text);
 
-        // let text = get("子供 意味").await.unwrap();
+        for v in v2text {
+            match v {
+                Body::Link(link) => {
+                    if !link.url.contains("weblio") {
+                        continue;
+                    }
 
-        // println!("{:?}", text[0].get_raw_page().await.unwrap());
-        // println!("{:?}", text[1].get_raw_page().await.unwrap());
+                    println!("{:?}", link.get_raw_page().await.unwrap());
+                    break;
+                }
+                _ => {}
+            }
+        }
+    }
 
-        // for v in text {
-        //     println!("url: {}, title: {}", v.url, v.title);
-        // }
+    #[test]
+    fn test_trim_html() {
+        let text = fs::read_to_string("../assets/test_data/google_search_v2.html.txt").unwrap();
+        println!("{:?}", trim_to_html(text));
     }
 }

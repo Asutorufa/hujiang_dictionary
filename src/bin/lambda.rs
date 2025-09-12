@@ -23,6 +23,7 @@ async fn main() -> Result<(), lambda_runtime::Error> {
     let handler = LambdaHandler {
         run_opt: Arc::new(run_opt),
     };
+
     lambda_runtime::run(lambda_runtime::service_fn(|event| handler.handler(event))).await
 }
 

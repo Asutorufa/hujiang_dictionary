@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html xmlns="https://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+
+<head>
+    <meta http-equiv="Content-Language" content="ja" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="cache-control" content="no-cache, must-revalidate" />
+    <!-- EOW_SHOP-325 -->
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer-when-downgrade" />
+    <script type="text/javascript">var hostname = "eow03";</script>
+    <!-- ▼ Jquery ▼ -->
+    <script type="text/javascript" src="/content/js/jquery-3.1.1.min.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="/content/js/jquery.exflexfixed-0.3.0.js" charset="UTF-8"></script>
+
+    <!-- EOW_SHOP-325 -->
+    <link rel="stylesheet" href="/content/css/normalize.css" />
+    <link href="/content/css/header_style.css" rel="stylesheet" type="text/css" />
+    <script defer type="text/javascript" src="/content/js/header_action.js" charset="UTF-8"></script>
+    <!-- End EOW_SHOP-325 -->
+    <link href="/content/css/custom.css" rel="stylesheet" type="text/css" />
+    <link href="/content/css/skeleton.css" rel="stylesheet" type="text/css" />
+    <link href="/content/css/eow_r.css?1757473425402" rel="stylesheet" type="text/css" />
+
+    <!-- ▼ Search Logic ▼ -->
+    <script type="text/javascript" src="/content/js/eow_search_r.js?1751511758464" charset="UTF-8"></script>
+    <!-- ▼ Popup ▼ -->
+    <script type="text/javascript" src="/content/js/popup_control.js?1753326421993" charset="UTF-8"></script>
+    <!-- ▼ reward ▼ -->
+    <script src="https://cdn.adlookmanager.com/manager.js" async></script>
+    <!-- ▼ interstitial ▼ -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1322237718032870"
+        crossorigin="anonymous"></script>
+    <!-- Google Tag Manager -->
+    <script>(function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-MLCGVST');</script>
+    <!-- End Google Tag Manager --><!-- ▼ Suggest ▼ -->
+    <script defer type="text/javascript" src="/content/js/eow_suggest.js?1679048932897" charset="UTF-8"></script>
+    <style type="text/css">
+        .kana {
+            display: none;
+        }
+    </style>
+    <script type="text/javascript">
+        var initSetting = function () {
+            form_load('eow.alc.co.jp', 'eow.alc.co.jp', 'eowuser', '60*60*24*30');
+        };
+        window.addEventListener ?
+            window.addEventListener('load', initSetting, false) :
+            window.attachEvent('onload', initSetting);
+        window.addEventListener ?
+            window.addEventListener('load', moveFocus, false) :
+            window.attachEvent('onload', moveFocus);
+    </script>
+    <!-- EOW-T-3388 開発:EOW_SERPの差し替え -->
+    <script src="https://eow.alc.co.jp/freepass_bidder.js?cb=202508271750"></script>
+    <script src="/content/js/mc.js"></script>
+    <script src="/content/js/ad_mozaic.js"></script>
+    <script type="text/javascript">
+        PAGE_CNT = 1;
+    </script>
+    <script type="text/javascript">
+        var screenSize = window.innerWidth;
+        if (screenSize <= 598) {
+            document.write('<script async src=\"https:\/\/pagead2.googlesyndication.com\/pagead\/js/adsbygoogle.js?client=ca-pub-1322237718032870\" crossorigin=\"anonymous\"><\/script>');
+        };
+    </script>
+    <script type="text/javascript">
+        <!--
+        cookieDomain = 'eow.alc.co.jp';
+        function loadForm() {
+            show_refVocabLink();
+            initReady();
+            addSnsLink();
+        }
+          window.addEventListener ?
+            window.addEventListener('load', loadForm, false) :
+            window.attachEvent('onload', loadForm);
+        //-->
+    </script>
+    <title>「straw bale」の意味・使い方・表現 - 英辞郎 on the WEB</title>
+    <meta name="keywords" content="straw bale,意味,とは,和訳,翻訳,英和,英和辞書,英和辞典,例文,使い方,フレーズ" />
+    <meta name="description"
+        content="straw bale ストローベイル◆わらを圧縮してロープで結んで直方体状・円柱状などにしたもの - アルクがお届けするオンライン英和・和英辞書検索サービス。" />
+    <meta property="og:title" content="「straw bale」の意味・使い方・表現" />
+    <meta property="og:type" content="website" />
+    <meta property="og:description"
+        content="straw bale ストローベイル◆わらを圧縮してロープで結んで直方体状・円柱状などにしたもの - アルクがお届けするオンライン英和・和英辞書検索サービス。" />
+    <meta property="og:url" content="//eow.alc.co.jp/search?q=straw+bale&pg=1" />
+    <meta property="og:image" content="/content/img/PromoImage.png" />
+
+
+    <link rel="alternate" media="only screen and (max-width: 640px)"
+        href="https://eow.alc.co.jp/sp/search.html?q=straw+bale" />
+</head>
+
+<body onLoad="javascript:loadPopupCookie('eow.alc.co.jp','eow.alc.co.jp','eowuser','60*60*24*30');">
+
+    <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MLCGVST" height="0" width="0"
+            style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <div id="popup" style="display:none;">
+        <!DOCTYPE html>
+        <html lang="ja">
+
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+            <style>
+                :root {
+                    --primary-color: #8B1B1F;
+                    --secondary-color: #F3E8E9;
+                    --secondary-color-hover: #E8D2D2;
+                    --secondary-color-active: #DCBBBC;
+                    --gradient-start: #EB0739;
+                    --gradient-end: #8B1B1F;
+                    --background-color: #f8f8f8;
+                    --container-bg-color: white;
+                    --feature-bg-color: #FAFAFA;
+                    --box-shadow-color: rgba(0, 0, 0, 0.1);
+                    --text-color: #000;
+                    --btn-font-size: 22px;
+                    --btn-font-size-sp: 16px;
+                    --btn-font-weight: 700;
+                    --btn-line-height: 70px;
+                    --btn-line-height-sp: 50px;
+                    --svg-ad-size: 22px;
+                    --svg-ad-size-sp: 16px;
+                    --container-padding: 44px 30px;
+                    ;
+                    --container-padding-top: 44px;
+                    --container-padding-side: 30px;
+                    --container-padding-sp: 23px 10px;
+                    --container-padding-sp-top: 23px;
+                    --container-padding-sp-side: 10px;
+                    --border-radius: 10px;
+                    --font-weight: 400;
+                }
+
+                .ad_box {
+                    font-family: "Roboto";
+                    text-align: center;
+                    background-color: rgb(0, 0, 0, .6);
+                    margin: 0;
+                    padding: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--shadow-color);
+                }
+
+                .ad_container {
+                    min-width: 580px;
+                    min-height: 412px;
+                    max-width: calc(640px - 2 * var(--container-padding-side));
+                    margin: 0 auto;
+                    position: relative;
+                    border-radius: var(--border-radius);
+                    background-color: var(--container-bg-color);
+                    padding: var(--container-padding);
+                    box-shadow: 0 0 10px var(--box-shadow-color);
+                }
+
+                .ad_logo {
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin: 0 auto 20px auto;
+                    max-width: 286px;
+                    max-height: 60px;
+                }
+
+                .ad_description {
+                    color: var(--text-color);
+                    text-align: center;
+                    font-size: 13px;
+                    font-weight: var(--font-weight);
+                    line-height: 21px;
+                    margin-bottom: 20px;
+                }
+
+                .ad_btn {
+                    display: block;
+                    max-width: 360px;
+                    min-width: 360px;
+                    max-height: 70px;
+                    min-height: 70px;
+                    margin: 16px auto;
+                    line-height: var(--btn-line-height);
+                    font-size: var(--btn-font-size);
+                    font-weight: var(--btn-font-weight);
+                    border: none;
+                    border-radius: 60px;
+                    cursor: pointer;
+                    text-decoration: none;
+                }
+
+                .ad_btn.ad {
+                    color: var(--primary-color);
+                    background-color: var(--secondary-color);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .ad_btn.ad svg {
+                    width: var(--svg-ad-size);
+                    height: var(--svg-ad-size);
+                }
+
+                .ad_btn.ad svg rect {
+                    width: var(--svg-ad-size);
+                    height: var(--svg-ad-size);
+                    fill: #8B1B1F;
+                }
+
+                .ad_btn.ad:hover {
+                    background: var(--secondary-color-hover);
+                }
+
+                .ad_btn.ad:active {
+                    background: var(--secondary-color-active);
+                }
+
+                .ad_btn.register {
+                    color: white;
+                    background: linear-gradient(90deg, var(--gradient-start) 0%, var(--gradient-end) 50.5%);
+                }
+
+                .ad_btn.register:hover {
+                    background: linear-gradient(90deg, var(--gradient-start) 50%, var(--gradient-end) 100%);
+                }
+
+                .ad_btn.register:active {
+                    background: linear-gradient(90deg, var(--gradient-start) 0%, var(--gradient-end) 50.5%);
+                }
+
+                .ad_features {
+                    font-size: 14px;
+                    font-weight: var(--font-weight);
+                    line-height: 28px;
+                    margin-top: 20px;
+                    border-radius: var(--border-radius);
+                    background: var(--feature-bg-color);
+                    max-width: 580px;
+                    max-height: 80px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-direction: column;
+                    padding: 2%;
+                }
+
+                .ad_features-text {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-direction: row;
+                    line-height: normal;
+                    margin-bottom: 6px;
+                }
+
+                .ad_features-highlight {
+                    color: var(--primary-color);
+                    white-space: pre-wrap;
+                }
+
+                .ad_footer {
+                    font-size: 13px;
+                    margin-top: 20px;
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .ad_footer a {
+                    color: var(--primary-color);
+                }
+
+                .ad_spacing {
+                    margin-right: 30px;
+                }
+
+                @media (max-width: 768px) {
+                    .ad_container {
+                        min-width: 280px;
+                        min-height: 401px;
+                        max-width: calc(350px - 2 * var(--container-padding-sp-side));
+                        padding: var(--container-padding-sp);
+                    }
+
+                    .ad_logo {
+                        max-width: 238px;
+                        max-height: 50px;
+                        margin-bottom: 16px;
+                    }
+
+                    .ad_description {
+                        font-size: 12px;
+                        margin-bottom: 16px;
+                        line-height: 18px;
+                        padding: 0 5px;
+                    }
+
+                    .ad_btn {
+                        max-width: 240px;
+                        min-width: 240px;
+                        max-height: 50px;
+                        min-height: 50px;
+                        margin: 12px auto;
+                        font-size: var(--btn-font-size-sp);
+                        line-height: var(--btn-line-height-sp);
+                    }
+
+                    .ad_btn.ad svg {
+                        width: var(--svg-ad-size-sp);
+                        height: var(--svg-ad-size-sp);
+                    }
+
+                    .ad_features {
+                        margin: 16px auto;
+                        font-size: 13px;
+                        max-width: 330px;
+                        max-height: 100px;
+                        line-height: 18px;
+                    }
+
+                    .ad_features-text {
+                        margin: 6px 25px;
+                    }
+
+                    .ad_footer {
+                        font-size: 12px;
+                        margin-top: 16px;
+                        flex-direction: column;
+                    }
+
+                    .ad_spacing {
+                        margin-right: 0;
+                        margin-bottom: 11px;
+                    }
+                }
+
+                @media (max-width: 355px) {
+                    .ad_container {
+                        max-width: calc(310px - 2 * var(--container-padding-sp-side));
+                    }
+
+                    .ad_features {
+                        max-height: 150px;
+                    }
+                }
+
+                #alc_common_reward_2 button {
+                    height: auto;
+                }
+            </style>
+            <script src="https://cdn.adlookmanager.com/manager.js" async></script>
+            <!-- input closePopup -->
+            <script src="/content/js/popup_control.js" charset="UTF-8"></script>
+            <script>
+                window.alm = window.alm || { que: [] };
+
+                // 広告ライブラリの読み込み確認 - 非同期読み込みの完了を待機
+                function ensureAlmReady(callback, maxRetries = 50) {
+                    let retryCount = 0;
+
+                    function checkAlmReady() {
+                        if (window.alm && window.alm.que && window.alm.defineAdSlot && window.alm.render) {
+                            callback();
+                        } else if (retryCount < maxRetries) {
+                            retryCount++;
+                            setTimeout(checkAlmReady, 100);
+                        } else {
+                            // 広告ライブラリの読み込みタイムアウト時の処理
+                            closePopUp();
+                        }
+                    }
+
+                    checkAlmReady();
+                }
+
+                // 広告初期化 - 広告スロットの定義
+                function initializeAds() {
+                    try {
+                        window.alm.que.push(function () {
+                            try {
+                                // 広告スロット "/606/alc_common_reward_2" を定義
+                                window.alm.defineAdSlot("/606/alc_common_reward_2", "alc_common_reward_2");
+                            } catch (error) {
+                                // 広告スロット定義エラー時の処理
+                                closePopUp();
+                            }
+                        });
+                    } catch (error) {
+                        // 広告初期化エラー時の処理
+                        closePopUp();
+                    }
+                }
+
+                // ページ読み込み完了後の初期化処理
+                function initializeOnLoad() {
+                    ensureAlmReady(initializeAds);
+                }
+
+                // ページ読み込み状態の確認と初期化実行
+                if (document.readyState === 'complete') {
+                    initializeOnLoad();
+                } else {
+                    window.addEventListener('load', initializeOnLoad);
+                }
+            </script>
+        </head>
+
+        <body>
+            <div class="ad_box">
+                <div class="ad_container">
+                    <div class="ad_logo">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 49.281"
+                            preserveAspectRatio="xMinYMin meet" width="100%">
+                            <g id="lo_eow2" transform="translate(-0.156 -0.156)">
+                                <path
+                                    d="M34.806,45.926c0,.247-.494.247-.494.371-.124.247-.618.371-.865.494a3.053,3.053,0,0,0-1.112.494,4.577,4.577,0,0,1-2.224.988,2.935,2.935,0,0,1-1.483.371c-.247-.124-.741.247-.988.247-.247.124-.494,0-.741.124H26.4c-.124,0-.247-.124-.371,0-.124,0-.247.124-.371.124H24.551a2.721,2.721,0,0,0-.988.124h-.988c-.247,0-.494.124-.741.124a2.032,2.032,0,0,1-1.236-.124h-.618a2.721,2.721,0,0,1-.988-.124c-.124,0-.247-.124-.371-.124H18.25c-.247-.124-.865-.124-1.112-.247-.371-.124-.741-.124-1.112-.247s-.741-.124-.988-.247a13.728,13.728,0,0,0-1.977-.865c-.124-.124-.371-.124-.494-.247l-.371-.371a3.1,3.1,0,0,0-.865-.494c-.371-.124-.741-.494-1.112-.618a4.226,4.226,0,0,1-1.359-.124c-.371-.124-.618-.124-.865-.371s-.494-.741-.865-.865a2.7,2.7,0,0,1-1.112-1.236c0-.124,0-.124-.124-.247a1.991,1.991,0,0,0-.494-.865c-.247-.247-.371-.618-.618-.865a1.4,1.4,0,0,1-.371-.988c0-.494-.741-.618-.371-1.112v-.124a2.616,2.616,0,0,1,.371-.865c.124-.247.371-.247.618-.247s.618,0,.741-.124a4.334,4.334,0,0,1,.988-.618c.371-.124.494-.371.865-.494.618-.371,1.236-.618,1.73-.988.371-.371.865-.494,1.236-.865a16.1,16.1,0,0,1,1.853-1.236c1.112-.618,2.1-1.483,3.212-2.224A15.107,15.107,0,0,0,18,29.74c.124-.124.247-.371.494-.371.247-.124.371-.124.494-.247a2.69,2.69,0,0,0,.618-.988c.124-.247.618-.741,0-.865h-.124a2.227,2.227,0,0,0-1.236.124,4.2,4.2,0,0,1-1.236.124c-.247,0-.618.124-.741.124-.494-.247-1.236.371-1.73.247a1.786,1.786,0,0,0-.865.247.926.926,0,0,0-.618.124,4.51,4.51,0,0,1-2.224,0h-.247a2.066,2.066,0,0,0-1.483-.124c-.124,0-.247.124-.371.124H7.5c-.371,0-.865.124-1.112.124H6.265a4.39,4.39,0,0,0-1.236.247H4.906a2.1,2.1,0,0,0-.865.124H2.929A3.391,3.391,0,0,1,1.446,29H1.2c-.371,0-1.112-.741-.865-1.112A5.539,5.539,0,0,0,.21,26.4a4.142,4.142,0,0,1,0-1.236c.124-.247.247-.371.247-.494.124-.247,0-.494,0-.618v-.124a3.359,3.359,0,0,1,0-1.112,3.239,3.239,0,0,1,.618-1.112c.124-.371,0-.741.247-1.112a6.622,6.622,0,0,0,.618-1.359,17.5,17.5,0,0,0,.988-2.224,10.866,10.866,0,0,0,.741-1.236,8.964,8.964,0,0,1,.618-1.112,3.7,3.7,0,0,1,.494-.988c.247-.494.865-.988.988-1.483v-.124c.494-.988.865-1.359,1.112-1.853.124-.371.494-.618.741-.988s.494-.494.741-.865A6.79,6.79,0,0,1,9.23,7.253c.494-.618,1.359-.988,1.853-1.73.124-.247.494-.371.618-.494a3.755,3.755,0,0,1,.865-.618,7.285,7.285,0,0,0,.988-.494c.247-.124.371-.618.741-.618l.741-.371c.247-.124.494-.371.741-.494.371-.124.865-.124,1.112-.371.124,0,.371-.124.494-.124l.494-.247a.454.454,0,0,0,.371-.124c.618-.124,1.112-.371,1.606-.494s.988-.124,1.359-.247c.124,0,.124-.124.247-.124A4.2,4.2,0,0,1,22.7.581a5.351,5.351,0,0,0,.618-.124.121.121,0,0,0,.124-.124c.494.124,1.112-.247,1.606-.124.247-.124.618,0,.865,0h.124A2.291,2.291,0,0,0,26.9.458C27.269.334,27.64.7,28.01.7c.124,0,.124-.124.247,0,.124,0,.124.124.247.124H29c.247,0,.494.247.741.247h.124c.124.124.371.124.494.247a1.756,1.756,0,0,1,.741.247c.371.124.741.124,1.112.247.247,0,.371.247.618.371s.371.124.618.247c.494.124.865.371,1.359.494a12.479,12.479,0,0,1,3.089,1.73A11.649,11.649,0,0,1,39.13,5.894c.247.247.371.618.618.741s.494.494.741.741a1.646,1.646,0,0,0,.618.371H41.6a.937.937,0,0,1,.494.247c.124.124-.124,0,.124.247.124.124.247.124.371.247.371.124.618.618.865,1.112.247.618.741.988.988,1.606,0,.124.124.247.124.371.124.247.371.247.247.618-.124.494.494,1.236.741,1.606a1.567,1.567,0,0,1,.124.741,1.756,1.756,0,0,1,.247.741c0,.124.124.371.124.494.124.247.371.247.371.494,0,.124,0,.247.124.247,0,.124.124.247.124.371v.124a5.31,5.31,0,0,1,.247,1.483c0,.247-.124.494-.124.741a.266.266,0,0,0,.247.247v.371c.124.247,0,.494,0,.741,0,.124.124.247.124.494,0,.124-.124.371,0,.494,0,.618-.124,1.236-.124,1.73,0,.247.124.618.124.865s-.124.494,0,.618c-.247.371-.124,1.112-.124,1.606v.741a1.045,1.045,0,0,0,0,.865.944.944,0,0,1-.247.618v.741c-.124.371-.124.988-.371,1.236v.124c-.124.247,0,.494-.124.741v.371a2.22,2.22,0,0,1-.494,1.112c-.124.247-.618.865-.618,1.112v.124c0,.124-.247.371-.247.494a5.351,5.351,0,0,0-.124.618c0,.247-.247.494-.247.618-.124.247,0,.371-.247.494,0,.124-.247.371-.247.494-.124.371-.247.494-.371.865-.124.247-.124.371-.247.618a1.706,1.706,0,0,1-.371.494,13.087,13.087,0,0,0-1.236,1.483,1.015,1.015,0,0,1-.618.618c-.371.124-.247,0-.494.494-.124.371-.618.618-.865.865a1.233,1.233,0,0,0-.618.494l-.371.371c-.124.124-.371.124-.618.247-.371.247-.494.618-.865.865-.124.124-.865.741-.988.494-.124.124-.124.247-.247.371s-.124,0-.247.124C35.547,45.432,34.806,45.555,34.806,45.926ZM5.894,26.4c.124,0,.371-.124.494-.124h.618c.124,0,.247,0,.247-.124H7.5c.371,0,.618.247.988.124.247-.124.371-.124.618-.247h.247c.247,0,.371.124.618,0,.494-.124.865.247,1.359.124a5.068,5.068,0,0,1,1.359-.124c.247,0,.494-.124.618,0,.494-.247.988,0,1.606-.124a8.656,8.656,0,0,1,1.73-.371c.247,0,.494-.124.865-.124a1.661,1.661,0,0,0,1.112-.247c.247,0,.371-.124.618-.124a1.567,1.567,0,0,0,.741-.124H20.1c.247.124.494,0,.865.124h.988c.247,0,.371-.124.494,0a4.39,4.39,0,0,1,1.236-.247c.124,0,.494-.124.618-.124a1.224,1.224,0,0,1,1.359.988v.494c-.124.247-.371.741-.618.741-.124,0-.247.124-.371.247a1.3,1.3,0,0,1-.494.371c-.494.124-.741.494-1.236.618s-.741.618-1.236.865c-.371.247-.741.371-.865.741s-.618.494-.988.741l-.618.618c-.247.124-.494.371-.741.494a7.38,7.38,0,0,1-1.359.741,2.7,2.7,0,0,1-.618.494h-.371c-.247.124-.618.494-.865.618a4.112,4.112,0,0,1-1.236.741c-.618.371-1.112.865-1.606,1.112l-.741.371c-.124.124-.124.247-.371.247-.371,0-.618.371-.988.618-.247.124-.371.124-.494.247a2.585,2.585,0,0,1-.741.494c-.247.124-.371.371-.618.494.124.371-.247.371-.371.494l-.371.371a.926.926,0,0,1-.618.124c-.247,0-.618.247-.618.494,0,.494.247.741.247,1.236a.454.454,0,0,0,.124.371c.124.124.247,0,.371.124.124.247.494.371.741.618.124.371.247.865.618.988l.247.124a.121.121,0,0,0,.124.124c0,.124.124.124.247,0a1.234,1.234,0,0,1,.618.494c.247.247.494.247.741.371s.494.371.741.494c.494.247.865.618,1.359.865a1.646,1.646,0,0,1,.618.371c.247.247.371.371.618.371.494,0,.988.494,1.483.618a2.444,2.444,0,0,0,1.359.247c.247,0,.371.124.618.124.124,0,.124.124.371.124.124-.124.247-.124.247,0,.124,0,.371.124.494.124a1.567,1.567,0,0,0,.741.124,2.1,2.1,0,0,1,.865.124l.124.124h1.606a.376.376,0,0,0,.494,0c.247,0,.371.124.494.124a1.714,1.714,0,0,1,1.112,0,2.568,2.568,0,0,0,1.359-.124h.124a4.442,4.442,0,0,0,1.359-.247h.618c.371-.124.741-.124,1.112-.247.247-.124.618-.124.865-.247a5.351,5.351,0,0,0,.618-.124,13.451,13.451,0,0,0,3.089-1.236c.124,0,.247-.124.371-.124.247-.124.494-.494.741-.618s.618-.124.865-.371c.247-.124.371-.494.741-.618.124,0,.618-.371.618-.494.247-.247.618-.371.865-.618a2.169,2.169,0,0,0,.618-.494,6.188,6.188,0,0,1,.988-.865,1.816,1.816,0,0,0,.741-.618c.371-.494.988-.741,1.236-1.236a1.706,1.706,0,0,1,.371-.494l.124-.124c0-.124.124-.371.247-.371.371-.371.494-.865.865-1.236a3.626,3.626,0,0,1,.371-1.236c.124-.371.124-.618.371-.865,0-.124,0-.124.124-.247v-.124c0-.124,0-.247.124-.247a2.484,2.484,0,0,0,.494-.988V33.2a4.113,4.113,0,0,1,.371-.741v-.247c0-.247.124-.371.124-.618,0-.124.247-.371.247-.494v-.494a.944.944,0,0,1,.247-.618c0-.124.124-.247.124-.371s-.124-.247,0-.494v-.371c.124-.247.124-.741.247-1.112V26.528a2.721,2.721,0,0,1,.124-.988v-.494c-.124-.247,0-.371.124-.618V22.7c-.124-.247,0-.494,0-.741a2.291,2.291,0,0,0-.247-.865v-.371c.247-.618-.247-1.359-.371-2.1v-.494a6.024,6.024,0,0,0-.371-.865A1.122,1.122,0,0,1,44.2,16.4a3.626,3.626,0,0,0-.371-1.236,1.991,1.991,0,0,1-.494-.865,5.027,5.027,0,0,0-.247-1.236c-.124-.247-.247-.371-.371-.618-.247-.371-.494-.618-.618-.865s-.371-.371-.494-.618-.124-.371-.247-.494A7.5,7.5,0,0,0,40.119,9.6a.965.965,0,0,1-.494-.494,1.706,1.706,0,0,0-.494-.371c-.371-.371-.741-.865-1.112-1.236a5.708,5.708,0,0,0-.865-.865c-.247-.247-1.112-.494-1.112-.865s-.618-.371-.865-.494h0a.743.743,0,0,0-.494-.124c-.618-.247-.988-.618-1.359-.618l-.247-.124a3.04,3.04,0,0,1-1.359-.494,2.384,2.384,0,0,0-1.236-.371,1.567,1.567,0,0,1-.741-.124,8.513,8.513,0,0,1-.988-.371c-.494,0-.988-.124-1.483-.124-.247,0-.371-.124-.618-.124-.124,0-.247.124-.494.124a5.351,5.351,0,0,0-.618-.124,3.649,3.649,0,0,1-1.606.247c-.371-.124-.494-.124-.741.124a1,1,0,0,1-.988.494,2.291,2.291,0,0,0-.865.247c-.247,0-.988.247-1.236.247s-.494.247-.741.371-.494.124-.618.247a2.291,2.291,0,0,1-.865.247c-.124,0-.371-.124-.371,0-.865.124-1.606.988-2.471,1.359-.247,0-.371.124-.494.124s-.741.247-.741.371a.937.937,0,0,1-.494.247,3.983,3.983,0,0,0-1.73.988,2.515,2.515,0,0,1-.741.865c-.124.124-.247.124-.494.371-.371.494-.865.865-1.236,1.359,0,.371-.494.618-.618.865-.247.247-.371.494-.494.618a2.515,2.515,0,0,0-.865.741c-.247.371-.371.988-.618,1.359s-.988.988-.988,1.483V15.9c-.124.124-.124.371-.247.494-.124.247-.371.247-.494.494a1.114,1.114,0,0,0-.124.618c-.124.247-.247.371-.247.494,0,.247-.247.371-.247.494a5.164,5.164,0,0,0-.494,1.236A3.927,3.927,0,0,0,3.3,20.844v.247c-.124.247-.494.371-.371.741v.124a10.293,10.293,0,0,0-.494,1.853,1.114,1.114,0,0,1-.124.618c0,.247-.247.494-.124.618a2.032,2.032,0,0,0,.247,1.236c.124.247.124.371.494.247a.944.944,0,0,0,.618-.247c.124-.124.371,0,.494-.124.247,0,.371-.124.618-.124h.371c.247,0,.371.124.618,0,.247,0,.371-.124.494-.124-.371.494-.371.494-.247.494ZM18,12.69h.988c.124,0,.247-.124.371-.124a1.661,1.661,0,0,0,.865-.741c.247-.247.618-.494.618-.741,0-.124.247-.371.247-.494V9.848c0-.371-.124-.865-.124-1.236A1.572,1.572,0,0,0,20.1,7.5a3.239,3.239,0,0,0-1.112-.618H18c-.124,0-.247-.124-.247,0a2.884,2.884,0,0,0-2.471,2.471c-.124.247.124.494,0,.865a1.567,1.567,0,0,0,.124.741.642.642,0,0,1,.247.494c.124.247.124.494.371.618.124.124.618.618.741.618C17.138,12.442,17.632,12.69,18,12.69Zm-.371-5.066a3.1,3.1,0,0,0-.865.494,1.816,1.816,0,0,0-.618.741c0,.124-.124.124-.124.247v.247c-.124.247.124.371.124.618v.124c.247.247.124.741.247.988.124.124.371.494.494.494s.247.371.371.371c0-.124,0,0,.124,0h.247c.247,0,.371.124.618.124h.494c.618-.247-.371-.494-.618-.618a1.639,1.639,0,0,1-.741-1.236v-.124a.171.171,0,0,1,0-.247V9.477c0-.124,0-.247.124-.247a1.016,1.016,0,0,1,.741-.494c.247,0,.371-.124.494-.124h.124l.371.124a.454.454,0,0,0,.371.124c.247-.124,0-.247,0-.371V8.365c-.124-.247-.247-.494-.494-.494s-.494-.124-.741-.124h-.247A.934.934,0,0,1,17.632,7.624Z"
+                                    fill-rule="evenodd" />
+                                <path
+                                    d="M165.155,15.808a4.683,4.683,0,0,1-3.583,1.606,4.94,4.94,0,0,1-3.212-1.236A4.943,4.943,0,0,1,157,12.6a4.463,4.463,0,0,1,4.7-4.7,4.245,4.245,0,0,1,4.448,4.324A5.112,5.112,0,0,1,165.155,15.808Zm-3.583-5.684c-1.359,0-2.1.988-2.1,2.595,0,1.853,1.112,2.595,2.224,2.595s2.224-.865,2.1-2.718C163.672,11.112,162.931,10.124,161.572,10.124Z"
+                                    transform="translate(36.946 1.824)" />
+                                <path
+                                    d="M173.384,17.143h-2.348V12.077a3.134,3.134,0,0,0-.247-1.483,1.305,1.305,0,0,0-1.112-.618,1.756,1.756,0,0,0-.741.247c-.988.494-.988,1.606-.988,2.348v4.572H165.6v-8.9h2.224v.865A3.918,3.918,0,0,1,170.419,8a2.687,2.687,0,0,1,1.236.247c1.853.741,1.853,2.348,1.853,3.336v5.56Z"
+                                    transform="translate(38.972 1.848)" />
+                                <path
+                                    d="M178.16,13.508c0,1.112,0,1.236.124,1.483.124.494.247.865,1.236.865h.618v2.1c-.371,0-.865.124-1.606.124a4.583,4.583,0,0,1-1.73-.247,1.9,1.9,0,0,1-.865-1.853V10.3H174.7V8.812h1.236V5.6h2.224V8.812h1.977v1.606H178.16v3.089Z"
+                                    transform="translate(41.115 1.282)" />
+                                <path
+                                    d="M187.784,17.8h-2.348V12.737a3.134,3.134,0,0,0-.247-1.483,1.305,1.305,0,0,0-1.112-.618,1.756,1.756,0,0,0-.741.247c-.988.494-.988,1.606-.988,2.348V17.8H180V5.2h2.348V9.648a3.576,3.576,0,0,1,2.471-1.112,2.968,2.968,0,0,1,1.236.247c1.853.741,1.853,2.348,1.853,3.336V17.8Z"
+                                    transform="translate(42.364 1.188)" />
+                                <path
+                                    d="M195.9,15.413a4.621,4.621,0,0,1-1.112,1.112,4.851,4.851,0,0,1-3.089.988A4.575,4.575,0,0,1,187,12.7,4.35,4.35,0,0,1,191.448,8a4.26,4.26,0,0,1,3.336,1.483,5.81,5.81,0,0,1,1.112,3.707h-6.548a1.661,1.661,0,0,0,.247.988,2.49,2.49,0,0,0,2.1,1.236,2.628,2.628,0,0,0,2.1-1.112l2.1,1.112Zm-2.471-3.954a1.2,1.2,0,0,0-.494-1.112,1.976,1.976,0,0,0-1.359-.494,2.087,2.087,0,0,0-1.236.371,3.509,3.509,0,0,0-.741,1.236Z"
+                                    transform="translate(44.012 1.848)" />
+                                <path
+                                    d="M171.827,39.715h-3.46L166.02,28.842l-2.348,10.873h-3.336L157,23.9h2.965l2.1,10.626L164.537,23.9h3.089L170.1,34.526,172.321,23.9h2.965Z"
+                                    transform="translate(36.946 5.593)" />
+                                <path d="M184.932,39.715H172.7V23.9h11.738v2.595h-8.4v3.089h6.3v2.842h-6.3V36.75h8.9Z"
+                                    transform="translate(40.644 5.593)" />
+                                <path
+                                    d="M190.672,23.9a8.157,8.157,0,0,1,1.73.124c2.471.371,3.583,1.853,3.583,3.83a3.112,3.112,0,0,1-1.606,2.965c-.247.124-.494.124-.741.247.247.124.618.124.865.247a3.8,3.8,0,0,1,2.348,3.707,4.361,4.361,0,0,1-.371,1.73c-1.112,2.965-3.583,2.965-5.313,2.965H184V23.9Zm-3.336,6.054h2.718a3.162,3.162,0,0,0,1.977-.371A1.54,1.54,0,0,0,192.9,28.1a1.419,1.419,0,0,0-.741-1.359,2.758,2.758,0,0,0-1.73-.371h-3.212v3.583Zm0,2.595V37H190.3a5.176,5.176,0,0,0,2.224-.247,1.922,1.922,0,0,0,1.112-1.853,3.608,3.608,0,0,0-.247-1.112c-.618-1.112-1.853-1.112-2.965-1.236Z"
+                                    transform="translate(43.306 5.593)" />
+                                <path
+                                    d="M76.3,31.433h11v-6.8H84.455V14.506H70.864V12.9H63.08v1.606H49.489V24.638H46.894v6.8h13.22l.124.741L46.4,36.746l4.077,6.8L67.4,36l16.309,7.537L88.162,36.5,76.177,32.175Zm-13.22-6.8h-6.8V21.3h6.8ZM70.864,21.3h7.043v3.336H70.864Z"
+                                    transform="translate(10.893 3.002)" />
+                                <path
+                                    d="M131.326,32.694l.618,2.842-4.7.741V30.964H139.11V7.242H133.18V4.4h-7.537V7.242h-5.189V37.266l-1.853.371,1.112,7.166,13.838-2.842.494,1.977,6.425-.741-2.842-10.873-6.3.371Zm-3.954-19.4h4.819v2.348h-4.819S127.372,13.3,127.372,13.3Zm0,8.525h4.819v2.595h-4.819S127.372,21.821,127.372,21.821Z"
+                                    transform="translate(27.9 1)" />
+                                <path
+                                    d="M53.743,14.484h7.29V12.878H72.647v1.606h7.29V12.878h7.29V6.33h-7.29V4.6h-7.29V6.33H61.032V4.6h-7.29V6.33H46.7v6.548h7.043Z"
+                                    transform="translate(10.964 1.047)" />
+                                <path
+                                    d="M117.41,13.572h1.112v-6.8h-5.931V4.8h-6.919V6.653H99.247v6.919h1.73l.741,4.942H99v6.919h6.8v3.83H99.124v6.919H105.8v8.525h6.8V36.183h6.672V29.264h-6.672v-3.83h6.672v-6.8H116.3Zm-6.3,0L110,18.515h-2.224l-.865-4.942Z"
+                                    transform="translate(23.283 1.094)" />
+                                <path
+                                    d="M96.22,11.7l4.2-.371L100.051,4.9l-16.8,1.483.494,6.548,5.436-.494v3.336H83v6.919h6.178V26.4H84.236V43.944h16.433V26.4H96.344V22.692h4.819V15.773H96.344V11.7ZM94.367,37.024H90.413V32.947h3.954Z"
+                                    transform="translate(19.515 1.118)" />
+                                <path
+                                    d="M153,21.362l1.73-8.155V5.3H137.8V44.22h6.919V39.648h10.132V30.011Zm-3.83,10.379h-4.324V12.219h4.2l-2.1,9.39Z"
+                                    transform="translate(32.423 1.212)" />
+                                <circle cx="1.73" cy="1.73" r="1.73" transform="translate(193.822 22.45)"
+                                    fill="#7B0814" />
+                                <circle cx="1.73" cy="1.73" r="1.73" transform="translate(200.988 22.45)"
+                                    fill="#7B0814" />
+                                <circle cx="1.73" cy="1.73" r="1.73" transform="translate(208.155 22.45)"
+                                    fill="#7B0814" />
+                                <circle cx="1.73" cy="1.73" r="1.73" transform="translate(215.321 22.45)"
+                                    fill="#7B0814" />
+                                <circle cx="1.73" cy="1.73" r="1.73" transform="translate(222.487 22.45)"
+                                    fill="#7B0814" />
+                                <circle cx="1.73" cy="1.73" r="1.73" transform="translate(229.53 22.45)"
+                                    fill="#7B0814" />
+                                <circle cx="1.73" cy="1.73" r="1.73" transform="translate(236.696 22.45)"
+                                    fill="#7B0814" />
+                            </g>
+                        </svg>
+                    </div>
+                    <div class="ad_description">
+                        ご迷惑をおかけしますが、サービス継続のため、広告の閲覧にご協力をお願いいたします。
+                    </div>
+                    <button type="button" id="reward-play-btn" class="ad_btn ad">短い広告を見る&nbsp;
+                        <!-- <a href="#" class="ad_btn ad">短い広告を見る&nbsp; -->
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22" fill="none">
+                            <rect rx="11" />
+                            <path
+                                d="M15.9167 10.1336C16.5834 10.5185 16.5834 11.4808 15.9167 11.8657L9.29169 15.6906C8.62502 16.0755 7.79169 15.5944 7.79169 14.8246L7.79169 7.17473C7.79169 6.40493 8.62502 5.9238 9.29169 6.3087L15.9167 10.1336Z"
+                                fill="white" />
+                        </svg>
+                        <!-- </a> -->
+                    </button>
+                    <div id="alc_common_reward_2"></div>
+                    <script>
+                        var rewardPlayBtn = document.getElementById("reward-play-btn");
+
+                        rewardPlayBtn.onclick = function () {
+                            // 広告ボタンクリック時の処理
+                            ensureAlmReady(function () {
+                                window.alm.que.push(function () {
+                                    try {
+                                        // ボタンを無効化して重複クリックを防止
+                                        rewardPlayBtn.disabled = true;
+                                        window.alm.render("alc_common_reward_2");
+
+                                        // 広告トラッカー設定（render 後に取得）
+                                        window.alm.getAdTracker("alc_common_reward_2").then(function (adTracker) {
+                                            //  adTracker 取得結果をログ
+                                            if (!adTracker) {
+                                                // adTracker が取得できなかった場合
+                                                closePopUp();
+                                                return;
+                                            }
+                                            // 広告がない場合,もしくはエラー時の処理
+                                            // Michaoでは、複数の異なる広告ソースから広告を取得しますが、特定の広告ソースによって接続が遅い場合があり、それに伴う広告の返却率が悪いタイミングが存在します。
+                                            // そのため、広告の読み込みに失敗した場合は、ポップアップを閉じます。
+                                            adTracker.track(window.alm.Events.AD_LOADING_FAILED, function () {
+                                                closePopUp();
+                                            });
+
+                                            // 広告視聴完了イベント（リワード）
+                                            adTracker.track(window.alm.Events.REWARDED, function () {
+                                                closePopUp();
+                                            });
+
+                                            // 音声確認キャンセル時の処理 - ボタンを再有効化
+                                            adTracker.track(window.alm.Events.SOUND_CONFIRMATION_CANCEL, function () {
+                                                rewardPlayBtn.disabled = false;
+                                            });
+                                        }).catch(function (error) {
+                                        });
+
+                                        // タイムアウト保護機能 - 5秒後にボタンを再有効化
+                                        // 広告の読み込みが遅い場合や応答がない場合のユーザー体験向上のため
+                                        setTimeout(function () {
+                                            if (rewardPlayBtn.disabled) {
+                                                rewardPlayBtn.disabled = false;
+                                            }
+                                        }, 5000);
+
+                                    } catch (error) {
+                                        // 広告レンダリングエラー時の処理
+                                        rewardPlayBtn.disabled = false;
+                                        closePopUp();
+                                    }
+                                });
+                            });
+                        };
+                    </script>
+
+
+                    <a href="https://lp.eowp.alc.co.jp/?utm_source=eow_serp&utm_medium=reward&utm_campaign=eow_serp_reward02"
+                        class="ad_btn register">広告なしプランを申し込む</a>
+                    <div class="ad_features">
+                        <span class="ad_features-text">広告なしの「英辞郎 on the WEB Pro」は以下の機能が追加されます。</span>
+                        <span
+                            class="ad_features-highlight">・単語帳（2万件）・検索履歴（100件）・検索結果に例文も含まれるようになります。・ライティングに役立つ頻度集計・整列表示機能</span>
+                    </div>
+                    <div class="ad_footer">
+                        <span class="ad_spacing">
+                            アカウントを登録済みの方は <a href="https://eowpf.alc.co.jp/login">こちら</a>
+                        </span>
+                        <span>
+                            「英辞郎 on the WEB」<a href="https://eow.alc.co.jp/">TOPページ</a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </body>
+
+        </html>
+        <section class="popup-area" id="popup_box"></section>
+    </div>
+    <div id="pc-sticky-ad" class="is-pc">
+        <!-- EOW-T-3388 開発:EOW_SERPの差し替え -->
+        <!-- /21619764421/eijiro-media-PC/common-footer-overlay-0 -->
+        <div id="div-gpt-ad-1734332123195-0" style="height:90px; width:728px;" class="ad-item"></div>
+        <script>
+            if (window.innerWidth > 1097) {
+                googletag.cmd.push(function () {
+                    var StickyAdDivId = 'pc-sticky-ad';
+                    var StickyAdDiv = document.getElementById(StickyAdDivId);
+                    StickyAdDiv.classList.add('is-pc');
+                    googletag.display('div-gpt-ad-1734332123195-0');
+                    setInterval(function () {
+                        if (window.FP_BIDDER_GAM_SLOTS && FP_BIDDER_GAM_SLOTS['div-gpt-ad-1734332123195-0']) {
+                            googletag.pubads().refresh([FP_BIDDER_GAM_SLOTS['div-gpt-ad-1734332123195-0']]);
+                        }
+                    }, 30000);
+                });
+            }
+        </script>
+    </div>
+
+    <div id="sp-sticky-ad" class="is-sp">
+        <!-- EOW-T-3388 開発:EOW_SERPの差し替え -->
+        <!-- /21619764421/eijiro-media-SP/common-footer-overlay-0 -->
+        <div id="div-gpt-ad-1734332362680-0" class="ad-item"></div>
+        <script>
+            if (window.innerWidth < 1097) {
+                googletag.cmd.push(function () {
+                    var StickyAdDivId = 'sp-sticky-ad';
+                    var StickyAdDiv = document.getElementById(StickyAdDivId);
+                    StickyAdDiv.classList.add('is-sp');
+                    googletag.display('div-gpt-ad-1734332362680-0');
+                    setInterval(function () {
+                        if (window.FP_BIDDER_GAM_SLOTS && FP_BIDDER_GAM_SLOTS['div-gpt-ad-1734332362680-0']) {
+                            googletag.pubads().refresh([FP_BIDDER_GAM_SLOTS['div-gpt-ad-1734332362680-0']]);
+                        }
+                    }, 30000);
+                });
+            }
+        </script>
+    </div>
+    <a name="top"></a>
+    <!-- interest_match_relevant_zone_start -->
+    <span style="display: none">
+        語学学習のアルクのサイトがお届けする進化するオンライン英和・和英辞書『英辞郎 on the WEB』。大学生やビジネスパースンから翻訳家、医療・製薬業関係者の方々まで幅広くお使いいただいております。
+    </span>
+    <!-- interest_match_relevant_zone_end -->
+    <!-- ▼ 本体 ▼ -->
+    <div id="AreaBody">
+        <noscript>
+            <div class="alertmsg">
+                ご利用のブラウザは JavaScript が無効に設定されています。<br />
+                お手数ですが、ブラウザの JavaScript を有効にして再度アクセスしてください。
+            </div>
+            <div style="display:inline;">
+                <img height="1" width="1" style="border-style:none;" alt=""
+                    src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/1001752856/?value=1.00&amp;currency_code=JPY&amp;label=IFAhCLWS5lgQmJLW3QM&amp;guid=ON&amp;script=0" />
+            </div>
+        </noscript>
+        <!-- ▼ 本体ヘッダ ▼ -->
+        <!-- previous css file for header is replaced, new css file is utilized for header responsive design -->
+        <!-- <link href="/content/css/eow_r_header.css?1718852564020" rel="stylesheet" type="text/css" /> -->
+        <div class="header">
+            <header>
+                <div class="wrap-inner header-result">
+                    <div class="header-1"><a href="/"><img class="header-logo" src="/content/img/lo_eow.svg"
+                                alt="英辞郎 on the WEB" title="英辞郎 on the WEB"></a></div>
+                    <div class="header-2">
+                        <div class="header-biz-menu">
+                            <div class="header-biz-menu-ttl">英辞郎 on the WEB Pro / Pro Lite</div>
+                            <div class="header-biz-menu-inner">
+                                <div><a class="btn-01 header-link" target="_blank"
+                                        href="https://eowpf.alc.co.jp/login">ログイン</a></div>
+                                <div><a class="btn-02 header-link" target="_blank"
+                                        href="https://eowp-user.alc.co.jp/signup">無料登録</a></div>
+                            </div>
+                        </div>
+                        <div class="header-biz-bnr"><a target="_blank"
+                                href="https://lp.eowp.alc.co.jp/?utm_source=eow_serp&utm_medium=banner&utm_campaign=eow_serp_300-74"><img
+                                    src="/content/img/bnr-pro-lp.jpg" alt="英辞郎 on WEB Pro"></a></div>
+                        <div class="header-gnav-btn">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+                <!-- /.wrap-inner -->
+                <div class="header-gnav-sp">
+                    <ul class="header-gnav-sp-menu">
+                        <li>
+                            <a class="header-link" target="_blank" href="https://eowpf.alc.co.jp/login">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29.95 29.95">
+                                    <path
+                                        d="M16,1.025A14.975,14.975,0,1,0,30.975,16,14.976,14.976,0,0,0,16,1.025ZM8.048,27.1c1.439-3.636,4.5-5.953,7.952-5.953s6.513,2.317,7.952,5.953a13.579,13.579,0,0,1-15.9,0Zm16.959-.839a10.717,10.717,0,0,0-5.9-5.836,7.15,7.15,0,1,0-6.22,0,10.717,10.717,0,0,0-5.9,5.836,13.675,13.675,0,1,1,18.014,0ZM16,19.85A5.85,5.85,0,1,1,21.85,14,5.856,5.856,0,0,1,16,19.85Z"
+                                        transform="translate(-1.025 -1.025)" />
+                                </svg>
+                                <p>ログイン</p>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="header-link" target="_blank" href="https://eowp-user.alc.co.jp/signup">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29.95 29.95">
+                                    <g transform="translate(-1.025 -1.025)">
+                                        <path
+                                            d="M13.974,20.473,8.013,15.356l-1.1,1.583,7.212,6.192,11.056-12.3-1.27-1.41Z" />
+                                        <path
+                                            d="M16,1.025A14.975,14.975,0,1,0,30.975,16,14.976,14.976,0,0,0,16,1.025Zm0,28.65A13.675,13.675,0,1,1,29.675,16,13.691,13.691,0,0,1,16,29.675Z" />
+                                    </g>
+                                </svg>
+                                <p>無料登録</p>
+                            </a>
+                        </li>
+                        <li>
+                            <div id="js_s_onsei_sp">
+                                <svg id="icon-i_history" version="1.0" xmlns="http://www.w3.org/2000/svg"
+                                    width="150.000000pt" height="150.000000pt" viewBox="0 0 150.000000 150.000000"
+                                    preserveAspectRatio="xMidYMid meet">
+                                    <g transform="translate(0.000000,150.000000) scale(0.100000,-0.100000)"
+                                        stroke="none">
+                                        <path d="M695 1190 c-60 -61 -158 -156 -216 -211 l-107 -99 -116 0 -116 0 0
+                                    -180 0 -180 123 0 122 -1 209 -204 c207 -204 208 -205 252 -205 32 0 44 4 44
+                                    15 0 8 7 15 15 15 13 0 15 68 13 578 l-3 577 -55 3 -55 2 -110 -110z m173
+                                    -482 c-3 -534 -3 -543 -23 -546 -14 -2 -79 55 -230 202 l-210 205 -107 1 -108
+                                    0 0 130 0 130 101 0 102 0 51 47 c28 26 126 120 219 210 103 101 175 163 187
+                                    163 20 0 20 -5 18 -542z"></path>
+                                        <path d="M1217 1123 c-12 -11 -8 -40 8 -53 29 -24 84 -118 105 -181 28 -81 31
+                                    -200 6 -284 -19 -64 -72 -159 -106 -190 -29 -26 -27 -65 4 -65 54 0 155 173
+                                    177 303 24 143 -17 298 -112 424 -36 48 -64 64 -82 46z"></path>
+                                        <path d="M1106 1015 c-3 -9 11 -37 33 -67 99 -130 93 -309 -14 -436 -29 -34
+                                    -25 -62 10 -62 16 0 34 15 58 48 107 146 103 356 -10 497 -29 37 -66 46 -77
+                                    20z"></path>
+                                        <path d="M1029 924 c-10 -12 -10 -19 -1 -32 30 -41 62 -120 62 -152 0 -34 -21
+                                    -84 -58 -142 -16 -26 -16 -28 0 -45 17 -16 19 -16 44 8 49 45 69 97 69 179 0
+                                    81 -15 121 -63 173 -30 31 -35 33 -53 11z"></path>
+                                    </g>
+                                </svg>
+                                <p>音声再生</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div id="js_s_history_sp">
+                                <svg id="icon-i_history" viewBox="0 0 32 32">
+                                    <title>i_history</title>
+                                    <path class="path1"
+                                        d="M20.211 17.347h-5.558v-8.337c0-0.337 0.337-0.674 0.674-0.674s0.674 0.337 0.674 0.674v6.989h4.211c0.337 0 0.674 0.337 0.674 0.674s-0.337 0.674-0.674 0.674z">
+                                    </path>
+                                    <path class="path2"
+                                        d="M28.547 1.347c1.179 0 2.189 0.926 2.189 2.189v25.011c0 1.179-0.926 2.189-2.189 2.189h-25.095c-1.179 0-2.189-0.926-2.189-2.189v-25.095c0-1.179 0.926-2.189 2.189-2.189h25.095zM28.547 0h-25.095c-1.853 0-3.453 1.6-3.453 3.453v25.011c0 1.937 1.6 3.537 3.453 3.537h25.011c1.937 0 3.453-1.6 3.453-3.453v-25.095c0.084-1.853-1.516-3.453-3.368-3.453v0z">
+                                    </path>
+                                    <path class="path3"
+                                        d="M16 5.474c5.811 0 10.526 4.716 10.526 10.526s-4.716 10.526-10.526 10.526-10.526-4.716-10.526-10.526 4.716-10.526 10.526-10.526zM16 4.211c-6.568 0-11.789 5.221-11.789 11.789s5.305 11.789 11.789 11.789c6.568 0 11.789-5.305 11.789-11.789s-5.221-11.789-11.789-11.789v0z">
+                                    </path>
+                                </svg>
+                                <p>検索履歴</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div id="js_s_wordbook_sp">
+                                <svg id="icon-i_words" viewBox="0 0 32 32">
+                                    <title>i_words</title>
+                                    <path class="path1"
+                                        d="M30.653 4.8v20.884h-29.305v-20.884h29.305zM32 3.453h-32v23.579h32v-23.579z">
+                                    </path>
+                                    <path class="path2"
+                                        d="M2.863 31.579l-0.253-3.284c0-0.337 0.253-0.674 0.589-0.758 0.337 0 0.674 0.253 0.758 0.589l0.168 1.937 19.284-2.526c0.337-0.084 0.674 0.168 0.758 0.589 0.084 0.337-0.168 0.674-0.589 0.758l-20.716 2.695z">
+                                    </path>
+                                    <path class="path3"
+                                        d="M25.011 18.189c-1.6 0-2.863-1.263-2.863-2.863s1.263-2.863 2.863-2.863 2.863 1.263 2.863 2.863c0 1.6-1.263 2.863-2.863 2.863zM25.011 13.811c-0.842 0-1.516 0.674-1.516 1.516s0.674 1.516 1.516 1.516 1.516-0.674 1.516-1.516c0-0.842-0.674-1.516-1.516-1.516z">
+                                    </path>
+                                </svg>
+                                <p>単語帳</p>
+                            </div>
+                        </li>
+                        <li>
+                            <a class="header-link" href="https://eow-support.alc.co.jp/hc/ja" target="_blank">
+                                <svg id="icon-i_guide" viewBox="0 0 32 32">
+                                    <title>i_guide</title>
+                                    <path class="path1"
+                                        d="M16 23.242c-0.842 0-1.432 0.674-1.432 1.432 0 0.842 0.674 1.432 1.432 1.432 0.842 0 1.432-0.674 1.432-1.432s-0.589-1.432-1.432-1.432v0z">
+                                    </path>
+                                    <path class="path2"
+                                        d="M16 1.347c8.084 0 14.653 6.568 14.653 14.653s-6.568 14.653-14.653 14.653-14.653-6.568-14.653-14.653 6.568-14.653 14.653-14.653zM16 0c-8.842 0-16 7.158-16 16s7.158 16 16 16 16-7.158 16-16c0-8.842-7.158-16-16-16v0z">
+                                    </path>
+                                    <path class="path3"
+                                        d="M16 21.726c-0.337 0-0.674-0.337-0.674-0.674v-4.379c0-0.337 0.337-0.674 0.674-0.674 2.021 0 3.705-1.684 3.705-3.705s-1.684-3.705-3.705-3.705-3.705 1.684-3.705 3.705c0 0.337-0.337 0.674-0.674 0.674s-0.674-0.253-0.674-0.589c0-2.779 2.274-5.053 5.053-5.053s5.053 2.274 5.053 5.053c0 2.526-1.937 4.632-4.379 4.968v3.705c0 0.421-0.337 0.674-0.674 0.674z">
+                                    </path>
+                                </svg>
+                                <p>ガイド</p>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="header-link" href="/setting.html">
+                                <svg id="icon-i_setting" viewBox="0 0 32 32">
+                                    <title>i_setting</title>
+                                    <path class="path1"
+                                        d="M18.021 32h-4.042c-0.337 0-0.674-0.337-0.674-0.674v-3.789c-1.095-0.253-2.189-0.589-3.116-1.011l-2.695 2.695c-0.253 0.253-0.674 0.253-0.926 0l-3.789-3.789c-0.084-0.084-0.168-0.253-0.168-0.505s0.084-0.337 0.168-0.505l2.695-2.695c-0.421-0.842-0.758-2.021-1.011-3.116h-3.789c-0.337 0-0.674-0.337-0.674-0.674v-4.042c0-0.337 0.337-0.674 0.674-0.674h3.789c0.253-1.095 0.589-2.189 1.011-3.116l-2.695-2.611c-0.084-0.084-0.168-0.253-0.168-0.421s0.084-0.337 0.168-0.505l3.789-3.789c0.253-0.253 0.674-0.253 0.926 0l2.695 2.695c0.926-0.421 2.021-0.758 3.116-1.011v-3.789c0-0.337 0.337-0.674 0.674-0.674h4.042c0.337 0 0.674 0.337 0.674 0.674v3.789c1.011 0.253 2.189 0.589 3.116 1.011l2.695-2.695c0.253-0.253 0.674-0.253 0.926 0l3.789 3.789c0.084 0.084 0.168 0.253 0.168 0.505s-0.084 0.337-0.168 0.505l-2.695 2.695c0.421 0.926 0.758 2.021 1.011 3.116h3.789c0.337 0 0.674 0.337 0.674 0.674v4.042c0 0.337-0.337 0.674-0.674 0.674h-3.789c-0.253 1.095-0.589 2.189-1.011 3.116l2.695 2.695c0.253 0.253 0.253 0.674 0 0.926l-3.789 3.789c-0.253 0.253-0.674 0.253-0.926 0l-2.695-2.695c-0.842 0.421-2.021 0.758-3.116 1.011v3.789c0 0.337-0.337 0.589-0.674 0.589zM14.653 30.653h2.695v-3.705c0-0.337 0.168-0.589 0.505-0.674 0.758-0.168 2.695-0.674 3.705-1.263 0.253-0.168 0.589-0.084 0.842 0.084l2.611 2.611 2.863-2.863-2.611-2.611c-0.253-0.253-0.253-0.589-0.084-0.842 0.589-1.011 1.095-2.947 1.263-3.705 0.084-0.337 0.337-0.505 0.674-0.505h3.705v-2.695h-3.705c-0.337 0-0.589-0.253-0.674-0.505-0.253-1.179-0.758-2.779-1.263-3.705-0.168-0.253-0.084-0.589 0.084-0.842l2.526-2.358-2.863-2.863-2.611 2.611c-0.253 0.253-0.589 0.253-0.842 0.084-0.926-0.505-2.526-1.011-3.705-1.263-0.337-0.084-0.505-0.337-0.505-0.674v-3.621h-2.695v3.705c0 0.337-0.168 0.589-0.505 0.674-1.179 0.253-2.779 0.758-3.705 1.263-0.253 0.168-0.589 0.084-0.842-0.084l-2.442-2.695-2.863 2.863 2.611 2.611c0.253 0.253 0.253 0.589 0.084 0.842-0.589 1.011-1.095 2.947-1.263 3.705-0.084 0.337-0.337 0.505-0.674 0.505h-3.621v2.695h3.621c0.337 0 0.589 0.168 0.674 0.505 0.168 0.758 0.674 2.695 1.263 3.705 0.168 0.253 0.084 0.589-0.084 0.842l-2.611 2.442 2.863 2.863 2.611-2.611c0.253-0.253 0.589-0.253 0.842-0.084 1.011 0.589 2.947 1.095 3.705 1.263 0.337 0.084 0.505 0.337 0.505 0.674v3.621z">
+                                    </path>
+                                    <path class="path2"
+                                        d="M16 22.653c-3.705 0-6.653-3.032-6.653-6.653s3.032-6.653 6.653-6.653c3.705 0 6.653 3.032 6.653 6.653s-2.947 6.653-6.653 6.653zM16 10.695c-2.947 0-5.305 2.358-5.305 5.305s2.358 5.305 5.305 5.305c2.947 0 5.305-2.358 5.305-5.305s-2.358-5.305-5.305-5.305z">
+                                    </path>
+                                </svg>
+                                <p>環境設定</p>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="header-link" target="_blank" href="https://eowp.blogspot.com/">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 32">
+                                    <g transform="translate(-1)">
+                                        <path d="M30,1V31H2V1H30m1-1H1V32H31V0Z" />
+                                        <rect width="8" height="10" transform="translate(19 5)" />
+                                        <rect width="12" height="2" transform="translate(5 5)" />
+                                        <rect width="12" height="2" transform="translate(5 9)" />
+                                        <rect width="12" height="2" transform="translate(5 13)" />
+                                        <rect width="22" height="2" transform="translate(5 17)" />
+                                        <rect width="22" height="2" transform="translate(5 21)" />
+                                        <rect width="22" height="2" transform="translate(5 25)" />
+                                    </g>
+                                </svg>
+                                <p>お知らせ</p>
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="header-gnav-sp-app header-gnav-sp-overlay">
+                        <h2 class="header-gnav-sp-app-ttl">英和・和英検索をもっと便利に</h2>
+                        <p class="header-gnav-sp-app-ttl-p">アプリならすべてのサービスを<br>ご利用いただけます。</p>
+                        <ul class="btn-store">
+                            <li><a target="_blank"
+                                    href="https://apps.apple.com/app/apple-store/id365874160?pt=210463&ct=eow_top_app_store_link_2021_02&mt=8"><img
+                                        src="/content/img/btn-appstore.png" alt="App Store"></a></li>
+                            <li><a target="_blank"
+                                    href="https://play.google.com/store/apps/details?id=jp.co.alc.eow&referrer=utm_source%3Deow_top%26utm_medium%3Dbanner%26utm_campaign%3Dandroid_app"><img
+                                        src="/content/img/btn-googleplay.png" alt="Google Play"></a></li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- /.header-gnav-sp -->
+                <div id="fix">
+                    <div class="header-search">
+                        <div class="wrap-inner">
+                            <div class="header-search-box">
+                                <form id="fm1" name="fm1" action="#" onsubmit="return goF1('fm1')">
+                                    <input type="text" id="q" name="q" autocomplete="off" accesskey="e" maxlength="1000"
+                                        value="straw bale" class="s_txt1" placeholder="英和・和英検索はココから">
+                                    <button type="image" id="submitMessage" value="">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                            <path
+                                                d="M14.7,12.208A7.966,7.966,0,1,0,12.207,14.7l5.3,5.3L20,17.508Zm-3.116-.624a5.122,5.122,0,1,1,0-7.244A5.127,5.127,0,0,1,11.583,11.584Z"
+                                                transform="translate(0 -0.001)" />
+                                        </svg>
+                                        検索
+                                    </button>
+                                </form>
+                                <div id="suggest" style="display: none;"></div>
+                                <div class="header-search-box-att">
+                                    <div>データ提供：<a class="header-link" target="_blank" href="https://eijiro.jp">EDP</a>
+                                        ※データの転載は禁じられています。</div>
+                                    <div>
+                                        <a class="header-link" target="_blank"
+                                            href="https://eowp.blogspot.com/2017/12/chrome.html">悪質な拡張機能にご注意ください。</a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="header-menu">
+                                <ul>
+                                    <li>
+                                        <div id="js_s_onsei">
+                                            <svg id="icon-i_history" version="1.0" xmlns="http://www.w3.org/2000/svg"
+                                                width="150.000000pt" height="150.000000pt"
+                                                viewBox="0 0 150.000000 150.000000" preserveAspectRatio="xMidYMid meet">
+                                                <g transform="translate(0.000000,150.000000) scale(0.100000,-0.100000)"
+                                                    stroke="none">
+                                                    <path d="M695 1190 c-60 -61 -158 -156 -216 -211 l-107 -99 -116 0 -116 0 0
+                                                -180 0 -180 123 0 122 -1 209 -204 c207 -204 208 -205 252 -205 32 0 44 4 44
+                                                15 0 8 7 15 15 15 13 0 15 68 13 578 l-3 577 -55 3 -55 2 -110 -110z m173
+                                                -482 c-3 -534 -3 -543 -23 -546 -14 -2 -79 55 -230 202 l-210 205 -107 1 -108
+                                                0 0 130 0 130 101 0 102 0 51 47 c28 26 126 120 219 210 103 101 175 163 187
+                                                163 20 0 20 -5 18 -542z"></path>
+                                                    <path d="M1217 1123 c-12 -11 -8 -40 8 -53 29 -24 84 -118 105 -181 28 -81 31
+                                                -200 6 -284 -19 -64 -72 -159 -106 -190 -29 -26 -27 -65 4 -65 54 0 155 173
+                                                177 303 24 143 -17 298 -112 424 -36 48 -64 64 -82 46z"></path>
+                                                    <path d="M1106 1015 c-3 -9 11 -37 33 -67 99 -130 93 -309 -14 -436 -29 -34
+                                                -25 -62 10 -62 16 0 34 15 58 48 107 146 103 356 -10 497 -29 37 -66 46 -77
+                                                20z"></path>
+                                                    <path d="M1029 924 c-10 -12 -10 -19 -1 -32 30 -41 62 -120 62 -152 0 -34 -21
+                                                -84 -58 -142 -16 -26 -16 -28 0 -45 17 -16 19 -16 44 8 49 45 69 97 69 179 0
+                                                81 -15 121 -63 173 -30 31 -35 33 -53 11z"></path>
+                                                </g>
+                                            </svg>
+                                            <p>音声再生</p>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div id="js_s_history">
+                                            <svg id="icon-i_history" viewBox="0 0 32 32">
+                                                <title>i_history</title>
+                                                <path class="path1"
+                                                    d="M20.211 17.347h-5.558v-8.337c0-0.337 0.337-0.674 0.674-0.674s0.674 0.337 0.674 0.674v6.989h4.211c0.337 0 0.674 0.337 0.674 0.674s-0.337 0.674-0.674 0.674z">
+                                                </path>
+                                                <path class="path2"
+                                                    d="M28.547 1.347c1.179 0 2.189 0.926 2.189 2.189v25.011c0 1.179-0.926 2.189-2.189 2.189h-25.095c-1.179 0-2.189-0.926-2.189-2.189v-25.095c0-1.179 0.926-2.189 2.189-2.189h25.095zM28.547 0h-25.095c-1.853 0-3.453 1.6-3.453 3.453v25.011c0 1.937 1.6 3.537 3.453 3.537h25.011c1.937 0 3.453-1.6 3.453-3.453v-25.095c0.084-1.853-1.516-3.453-3.368-3.453v0z">
+                                                </path>
+                                                <path class="path3"
+                                                    d="M16 5.474c5.811 0 10.526 4.716 10.526 10.526s-4.716 10.526-10.526 10.526-10.526-4.716-10.526-10.526 4.716-10.526 10.526-10.526zM16 4.211c-6.568 0-11.789 5.221-11.789 11.789s5.305 11.789 11.789 11.789c6.568 0 11.789-5.305 11.789-11.789s-5.221-11.789-11.789-11.789v0z">
+                                                </path>
+                                            </svg>
+                                            <p>検索履歴</p>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div id="js_s_wordbook">
+                                            <svg id="icon-i_words" viewBox="0 0 32 32">
+                                                <title>i_words</title>
+                                                <path class="path1"
+                                                    d="M30.653 4.8v20.884h-29.305v-20.884h29.305zM32 3.453h-32v23.579h32v-23.579z">
+                                                </path>
+                                                <path class="path2"
+                                                    d="M2.863 31.579l-0.253-3.284c0-0.337 0.253-0.674 0.589-0.758 0.337 0 0.674 0.253 0.758 0.589l0.168 1.937 19.284-2.526c0.337-0.084 0.674 0.168 0.758 0.589 0.084 0.337-0.168 0.674-0.589 0.758l-20.716 2.695z">
+                                                </path>
+                                                <path class="path3"
+                                                    d="M25.011 18.189c-1.6 0-2.863-1.263-2.863-2.863s1.263-2.863 2.863-2.863 2.863 1.263 2.863 2.863c0 1.6-1.263 2.863-2.863 2.863zM25.011 13.811c-0.842 0-1.516 0.674-1.516 1.516s0.674 1.516 1.516 1.516 1.516-0.674 1.516-1.516c0-0.842-0.674-1.516-1.516-1.516z">
+                                                </path>
+                                            </svg>
+                                            <p>単語帳</p>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <a class="header-link" href="https://eow-support.alc.co.jp/hc/ja"
+                                            target="_blank">
+                                            <svg id="icon-i_guide" viewBox="0 0 32 32">
+                                                <title>i_guide</title>
+                                                <path class="path1"
+                                                    d="M16 23.242c-0.842 0-1.432 0.674-1.432 1.432 0 0.842 0.674 1.432 1.432 1.432 0.842 0 1.432-0.674 1.432-1.432s-0.589-1.432-1.432-1.432v0z">
+                                                </path>
+                                                <path class="path2"
+                                                    d="M16 1.347c8.084 0 14.653 6.568 14.653 14.653s-6.568 14.653-14.653 14.653-14.653-6.568-14.653-14.653 6.568-14.653 14.653-14.653zM16 0c-8.842 0-16 7.158-16 16s7.158 16 16 16 16-7.158 16-16c0-8.842-7.158-16-16-16v0z">
+                                                </path>
+                                                <path class="path3"
+                                                    d="M16 21.726c-0.337 0-0.674-0.337-0.674-0.674v-4.379c0-0.337 0.337-0.674 0.674-0.674 2.021 0 3.705-1.684 3.705-3.705s-1.684-3.705-3.705-3.705-3.705 1.684-3.705 3.705c0 0.337-0.337 0.674-0.674 0.674s-0.674-0.253-0.674-0.589c0-2.779 2.274-5.053 5.053-5.053s5.053 2.274 5.053 5.053c0 2.526-1.937 4.632-4.379 4.968v3.705c0 0.421-0.337 0.674-0.674 0.674z">
+                                                </path>
+                                            </svg>
+                                            <p>ガイド</p>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="header-link" href="/setting.html">
+                                            <svg id="icon-i_setting" viewBox="0 0 32 32">
+                                                <title>i_setting</title>
+                                                <path class="path1"
+                                                    d="M18.021 32h-4.042c-0.337 0-0.674-0.337-0.674-0.674v-3.789c-1.095-0.253-2.189-0.589-3.116-1.011l-2.695 2.695c-0.253 0.253-0.674 0.253-0.926 0l-3.789-3.789c-0.084-0.084-0.168-0.253-0.168-0.505s0.084-0.337 0.168-0.505l2.695-2.695c-0.421-0.842-0.758-2.021-1.011-3.116h-3.789c-0.337 0-0.674-0.337-0.674-0.674v-4.042c0-0.337 0.337-0.674 0.674-0.674h3.789c0.253-1.095 0.589-2.189 1.011-3.116l-2.695-2.611c-0.084-0.084-0.168-0.253-0.168-0.421s0.084-0.337 0.168-0.505l3.789-3.789c0.253-0.253 0.674-0.253 0.926 0l2.695 2.695c0.926-0.421 2.021-0.758 3.116-1.011v-3.789c0-0.337 0.337-0.674 0.674-0.674h4.042c0.337 0 0.674 0.337 0.674 0.674v3.789c1.011 0.253 2.189 0.589 3.116 1.011l2.695-2.695c0.253-0.253 0.674-0.253 0.926 0l3.789 3.789c0.084 0.084 0.168 0.253 0.168 0.505s-0.084 0.337-0.168 0.505l-2.695 2.695c0.421 0.926 0.758 2.021 1.011 3.116h3.789c0.337 0 0.674 0.337 0.674 0.674v4.042c0 0.337-0.337 0.674-0.674 0.674h-3.789c-0.253 1.095-0.589 2.189-1.011 3.116l2.695 2.695c0.253 0.253 0.253 0.674 0 0.926l-3.789 3.789c-0.253 0.253-0.674 0.253-0.926 0l-2.695-2.695c-0.842 0.421-2.021 0.758-3.116 1.011v3.789c0 0.337-0.337 0.589-0.674 0.589zM14.653 30.653h2.695v-3.705c0-0.337 0.168-0.589 0.505-0.674 0.758-0.168 2.695-0.674 3.705-1.263 0.253-0.168 0.589-0.084 0.842 0.084l2.611 2.611 2.863-2.863-2.611-2.611c-0.253-0.253-0.253-0.589-0.084-0.842 0.589-1.011 1.095-2.947 1.263-3.705 0.084-0.337 0.337-0.505 0.674-0.505h3.705v-2.695h-3.705c-0.337 0-0.589-0.253-0.674-0.505-0.253-1.179-0.758-2.779-1.263-3.705-0.168-0.253-0.084-0.589 0.084-0.842l2.526-2.358-2.863-2.863-2.611 2.611c-0.253 0.253-0.589 0.253-0.842 0.084-0.926-0.505-2.526-1.011-3.705-1.263-0.337-0.084-0.505-0.337-0.505-0.674v-3.621h-2.695v3.705c0 0.337-0.168 0.589-0.505 0.674-1.179 0.253-2.779 0.758-3.705 1.263-0.253 0.168-0.589 0.084-0.842-0.084l-2.442-2.695-2.863 2.863 2.611 2.611c0.253 0.253 0.253 0.589 0.084 0.842-0.589 1.011-1.095 2.947-1.263 3.705-0.084 0.337-0.337 0.505-0.674 0.505h-3.621v2.695h3.621c0.337 0 0.589 0.168 0.674 0.505 0.168 0.758 0.674 2.695 1.263 3.705 0.168 0.253 0.084 0.589-0.084 0.842l-2.611 2.442 2.863 2.863 2.611-2.611c0.253-0.253 0.589-0.253 0.842-0.084 1.011 0.589 2.947 1.095 3.705 1.263 0.337 0.084 0.505 0.337 0.505 0.674v3.621z">
+                                                </path>
+                                                <path class="path2"
+                                                    d="M16 22.653c-3.705 0-6.653-3.032-6.653-6.653s3.032-6.653 6.653-6.653c3.705 0 6.653 3.032 6.653 6.653s-2.947 6.653-6.653 6.653zM16 10.695c-2.947 0-5.305 2.358-5.305 5.305s2.358 5.305 5.305 5.305c2.947 0 5.305-2.358 5.305-5.305s-2.358-5.305-5.305-5.305z">
+                                                </path>
+                                            </svg>
+                                            <p>環境設定</p>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="header-link" target="_blank" href="https://eowp.blogspot.com/">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 32">
+                                                <g transform="translate(-1)">
+                                                    <path d="M30,1V31H2V1H30m1-1H1V32H31V0Z" />
+                                                    <rect width="8" height="10" transform="translate(19 5)" />
+                                                    <rect width="12" height="2" transform="translate(5 5)" />
+                                                    <rect width="12" height="2" transform="translate(5 9)" />
+                                                    <rect width="12" height="2" transform="translate(5 13)" />
+                                                    <rect width="22" height="2" transform="translate(5 17)" />
+                                                    <rect width="22" height="2" transform="translate(5 21)" />
+                                                    <rect width="22" height="2" transform="translate(5 25)" />
+                                                </g>
+                                            </svg>
+                                            <p>お知らせ</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <!-- /.wrap-inner -->
+                    </div>
+                </div>
+                <div class="header-ad is-pc">
+                    <div class="wrap-inner">
+                        <!--north banner表示--><!-- /21619764421/eijiro_pc_top_01 -->
+                        <div class="header-ad-1">
+                            <!-- <div id='div-gpt-ad-1555650352411-0'></div> -->
+                        </div>
+                    </div>
+                    <!-- /.wrap-inner -->
+                </div>
+                <!-- /.header-ad -->
+                <div class="header-ad is-sp">
+                    <div class="wrap-inner">
+                    </div>
+                    <!-- /.wrap-inner -->
+                </div>
+            </header>
+        </div>
+        <!-- パネル 音声再生 -->
+        <div id="js_p_onsei" style="display: none;">
+            <div class="bg_box"></div>
+            <div class="bg_box2">
+                <div id="js_p_onsei_modal" class="modal">
+                    <div class="js_p_top">
+                        <img src="/content/img/icon_eow_02.svg" class="js_p_img" />
+                        <div class="js_p_text" style="float: left;">音声再生は「英辞郎 on the WEB Pro」でご利用いただけます。</div>
+                        <div class="js_p_close">
+                            <img src="/content/img/close.png">
+                        </div>
+                    </div>
+                    <div class="js_p_bottom">
+                        <div class="js_p_b_img">
+                            <div class="onsei_btn" style="margin-top: 30px;">
+                                <img src="/content/img/onsei_btn.png"
+                                    style="margin-left: 20px;width: 100px;float: left;" />
+                                <p style="float: left;margin-top: 5px;">から再生できます。</p>
+                            </div>
+                            <img src="/content/img/onsei.png" />
+                        </div>
+                        <div class="js_p_b_login">
+                            <div class="js_p_b_text">
+                                <span>「英辞郎 on the WEB Pro」は、アルクのメールアドレスIDでお使いいただけます。</span>
+                            </div>
+                            <div class="js_p_b_input">
+                                <div style="text-align: center;margin: 10px 0;">
+                                    <a href="https://eowpf.alc.co.jp/top">
+                                        <input id="submit_button" name="login" type="submit" value="ログイン"
+                                            class="js_btn_login">
+                                    </a>
+                                </div>
+                                <div style="text-align: center;margin: 10px 0;">
+                                    <a href="https://lp.eowp.alc.co.jp/?utm_source=eow_serp&utm_medium=popup&utm_campaign=searchbox"
+                                        target="_blank">
+                                        <input id="submit_button" name="register" type="submit" value="詳しくはこちら"
+                                            class="js_btn_eowplp">
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- パネル 検索履歴 -->
+        <div id="js_p_history" style="display: none;">
+            <div class="bg_box"></div>
+            <div class="bg_box2">
+                <div id="js_p_history_modal" class="modal">
+                    <div class="js_p_top">
+                        <img src="/content/img/icon_eow_03.svg" class="js_p_img" />
+                        <div class="js_p_text" style="float: left;">検索履歴は「英辞郎 on the WEB Pro」でご利用いただけます。</div>
+                        <div class="js_p_close">
+                            <img src="/content/img/close.png">
+                        </div>
+                    </div>
+                    <div class="js_p_bottom">
+                        <div class="js_p_b_img">
+                            <img src="/content/img/rireki.png" />
+                        </div>
+                        <div class="js_p_b_login">
+                            <div class="js_p_b_text">
+                                <span>「英辞郎 on the WEB Pro」は、アルクのメールアドレスIDでお使いいただけます。</span>
+                            </div>
+                            <div class="js_p_b_input">
+                                <div style="text-align: center;margin: 10px 0;">
+                                    <a href="https://eowpf.alc.co.jp/top">
+                                        <input id="submit_button" name="login" type="submit" value="ログイン"
+                                            class="js_btn_login">
+                                    </a>
+                                </div>
+                                <div style="text-align: center;margin: 10px 0;">
+                                    <a href="https://lp.eowp.alc.co.jp/?utm_source=eow_serp&utm_medium=popup&utm_campaign=searchbox"
+                                        target="_blank">
+                                        <input id="submit_button" name="register" type="submit" value="詳しくはこちら"
+                                            class="js_btn_eowplp">
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- パネル 単語帳 -->
+        <div id="js_p_wordbook" style="display: none;">
+            <div class="bg_box"></div>
+            <div class="bg_box2">
+                <div id="js_p_wordbook_modal" class="modal">
+                    <div class="js_p_top">
+                        <img src="/content/img/icon_eow_01.svg" class="js_p_img" />
+                        <div class="js_p_text" style="float: left;">単語帳は「英辞郎 on the WEB Pro」でご利用いただけます。</div>
+                        <div class="js_p_close">
+                            <img src="/content/img/close.png">
+                        </div>
+                    </div>
+                    <div class="js_p_bottom">
+                        <div class="js_p_b_img">
+                            <img src="/content/img/tango.png" />
+                        </div>
+                        <div class="js_p_b_login">
+                            <div class="js_p_b_text">
+                                <span>「英辞郎 on the WEB Pro」は、アルクのメールアドレスIDでお使いいただけます。</span>
+                            </div>
+                            <div class="js_p_b_input">
+                                <div style="text-align: center;margin: 10px 0;">
+                                    <a href="https://eowpf.alc.co.jp/top">
+                                        <input id="submit_button" name="login" type="submit" value="ログイン"
+                                            class="js_btn_login">
+                                    </a>
+                                </div>
+                                <div style="text-align: center;margin: 10px 0;">
+                                    <a href="https://lp.eowp.alc.co.jp/?utm_source=eow_serp&utm_medium=popup&utm_campaign=searchbox"
+                                        target="_blank">
+                                        <input id="submit_button" name="register" type="submit" value="詳しくはこちら"
+                                            class="js_btn_eowplp">
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ▲ 英辞郎ヘッダ ▲ -->
+        <div class="wrap contents">
+            <section id="main">
+                <!-- eijiro_pc_top_01 -->
+                <div id="eijiro_pc_top_01">
+                    <!-- EOW-T-3388 開発:EOW_SERPの差し替え -->
+                    <!-- /21619764421/eijiro-media-PC/article-header-banner-0 -->
+                    <script>
+                        article_header_banner_0()
+                    </script>
+                </div>
+                <div id="AreaUpperLeft" class="wrap-inner contents-main">
+                    <div id="rightspace"><!-- --></div>
+                    <div id="AreaUpperLeftContainer">
+                        <div id="AreaUpperLeftInner">
+                            <form id="f1" name="f1" method="" action="">
+                                <input name="q" type="hidden" value="straw bale" />
+                                <input name="ie" type="hidden" value="UTF-8" />
+                                <input name="pg" type="hidden" value="1" />
+                                <input name="dk" type="hidden" value="EJ" />
+                                <input name="fn" type="hidden" value="" />
+                                <input name="exdbl" type="hidden" value="" id="exdbl" />
+                            </form>
+                            <!-- ▼ 検索結果 ▼ -->
+                            <div id="resultsArea">
+                                <!-- ▼ h1ブロック ▼ (modified on EOWP_SHOP-397) -->
+                                <div id="navigation" class="aboutword search-word-ttl">
+                                    <h1 class="gray ttl-01">straw bale<span>とは</span></h1>
+                                    <ul class="btn-sns">
+                                        <!-- sns-twitter -->
+                                        <li id="x_btn">
+                                            <img id="x_icon" src="/content/img/icon-sns-X_search.svg" alt="X">
+                                        </li>
+
+                                        <!-- sns-facebook -->
+                                        <li id="fb_btn">
+                                            <svg id="fb_icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                                                <path d="M39,24.1c0-8.3-6.7-15-15-15s-15,6.7-15,15c0,7.5,5.5,13.7,12.7,14.8V28.4h-3.8v-4.3h3.8v-3.3
+							                      c0-3.8,2.2-5.8,5.7-5.8c1.6,0,3.4,0.3,3.4,0.3v3.7h-1.9c-1.9,0-2.4,1.2-2.4,2.3v2.8h4.2l-0.7,4.3h-3.5v10.5
+							                      C33.5,37.8,39,31.6,39,24.1z" />
+                                            </svg>
+                                        </li>
+
+                                    </ul>
+                                </div><!-- /.navigation -->
+
+                                <table class="search-word-table tbl-01">
+                                    <tbody>
+                                        <tr>
+                                            <th>
+                                                <h2><em>straw bale</em><span>の検索結果</span></h2>
+                                            </th>
+                                            <td>
+                                                <em>8<span>件</span></em>
+                                                <a href="#resultsList-section">検索結果一覧を見る</a>
+                                            </td>
+                                        </tr>
+
+                                        <!-- ▲ h1ブロック ▲ -->
+
+                                        <!-- ▼ 変化形・フレーズ、類語 ▼ (modified structure on EOWP_SHOP-397) -->
+                                        <!--  類語  -->
+                                    </tbody>
+                                </table>
+                                <!-- ▲ 変化形・フレーズ、類語 ▲ -->
+                                <!-- ▼ 検索補助 ▼ -->
+                                <div class="sas">
+                                </div>
+                                <!-- ▲ 検索補助 ▲ -->
+                                <!-- ▼ 検索結果本体 ▼ -->
+                                <menu id="resultsList_contextmenu" type="context">
+                                    <menuitem id="searchCmd" icon="http://cdn2.alc.co.jp/eow/img/eow_16.png"
+                                        onclick="ctx_execSearch(this.dataset.qry)" />
+                                </menu>
+                                <div id="resultsList" ondblclick="seow()" contextmenu="resultsList_contextmenu">
+                                    <script type="application/ld+json">
+									{
+										"@context": "https://schema.org",
+										"@type": "BreadcrumbList",
+										"itemListElement": [{
+											"@type": "ListItem",
+											"position": 1,
+											"item": {
+												"@id": "//eow.alc.co.jp/",
+												"name": "TOP"
+											}
+										},{
+											"@type": "ListItem",
+											"position": 2,
+											"item": {
+												"@id": "//eow.alc.co.jp/search?q=straw+bale",
+												"name": "「straw bale」の意味・使い方・表現"
+											}
+								
+										}]
+									}
+									</script>
+                                    <div class="aboutword">
+                                        <h2 class="gray ttl-02">straw bale<span> の意味・使い方・読み方</span></h2>
+                                    </div>
+                                    <div class="search-use-list">
+                                        <ul>
+                                            <li class="result-item">
+                                                <span class="midashi">
+                                                    <h2><span class="redtext">straw</span> <span
+                                                            class="redtext">bale</span></h2>
+                                                </span>
+                                                <div>ストローベイル◆わらを圧縮<span class="kana"
+                                                        data-nosnippet>｛あっしゅく｝</span>してロープで結んで直方体状<span class="kana"
+                                                        data-nosnippet>｛ちょくほうたい じょう｝</span>・円柱状<span class="kana"
+                                                        data-nosnippet>｛えんちゅうじょう｝</span>などにしたもの</div>
+                                                <span class="tango"><img src="/content/img/icon_book.svg" alt="単語帳"
+                                                        width="32" height="32" class="tango_btn" /></span>
+                                            </li>
+                                            <div id="eow_mozaic" class="box-ad">
+                                                <!-- /21619764421/eow_serp_mozaic -->
+                                                <script>
+                                                    eow_serp_mozaic()
+                                                </script>
+                                            </div>
+                                            <div id="doubleRectangle" class="box-ad">
+                                                <div id="doubleRectangleLeft" class="ad-item">
+                                                    <!-- EOW-T-3388 開発:EOW_SERPの差し替え -->
+                                                    <!-- /21619764421/eijiro-media-PC/article-middle-leftrect-0 -->
+                                                    <script>
+                                                        article_middle_leftrect_0()
+                                                    </script>
+                                                    <!-- EOW-T-3388 開発:EOW_SERPの差し替え -->
+                                                    <!-- /21619764421/eijiro-media-SP/article-middle-rect-0 -->
+                                                    <script>
+                                                        article_middle_rect_0()
+                                                    </script>
+                                                </div>
+                                                <div id="doubleRectangleRight" class="ad-item is-pc">
+                                                    <!-- EOW-T-3388 開発:EOW_SERPの差し替え -->
+                                                    <!-- /21619764421/eijiro-media-PC/article-middle-rightrect-0 -->
+                                                    <script>
+                                                        article_middle_rightrect_0()
+                                                    </script>
+                                                </div>
+                                            </div>
+                                        </ul>
+                                    </div>
+                                    <a name="resultsList-section" style="scroll-margin-top: 100px;"></a>
+                                    <div class="search-sentence-ttl" id="search-sentence-ttl">
+                                        <h2 class="ttl-02">straw bale<span>を含む検索結果一覧</span></h2>
+                                        <div class="num">該当件数 : 8件</div>
+                                    </div>
+
+                                    <div class="search-sentence-list">
+                                        <ul>
+                                            <li class="result-item">
+                                                <span class="midashi">
+                                                    <h2><span class="redtext">straw</span> <span
+                                                            class="redtext">bale</span> <a
+                                                            href=/search?q=construction&ref=awle>construction</a></h2>
+                                                </span>
+                                                <div>《建築》ストローベール［ストローベイル・わら俵<span class="kana"
+                                                        data-nosnippet>｛だわら｝</span>］建築<span class="kana"
+                                                        data-nosnippet>｛けんちく｝</span>◆壁<span class="kana"
+                                                        data-nosnippet>｛かべ｝</span>や断熱材<span class="kana"
+                                                        data-nosnippet>｛だんねつざい｝</span>などにわら俵<span class="kana"
+                                                        data-nosnippet>｛だわら｝</span>(straw bale)を使った建築<span class="kana"
+                                                        data-nosnippet>｛けんちく｝</span>。</div>
+                                                <span class="tango"><img src="/content/img/icon_book.svg" alt="単語帳"
+                                                        width="32" height="32" class="tango_btn" /></span>
+                                            </li>
+                                            <li class="result-item">
+                                                <span class="midashi">
+                                                    <h2><span class="redtext">straw</span> <span
+                                                            class="redtext">bale</span> <a
+                                                            href=/search?q=hose&ref=awle>hose</a></h2>
+                                                </span>
+                                                <div>ストローベイルハウス◆ストローベイル(straw bale)を積み重ねて壁<span class="kana"
+                                                        data-nosnippet>｛かべ｝</span>を作る方法<span class="kana"
+                                                        data-nosnippet>｛ほうほう｝</span>で建てた家</div>
+                                                <span class="tango"><img src="/content/img/icon_book.svg" alt="単語帳"
+                                                        width="32" height="32" class="tango_btn" /></span>
+                                            </li>
+                                            <li class="result-item">
+                                                <span class="midashi">
+                                                    <h2><span class="redtext">straw</span> <span
+                                                            class="redtext">bale</span> <a
+                                                            href=/search?q=insulation&ref=awle>insulation</a></h2>
+                                                </span>
+                                                <div>《建築》ストローベール［ストローベイル・わら俵<span class="kana"
+                                                        data-nosnippet>｛だわら｝</span>］断熱<span class="kana"
+                                                        data-nosnippet>｛だんねつ｝</span>（材<span class="kana"
+                                                        data-nosnippet>｛ざい｝</span>）</div>
+                                                <span class="tango"><img src="/content/img/icon_book.svg" alt="単語帳"
+                                                        width="32" height="32" class="tango_btn" /></span>
+                                            </li>
+                                            <li class="result-item">
+                                                <span class="midashi">
+                                                    <h2><span class="redtext">straw</span> <span
+                                                            class="redtext">bale</span> <a
+                                                            href=/search?q=wall&ref=awle>wall</a></h2>
+                                                </span>
+                                                <div>《建築》ストローベール［ストローベイル・わら俵<span class="kana"
+                                                        data-nosnippet>｛だわら｝</span>］壁<span class="kana"
+                                                        data-nosnippet>｛かべ｝</span>◆<span class="label">【略】</span>SBW
+                                                </div>
+                                                <span class="tango"><img src="/content/img/icon_book.svg" alt="単語帳"
+                                                        width="32" height="32" class="tango_btn" /></span>
+                                            </li>
+                                            <li class="result-item">
+                                                <span class="midashi">
+                                                    <h2><span class="redtext">straw</span> <span
+                                                            class="redtext">bale</span> <a
+                                                            href=/search?q=wall&ref=awle>wall</a> <a
+                                                            href=/search?q=construction&ref=awle>construction</a></h2>
+                                                </span>
+                                                <div>《建築》ストローベール［ストローベイル・わら俵<span class="kana"
+                                                        data-nosnippet>｛だわら｝</span>］壁建築<span class="kana"
+                                                        data-nosnippet>｛かべ けんちく｝</span></div>
+                                                <span class="tango"><img src="/content/img/icon_book.svg" alt="単語帳"
+                                                        width="32" height="32" class="tango_btn" /></span>
+                                            </li>
+                                            <li class="result-item">
+                                                <span class="midashi">
+                                                    <h2><a href=/search?q=round&ref=awle>round</a> <span
+                                                            class="redtext">straw</span> <span
+                                                            class="redtext">bale</span></h2>
+                                                </span>
+                                                <div>《農業》わらロール◆穀物<span class="kana"
+                                                        data-nosnippet>｛こくもつ｝</span>の収穫後<span class="kana"
+                                                        data-nosnippet>｛しゅうかく ご｝</span>に残るわらを固く束ねて、円柱状<span class="kana"
+                                                        data-nosnippet>｛えんちゅうじょう｝</span>にしたもの。</div>
+                                                <span class="tango"><img src="/content/img/icon_book.svg" alt="単語帳"
+                                                        width="32" height="32" class="tango_btn" /></span>
+                                            </li>
+                                            <li class="result-item">
+                                                <span class="midashi">
+                                                    <h2><span class="redtext">bale</span> of <span
+                                                            class="redtext">straw</span></h2>
+                                                </span>
+                                                <div>《a ～》わら1梱</div>
+                                                <span class="tango"><img src="/content/img/icon_book.svg" alt="単語帳"
+                                                        width="32" height="32" class="tango_btn" /></span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div> <!-- /.resultsList -->
+                                <!-- ▲ 検索結果本体 ▲ -->
+
+                                <!-- eijiro_footer_728-90 -->
+                                <!-- /21619764421/eijiro_pc_footer -->
+                                <!-- <div id='div-gpt-ad-1562213823316-0'></div> -->
+                                <!-- eijiro_footer_728-90 -->
+                                <br />
+                            </div><!-- /.resultArea -->
+                        </div><!-- /.AreaUpperLeftInner
+
+						<!-- ▲ 検索結果 ▲ -->
+                        <div id="eow_serp_mozaic" class="box-ad">
+                            <!-- /21619764421/eow_serp_mozaic_footer -->
+                            <script>
+                                eow_serp_mozaic_footer()
+                            </script>
+                        </div>
+                    </div><!-- /.AreaUppperLeftContainer -->
+                    <!-- ▲ 本体上部（コンテンツ）：左 ▲ -->
+
+                    <!-- EOWP_SHOP-397: moved ads code-block inside section.main -->
+                    <!-- ▼ 本体上部（広告）：右 ▼ -->
+                    <div id="AreaUpperRight" class="rectangle_right">
+
+                        <div class="mb_3"></div>
+                        <!-- EOW-T-3388 開発:EOW_SERPの差し替え -->
+                        <!-- /21619764421/eijiro-media-PC/article-rightheader-multisize-0 -->
+                        <div id="eijiro_1st-rec_300-250">
+                            <script>
+                                article_rightheader_multisize_0()
+                            </script>
+                        </div>
+                        <!-- /21619764421/eijiro-media-PC/article-rightheader-multisize-1 -->
+                        <div id="eijiro_pc_2nd_rec_2">
+                            <script>
+                                article_rightheader_multisize_1()
+                            </script>
+                        </div>
+                        <!-- /21619764421/eijiro-media-PC/article-rightheader-multisize-2 -->
+                        <div id="eijiro_pc_2nd_rec">
+                            <script>
+                                article_rightheader_multisize_2()
+                            </script>
+                        </div>
+                        <!-- /21619764421/eijiro-media-PC/article-rightheader-rect-0 -->
+                        <div id="eijiro_pc_4th_rec">
+                            <script>
+                                article_rightheader_rect_0()
+                            </script>
+                        </div>
+                    </div><!-- ▲ 本体上部（広告）：右 ▲ -->
+                </div><!-- /.AreaUpperLeft -->
+            </section>
+            <br class="cl_l" />
+            <!-- ▼ 本体下部（UI）：左 ▼ -->
+            <!-- ▲ 本体下部（UI）：左 ▲ -->
+
+        </div> <!-- /.wrap -->
+
+        <!-- ▼ フッタ ▼ -->
+        <!-- EOW_SHOP-323 Footer -->
+        <footer class="footer">
+            <div class="footer-btn">
+                <div class="wrap-inner">
+                    <a href="#"><img src="/content/img/footer_icon-arr-2.svg" alt="ページの先頭に戻る"></a>
+                </div>
+            </div>
+            <div class="footer-top">
+                <div class="wrap-inner">
+                    <div class="footer-top-1">
+                        <div><a href="/"><img class="footer-logo" src="/content/img/lo_eow.svg" alt="英辞郎 on the WEB"
+                                    title="英辞郎 on the WEB"></a></div>
+                        <ul class="btn-store">
+                            <li><a target="_blank"
+                                    href="https://apps.apple.com/app/apple-store/id365874160?pt=210463&ct=eow_top_app_store_link_2021_02&mt=8"><img
+                                        src="/content/img/footer_btn-appstore.png" alt="App Store"></a></li>
+                            <li><a target="_blank"
+                                    href="https://play.google.com/store/apps/details?id=jp.co.alc.eow&referrer=utm_source%3Deow_top%26utm_medium%3Dbanner%26utm_campaign%3Dandroid_app"><img
+                                        src="/content/img/footer_btn-googleplay.png" alt="Google Play"></a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-top-2">
+                        <div class="footer-menu">
+                            <dl>
+                                <dt>アルクグループ</dt>
+                                <dd>
+                                    <a href="https://www.alc.co.jp/index.html?utm_source=EOW&amp;utm_medium=footer&amp;utm_campaign=eow_wwwtop"
+                                        target="_blank">アルクのウェブサイト</a>
+                                    <a href="https://lp.eowp.alc.co.jp/?utm_source=eow_serp&utm_medium=link&utm_campaign=serp_footer_link"
+                                        target="_blank">英辞郎 on the WEB Pro</a>
+                                    <a href="https://ej.alc.co.jp/?utm_source=eow_footer&utm_medium=text&utm_campaign=ej_top_eow_footer"
+                                        target="_blank">ENGLISH JOURNAL </a>
+                                    <a href="https://shop.alc.co.jp/?utm_source=serp_pc&utm_medium=text&utm_campaign=EOWfooter"
+                                        target="_blank">アルクショップ</a>
+                                    <a href="https://recruit.jobcan.jp/alc-recruit" target="_blank">採用情報</a>
+                                </dd>
+                            </dl>
+                            <dl>
+                                <dt>サイトのご利用について</dt>
+                                <dd>
+                                    <a href="https://www.alc.co.jp/policy/other/#eowp" rel="nofollow">英辞郎 on the WEB
+                                        利用規約</a>
+                                    <a href="https://www.alc.co.jp/policy/privacy/" rel="nofollow">プライバシーポリシー</a>
+                                    <a href="https://www.alc.co.jp/policy/exoneration/" rel="nofollow">免責条項</a>
+                                </dd>
+                            </dl>
+                            <dl>
+                                <dt>お客様相談室</dt>
+                                <dd>
+                                    <a href="https://eowp.alc.co.jp/info/business/">法人のお客様</a>
+                                    <a href="https://www.alc.co.jp/inquiry/">お問い合わせ</a>
+                                </dd>
+                            </dl>
+                        </div>
+                        <ul class="btn-store">
+                            <li><a target="_blank"
+                                    href="https://apps.apple.com/app/apple-store/id365874160?pt=210463&ct=eow_top_app_store_link_2021_02&mt=8"><img
+                                        src="/content/img/footer_btn-appstore.png" alt="App Store"></a></li>
+                            <li><a target="_blank"
+                                    href="https://play.google.com/store/apps/details?id=jp.co.alc.eow&referrer=utm_source%3Deow_top%26utm_medium%3Dbanner%26utm_campaign%3Dandroid_app"><img
+                                        src="/content/img/footer_btn-googleplay.png" alt="Google Play"></a></li>
+                        </ul>
+                    </div>
+                </div><!-- /.wrap-inner -->
+            </div><!-- /.footer-top -->
+            <div class="footer-btm">
+                <div class="wrap-inner">
+                    <ul class="btn-sns">
+                        <li><a href="http://eowp.blogspot.jp/" target="_blank"><img
+                                    src="/content/img/footer_icon-sns-blogspot.svg" alt="Blogspot"></a></li>
+                        <li><a href="https://twitter.com/eow_alc" target="_blank"><img src="/content/img/icon-sns-X.svg"
+                                    alt="X"></a></li>
+                    </ul>
+                    <div class="footer-copyright">Copyright © 2000-<span id="footer-copyright-year">2021</span> ALC
+                        PRESS INC. All Rights Reserved.</div>
+                </div><!-- /.wrap-inner -->
+            </div><!-- /.footer-btm -->
+        </footer>
+        <!-- End EOW_SHOP-323 Footer -->
+
+        <script type="text/javascript" language="JavaScript">
+                (function () {
+                    let defaultScrollFactor = 0.70;
+                    // Add pages here where it needs this behavior
+                    let allowedPaths = ['/search'];
+                    let targetInputs = [ // node: BODY - trigger on body, INPUT - trigger on input, ANY - trigger on any focused elements 
+                        { node: "BODY", code: "SPACE", key: "SPACEBAR", altKey: false, shiftKey: false, scroll: "DOWN" },
+                        { node: "DIV", code: "SPACE", key: "SPACEBAR", altKey: false, shiftKey: false, scroll: "DOWN" },
+                        { node: "ANY", code: "ARROWDOWN", key: "N/A", altKey: true, shiftKey: false, scroll: "DOWN" },
+                        { node: "ANY", code: "PAGEDOWN", key: "PAGEDOWN", altKey: false, shiftKey: false, scroll: "DOWN" },
+                        { node: "BODY", code: "SPACE", key: "SPACEBAR", altKey: false, shiftKey: true, scroll: "UP" },
+                        { node: "DIV", code: "SPACE", key: "SPACEBAR", altKey: false, shiftKey: true, scroll: "UP" },
+                        { node: "ANY", code: "ARROWUP", key: "N/A", altKey: true, shiftKey: false, scroll: "UP" },
+                        { node: "ANY", code: "PAGEUP", key: "PAGEUP", altKey: false, shiftKey: false, scroll: "UP" },
+                    ];
+                    let scrollFactors = [
+                        { max: 99999, min: 750, percent: 0.77 },
+                        { max: 749, min: 540, percent: 0.70 },
+                        { max: 539, min: 0, percent: 0.65 },
+                    ];
+
+                    let customScroll = function (event) {
+                        //console.log(event); //Enable this for debugging
+                        if (allowedPaths.filter(function (e) { return e == window.location.pathname }).length <= 0) return;
+
+                        let altKey = event.altKey;
+                        let shiftKey = event.shiftKey;
+                        let code = event.code ? event.code.toUpperCase() : event.key.toUpperCase();
+                        let node = event.target.nodeName.toUpperCase();
+                        let filtered = targetInputs.filter(function (input) {
+                            let pass = true;
+                            pass = !pass ? pass : input.node == node || input.node == "ANY";
+                            pass = !pass ? pass : input.code == code || input.key == code;
+                            pass = !pass ? pass : input.altKey == altKey;
+                            pass = !pass ? pass : input.shiftKey == shiftKey;
+                            return pass;
+                        });
+                        if (filtered.length > 0) {
+                            event.preventDefault();
+                            let height = top.window.innerHeight;
+                            let filterPercent = scrollFactors.filter(function (range) { return height <= range.max && height >= range.min });
+                            let percentFactor = filterPercent.length > 0 ? filterPercent[0].percent : defaultScrollFactor;
+                            let direction = (window.innerHeight * percentFactor) * (filtered[0].scroll == "DOWN" ? 1 : -1);
+                            let yScrollOffset = window.scrollY ? window.scrollY : window.pageYOffset;
+
+                            if (window.scrollY) {
+                                window.scrollTo({
+                                    top: (yScrollOffset + direction),
+                                    behavior: 'smooth'
+                                });
+                            } else {
+                                let newTargetYOffset = yScrollOffset + direction;
+                                let increment = 25;
+                                let incremented = yScrollOffset;
+                                let remaining = 0;
+                                let scrollInterval = setInterval(function () {
+                                    if (direction < 0 ? incremented <= newTargetYOffset : incremented >= newTargetYOffset) {
+                                        clearInterval(scrollInterval);
+                                    } else {
+                                        remaining = direction < 0 ? incremented - newTargetYOffset : newTargetYOffset - incremented;
+                                        incremented += (remaining > increment ? increment : remaining) * (direction < 0 ? -1 : 1);
+                                    }
+                                    window.scrollTo(0, incremented);
+                                }, 17);
+                            }
+                        }
+                    };
+                    window.addEventListener("keydown", customScroll, true);
+                })();
+        </script>
+        <div class="footer-ads"></div>
+        <!-- ▲ フッタ ▲ -->
+    </div>
+    <div class="myTT"></div><!-- //吹き出し全体を覆うdiv -->
+
+</body>
+<script>
+    <!-- EOW-T-3388 開発:EOW_SERPの差し替え -->
+
+    function adjustment() {
+        var leftTagIds = ['div-gpt-ad-1734333872806-0', 'div-gpt-ad-1734331489144-0', 'div-gpt-ad-1734331523101-0', 'div-gpt-ad-1734331561971-0', 'div-gpt-ad-1734331598172-0'];
+        var rightTagIds = ['div-gpt-ad-1734331631869-0', 'div-gpt-ad-1734331665711-0', 'div-gpt-ad-1734331694469-0', 'div-gpt-ad-1734331733490-0', 'div-gpt-ad-1734331863418-0'];
+
+        for (var i = 0; i < 5; i++) {
+            var leftTag = document.getElementById(leftTagIds[i]); var
+                rightTag = document.getElementById(rightTagIds[i]); var doubleRectangleId = 'doubleRectangle0' + (i + 1); if (i == 0)
+                doubleRectangleId = 'doubleRectangle'; var doubleRectangle = document.getElementById(doubleRectangleId);
+            if (doubleRectangle != null && leftTag != null && rightTag != null) {
+                if (leftTag.clientHeight > rightTag.clientHeight) {
+                    // 右の広告の高さを調整する
+                    var positionDifferencial = leftTag.clientHeight - rightTag.clientHeight;
+                    rightTag.style.marginTop = (positionDifferencial / 2) + 'px';
+                } else if (rightTag.clientHeight > leftTag.clientHeight) {
+                    // 左の広告の高さを調整する
+                    var positionDifferencial = rightTag.clientHeight - leftTag.clientHeight;
+                    leftTag.style.marginTop = (positionDifferencial / 2) + 'px';
+                } else {
+                    // 左右ともに高さが同じ場合、margin-bottom：20pxを追加する
+                    doubleRectangle.style.marginBottom = '20px';
+                }
+            }
+        }
+    }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const stickyWrapper = document.querySelector('.sticky-ad-wrapper');
+        const stickyAd = document.getElementById('eijiro_pc_4th_rec');
+        if (!stickyWrapper || !stickyAd) return;
+
+        // 最初の位置を記録する
+        const initialOffsetTop = stickyAd.getBoundingClientRect().top + window.scrollY;
+
+        function checkSticky() { // スクロールで元の位置より下の場合のみ追尾する
+            if (window.scrollY >= initialOffsetTop) {
+                stickyWrapper.classList.add('stuck');
+            } else {
+                stickyWrapper.classList.remove('stuck');
+            }
+        }
+
+        window.addEventListener('scroll', checkSticky);
+        window.addEventListener('resize', checkSticky);
+        checkSticky();
+    });
+</script>
+
+</html>

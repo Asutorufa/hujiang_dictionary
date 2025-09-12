@@ -1,9 +1,8 @@
-use std::collections::{HashMap, HashSet};
-
 use base64::Engine;
 use hjdict::google_search::{self, Body};
 use log::info;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Response {
@@ -47,16 +46,17 @@ pub trait WorkersAI {
         instruction: Option<&str>,
     ) -> impl Future<Output = Result<Response, Error>> {
         async move {
+            let req = TranslateRequest {
+                query: prompt,
+                instruction,
+                model: model.as_str(),
+                dst_lang: None,
+                chars_limit,
+            };
+
             match model {
                 Models::Gemma3_12bIt | Models::Llama4Scout17B16EInstruct => {
-                    let result = self
-                        .completion(CompletionRequest::new_workers_ai(
-                            model,
-                            system_msg(chars_limit),
-                            prompt,
-                            instruction,
-                        ))
-                        .await?;
+                    let result = self.completion(req.completion_request()).await?;
 
                     match result.choices.len() {
                         0 => Err(Error("no choice".to_string())),
@@ -65,16 +65,7 @@ pub trait WorkersAI {
                 }
 
                 Models::GPTOss20B => {
-                    let result = self
-                        .responses(ResponsesRequest::new(
-                            model,
-                            system_msg(chars_limit),
-                            prompt,
-                            instruction,
-                        ))
-                        .await?
-                        .content();
-
+                    let result = self.responses(req.responses_request()).await?.content();
                     Ok(result)
                 }
                 _ => Err(Error("model not supported".to_string())),
@@ -90,20 +81,20 @@ pub trait WorkersAI {
     ) -> impl Future<Output = Result<Response, Error>> {
         async move {
             let instruction = google_search(query).await?;
-            let system_msg = system_msg(chars_limit);
+
+            let req = TranslateRequest {
+                model: model.as_str(),
+                query,
+                chars_limit,
+                instruction: Some(&instruction),
+                dst_lang: None,
+            };
 
             info!("google search instruct: {}", instruction);
 
             match model {
                 Models::Gemma3_12bIt | Models::Llama4Scout17B16EInstruct => {
-                    let result = self
-                        .completion(CompletionRequest::new_workers_ai(
-                            model,
-                            system_msg,
-                            query,
-                            Some(instruction.as_str()),
-                        ))
-                        .await?;
+                    let result = self.completion(req.completion_request()).await?;
 
                     match result.choices.len() {
                         0 => Err(Error("no choice".to_string())),
@@ -112,15 +103,7 @@ pub trait WorkersAI {
                 }
 
                 Models::GPTOss20B | _ => {
-                    let result = self
-                        .responses(ResponsesRequest::new(
-                            model,
-                            system_msg,
-                            query,
-                            Some(instruction.as_str()),
-                        ))
-                        .await?
-                        .content();
+                    let result = self.responses(req.responses_request()).await?.content();
 
                     Ok(result)
                 }
@@ -137,14 +120,12 @@ async fn google_search(query: &str) -> Result<String, Error> {
 
     let mut instruct = "<search_result>\n".to_string();
 
-    let mut length = if result.len() > 3 { 3 } else { result.len() };
+    let mut length = if result.len() > 5 { 5 } else { result.len() };
 
     for v in &result {
         match v {
             Body::Content(s) => {
-                instruct.push_str("<>\n");
                 instruct.push_str(&format!("<content>{}</content>\n", s));
-                instruct.push_str("</>\n");
             }
             Body::Link(v) => {
                 if length <= 0 {
@@ -152,15 +133,10 @@ async fn google_search(query: &str) -> Result<String, Error> {
                 }
 
                 length -= 1;
-                let title = v.title.replace("\n", " ");
-                instruct.push_str("<>\n");
-                instruct.push_str(&format!("<title>{}</title>\n", title));
-                instruct.push_str(&format!("<link>{}</link>\n", v.url));
-                instruct.push_str(&format!(
-                    "<content>{}</content>\n",
-                    v.get_raw_page().await.unwrap()
-                ));
-                instruct.push_str("</>\n");
+                let (title, content) = v.get_raw_page().await?;
+                instruct.push_str(&format!("\n<content title='{}' link='{}'>\n", title, v.url));
+                instruct.push_str(&content);
+                instruct.push_str("</content>\n");
             }
         }
     }
@@ -172,13 +148,11 @@ async fn google_search(query: &str) -> Result<String, Error> {
     Ok(instruct)
 }
 
-pub static SYSTEM_MSG: &str = r#"
-You are a professional translator.
+pub static SYSTEM_MSG: &str = r#"You are a professional translator.
 Translate the input text according to the user's instructions and return the result in the user’s original language (unless the user requests otherwise).
 "#;
 
-pub static SYSTEM_MSG_LIMIT: &str = r#"
-You are a professional translator.
+pub static SYSTEM_MSG_LIMIT: &str = r#"You are a professional translator.
 Translate the input text according to the user's instructions and return the result in the user’s original language (unless the user requests otherwise).
 If the translated content is approaching the limit, prioritize preserving core meaning and compress the expression when necessary. Paraphrase or summarize if required.
 Do not output in Markdown format.
@@ -227,9 +201,21 @@ impl From<reqwest::Error> for Error {
     }
 }
 
+impl From<serde_json::Error> for Error {
+    fn from(value: serde_json::Error) -> Self {
+        Self(value.to_string())
+    }
+}
+
 impl From<String> for Error {
     fn from(value: String) -> Self {
         Self(value)
+    }
+}
+
+impl From<hjdict::google_search::SearchError> for Error {
+    fn from(value: hjdict::google_search::SearchError) -> Self {
+        Self(value.to_string())
     }
 }
 
@@ -242,14 +228,14 @@ pub struct ResponsesRequest {
 }
 
 impl ResponsesRequest {
-    pub fn new(model: Models, system: &str, prompt: &str, instruction: Option<&str>) -> Self {
+    pub fn new_translate_request<'a>(req: TranslateRequest<'a>) -> Self {
         let mut msgs = vec![Message {
             role: "user".to_string(),
-            content: prompt.to_string(),
+            content: req.query.to_string(),
             reasoning: None,
         }];
 
-        if let Some(instruction) = instruction {
+        if let Some(instruction) = req.instruction {
             msgs.push(Message {
                 role: "system".to_string(),
                 content: instruction.to_string(),
@@ -258,23 +244,30 @@ impl ResponsesRequest {
         }
 
         Self {
-            instructions: system.to_string(),
-            model: model.as_str().to_string(),
+            instructions: system_msg(req.chars_limit).to_string(),
+            model: req.model.to_string(),
             input: msgs,
             reasoning: Reasoning {
                 effort: Some("low".to_string()),
                 summary: Some("concise".to_string()),
-                max_tokens: None,
+                ..Default::default()
             },
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct Reasoning {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub effort: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_tokens: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub exclude: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -333,55 +326,53 @@ pub struct ResponsesContent {
     pub text: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct CompletionRequest {
     pub model: String,
     pub messages: Vec<Message>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<Reasoning>,
-}
-
-impl CompletionRequest {
-    pub fn new(model: &str, system: &str, prompt: &str, instruction: Option<&str>) -> Self {
-        let mut msgs = vec![
-            Message {
-                role: "system".to_string(),
-                content: system.to_string(),
-                reasoning: None,
-            },
-            Message {
-                role: "user".to_string(),
-                content: prompt.to_string(),
-                reasoning: None,
-            },
-        ];
-
-        if let Some(instruction) = instruction {
-            msgs.push(Message {
-                role: "system".to_string(),
-                content: instruction.to_string(),
-                reasoning: None,
-            });
-        }
-
-        Self {
-            model: model.to_string(),
-            messages: msgs,
-            reasoning: None,
-        }
-    }
-
-    pub fn new_workers_ai(
-        model: Models,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> Self {
-        CompletionRequest::new(model.as_str(), system, prompt, instruction)
-    }
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub provider: Option<Provider>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Provider {
+    pub sort: Option<String>,
+    pub order: Option<Vec<String>>,
+}
+
+impl CompletionRequest {
+    pub fn new_translate_request(req: TranslateRequest) -> Self {
+        let mut msgs = vec![Message {
+            role: "system".to_string(),
+            content: system_msg(req.chars_limit).to_string(),
+            ..Default::default()
+        }];
+
+        if let Some(instruction) = req.instruction {
+            msgs.push(Message {
+                role: "user".to_string(),
+                content: instruction.to_string(),
+                ..Default::default()
+            });
+        }
+
+        msgs.push(Message {
+            role: "user".to_string(),
+            content: req.query.to_string(),
+            ..Default::default()
+        });
+
+        Self {
+            model: req.model.to_string(),
+            messages: msgs,
+            ..Default::default()
+        }
+    }
+}
+
+#[derive(Default, Debug, Serialize, Deserialize, Clone)]
 pub struct Message {
     pub role: String,
     pub content: String,
@@ -409,7 +400,7 @@ pub struct Choice {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct TranslateRequest {
+pub struct WorkersAITranslateRequest {
     pub text: String,
     pub target_lang: String,
 
@@ -417,7 +408,7 @@ pub struct TranslateRequest {
     pub source_lang: Option<String>,
 }
 
-impl TranslateRequest {
+impl WorkersAITranslateRequest {
     pub fn new(text: &str, target_lang: &str, source_lang: Option<String>) -> Self {
         Self {
             text: text.to_string(),
@@ -426,7 +417,6 @@ impl TranslateRequest {
         }
     }
 }
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TranslateOutput {
     pub translated_text: String,
@@ -442,7 +432,28 @@ pub struct OpenAI {
     pub name: String,
     pub base_url: String,
     pub api_key: String,
+    pub reasoning: Option<Reasoning>,
+    pub provider: Option<Vec<String>>,
     pub models: HashSet<String>,
+}
+
+#[derive(Debug, Default)]
+pub struct TranslateRequest<'a> {
+    pub model: &'a str,
+    pub query: &'a str,
+    pub chars_limit: bool,
+    pub instruction: Option<&'a str>,
+    pub dst_lang: Option<&'a str>,
+}
+
+impl TranslateRequest<'_> {
+    pub fn completion_request(self) -> CompletionRequest {
+        CompletionRequest::new_translate_request(self)
+    }
+
+    pub fn responses_request(self) -> ResponsesRequest {
+        ResponsesRequest::new_translate_request(self)
+    }
 }
 
 impl OpenAI {
@@ -464,6 +475,8 @@ impl OpenAI {
             base_url: base_url.to_string(),
             api_key: api_key.to_string(),
             models: HashSet::from_iter(models),
+            provider: None,
+            reasoning: None,
         }
     }
 
@@ -495,40 +508,68 @@ impl OpenAI {
             .send()
             .await?;
 
-        if r.status() != 200 {
-            return Err(Error(r.text().await?));
+        let status = r.status();
+        let text = r.text().await?;
+
+        info!("openai raw result: {}, status: {}", text, status);
+
+        if !status.is_success() {
+            return Err(Error(text));
         }
 
-        Ok(r.json::<O>().await?)
+        Ok(serde_json::from_str(&text)?)
     }
 
-    pub async fn completion(
+    pub async fn completion<'a>(
         &self,
-        model: &str,
-        system: &str,
-        prompt: &str,
-        instruction: Option<&str>,
+        req: TranslateRequest<'a>,
     ) -> Result<CompletionResponse, Error> {
-        if !self.models.contains(&model.to_string()) {
+        if !self.models.contains(&req.model.to_string()) {
             return Err(Error("model not supported".to_string()));
         }
 
-        let req = CompletionRequest::new(model, system, prompt, instruction);
+        let mut req = req.completion_request();
+
+        if self.provider.is_some() {
+            req.provider = Some(Provider {
+                sort: None,
+                order: self.provider.clone(),
+            });
+        }
+
+        if self.reasoning.is_some() {
+            req.reasoning = self.reasoning.clone();
+        }
+
         let r: CompletionResponse = self.exec("/chat/completions", req).await?;
         Ok(r)
     }
 
-    pub fn translate(
+    pub fn translate<'a>(
         &self,
-        model: &str,
-        chars_limit: bool,
-        prompt: &str,
-        instruction: Option<&str>,
+        req: TranslateRequest<'a>,
     ) -> impl Future<Output = Result<Response, Error>> {
         async move {
-            let result = self
-                .completion(model, system_msg(chars_limit), prompt, instruction)
-                .await?;
+            let instruction = match req.instruction {
+                Some(i) if !i.is_empty() => Some(i.to_string()),
+                _ => {
+                    if req.dst_lang.is_some() {
+                        Some(format!("\nTarget Language: {}", req.dst_lang.unwrap()))
+                    } else {
+                        None
+                    }
+                }
+            };
+
+            let req = TranslateRequest {
+                model: req.model,
+                query: req.query,
+                chars_limit: req.chars_limit,
+                instruction: instruction.as_deref(),
+                dst_lang: req.dst_lang,
+            };
+
+            let result = self.completion(req).await?;
 
             match result.choices.len() {
                 0 => Err(Error("no choice".to_string())),
@@ -537,21 +578,28 @@ impl OpenAI {
         }
     }
 
-    pub fn google_search(
+    pub fn google_search<'a>(
         &self,
-        model: &str,
-        chars_limit: bool,
-        query: &str,
+        req: TranslateRequest<'a>,
     ) -> impl Future<Output = Result<Response, Error>> {
         async move {
-            let instruction = google_search(query).await?;
-            let system_msg = system_msg(chars_limit);
+            let mut instruction = google_search(req.query).await?;
+
+            if req.dst_lang.is_some() {
+                instruction.push_str(&format!("\nTarget Language: {}", req.dst_lang.unwrap()));
+            }
 
             info!("google search instruct: {}", instruction);
 
-            let result = self
-                .completion(model, system_msg, query, Some(instruction.as_str()))
-                .await?;
+            let req = TranslateRequest {
+                model: req.model,
+                query: req.query,
+                chars_limit: req.chars_limit,
+                instruction: Some(&instruction),
+                dst_lang: req.dst_lang,
+            };
+
+            let result = self.completion(req).await?;
 
             match result.choices.len() {
                 0 => Err(Error("no choice".to_string())),
@@ -567,8 +615,17 @@ mod test {
 
     use crate::ai::OpenAI;
 
+    fn init() {
+        let _ = env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
+            .format_line_number(true)
+            .init();
+    }
+
     #[tokio::test]
     async fn test() {
+        init();
+
         let auth_json = fs::read_to_string("src/.api.json").unwrap();
         let oa = serde_json::from_str::<OpenAI>(&auth_json).unwrap();
 
@@ -576,11 +633,12 @@ mod test {
 
         println!(
             "{:?}",
-            oa.google_search(
-                oa.models.iter().next().unwrap(),
-                false,
-                "辿るは何の意味ですか？",
-            )
+            oa.google_search(crate::ai::TranslateRequest {
+                model: oa.models.iter().next().unwrap(),
+                query: "日をおかずに 意味",
+                dst_lang: Some("ja"),
+                ..Default::default()
+            })
             .await
         );
     }
