@@ -181,7 +181,7 @@ impl SearchLink {
         let cfg = dom_smoothie::Config {
             text_mode: dom_smoothie::TextMode::Formatted,
             disable_json_ld: true,
-            candidate_select_mode: dom_smoothie::CandidateSelectMode::Readability,
+            candidate_select_mode: dom_smoothie::CandidateSelectMode::DomSmoothie,
             ..Default::default()
         };
 
@@ -190,7 +190,7 @@ impl SearchLink {
         match dr.parse() {
             Ok(drc) => Ok((drc.title, drc.text_content.to_string())),
             Err(e) => {
-                warn!("readability parse error: {}", e);
+                warn!("readability parse error: {}, fallback to html2text", e);
 
                 Ok((
                     self.title.clone(),

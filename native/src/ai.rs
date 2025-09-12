@@ -1,51 +1,74 @@
+use std::sync::Arc;
+
+use cloudflare::endpoints::ai::execute_model::{TranslationParams, TranslationResult};
 use hjcommon::ai::{
-    CompletionRequest, CompletionResponse, Error, Models, ResponseResponse, ResponsesRequest,
-    TranslateResult, WorkersAI, WorkersAITranslateRequest,
+    CompletionRequest, CompletionResponse, Error, Models, OpenAI, ResponseResponse,
+    ResponsesRequest, WorkersAI,
 };
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 #[derive(Clone)]
 pub struct Workers {
-    account_id: String,
-    api_token: String,
+    openai: Option<Arc<OpenAI>>,
+}
+
+fn remove_last_path(url: &str) -> &str {
+    match url.rfind('/') {
+        Some(pos) if pos > "https://".len() => &url[..pos],
+        _ => url,
+    }
 }
 
 impl Workers {
     pub fn new(account_id: &str, api_key: &str) -> Self {
         Workers {
-            account_id: account_id.to_string(),
-            api_token: api_key.to_string(),
+            openai: if account_id == "" || api_key == "" {
+                None
+            } else {
+                Some(Arc::new(
+                    OpenAI::new(
+                        "workers ai",
+                        format!(
+                            "https://api.cloudflare.com/client/v4/accounts/{}/ai/v1",
+                            account_id
+                        )
+                        .as_str(),
+                        api_key,
+                        vec![],
+                    )
+                    .set_allow_all_models(true),
+                ))
+            },
         }
     }
 
-    pub fn is_valid(&self) -> Result<(), Error> {
-        if self.account_id.is_empty() || self.api_token.is_empty() {
-            return Err(Error("account_id or api_token is empty".to_string()));
+    pub fn openai(&self) -> Result<Arc<OpenAI>, Error> {
+        match &self.openai {
+            Some(openai) => Ok(openai.clone()),
+            None => Err(Error("account_id or api_token is empty".to_string())),
         }
-        Ok(())
     }
 
-    pub async fn exec<I: Serialize, O: DeserializeOwned>(
+    pub async fn run<I: Serialize, O: DeserializeOwned>(
         &self,
-        path: &str,
+        model: &str,
         input: I,
     ) -> Result<O, Error> {
-        self.is_valid()?;
-
-        let body = serde_json::to_string(&input).unwrap();
+        let client = self.openai()?;
+        let url = remove_last_path(client.base_url.as_str());
+        let body = serde_json::to_string(&input)?;
 
         let r = reqwest::Client::builder()
             .build()?
-            .post(format!(
-                "https://api.cloudflare.com/client/v4/accounts/{}/ai/{}",
-                self.account_id, path
-            ))
-            .header("Authorization", format!("Bearer {}", self.api_token))
+            .post(format!("{}/run/{}", url, model))
+            .header("Authorization", self.openai()?.authorization_header())
             .body(body)
             .send()
             .await?;
 
-        if r.status() != 200 {
+        let status = r.status();
+
+        if !status.is_success() {
             return Err(Error(r.text().await?));
         }
 
@@ -53,13 +76,18 @@ impl Workers {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TranslateResult {
+    pub result: TranslationResult,
+}
+
 impl WorkersAI for Workers {
     async fn completion(&self, req: CompletionRequest) -> Result<CompletionResponse, Error> {
-        self.exec("v1/chat/completions", req).await
+        self.openai()?.completion(req).await
     }
 
     async fn responses(&self, req: ResponsesRequest) -> Result<ResponseResponse, Error> {
-        self.exec("v1/responses", req).await
+        self.openai()?.responses(req).await
     }
 
     async fn m2m100_1_2b(
@@ -69,9 +97,13 @@ impl WorkersAI for Workers {
         target_lang: String,
     ) -> Result<String, Error> {
         let r: TranslateResult = self
-            .exec(
-                format!("run/{}", Models::M2M100_1_2B.as_str()).as_str(),
-                WorkersAITranslateRequest::new(text.as_ref(), target_lang.as_ref(), source_lang),
+            .run(
+                Models::M2M100_1_2B.as_str(),
+                TranslationParams {
+                    target_lang,
+                    text: text.to_string(),
+                    source_lang,
+                },
             )
             .await?;
         Ok(r.result.translated_text)

@@ -38,6 +38,9 @@ reqwest = { version = "0.12", default-features = false, features = [
 frankenstein = { version = "0.44", features = ["client-reqwest"] }
 tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 env_logger = "0.11"
+cloudflare = { version = "0.14", default-features = false, features = [
+    "rustls-tls",
+] }
 
 [profile.release]
 lto = true

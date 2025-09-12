@@ -14,12 +14,12 @@ reqwest = { workspace = true }
 serde = { workspace = true }
 frankenstein = { workspace = true }
 log = { workspace = true }
+cloudflare = { workspace = true }
 
 worker = { version = "0.6", features = ["d1"] }
 worker-macros = "0.6"
 console_error_panic_hook = "0.1"
 wasm-bindgen = "0.2.100"
-cloudflare = "0.14"
-console_log = "1.0"
+web-sys = { version = "0.3", features = ["console"] }
 
 hjcommon = { path = "../common" }

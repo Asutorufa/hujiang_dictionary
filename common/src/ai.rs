@@ -148,16 +148,39 @@ async fn google_search(query: &str) -> Result<String, Error> {
     Ok(instruct)
 }
 
-pub static SYSTEM_MSG: &str = r#"You are a professional translator.
-Translate the input text according to the user's instructions and return the result in the user’s original language (unless the user requests otherwise).
+pub static SYSTEM_MSG: &str = r#"You are a professional translator.  
+
+**Note**:  
+
+- Translate or explain the input text according to the instructions.  
+- If target language is not specified, return the result in the user’s original language.  
+- **Don't use the index of search result**.  
+
+**Translate Rules**:  
+
+- Please present content in a clear and easy-to-understand way.  
+- Explain concepts alongside examples whenever possible.  
+- For long or complex content, use tables or other formats for clarity.  
+- If you have a better way to present the information, feel free to use it.  
 "#;
 
 pub static SYSTEM_MSG_LIMIT: &str = r#"You are a professional translator.
-Translate the input text according to the user's instructions and return the result in the user’s original language (unless the user requests otherwise).
-If the translated content is approaching the limit, prioritize preserving core meaning and compress the expression when necessary. Paraphrase or summarize if required.
-Do not output in Markdown format.
-The total output must not exceed 4096 characters, including spaces and line breaks.
-Strictly follow the character limit to prevent truncation.
+
+**Note**:  
+
+- Translate or explain the input text according to the instructions.  
+- If target language is not specified, return the result in the user’s original language.  
+- **Don't use the index of search result**.  
+
+**Translate Rules**:  
+
+- Please present content in a clear and easy-to-understand way.  
+- Explain concepts alongside examples whenever possible.  
+- If you have a better way to present the information, feel free to use it.  
+- If the translated content is approaching the limit, prioritize preserving core meaning and compress the expression when necessary. Paraphrase or summarize if required.
+- Output in plain text format. **Do not output in Markdown format!**
+- The total output must not exceed 4096 characters, including spaces and line breaks.
+- Strictly follow the character limit to prevent truncation.
 "#;
 
 pub fn system_msg(limit: bool) -> &'static str {
@@ -224,34 +247,31 @@ pub struct ResponsesRequest {
     pub instructions: String,
     pub model: String,
     pub input: Vec<Message>,
-    pub reasoning: Reasoning,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning: Option<Reasoning>,
 }
 
 impl ResponsesRequest {
     pub fn new_translate_request<'a>(req: TranslateRequest<'a>) -> Self {
-        let mut msgs = vec![Message {
+        let msgs = vec![Message {
             role: "user".to_string(),
-            content: req.query.to_string(),
+            content: format!(
+                "{}\n{}",
+                req.instruction.unwrap_or_default(),
+                req.query.to_string()
+            ),
             reasoning: None,
         }];
-
-        if let Some(instruction) = req.instruction {
-            msgs.push(Message {
-                role: "system".to_string(),
-                content: instruction.to_string(),
-                reasoning: None,
-            });
-        }
 
         Self {
             instructions: system_msg(req.chars_limit).to_string(),
             model: req.model.to_string(),
             input: msgs,
-            reasoning: Reasoning {
+            reasoning: Some(Reasoning {
                 effort: Some("low".to_string()),
                 summary: Some("concise".to_string()),
                 ..Default::default()
-            },
+            }),
         }
     }
 }
@@ -350,17 +370,13 @@ impl CompletionRequest {
             ..Default::default()
         }];
 
-        if let Some(instruction) = req.instruction {
-            msgs.push(Message {
-                role: "user".to_string(),
-                content: instruction.to_string(),
-                ..Default::default()
-            });
-        }
-
         msgs.push(Message {
             role: "user".to_string(),
-            content: req.query.to_string(),
+            content: format!(
+                "{}\n{}",
+                req.instruction.unwrap_or_default(),
+                req.query.to_string()
+            ),
             ..Default::default()
         });
 
@@ -399,35 +415,7 @@ pub struct Choice {
     pub message: Message,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct WorkersAITranslateRequest {
-    pub text: String,
-    pub target_lang: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub source_lang: Option<String>,
-}
-
-impl WorkersAITranslateRequest {
-    pub fn new(text: &str, target_lang: &str, source_lang: Option<String>) -> Self {
-        Self {
-            text: text.to_string(),
-            target_lang: target_lang.to_string(),
-            source_lang,
-        }
-    }
-}
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TranslateOutput {
-    pub translated_text: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TranslateResult {
-    pub result: TranslateOutput,
-}
-
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Clone, Default)]
 pub struct OpenAI {
     pub name: String,
     pub base_url: String,
@@ -435,6 +423,7 @@ pub struct OpenAI {
     pub reasoning: Option<Reasoning>,
     pub provider: Option<Vec<String>>,
     pub models: HashSet<String>,
+    pub allow_all_models: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -475,9 +464,13 @@ impl OpenAI {
             base_url: base_url.to_string(),
             api_key: api_key.to_string(),
             models: HashSet::from_iter(models),
-            provider: None,
-            reasoning: None,
+            ..Default::default()
         }
+    }
+
+    pub fn set_allow_all_models(&mut self, allow_all_models: bool) -> Self {
+        self.allow_all_models = Some(allow_all_models);
+        self.clone()
     }
 
     pub fn enabled(&self) -> bool {
@@ -486,6 +479,10 @@ impl OpenAI {
 
     pub fn models(&self) -> Vec<String> {
         self.models.iter().cloned().collect()
+    }
+
+    pub fn authorization_header(&self) -> String {
+        format!("Bearer {}", self.api_key)
     }
 
     pub async fn exec<I: Serialize, O: DeserializeOwned>(
@@ -498,7 +495,7 @@ impl OpenAI {
         let r = reqwest::Client::builder()
             .build()?
             .post(format!("{}{}", self.base_url, path))
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Authorization", self.authorization_header())
             .header(
                 "HTTP-Referer",
                 "https://github.com/Asutorufa/hujiang_dictionary",
@@ -520,15 +517,19 @@ impl OpenAI {
         Ok(serde_json::from_str(&text)?)
     }
 
-    pub async fn completion<'a>(
-        &self,
-        req: TranslateRequest<'a>,
-    ) -> Result<CompletionResponse, Error> {
-        if !self.models.contains(&req.model.to_string()) {
+    fn allow_model(&self, model: &str) -> Result<(), Error> {
+        if !self.allow_all_models.unwrap_or(false) && !self.models.contains(model) {
             return Err(Error("model not supported".to_string()));
+        } else {
+            Ok(())
         }
+    }
 
-        let mut req = req.completion_request();
+    pub async fn completion(
+        &self,
+        mut req: CompletionRequest,
+    ) -> Result<CompletionResponse, Error> {
+        self.allow_model(&req.model.to_string())?;
 
         if self.provider.is_some() {
             req.provider = Some(Provider {
@@ -543,6 +544,16 @@ impl OpenAI {
 
         let r: CompletionResponse = self.exec("/chat/completions", req).await?;
         Ok(r)
+    }
+
+    pub async fn responses(&self, mut req: ResponsesRequest) -> Result<ResponseResponse, Error> {
+        self.allow_model(&req.model.to_string())?;
+
+        if self.reasoning.is_some() {
+            req.reasoning = self.reasoning.clone();
+        }
+
+        self.exec("/responses", req).await
     }
 
     pub fn translate<'a>(
@@ -569,7 +580,7 @@ impl OpenAI {
                 dst_lang: req.dst_lang,
             };
 
-            let result = self.completion(req).await?;
+            let result = self.completion(req.completion_request()).await?;
 
             match result.choices.len() {
                 0 => Err(Error("no choice".to_string())),
@@ -599,7 +610,7 @@ impl OpenAI {
                 dst_lang: req.dst_lang,
             };
 
-            let result = self.completion(req).await?;
+            let result = self.completion(req.completion_request()).await?;
 
             match result.choices.len() {
                 0 => Err(Error("no choice".to_string())),
