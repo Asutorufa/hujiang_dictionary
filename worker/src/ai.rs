@@ -105,6 +105,10 @@ impl WorkersAI for WasmAI {
         self.exec(&req.model.clone(), req).await
     }
 
+    fn enabled(&self) -> bool {
+        self.ai.is_some()
+    }
+
     async fn m2m100_1_2b(
         &self,
         text: &str,

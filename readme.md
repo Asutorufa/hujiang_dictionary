@@ -10,6 +10,12 @@ cargo build --release
 ./target/release/hj jc こんにちは
 ```
 
+## web
+
+see [telegram bot](#telegram-bot)
+
+![screenshot](https://raw.githubusercontent.com/Asutorufa/hujiang_dictionary/refs/heads/rust/assets/images/web.png)
+
 ## cli
 
 - `jc <word>` - Japanese to Chinese
@@ -32,12 +38,6 @@ Example:
 ```
 
 ![screenshot](https://raw.githubusercontent.com/Asutorufa/hujiang_dictionary/rust/assets/images/image.png)
-
-## web
-
-see [telegram bot](#telegram-bot)
-
-![screenshot](https://raw.githubusercontent.com/Asutorufa/hujiang_dictionary/rust/assets/images/web.png)
 
 ## telegram bot
 
@@ -116,6 +116,38 @@ ALLOW_USERS="12345678,-23456789,34567890" # allow telegram user id, split by com
 MAINTAINER_ID="12345678" # send random word to the chat id when cron job run
 WORKER_NAME="hj-dict" # cloudflare workers name
 SCHEDULE="*/20 0-15 * * *" # cron schedule
+CUSTOM_LLM_JSON_CONFIG="*****" # base64 of custom openai llm json
+```
+
+custom openai llm json example
+
+```json
+{
+    "openrouter": {
+        "name": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "api_key": "sk-or-vx-************************",
+        "reasoning": {
+            "enabled": true
+        },
+        "models": [
+            "openai/gpt-oss-20b:free",
+            "deepseek/deepseek-chat-v3.1:free"
+        ]
+    },
+    "gemini": {
+        "name": "gemini",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "api_key": "****************",
+        "models": [
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite"
+        ]
+    }
+}
 ```
 
 init d1 table and register webhook

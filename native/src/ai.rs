@@ -90,6 +90,10 @@ impl WorkersAI for Workers {
         self.openai()?.responses(req).await
     }
 
+    fn enabled(&self) -> bool {
+        self.openai.is_some()
+    }
+
     async fn m2m100_1_2b(
         &self,
         text: &str,

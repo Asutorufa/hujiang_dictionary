@@ -28,6 +28,8 @@ pub trait WorkersAI {
         target_lang: String,
     ) -> impl Future<Output = Result<String, Error>>;
 
+    fn enabled(&self) -> bool;
+
     fn completion(
         &self,
         req: CompletionRequest,
@@ -37,6 +39,34 @@ pub trait WorkersAI {
         &self,
         req: ResponsesRequest,
     ) -> impl Future<Output = Result<ResponseResponse, Error>>;
+
+    fn models(&self) -> Vec<String> {
+        if !self.enabled() {
+            vec![]
+        } else {
+            Models::llms()
+        }
+    }
+
+    fn explain(
+        &self,
+        google_search: bool,
+        model: Models,
+        chars_limit: bool,
+        prompt: &str,
+        instruction: Option<&str>,
+    ) -> impl Future<Output = Result<Response, Error>> {
+        async move {
+            if google_search {
+                info!("google search enabled, model: {}", model.as_str());
+
+                self.google_search(model, chars_limit, prompt).await
+            } else {
+                self.translate(model, chars_limit, prompt, instruction)
+                    .await
+            }
+        }
+    }
 
     fn translate(
         &self,
@@ -196,12 +226,30 @@ pub enum Models {
 }
 
 impl Models {
+    pub fn llms() -> Vec<String> {
+        vec![
+            Models::Gemma3_12bIt.as_str().to_string(),
+            Models::Llama4Scout17B16EInstruct.as_str().to_string(),
+            Models::GPTOss20B.as_str().to_string(),
+        ]
+    }
+
     pub fn as_str(&self) -> &'static str {
         match self {
             Models::Gemma3_12bIt => "@cf/google/gemma-3-12b-it",
             Models::Llama4Scout17B16EInstruct => "@cf/meta/llama-4-scout-17b-16e-instruct",
             Models::M2M100_1_2B => "@cf/meta/m2m100-1.2b",
             Models::GPTOss20B => "@cf/openai/gpt-oss-20b",
+        }
+    }
+
+    pub fn from_str(s: &str) -> Option<Models> {
+        match s {
+            "@cf/google/gemma-3-12b-it" => Some(Models::Gemma3_12bIt),
+            "@cf/meta/llama-4-scout-17b-16e-instruct" => Some(Models::Llama4Scout17B16EInstruct),
+            "@cf/meta/m2m100-1.2b" => Some(Models::M2M100_1_2B),
+            "@cf/openai/gpt-oss-20b" => Some(Models::GPTOss20B),
+            _ => None,
         }
     }
 }
@@ -554,6 +602,21 @@ impl OpenAI {
         }
 
         self.exec("/responses", req).await
+    }
+
+    pub fn explain<'a>(
+        &self,
+        google_search: bool,
+        req: TranslateRequest<'a>,
+    ) -> impl Future<Output = Result<Response, Error>> {
+        async move {
+            if google_search {
+                info!("google search enabled, model: {}", req.model);
+                self.google_search(req).await
+            } else {
+                self.translate(req).await
+            }
+        }
     }
 
     pub fn translate<'a>(
