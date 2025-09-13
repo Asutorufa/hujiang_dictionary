@@ -1,5 +1,4 @@
 use hjdict::{en, google, jp, kotobakku, weblio};
-use log::info;
 use serde::{Deserialize, Serialize};
 use std::str;
 
@@ -234,6 +233,14 @@ impl<T1: DBv2, T2: WorkersAI> RunOpt<T1, T2> {
 
     pub async fn custom_llms(&self) -> Result<Vec<u8>, Error> {
         let mut models = vec![];
+
+        if self.workers_ai.enabled() {
+            models.push(CustomLLMResponse {
+                name: "workers-ai".to_string(),
+                models: self.workers_ai.models(),
+            });
+        }
+
         for (name, l) in self.custom_llms.iter() {
             models.push(CustomLLMResponse {
                 name: name.clone(),
@@ -247,64 +254,41 @@ impl<T1: DBv2, T2: WorkersAI> RunOpt<T1, T2> {
         let req = serde_json::from_slice::<WordQueryRequest>(&body)?;
 
         let response = match req.method.as_str() {
-            "gpt" | "llama4" | "gemma" => {
-                let model = match req.method.as_str() {
-                    "gpt" => Models::GPTOss20B,
-                    "llama4" => Models::Llama4Scout17B16EInstruct,
-                    "gemma" => Models::Gemma3_12bIt,
-                    _ => unreachable!(),
-                };
-                if req.google_search.is_some_and(|is| is) {
-                    info!("google search enabled, model: {}", model.as_str());
-
-                    Some(
-                        self.workers_ai
-                            .google_search(model, false, &req.word)
-                            .await?,
-                    )
-                } else {
-                    Some(
-                        self.workers_ai
-                            .translate(model, false, &req.word, req.instruction().as_deref())
-                            .await?,
-                    )
-                }
-            }
             "custom_llm" => {
-                let llm = match req.custom_llm.as_ref() {
-                    Some(llm) => llm,
+                let (name, model) = match req.custom_llm.as_ref() {
+                    Some(llm) => (&llm.name, &llm.model),
                     None => return Err(Error("custom llm is empty".to_string())),
                 };
 
-                let ai = match self.custom_llms.get(&llm.name) {
-                    Some(llm) => llm,
-                    None => return Err(Error("custom llm not found".to_string())),
-                };
-
-                if req.google_search.is_some_and(|is| is) {
-                    info!("google search enabled, model: {}", llm.model.as_str());
-                    Some(
-                        ai.google_search(ai::TranslateRequest {
-                            model: llm.model.as_str(),
-                            chars_limit: false,
-                            query: &req.word,
-                            dst_lang: req.dst_lang.as_deref(),
-                            ..Default::default()
-                        })
-                        .await?,
-                    )
-                } else {
-                    Some(
-                        ai.translate(ai::TranslateRequest {
-                            model: llm.model.as_str(),
-                            chars_limit: false,
-                            query: &req.word,
-                            instruction: req.instruction().as_deref(),
-                            dst_lang: req.dst_lang.as_deref(),
-                            ..Default::default()
-                        })
-                        .await?,
-                    )
+                match name.as_str() {
+                    "workers-ai" => Some(
+                        self.workers_ai
+                            .explain(
+                                req.google_search.unwrap_or(false),
+                                Models::from_str(model)
+                                    .ok_or(Error("model not supported".to_string()))?,
+                                false,
+                                &req.word,
+                                req.instruction().as_deref(),
+                            )
+                            .await?,
+                    ),
+                    _ => Some(
+                        self.custom_llms
+                            .get(name)
+                            .ok_or(Error("custom llm not found".to_string()))?
+                            .explain(
+                                req.google_search.unwrap_or(false),
+                                ai::TranslateRequest {
+                                    model: model,
+                                    chars_limit: false,
+                                    query: &req.word,
+                                    dst_lang: req.dst_lang.as_deref(),
+                                    ..Default::default()
+                                },
+                            )
+                            .await?,
+                    ),
                 }
             }
             _ => None,
@@ -343,6 +327,15 @@ impl<T1: DBv2, T2: WorkersAI> RunOpt<T1, T2> {
                 .join("\n"),
             "weblio" => weblio::get(&req.word).await.unwrap().join("\n"),
             "ktbk" => kotobakku::get(&req.word).await.unwrap().join("\n"),
+            "m2m100_1_2b" => {
+                self.workers_ai
+                    .m2m100_1_2b(
+                        &req.word,
+                        req.src_lang,
+                        req.dst_lang.unwrap_or("en".to_string()),
+                    )
+                    .await?
+            }
             "google" | "googlev1" => {
                 let target = req.dst_lang.clone().unwrap_or("en".to_string());
 

@@ -11,6 +11,6 @@ log = { workspace = true }
 tokio = { workspace = true }
 
 scraper = "0.24"
-ego-tree = "0.10.0"
-html2text = { version = "0.15.3", default-features = false }
-dom_smoothie = { version = "0.12.0", features = ["aho-corasick"] }
+ego-tree = "0.10"
+html2text = { version = "0.15", default-features = false }
+dom_smoothie = { version = "0.12", features = ["aho-corasick"] }
