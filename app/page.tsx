@@ -122,6 +122,63 @@ export default function Home() {
     });
   }, [setCustomModels]);
 
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      // Windows/Linux: Ctrl, macOS: Meta(Command)
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case "s":
+            e.preventDefault();
+            setOpen(true);
+            break;
+
+          case "Enter":
+            e.preventDefault();
+            await doQueryWord();
+            break;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [setOpen]);
+
+
+  const doQueryWord = async () => {
+    if (!query) return;
+    let modelName = selected;
+    let customLLM: { name: string, model: string } | undefined;
+    if (modelName.startsWith("custom-")) {
+      customLLM = customModels.find((cm) => Object.keys(cm).includes(modelName))?.[modelName];
+      modelName = "custom_llm";
+    }
+
+    setLoading(true);
+    await queryWord({
+      query: query,
+      srcLang: srcLang,
+      dstLang: dstLang,
+      google_search: googleSearch,
+      instruction: instruction,
+      selected: modelName,
+      custom_llm: customLLM,
+    },
+      (data, error) => {
+        console.log(data);
+        if (error) {
+          setResult({ result: error })
+        } else if (data) {
+          setResult(data)
+        } else {
+          setResult({ result: "NOT FOUND" })
+        }
+        setLoading(false);
+      })
+  }
   return (
     <>
       <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={query} explain={result.result} type={0} />
@@ -234,37 +291,7 @@ export default function Home() {
               variant="bordered"
               className="shadow-md backdrop-blur-sm"
               isLoading={loading}
-              onPress={async () => {
-                if (!query) return;
-                let modelName = selected;
-                let customLLM: { name: string, model: string } | undefined;
-                if (modelName.startsWith("custom-")) {
-                  customLLM = customModels.find((cm) => Object.keys(cm).includes(modelName))?.[modelName];
-                  modelName = "custom_llm";
-                }
-
-                setLoading(true);
-                await queryWord({
-                  query: query,
-                  srcLang: srcLang,
-                  dstLang: dstLang,
-                  google_search: googleSearch,
-                  instruction: instruction,
-                  selected: modelName,
-                  custom_llm: customLLM,
-                },
-                  (data, error) => {
-                    console.log(data);
-                    if (error) {
-                      setResult({ result: error })
-                    } else if (data) {
-                      setResult(data)
-                    } else {
-                      setResult({ result: "NOT FOUND" })
-                    }
-                    setLoading(false);
-                  })
-              }}
+              onPress={doQueryWord}
             >
               <PlayIcon />
             </Button>
