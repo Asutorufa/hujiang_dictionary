@@ -1,6 +1,6 @@
 "use client"
 
-import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownSection, DropdownTrigger, Switch, Textarea } from "@heroui/react";
+import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownSection, DropdownTrigger, Switch, Textarea, Tooltip } from "@heroui/react";
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
@@ -74,18 +74,21 @@ type TranslationSource = {
 };
 
 const translationSources: TranslationSource[] = [
-  { key: "weblio", name: "Weblio" },
-  { key: "ktbk", name: "コトバンク" },
   { key: "google", name: "Google Translate" },
   { key: "googlev1", name: "Google Translate(old API)" },
   { key: "m2m100_1_2b", name: "m2m100-1.2b" },
-  { key: "jc", name: "Japanese to Chinese" },
-  { key: "cj", name: "Chinese to Japanese" },
-  { key: "en", name: "English to Chinese" },
+];
+
+const dictSources = [
+  { key: "weblio", name: "Weblio" },
+  { key: "ktbk", name: "コトバンク" },
+  { key: "jc", name: "Japanese -> Chinese", tag: "hujiang" },
+  { key: "cj", name: "Japanese <- Chinese", tag: "hujiang" },
+  { key: "en", name: "English <-> Chinese", tag: "hujiang" },
 ];
 
 const translationMap = Object.fromEntries(
-  translationSources.map(({ key, name }) => [key, name])
+  [...translationSources, ...dictSources].map(({ key, name }) => [key, name])
 ) as Record<typeof translationSources[number]["key"], string>;
 
 export default function Home() {
@@ -193,7 +196,9 @@ export default function Home() {
                   variant="bordered"
                   className="shadow-md backdrop-blur-sm capitalize"
                 >
-                  {translationMap[selected] || customModels.find((cm) => Object.keys(cm).includes(selected))?.[selected].model || "Select"}
+                  <Tooltip content="Translate Method">
+                    {translationMap[selected] || customModels.find((cm) => Object.keys(cm).includes(selected))?.[selected].model || "Select"}
+                  </Tooltip>
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
@@ -202,10 +207,17 @@ export default function Home() {
                 onSelectionChange={(e) => e.currentKey && setSelected(e.currentKey)}
               >
                 <>
-                  <DropdownSection showDivider={customModels.length > 0}>
+                  <DropdownSection showDivider>
                     {
                       translationSources.map((source) => (
                         <DropdownItem key={source.key}>{source.name}</DropdownItem>
+                      ))
+                    }
+                  </DropdownSection>
+                  <DropdownSection showDivider={customModels.length > 0}>
+                    {
+                      dictSources.map((source) => (
+                        <DropdownItem shortcut={source.tag} key={source.key}>{source.name}</DropdownItem>
                       ))
                     }
                   </DropdownSection>
@@ -224,85 +236,95 @@ export default function Home() {
               </DropdownMenu>
             </Dropdown>
 
-            <Dropdown>
-              <DropdownTrigger>
-                <Button
-                  isIconOnly
-                  isDisabled={!showSelectLang(selected)}
-                  variant="bordered"
-                  className="shadow-md backdrop-blur-sm capitalize"
-                >
-                  <Avatar alt={languageMap[srcLang].name} className="w-6 h-6" src={`https://flagcdn.com/${languageMap[srcLang].icon}.svg`} />
-                  {/* {languageMap[srcLang].name || "Auto"} */}
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                selectionMode="single"
-                selectedKeys={[srcLang]}
-                onSelectionChange={(e) => e.currentKey !== undefined && e.currentKey !== null && setSrcLang(e.currentKey)}
-              >
-                {
-                  languages.map((lang) => (
-                    <DropdownItem
-                      key={lang.key}
-                      startContent={lang.icon ? <Avatar alt={lang.name} className="w-6 h-6" src={`https://flagcdn.com/${lang.icon}.svg`} /> : undefined}
+            {showSelectLang(selected) &&
+              <>
+                <Dropdown>
+                  <DropdownTrigger>
+                    <Button
+                      isIconOnly
+                      variant="bordered"
+                      className="shadow-md backdrop-blur-sm capitalize"
                     >
-                      {lang.name}
-                    </DropdownItem>
-                  ))
-                }
-              </DropdownMenu>
-            </Dropdown>
+                      <Tooltip content="Source Language">
+                        <Avatar alt={languageMap[srcLang].name} className="w-6 h-6" src={`https://flagcdn.com/${languageMap[srcLang].icon}.svg`} />
+                        {/* {languageMap[srcLang].name || "Auto"} */}
+                      </Tooltip>
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu
+                    selectionMode="single"
+                    selectedKeys={[srcLang]}
+                    onSelectionChange={(e) => e.currentKey !== undefined && e.currentKey !== null && setSrcLang(e.currentKey)}
+                  >
+                    {
+                      languages.map((lang) => (
+                        <DropdownItem
+                          key={lang.key}
+                          startContent={lang.icon ? <Avatar alt={lang.name} className="w-6 h-6" src={`https://flagcdn.com/${lang.icon}.svg`} /> : undefined}
+                        >
+                          {lang.name}
+                        </DropdownItem>
+                      ))
+                    }
+                  </DropdownMenu>
+                </Dropdown>
 
-            <Dropdown>
-              <DropdownTrigger>
-                <Button
-                  isIconOnly
-                  isDisabled={!showSelectLang(selected)}
-                  variant="bordered"
-                  className="shadow-md backdrop-blur-sm capitalize"
-                >
-                  <Avatar alt={languageMap[dstLang].name} className="w-6 h-6" src={`https://flagcdn.com/${languageMap[dstLang].icon}.svg`} />
-                  {/* {languageMap[dstLang].name || "Auto"} */}
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                selectionMode="single"
-                selectedKeys={[dstLang]}
-                onSelectionChange={(e) => e.currentKey !== undefined && e.currentKey !== null && setDstLang(e.currentKey)}
-              >
-                {
-                  languages.filter((lang) => lang.key !== "").map((lang) => (
-                    <DropdownItem
-                      key={lang.key}
-                      startContent={lang.icon ? <Avatar alt={lang.name} className="w-6 h-6" src={`https://flagcdn.com/${lang.icon}.svg`} /> : undefined}
+                <Dropdown>
+                  <DropdownTrigger>
+                    <Button
+                      isIconOnly
+                      variant="bordered"
+                      className="shadow-md backdrop-blur-sm capitalize"
                     >
-                      {lang.name}
-                    </DropdownItem>
-                  ))
-                }
-              </DropdownMenu>
-            </Dropdown>
+                      <Tooltip content="Target Language">
+                        <Avatar alt={languageMap[dstLang].name} className="w-6 h-6" src={`https://flagcdn.com/${languageMap[dstLang].icon}.svg`} />
+                        {/* {languageMap[dstLang].name || "Auto"} */}
+                      </Tooltip>
+                    </Button>
+                  </DropdownTrigger>
+                  <DropdownMenu
+                    selectionMode="single"
+                    selectedKeys={[dstLang]}
+                    onSelectionChange={(e) => e.currentKey !== undefined && e.currentKey !== null && setDstLang(e.currentKey)}
+                  >
+                    {
+                      languages.filter((lang) => lang.key !== "").map((lang) => (
+                        <DropdownItem
+                          key={lang.key}
+                          startContent={lang.icon ? <Avatar alt={lang.name} className="w-6 h-6" src={`https://flagcdn.com/${lang.icon}.svg`} /> : undefined}
+                        >
+                          {lang.name}
+                        </DropdownItem>
+                      ))
+                    }
+                  </DropdownMenu>
+                </Dropdown>
+              </>
+            }
           </div>
 
           <div className="flex justify-center gap-1">
-            <Button
-              isIconOnly
-              variant="bordered"
-              className="shadow-md backdrop-blur-sm"
-              isLoading={loading}
-              onPress={doQueryWord}
-            >
-              <PlayIcon />
-            </Button>
-            <Button
-              isIconOnly
-              variant="bordered"
-              className="shadow-md backdrop-blur-sm"
-              onPress={() => setOpen(true)}
-            >
-              <DiskIcon />
-            </Button>
+            <Tooltip content="Translate">
+              <Button
+                isIconOnly
+                variant="bordered"
+                className="shadow-md backdrop-blur-sm"
+                isLoading={loading}
+                onPress={doQueryWord}
+              >
+                <PlayIcon />
+              </Button>
+            </Tooltip>
+            <Tooltip content="Save To D1">
+              <Button
+                isIconOnly
+                variant="bordered"
+                className="shadow-md backdrop-blur-sm"
+                onPress={() => setOpen(true)}
+              >
+                <DiskIcon />
+              </Button>
+            </Tooltip>
           </div>
         </div>
 

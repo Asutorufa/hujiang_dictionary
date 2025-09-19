@@ -1,7 +1,7 @@
 "use client";
 
 import { BookIcon, changePriority, ConfirmModal, countWord, deleteWord, EditIcon, FilterIcon, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, Spoiler, TrashIcon } from "@/app/components";
-import { Button, Card, CardBody, CardHeader, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination, Spinner, Tab, Tabs } from "@heroui/react";
+import { Button, Card, CardBody, CardHeader, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination, Spinner, Tab, Tabs, Tooltip } from "@heroui/react";
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
@@ -206,7 +206,13 @@ export default function Words() {
                 <div className="flex flex-wrap gap-1">
                     <Dropdown>
                         <DropdownTrigger>
-                            <Button isDisabled={loading} isIconOnly size="md" variant="bordered" className="shadow-md backdrop-blur-sm"><FilterIcon /></Button>
+                            <Button isDisabled={loading} isIconOnly size="md" variant="bordered" className="shadow-md backdrop-blur-sm">
+                                <Tooltip content="Sort By">
+                                    <div>
+                                        <FilterIcon />
+                                    </div>
+                                </Tooltip>
+                            </Button>
                         </DropdownTrigger>
                         <DropdownMenu
                             selectionMode="single"
@@ -230,7 +236,13 @@ export default function Words() {
 
                     <Dropdown>
                         <DropdownTrigger>
-                            <Button isDisabled={loading} isIconOnly size="md" variant="bordered" className="shadow-md backdrop-blur-sm"><BookIcon /></Button>
+                            <Button isDisabled={loading} isIconOnly size="md" variant="bordered" className="shadow-md backdrop-blur-sm">
+                                <Tooltip content="Word Type">
+                                    <div>
+                                        <BookIcon />
+                                    </div>
+                                </Tooltip>
+                            </Button>
                         </DropdownTrigger>
                         <DropdownMenu
                             selectionMode="single"
@@ -242,17 +254,23 @@ export default function Words() {
                         </DropdownMenu>
                     </Dropdown>
 
-                    <Button isIconOnly onPress={() => setOpen(true)} size="md" variant="bordered" className="shadow-md backdrop-blur-sm">
-                        <PlusIcon />
-                    </Button>
+                    <Tooltip content="Add word">
+                        <Button isIconOnly onPress={() => setOpen(true)} size="md" variant="bordered" className="shadow-md backdrop-blur-sm">
+                            <PlusIcon />
+                        </Button>
+                    </Tooltip>
 
-                    <Button isIconOnly
-                        onPress={() => setRefresh(p => p + 1)}
-                        size="md" variant="bordered" className="shadow-md backdrop-blur-sm"
-                        isDisabled={loading}
-                    >
-                        <RefreshIcon />
-                    </Button>
+                    <Tooltip content="Refresh">
+                        <Button isIconOnly
+                            onPress={() => setRefresh(p => p + 1)}
+                            size="md"
+                            variant="bordered"
+                            className="shadow-md backdrop-blur-sm"
+                            isDisabled={loading}
+                        >
+                            <RefreshIcon />
+                        </Button>
+                    </Tooltip>
                 </div>
             </div>
 
