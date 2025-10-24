@@ -619,6 +619,7 @@ pub async fn send_random_word<T: DBv2, T2: WorkersAI>(
     Ok(())
 }
 
+
 pub async fn set_webhook(bot: &Bot, url: &str, matainer: i64) -> Result<(), Error> {
     info!("Registering webhook: {}", url);
 

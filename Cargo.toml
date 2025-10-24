@@ -35,12 +35,16 @@ reqwest = { version = "0.12", default-features = false, features = [
     "rustls-tls",
     "json",
 ] }
-frankenstein = { version = "0.44", features = ["client-reqwest"] }
+frankenstein = { version = "^0.45", features = ["client-reqwest"] }
 tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 env_logger = "0.11"
 cloudflare = { version = "0.14", default-features = false, features = [
     "rustls-tls",
 ] }
+scraper = "0.24"
+ego-tree = "0.10"
+html2text = { version = "^0.16", default-features = false }
+dom_smoothie = { version = "^0.13", features = ["aho-corasick"] }
 
 [profile.release]
 lto = true
