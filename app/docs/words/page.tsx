@@ -77,8 +77,8 @@ export default function Words() {
         priority: 0,
         type: 0
     }]);
-    const [page, setPage] = useState<number>(1);
-    const [total, setTotal] = useState<number>(100);
+    const [page, setPage] = useLocalStorage<number>("page", 1);
+    const [total, setTotal] = useLocalStorage<number>("total_page", 100);
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
@@ -105,10 +105,12 @@ export default function Words() {
     useEffect(() => {
         countWord(grammar, (size) => {
             if (size) {
-                setTotal(Math.ceil(size / 10))
+                const total = Math.ceil(size / 10)
+                setTotal(total)
+                if (page > total) setPage(total)
             }
         })
-    }, [setTotal, refresh, grammar])
+    }, [setTotal, refresh, grammar, page, setPage])
 
     useEffect(() => {
         setLoading(true)

@@ -1,7 +1,7 @@
 "use client"
 
 import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownSection, DropdownTrigger, Switch, Textarea, Tooltip } from "@heroui/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
@@ -125,33 +125,8 @@ export default function Home() {
     });
   }, [setCustomModels]);
 
-  useEffect(() => {
-    const handleKeyDown = async (e: KeyboardEvent) => {
-      // Windows/Linux: Ctrl, macOS: Meta(Command)
-      if (e.ctrlKey || e.metaKey) {
-        switch (e.key) {
-          case "s":
-            e.preventDefault();
-            setOpen(true);
-            break;
 
-          case "Enter":
-            e.preventDefault();
-            await doQueryWord();
-            break;
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [setOpen]);
-
-
-  const doQueryWord = async () => {
+  const doQueryWord = useCallback(async () => {
     if (!query) return;
     let modelName = selected;
     let customLLM: { name: string, model: string } | undefined;
@@ -181,7 +156,33 @@ export default function Home() {
         }
         setLoading(false);
       })
-  }
+  }, [query, srcLang, dstLang, googleSearch, instruction, selected, customModels, setResult, setLoading]);
+
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      // Windows/Linux: Ctrl, macOS: Meta(Command)
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case "s":
+            e.preventDefault();
+            setOpen(true);
+            break;
+
+          case "Enter":
+            e.preventDefault();
+            await doQueryWord();
+            break;
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [setOpen, doQueryWord]);
+
   return (
     <>
       <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={query} explain={result.result} type={0} />
