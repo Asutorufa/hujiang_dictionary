@@ -19,7 +19,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: echo "GITHUB_RUN_ID=$(gh run list -b react -w React -L 1 -s success --json databaseId -q .[0].databaseId)" >> $GITHUB_ENV
 
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v6
         with:
           name: statics
           path: web/out
@@ -109,17 +109,17 @@ jobs:
          cp target/${{ matrix.platform.target }}/release/hj${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }} hj-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
 
       - name: lambda-${{ matrix.platform.target }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: lambda-${{ matrix.platform.target }}
           path: lambda-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
       - name: tg-${{ matrix.platform.target }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tg-${{ matrix.platform.target }}
           path: tg-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
       - name: hj-${{ matrix.platform.target }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: hj-${{ matrix.platform.target }}
           path: hj-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
@@ -143,7 +143,7 @@ jobs:
 
       - name: download_artifacts
         id: download-artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           path: artifacts
 
