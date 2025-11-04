@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use aws_lambda_events::lambda_function_urls::LambdaFunctionUrlRequest;
 use base64::{Engine, engine::general_purpose};
-use hjcommon::d1::DBv2;
+use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{send_random_word, set_webhook};
 use hjnative::opts::run_opts;

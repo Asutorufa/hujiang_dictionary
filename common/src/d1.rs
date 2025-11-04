@@ -30,8 +30,6 @@ pub struct ColumnExist {
 #[derive(Debug)]
 pub struct Error(pub String);
 
-unsafe impl Send for Error {}
-
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -65,19 +63,6 @@ impl From<String> for Error {
 }
 
 pub trait DB {
-    fn save_word(&self, word: &str, explain: &str) -> impl Future<Output = Result<(), Error>>;
-    fn delete_word(&self, word: &str) -> impl Future<Output = Result<(), Error>>;
-    fn random_word(&self) -> impl Future<Output = Result<Word, Error>>;
-    fn list_word(
-        &self,
-        page_size: u64,
-        page_number: u64,
-        order_by: &str,
-    ) -> impl Future<Output = Result<Vec<Word>, Error>>;
-    fn create_table(&self) -> impl Future<Output = Result<(), Error>>;
-}
-
-pub trait DBv2 {
     fn exec<T>(&self, sql: SQL<'_>) -> impl Future<Output = Result<Vec<T>, Error>>
     where
         T: for<'a> Deserialize<'a>;
@@ -252,6 +237,10 @@ CREATE TABLE IF NOT EXISTS [words] (
     "priority" INTEGER DEFAULT 0,
     -- 0: word, 1: grammar
     "type" INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS [configurations] (
+    "key" TEXT PRIMARY KEY,
+    "value" TEXT
 );
 "#.to_string()
             }

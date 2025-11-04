@@ -10,6 +10,7 @@ serde_json = { workspace = true }
 reqwest = { workspace = true }
 log = { workspace = true }
 frankenstein = { workspace = true }
+rust-embed = { workspace = true }
 
 value2struct = { path = "../value2struct" }
 hjdict = { path = "../dict" }

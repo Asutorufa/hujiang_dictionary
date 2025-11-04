@@ -1,5 +1,7 @@
 #
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Asutorufa/hujiang_dictionary)
+
 - cloudflare api token need `d1` and `workers ai` permission.
 - Either `d1 database id` or `d1 database name` must be provided.
 
@@ -96,19 +98,18 @@ curl https://<lambda-url>/tgbot/register
 
 ## cloudflare workers
 
-set wrangler config in .env
+set wrangler config
 
 ```shell
-vim .env
-
+vim wrangler.toml
 # build and deploy
 cargo install worker-build
-sh deploy.sh
+npx wrangler deploy
 ```
 
-`.env` example
+`wrangler.toml` config example
 
-```shell
+```toml
 D1_DATABASE_NAME=dict # d1 database name
 D1_DATABASE_ID="57ccd046-bd5c-42a3-90a3-21da43bc119d" # d1 database id
 TELEGRAM_TOKEN="****:*****" # telegram bot token
@@ -116,10 +117,9 @@ ALLOW_USERS="12345678,-23456789,34567890" # allow telegram user id, split by com
 MAINTAINER_ID="12345678" # send random word to the chat id when cron job run
 WORKER_NAME="hj-dict" # cloudflare workers name
 SCHEDULE="*/20 0-15 * * *" # cron schedule
-CUSTOM_LLM_JSON_CONFIG="*****" # base64 of custom openai json
 ```
 
-custom openai json example
+custom openai api modal in `common/config/*.json`, which will auto merge all files
 
 ```json
 {
@@ -175,9 +175,5 @@ Deploy Command
 
 ```shell
 export PATH="$HOME/.cargo/bin:$PATH"
-sh deploy.sh
+npx wrangler deploy
 ```
-
-## Others
-
-- Golang Version: [branch golang](https://github.com/Asutorufa/hujiang_dictionary/tree/golang)

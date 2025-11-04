@@ -1,12 +1,11 @@
 pub mod ai;
 pub mod consolelog;
 pub mod d1;
-pub mod d1v1;
 
 use crate::{ai::WasmAI, d1::WasmD1};
 use frankenstein::{client_reqwest, updates::Update};
 use hjcommon::ai::OpenAI;
-use hjcommon::d1::DBv2;
+use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{self, send_random_word};
 use log::{debug, error, info};
@@ -57,7 +56,7 @@ async fn get_opt(env: Arc<Env>) -> Arc<RunOpt<WasmD1, WasmAI>> {
         workers_ai: WasmAI::new(env.clone(), "AI"),
         matainer: maintainer_id,
         bot: client_reqwest::Bot::new(&token),
-        custom_llms: OpenAI::from_env(get_string_from_env(env, "CUSTOM_LLM_JSON_CONFIG")),
+        custom_llms: OpenAI::from_assets(),
     })
 }
 

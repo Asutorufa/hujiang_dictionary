@@ -1,3 +1,4 @@
+use crate::assets::Assets;
 use base64::Engine;
 use hjdict::google_search::{self, Body};
 use log::info;
@@ -263,9 +264,6 @@ impl std::fmt::Display for Error {
     }
 }
 
-unsafe impl Send for Error {}
-unsafe impl Sync for Error {}
-
 impl From<reqwest::Error> for Error {
     fn from(value: reqwest::Error) -> Self {
         Self(value.to_string())
@@ -494,7 +492,7 @@ impl TranslateRequest<'_> {
 }
 
 impl OpenAI {
-    pub fn from_env(env: String) -> HashMap<String, OpenAI> {
+    pub fn from_base64_string(env: String) -> HashMap<String, OpenAI> {
         let env = match base64::engine::general_purpose::STANDARD.decode(env) {
             Ok(v) => v,
             Err(_) => return HashMap::new(),
@@ -504,6 +502,26 @@ impl OpenAI {
             Ok(v) => v,
             Err(_) => HashMap::new(),
         }
+    }
+
+    pub fn from_assets() -> HashMap<String, OpenAI> {
+        let mut llms = HashMap::new();
+        for v in Assets::iter() {
+            if !v.ends_with(".json") {
+                continue;
+            }
+
+            let f = match Assets::get(&v) {
+                Some(v) => v,
+                None => continue,
+            };
+
+            match serde_json::from_slice::<HashMap<String, OpenAI>>(&f.data) {
+                Ok(v) => llms.extend(v),
+                Err(_) => continue,
+            };
+        }
+        llms
     }
 
     pub fn new(name: &str, base_url: &str, api_key: &str, models: Vec<String>) -> Self {
@@ -715,5 +733,13 @@ mod test {
             })
             .await
         );
+    }
+
+    #[tokio::test]
+    async fn from_assets() {
+        let llms = crate::ai::OpenAI::from_assets();
+        for (k, _) in llms.iter() {
+            println!("{}", k);
+        }
     }
 }

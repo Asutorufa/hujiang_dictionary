@@ -45,6 +45,7 @@ scraper = "0.24"
 ego-tree = "0.10"
 html2text = { version = "^0.16", default-features = false }
 dom_smoothie = { version = "^0.13", features = ["aho-corasick"] }
+rust-embed = "8.7"
 
 [profile.release]
 lto = true

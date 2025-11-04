@@ -11,4 +11,3 @@ wrangler.deploy.toml
 .wrangler
 /dist
 /web/out
-/llm.json

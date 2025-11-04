@@ -7,10 +7,9 @@ command = "worker-build --release"
 cwd = "worker"
 
 [vars]
-TELEGRAM_TOKEN = "${TELEGRAM_TOKEN}"
-ALLOW_USERS = "${ALLOW_USERS}"
-MAINTAINER_ID = "${MAINTAINER_ID}"          # send random word to the chat id when cron job run
-CUSTOM_LLM_JSON_CONFIG="${CUSTOM_LLM_JSON_CONFIG}"
+TELEGRAM_TOKEN = ""
+ALLOW_USERS = ""
+MAINTAINER_ID = ""  # send random word to the chat id when cron job run
 
 [ai]
 binding = "AI"
@@ -20,11 +19,11 @@ enabled = true
 
 [[d1_databases]]
 binding = "DB"
-database_name = "${D1_DATABASE_NAME}"
-database_id = "${D1_DATABASE_ID}"
+database_name = ""
+database_id = ""
 
 [triggers]
-crons = ["${SCHEDULE}"] # UTC timezone
+crons = ["*/20 0-15 * * *"] # UTC timezone
 
 [placement]
 mode = "smart"

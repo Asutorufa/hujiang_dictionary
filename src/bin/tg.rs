@@ -5,7 +5,7 @@ use frankenstein::{
     methods::{DeleteWebhookParams, GetUpdatesParams, SendMessageParams},
     types::ChatId,
 };
-use hjcommon::d1::DBv2;
+use hjcommon::d1::DB;
 use hjcommon::tg::handle;
 use hjnative::opts::run_opts;
 use log::*;

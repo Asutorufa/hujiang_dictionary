@@ -1,4 +1,4 @@
-use hjcommon::d1::{DBv2, Error, SQL};
+use hjcommon::d1::{DB, Error, SQL};
 use log::*;
 use serde::{Deserialize, Serialize};
 
@@ -196,7 +196,7 @@ impl D1 {
     }
 }
 
-impl DBv2 for D1 {
+impl DB for D1 {
     async fn exec<T>(&self, sql: SQL<'_>) -> Result<Vec<T>, Error>
     where
         T: for<'a> Deserialize<'a>,
@@ -209,7 +209,7 @@ impl DBv2 for D1 {
 mod test {
     use std::fs;
 
-    use hjcommon::d1::{DBv2, SQL, Word};
+    use hjcommon::d1::DB;
     use serde::{Deserialize, Serialize};
 
     use crate::d1::D1;
@@ -234,20 +234,6 @@ mod test {
         .await;
 
         d1
-    }
-
-    #[tokio::test]
-    async fn test() {
-        let d1 = new_d1().await;
-
-        println!("random: {:?}", d1.random_word().await.unwrap());
-
-        let result = d1
-            .raw::<Word>(SQL::ListWord(10, 1, "word", 0))
-            .await
-            .unwrap();
-
-        println!("{:?}", result);
     }
 
     #[tokio::test]

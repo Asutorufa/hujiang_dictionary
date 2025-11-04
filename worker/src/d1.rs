@@ -1,4 +1,4 @@
-use hjcommon::d1::{DBv2, Error as D1Error, SQL};
+use hjcommon::d1::{DB, Error as D1Error, SQL};
 use log::info;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -21,8 +21,6 @@ impl From<Error> for D1Error {
 pub struct WasmD1 {
     d1: Option<Arc<D1Database>>,
 }
-
-unsafe impl Send for WasmD1 {}
 
 impl WasmD1 {
     pub async fn new(env: Arc<Env>, binding: &str) -> WasmD1 {
@@ -77,7 +75,7 @@ impl Clone for WasmD1 {
     }
 }
 
-impl DBv2 for WasmD1 {
+impl DB for WasmD1 {
     async fn exec<T>(&self, sql: SQL<'_>) -> Result<Vec<T>, D1Error>
     where
         T: for<'a> Deserialize<'a>,

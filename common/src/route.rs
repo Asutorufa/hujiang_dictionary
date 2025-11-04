@@ -4,7 +4,7 @@ use std::str;
 
 use crate::{
     ai::{self, Models, WorkersAI},
-    d1::{DBv2, Error as D1Error},
+    d1::{DB, Error as D1Error},
     opts::RunOpt,
 };
 
@@ -112,9 +112,6 @@ impl std::fmt::Display for Error {
     }
 }
 
-unsafe impl Send for Error {}
-unsafe impl Sync for Error {}
-
 impl std::error::Error for Error {}
 
 impl From<&str> for Error {
@@ -141,7 +138,7 @@ impl From<ai::Error> for Error {
     }
 }
 
-impl<T1: DBv2, T2: WorkersAI> RunOpt<T1, T2> {
+impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
     pub async fn route(&self, path: &str, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         match path {
             "/word/list" => self.list_word(body).await,
