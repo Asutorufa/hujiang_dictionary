@@ -380,8 +380,8 @@ impl ResponsesOutput {
     fn content(&self) -> String {
         self.content
             .iter()
-            .map(|c| c.text.clone())
-            .collect::<Vec<String>>()
+            .map(|c| c.text.as_ref())
+            .collect::<Vec<&str>>()
             .join("\n")
     }
 }

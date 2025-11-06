@@ -1,4 +1,4 @@
-name = "${WORKER_NAME}"
+name = "hj-rust"
 main = "worker/build/worker/shim.mjs"
 compatibility_date = "2023-03-22"
 

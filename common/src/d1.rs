@@ -134,8 +134,8 @@ pub trait DB {
 
     fn random_word(&self) -> impl Future<Output = Result<Word, Error>> {
         async move {
-            let words = match self.exec::<Word>(SQL::RandomNotRemind).await {
-                Ok(v) if !v.is_empty() => v[0].clone(),
+            let words = match self.exec::<Word>(SQL::RandomNotRemind).await?.first() {
+                Some(v) => v.clone(),
                 _ => self
                     .exec::<Word>(SQL::Random)
                     .await?

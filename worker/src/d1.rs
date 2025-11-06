@@ -23,7 +23,7 @@ pub struct WasmD1 {
 }
 
 impl WasmD1 {
-    pub async fn new(env: Arc<Env>, binding: &str) -> WasmD1 {
+    pub async fn new(env: &Env, binding: &str) -> WasmD1 {
         WasmD1 {
             d1: match env.d1(binding) {
                 Ok(v) => Some(Arc::new(v)),
@@ -43,14 +43,21 @@ impl WasmD1 {
     where
         T: for<'a> Deserialize<'a>,
     {
-        let result = self
+        let prepare_statement = self
             .get_d1()?
             .prepare(sql.sql())
             .bind(&sql.params())
-            .map_err(|v| Error(v))?
-            .run()
-            .await
             .map_err(|v| Error(v))?;
+
+        let result = match prepare_statement.run().await {
+            Ok(v) => Ok(v),
+            // Err(worker::Error::D1(e)) if e.cause().contains("no such table") => {
+            //     self.create_table().await?;
+            //     prepare_statement.run().await
+            // }
+            Err(e) => Err(e),
+        }
+        .map_err(|v| Error(v))?;
 
         info!(
             "exec sql [{}], args: [{:?}], result: {:?}",

@@ -52,7 +52,7 @@ fn response_and_tool_calls_result_to_completion_response(
 }
 
 impl WasmAI {
-    pub fn new(env: Arc<Env>, binding: &str) -> WasmAI {
+    pub fn new(env: &Env, binding: &str) -> WasmAI {
         Self {
             ai: match env.ai(binding) {
                 Ok(v) => Some(Arc::new(v)),
