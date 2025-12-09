@@ -11,9 +11,10 @@ export const SaveWordModal: FC<{
     origin?: string,
     word?: string,
     explain?: string,
+    example?: string,
     type: number,
     onSaved?: () => void
-}> = ({ open, onChange, origin, word, explain, type, onSaved }) => {
+}> = ({ open, onChange, origin, word, explain, type, onSaved, example }) => {
     const [saving, setSaving] = useState(false)
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
     const targetRef = useRef<HTMLElement>({} as HTMLElement);
@@ -27,11 +28,13 @@ export const SaveWordModal: FC<{
 
     const [newWord, setNewWord] = useState(word || "");
     const [newExplain, setNewExplain] = useState(explain || "");
+    const [newExample, setNewExample] = useState(example || "");
     const [newType, setNewType] = useState(type);
 
     useEffect(() => {
         setNewWord(word || "");
         setNewExplain(explain || "");
+        setNewExample(example || "");
         setNewType(type);
     }, [word, explain, type])
 
@@ -79,6 +82,14 @@ export const SaveWordModal: FC<{
                             placeholder="Enter explain"
                             variant="bordered"
                         />
+
+                        <Textarea
+                            label="Example"
+                            value={newExample}
+                            onChange={(p) => setNewExample(p.target.value)}
+                            placeholder="Enter example"
+                            variant="bordered"
+                        />
                     </ModalBody>
                     <ModalFooter>
                         <Button color="danger" variant="flat" onPress={onClose}>
@@ -87,10 +98,9 @@ export const SaveWordModal: FC<{
                         <Button color="primary" isLoading={saving} onPress={() => {
                             if (newWord.length === 0 || newExplain.length === 0) return
                             setSaving(true)
-                            saveWord(newWord, newExplain, newType, (error) => {
+                            saveWord(newWord, newExplain, newExample, newType, (error) => {
                                 setSaving(false)
                                 onClose()
-
                                 if (!error && onSaved) onSaved()
                             }, origin)
                         }}>
@@ -106,6 +116,7 @@ export const SaveWordModal: FC<{
 export type ListWordResponse = {
     word: string,
     explain: string,
+    example: string,
     add_time: number,
     update_time: number,
     reminder_time: number,
@@ -156,11 +167,12 @@ export async function countWord(grammar: boolean, callback: (size?: number, erro
     })
 }
 
-export async function saveWord(word: string, explain: string, type: number, callback: (error?: string) => void, originalWord?: string) {
+export async function saveWord(word: string, explain: string, example: string, type: number, callback: (error?: string) => void, originalWord?: string) {
     await wordRequest<object>("/word/save", JSON.stringify({
         origin: originalWord,
         word: word,
         explain: explain,
+        example: example,
         type: type
     }), (_, error) => {
         callback(error);

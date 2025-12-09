@@ -1,7 +1,7 @@
 "use client";
 
 import { BookIcon, changePriority, ConfirmModal, countWord, deleteWord, EditIcon, FilterIcon, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, Spoiler, TrashIcon } from "@/app/components";
-import { Button, Card, CardBody, CardHeader, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination, Spinner, Tab, Tabs, Tooltip } from "@heroui/react";
+import { Button, Card, CardBody, CardHeader, Divider, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination, Spinner, Tab, Tabs, Tooltip } from "@heroui/react";
 import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
@@ -70,6 +70,7 @@ export default function Words() {
     const [words, setWords] = useState<ListWordResponse[]>([{
         word: "",
         explain: "",
+        example: "",
         add_time: 0,
         update_time: 0,
         reminder_time: 0,
@@ -88,6 +89,7 @@ export default function Words() {
         {
             new: {
                 word: "",
+                example: "",
                 explain: "",
                 add_time: 0,
                 update_time: 0,
@@ -172,8 +174,14 @@ export default function Words() {
             }}
         />
 
-        <SaveWordModal open={open} onChange={(p) => setOpen(p)}
-            word={newWord.new.word} explain={newWord.new.explain} type={newWord.new.type} origin={newWord.origin}
+        <SaveWordModal
+            open={open}
+            onChange={(p) => setOpen(p)}
+            word={newWord.new.word}
+            explain={newWord.new.explain}
+            example={newWord.new.example}
+            type={newWord.new.type}
+            origin={newWord.origin}
             onSaved={() => { setRefresh(refresh + 1) }}
         />
 
@@ -321,6 +329,8 @@ export default function Words() {
                             <CardBody>
                                 <div className="px-2 py-1 rounded-small bg-default-100 group-data-[hover=true]:bg-default-200">
                                     <span className="text-tiny text-default-600 prose max-w-none dark:prose-invert">
+                                        <Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>{w.example.length > 0 ? w.example : "No Example"}</Markdown>
+                                        <Divider />
                                         <Spoiler>
                                             <Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>{w.explain}</Markdown>
                                         </Spoiler>
