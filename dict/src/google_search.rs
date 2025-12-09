@@ -46,7 +46,12 @@ pub async fn getv2(word: &str) -> Result<Vec<Body>, Error> {
         .await?;
 
     let status = r.status();
-    let body = trim_to_html(r.text().await?);
+
+    let text = r.text().await?;
+
+    // println!("{} {}", status, text);
+
+    let body = trim_to_html(text);
 
     if !status.is_success() {
         return Err(Error {
@@ -324,10 +329,6 @@ mod test {
         for v in v2text {
             match v {
                 Body::Link(link) => {
-                    if !link.url.contains("weblio") {
-                        continue;
-                    }
-
                     println!("{:?}", link.get_raw_page().await.unwrap());
                     break;
                 }

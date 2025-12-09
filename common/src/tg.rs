@@ -409,7 +409,15 @@ pub async fn answer<T: DB, T2: WorkersAI>(
                 ("".to_string(), "empty word or explain".to_string())
             } else {
                 parse_mode = frankenstein::ParseMode::Html;
-                match opt.d1.save_word(None, &word, &explain, 0).await {
+                match opt
+                    .d1
+                    .save_word(crate::d1::SaveWord {
+                        word: &word,
+                        explain: &explain,
+                        ..Default::default()
+                    })
+                    .await
+                {
                     Err(e) => ("".to_string(), e.to_string()),
                     Ok(_) => (
                         "".to_string(),
@@ -525,7 +533,11 @@ pub async fn callback_query<T: DB, T2: WorkersAI>(
 
             match opt
                 .d1
-                .save_word(None, v.as_ref(), explain.as_ref(), 0)
+                .save_word(crate::d1::SaveWord {
+                    word: &v,
+                    explain: &explain,
+                    ..Default::default()
+                })
                 .await
             {
                 Err(e) => {

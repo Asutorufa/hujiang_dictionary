@@ -6,6 +6,7 @@ use value2struct::FromValueVec;
 pub struct Word {
     pub word: String,
     pub explain: String,
+    pub example: String,
     add_time: i64,
     update_time: i64,
     reminder_time: i64,
@@ -67,16 +68,9 @@ pub trait DB {
     where
         T: for<'a> Deserialize<'a>;
 
-    fn save_word(
-        &self,
-        origin: Option<&str>,
-        word: &str,
-        explain: &str,
-        r#type: i64,
-    ) -> impl Future<Output = Result<(), Error>> {
+    fn save_word(&self, req: SaveWord) -> impl Future<Output = Result<(), Error>> {
         async move {
-            self.exec::<Empty>(SQL::SaveWord(origin, word, explain, r#type))
-                .await?;
+            self.exec::<Empty>(SQL::SaveWord(req)).await?;
             Ok(())
         }
     }
@@ -191,6 +185,7 @@ pub trait DB {
                 ("anki_count", "INTEGER DEFAULT 1"),
                 ("priority", "INTEGER DEFAULT 0"),
                 ("type", "INTEGER DEFAULT 0"),
+                ("example", "TEXT DEFAULT ''"),
             ])
             .await?;
 
@@ -199,12 +194,22 @@ pub trait DB {
     }
 }
 
+#[derive(Default)]
+pub struct SaveWord<'a> {
+    pub origin_word: Option<&'a str>,
+    pub word: &'a str,
+    pub explain: &'a str,
+    pub r#type: i64,
+    pub example: &'a str,
+}
+
 pub enum SQL<'a> {
     CreateTable,
     RandomNotRemind,
     Random,
     UpdateRemindTime(&'a str),
-    SaveWord(Option<&'a str>, &'a str, &'a str, i64),
+    // origin, word, explain, r#type
+    SaveWord(SaveWord<'a>),
     DeleteWord(&'a str),
     ListWord(u64, u64, &'a str, i64),
     CountWord(i64),
@@ -236,7 +241,8 @@ CREATE TABLE IF NOT EXISTS [words] (
     "anki_count" INTEGER DEFAULT 1,
     "priority" INTEGER DEFAULT 0,
     -- 0: word, 1: grammar
-    "type" INTEGER DEFAULT 0
+    "type" INTEGER DEFAULT 0,
+    "example" TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS [configurations] (
     "key" TEXT PRIMARY KEY,
@@ -245,12 +251,32 @@ CREATE TABLE IF NOT EXISTS [configurations] (
 "#.to_string()
             }
 
-            SQL::SaveWord(origin, now, _, _) =>   match origin {
-                    Some(word) if word!= now=>"UPDATE words SET word = ?, explain = ?, update_time = strftime('%s', 'now'), type = ? WHERE word = ?".to_string(),
+            SQL::SaveWord(req) =>   match req.origin_word {
+                    Some(word) if word!=req.word=>"UPDATE words SET word = ?, explain = ?, update_time = strftime('%s', 'now'), type = ?, example = ? WHERE word = ?".to_string(),
                     _ => r#"
-                        INSERT INTO words (word, explain, add_time, update_time, type) 
-                        VALUES (?, ?, strftime('%s', 'now'), strftime('%s', 'now'), ?) 
-                        ON CONFLICT(word) DO UPDATE SET explain = ?, update_time = strftime('%s', 'now'), type = ?
+INSERT INTO words (
+	word
+	,explain
+	,add_time
+	,update_time
+	,type
+	,example
+	)
+VALUES (
+	?
+	,?
+	,strftime('%s', 'now')
+	,strftime('%s', 'now')
+	,?
+	,?
+	) 
+ON CONFLICT(word) DO
+UPDATE
+SET
+    explain = excluded.explain,
+    update_time = strftime('%s', 'now'),
+    type = excluded.type,
+    example = excluded.example
                     "#.to_string(),
                 }
             SQL::DeleteWord(_) => "DELETE FROM words WHERE word = ?".to_string(),
@@ -277,19 +303,19 @@ END AS exist;
 
     pub fn params<T: From<String>>(&self) -> Vec<T> {
         match self {
-            SQL::SaveWord(origin, word, explain, r#type) => match origin {
-                Some(origin) if origin != word => vec![
-                    (*word).to_string().into(),
-                    (*explain).to_string().into(),
-                    (*r#type).to_string().into(),
+            SQL::SaveWord(req) => match req.origin_word {
+                Some(origin) if origin != req.word => vec![
+                    (*req.word).to_string().into(),
+                    (*req.explain).to_string().into(),
+                    (req.r#type).to_string().into(),
+                    (*req.example).to_string().into(),
                     (*origin).to_string().into(),
                 ],
                 _ => vec![
-                    (*word).to_string().into(),
-                    (*explain).to_string().into(),
-                    (*r#type).to_string().into(),
-                    (*explain).to_string().into(),
-                    (*r#type).to_string().into(),
+                    (*req.word).to_string().into(),
+                    (*req.explain).to_string().into(),
+                    (req.r#type).to_string().into(),
+                    (*req.example).to_string().into(),
                 ],
             },
 

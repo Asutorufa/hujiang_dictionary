@@ -4,7 +4,7 @@ use std::str;
 
 use crate::{
     ai::{self, Models, WorkersAI},
-    d1::{DB, Error as D1Error},
+    d1::{DB, Error as D1Error, SaveWord},
     opts::RunOpt,
 };
 
@@ -22,6 +22,7 @@ pub struct SaveWordRequest {
     pub word: String,
     pub explain: String,
     pub r#type: Option<i64>,
+    pub example: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -186,12 +187,13 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
         let req = serde_json::from_slice::<SaveWordRequest>(&body)?;
 
         self.d1
-            .save_word(
-                req.origin.as_deref(),
-                &req.word,
-                &req.explain,
-                req.r#type.unwrap_or(0),
-            )
+            .save_word(SaveWord {
+                origin_word: req.origin.as_deref(),
+                word: &req.word,
+                explain: &req.explain,
+                r#type: req.r#type.unwrap_or(0),
+                example: &req.example.unwrap_or("".to_string()),
+            })
             .await?;
 
         Ok(['{' as u8, '}' as u8].to_vec())
