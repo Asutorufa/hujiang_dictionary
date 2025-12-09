@@ -29,23 +29,28 @@ hjdict = { path = "./dict" }
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-log = "0.4"
-base64 = "0.22"
-reqwest = { version = "0.12", default-features = false, features = [
+log = "^0.4"
+base64 = "^0.22"
+reqwest = { version = "^0.12", default-features = false, features = [
     "rustls-tls",
     "json",
 ] }
 frankenstein = { version = "^0.45", features = ["client-reqwest"] }
 tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 env_logger = "0.11"
-cloudflare = { version = "0.14", default-features = false, features = [
+cloudflare = { version = "^0.14", default-features = false, features = [
     "rustls-tls",
 ] }
-scraper = "0.24"
-ego-tree = "0.10"
+scraper = "^0.25"
+ego-tree = "^0.10"
 html2text = { version = "^0.16", default-features = false }
-dom_smoothie = { version = "^0.13", features = ["aho-corasick"] }
-rust-embed = "8.7"
+dom_smoothie = { version = "^0.14", features = ["aho-corasick"] }
+rust-embed = "^8.7"
+worker = { version = "^0.7", features = ["d1"] }
+worker-macros = "^0.7"
+console_error_panic_hook = "^0.1"
+wasm-bindgen = "^0.2"
+web-sys = { version = "^0.3", features = ["console"] }
 
 [profile.release]
 lto = true
