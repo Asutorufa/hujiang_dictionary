@@ -186,6 +186,7 @@ pub trait DB {
                 ("priority", "INTEGER DEFAULT 0"),
                 ("type", "INTEGER DEFAULT 0"),
                 ("example", "TEXT DEFAULT ''"),
+                ("rand_key", "INTEGER"),
             ])
             .await?;
 
@@ -224,9 +225,9 @@ impl<'a> SQL<'a> {
     pub fn sql(&self) -> String {
         match self {
             SQL::RandomNotRemind => {
-                "SELECT * FROM words WHERE reminder_time <= strftime('%s', 'now') - 43200 ORDER BY RANDOM() LIMIT 1".to_string()
+                "SELECT * FROM words WHERE reminder_time <= strftime('%s', 'now') - 43200 AND rand_key >= abs(random()) ORDER BY rand_key LIMIT 1".to_string()
             }
-            SQL::Random => "SELECT * FROM words ORDER BY RANDOM() LIMIT 1".to_string(),
+            SQL::Random => "SELECT * FROM words WHERE rand_key >= abs(random()) ORDER BY rand_key LIMIT 1;".to_string(),
             SQL::UpdateRemindTime(_) => {
                 "UPDATE words SET reminder_time = strftime('%s', 'now') WHERE word = ?".to_string()
             }
@@ -242,12 +243,18 @@ CREATE TABLE IF NOT EXISTS [words] (
     "priority" INTEGER DEFAULT 0,
     -- 0: word, 1: grammar
     "type" INTEGER DEFAULT 0,
-    "example" TEXT DEFAULT ''
+    "example" TEXT DEFAULT '',
+    "rand_key" INTEGER
 );
 CREATE TABLE IF NOT EXISTS [configurations] (
     "key" TEXT PRIMARY KEY,
     "value" TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_word_key ON words(word);
+CREATE INDEX IF NOT EXISTS idx_type_key ON words(type);
+CREATE INDEX IF NOT EXISTS idx_rand_key ON words(rand_key);
+CREATE INDEX IF NOT EXISTS idx_reminder_time_key ON words(reminder_time);
+CREATE INDEX IF NOT EXISTS idx_words_reminder_rand ON words(reminder_time, rand_key);
 "#.to_string()
             }
 
@@ -255,20 +262,22 @@ CREATE TABLE IF NOT EXISTS [configurations] (
                     Some(word) if word!=req.word=>"UPDATE words SET word = ?, explain = ?, update_time = strftime('%s', 'now'), type = ?, example = ? WHERE word = ?".to_string(),
                     _ => r#"
 INSERT INTO words (
-	word
-	,explain
-	,add_time
-	,update_time
-	,type
-	,example
+	word,
+    explain,
+    add_time,
+    update_time,
+    type,
+    example,
+    rand_key
 	)
 VALUES (
-	?
-	,?
-	,strftime('%s', 'now')
-	,strftime('%s', 'now')
-	,?
-	,?
+	?,
+    ?,
+    strftime('%s', 'now'),
+    strftime('%s', 'now'),
+    ?,
+    ?,
+    abs(random())
 	) 
 ON CONFLICT(word) DO
 UPDATE
