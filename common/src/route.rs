@@ -159,8 +159,8 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
 
         let order_by = req.order_by.clone().unwrap_or("word".to_string());
 
-        let order_by = if order_by.ends_with(" desc") {
-            order_by.strip_suffix(" desc").unwrap().to_string()
+        let order_by = if let Some(r) = order_by.strip_suffix(" desc") {
+            r.to_string()
         } else {
             order_by
         };
@@ -293,39 +293,46 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
             _ => None,
         };
 
-        if response.is_some() {
-            let r = response.unwrap();
-
+        if let Some(response) = response {
             return Ok(serde_json::to_vec(&WordQueryResponse {
-                result: r.content,
-                reasoning: r.reasoning,
+                result: response.content,
+                reasoning: response.reasoning,
             })?);
         }
 
         let result = match req.method.as_str() {
-            "jc" => jp::get(req.word.as_str(), "jc")
-                .await
-                .unwrap()
-                .iter()
-                .map(|x| x.markdown())
-                .collect::<Vec<_>>()
-                .join("\n"),
-            "cj" => jp::get(req.word.as_str(), "cj")
-                .await
-                .unwrap()
-                .iter()
-                .map(|x| x.markdown())
-                .collect::<Vec<_>>()
-                .join("\n"),
-            "en" => en::get(req.word.as_str())
-                .await
-                .unwrap()
-                .iter()
-                .map(|x| x.markdown())
-                .collect::<Vec<_>>()
-                .join("\n"),
-            "weblio" => weblio::get(&req.word).await.unwrap().join("\n"),
-            "ktbk" => kotobakku::get(&req.word).await.unwrap().join("\n"),
+            "jc" => match jp::get(req.word.as_str(), "jc").await {
+                Ok(v) => v
+                    .iter()
+                    .map(|x| x.markdown())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                Err(e) => return Err(Error(e.to_string())),
+            },
+            "cj" => match jp::get(req.word.as_str(), "cj").await {
+                Ok(v) => v
+                    .iter()
+                    .map(|x| x.markdown())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                Err(e) => return Err(Error(e.to_string())),
+            },
+            "en" => match en::get(req.word.as_str()).await {
+                Ok(v) => v
+                    .iter()
+                    .map(|x| x.markdown())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                Err(e) => return Err(Error(e.to_string())),
+            },
+            "weblio" => match weblio::get(&req.word).await {
+                Ok(v) => v.join("\n"),
+                Err(e) => return Err(Error(e.to_string())),
+            },
+            "ktbk" => match kotobakku::get(&req.word).await {
+                Ok(v) => v.join("\n"),
+                Err(e) => return Err(Error(e.to_string())),
+            },
             "m2m100_1_2b" => {
                 self.workers_ai
                     .m2m100_1_2b(
@@ -346,13 +353,14 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
                     }
                 };
 
-                query(req.src_lang, target.as_ref())
-                    .await
-                    .unwrap()
-                    .iter()
-                    .map(|x| x.translation.as_ref())
-                    .collect::<Vec<_>>()
-                    .join("")
+                match query(req.src_lang, target.as_ref()).await {
+                    Ok(v) => v
+                        .iter()
+                        .map(|x| x.translation.as_ref())
+                        .collect::<Vec<_>>()
+                        .join(""),
+                    Err(e) => return Err(Error(e.to_string())),
+                }
             }
             _ => {
                 format!("Unknown command: {}", req.method)

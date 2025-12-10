@@ -89,9 +89,10 @@ pub trait WorkersAI {
                 Models::Gemma3_12bIt | Models::Llama4Scout17B16EInstruct => {
                     let result = self.completion(req.completion_request()).await?;
 
-                    match result.choices.len() {
-                        0 => Err(Error("no choice".to_string())),
-                        _ => Ok(result.choices.first().unwrap().message.to_response()),
+                    if let Some(r) = result.choices.first() {
+                        Ok(r.message.to_response())
+                    } else {
+                        Err(Error("no choice".to_string()))
                     }
                 }
 
@@ -127,9 +128,10 @@ pub trait WorkersAI {
                 Models::Gemma3_12bIt | Models::Llama4Scout17B16EInstruct => {
                     let result = self.completion(req.completion_request()).await?;
 
-                    match result.choices.len() {
-                        0 => Err(Error("no choice".to_string())),
-                        _ => Ok(result.choices.first().unwrap().message.to_response()),
+                    if let Some(r) = result.choices.first() {
+                        Ok(r.message.to_response())
+                    } else {
+                        Err(Error("no choice".to_string()))
                     }
                 }
 
@@ -556,7 +558,7 @@ impl OpenAI {
         path: &str,
         input: I,
     ) -> Result<O, Error> {
-        let body = serde_json::to_string(&input).unwrap();
+        let body = serde_json::to_string(&input)?;
 
         let r = reqwest::Client::builder()
             .build()?
@@ -645,8 +647,8 @@ impl OpenAI {
             let instruction = match req.instruction {
                 Some(i) if !i.is_empty() => Some(i.to_string()),
                 _ => {
-                    if req.dst_lang.is_some() {
-                        Some(format!("\nTarget Language: {}", req.dst_lang.unwrap()))
+                    if let Some(dst) = req.dst_lang {
+                        Some(format!("\nTarget Language: {}", dst))
                     } else {
                         None
                     }
@@ -663,9 +665,10 @@ impl OpenAI {
 
             let result = self.completion(req.completion_request()).await?;
 
-            match result.choices.len() {
-                0 => Err(Error("no choice".to_string())),
-                _ => Ok(result.choices.first().unwrap().message.to_response()),
+            if let Some(r) = result.choices.first() {
+                Ok(r.message.to_response())
+            } else {
+                Err(Error("no choice".to_string()))
             }
         }
     }
@@ -677,8 +680,8 @@ impl OpenAI {
         async move {
             let mut instruction = google_search(req.query).await?;
 
-            if req.dst_lang.is_some() {
-                instruction.push_str(&format!("\nTarget Language: {}", req.dst_lang.unwrap()));
+            if let Some(dst) = req.dst_lang {
+                instruction.push_str(&format!("\nTarget Language: {}", dst));
             }
 
             info!("google search instruct: {}", instruction);
@@ -693,9 +696,10 @@ impl OpenAI {
 
             let result = self.completion(req.completion_request()).await?;
 
-            match result.choices.len() {
-                0 => Err(Error("no choice".to_string())),
-                _ => Ok(result.choices.first().unwrap().message.to_response()),
+            if let Some(r) = result.choices.first() {
+                Ok(r.message.to_response())
+            } else {
+                Err(Error("no choice".to_string()))
             }
         }
     }
