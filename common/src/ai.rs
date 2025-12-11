@@ -1,6 +1,6 @@
 use crate::assets::Assets;
 use base64::Engine;
-use hjdict::google_search::{self, Body};
+use hjdict::{duckduckgo_search, google_search::Body};
 use log::info;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::collections::{HashMap, HashSet};
@@ -146,7 +146,7 @@ pub trait WorkersAI {
 }
 
 async fn google_search(query: &str) -> Result<String, Error> {
-    let result = match google_search::getv2(query).await {
+    let result = match duckduckgo_search::get(query).await {
         Ok(v) => v,
         Err(e) => return Err(Error::from(e.to_string())),
     };
