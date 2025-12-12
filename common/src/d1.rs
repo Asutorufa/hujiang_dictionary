@@ -250,6 +250,10 @@ CREATE TABLE IF NOT EXISTS [configurations] (
     "key" TEXT PRIMARY KEY,
     "value" TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_word_key ON words(word);
+CREATE INDEX IF NOT EXISTS idx_type_key ON words(type);
+CREATE INDEX IF NOT EXISTS idx_rand_key ON words(rand_key);
+CREATE INDEX IF NOT EXISTS idx_reminder_time_key ON words(reminder_time);
 CREATE INDEX IF NOT EXISTS idx_type_reminder_time_key ON words(type, reminder_time);
 CREATE INDEX IF NOT EXISTS idx_type_update_time_key ON words(type, update_time);
 CREATE INDEX IF NOT EXISTS idx_type_add_time_key ON words(type, add_time);
