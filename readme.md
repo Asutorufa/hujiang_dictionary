@@ -24,7 +24,7 @@ see [telegram bot](#telegram-bot)
 - `cj <word>` - Chinese to Japanese
 - `en <word>` - English to Japanese
 - `weblio <word>` - weblio
-- `ktbk <word>` - コトバック
+- `ktbk <word>` - コトバンク
 - `google <target> <words>` - Google Translate, eg: google en こんにちは
 
 Example:

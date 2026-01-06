@@ -1,4 +1,4 @@
-use hjdict::{en, google, jp, kotobakku, weblio};
+use hjdict::{en, google, jp, kotobanku, weblio};
 use serde::{Deserialize, Serialize};
 use std::str;
 
@@ -329,7 +329,7 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
                 Ok(v) => v.join("\n"),
                 Err(e) => return Err(Error(e.to_string())),
             },
-            "ktbk" => match kotobakku::get(&req.word).await {
+            "ktbk" => match kotobanku::get(&req.word).await {
                 Ok(v) => v.join("\n"),
                 Err(e) => return Err(Error(e.to_string())),
             },

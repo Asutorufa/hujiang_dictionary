@@ -9,7 +9,7 @@ use frankenstein::types::{
     ChatId, LinkPreviewOptions, MaybeInaccessibleMessage, MessageEntityType,
 };
 use frankenstein::updates::UpdateContent;
-use hjdict::{en, google, jp, kotobakku, weblio};
+use hjdict::{en, google, jp, kotobanku, weblio};
 use log::*;
 use std::sync::Arc;
 
@@ -51,7 +51,7 @@ pub fn bot_commands() -> Vec<frankenstein::types::BotCommand> {
         },
         frankenstein::types::BotCommand {
             command: "ktbk".to_string(),
-            description: "コトバック".to_string(),
+            description: "コトバンク".to_string(),
         },
         frankenstein::types::BotCommand {
             command: "gemma".to_string(),
@@ -357,7 +357,7 @@ pub async fn answer<T: DB, T2: WorkersAI>(
                 vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
             ),
         },
-        Command::Ktbk(word) => match kotobakku::get(word.as_str()).await {
+        Command::Ktbk(word) => match kotobanku::get(word.as_str()).await {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(v) => {
                 let reply = vec_string_markdown_escape(&v);
