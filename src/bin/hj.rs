@@ -1,6 +1,6 @@
 use std::env::args;
 
-use hjdict::{en, google, jp, kotobakku, weblio};
+use hjdict::{en, google, jp, kotobanku, weblio};
 
 #[tokio::main]
 async fn main() {
@@ -17,7 +17,7 @@ async fn main() {
   cj <word> - Chinese to Japanese
   en <word> - English to Japanese
   weblio <word> - weblio
-  ktbk <word> - コトバック
+  ktbk <word> - コトバンク
   google <target> <words> - Google Translate, eg: google en こんにちは
   googlev1 <target> <words> - Old Google Translate API, eg: googlev1 en こんにちは
   help - show this message"#
@@ -49,7 +49,7 @@ async fn main() {
             .collect::<Vec<_>>()
             .join("\n"),
         "weblio" => weblio::get(&word).await.unwrap().join("\n"),
-        "ktbk" => kotobakku::get(&word).await.unwrap().join("\n"),
+        "ktbk" => kotobanku::get(&word).await.unwrap().join("\n"),
         "google" | "googlev1" => {
             let target = &args[1];
             let words = args[2..].join(" ");

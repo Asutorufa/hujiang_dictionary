@@ -76,7 +76,7 @@ pub async fn get(str: &str) -> Result<Vec<String>, Error> {
 
 #[cfg(test)]
 mod test {
-    use crate::kotobakku::get;
+    use crate::kotobanku::get;
 
     #[tokio::test]
     async fn get_test() {
