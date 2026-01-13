@@ -60,6 +60,7 @@ const languages = [
   { key: "ja", name: "Japanese", icon: "jp" },
   { key: "zh", name: "Chinese", icon: "cn" },
   { key: "en", name: "English", icon: "us" },
+  { key: "ko", name: "Korean", icon: "kr" },
 ]
 
 
@@ -84,6 +85,7 @@ const dictSources = [
   { key: "ktbk", name: "コトバンク" },
   { key: "jc", name: "Japanese -> Chinese", tag: "hujiang" },
   { key: "cj", name: "Japanese <- Chinese", tag: "hujiang" },
+  { key: "kr", name: "Korean <-> Chinese", tag: "hujiang" },
   { key: "en", name: "English <-> Chinese", tag: "hujiang" },
 ];
 
