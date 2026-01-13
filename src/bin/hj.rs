@@ -1,6 +1,5 @@
+use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use std::env::args;
-
-use hjdict::{en, google, jp, kotobanku, weblio};
 
 #[tokio::main]
 async fn main() {
@@ -35,6 +34,13 @@ async fn main() {
             .collect::<Vec<_>>()
             .join("\n"),
         "cj" => jp::get(word.as_str(), "cj")
+            .await
+            .unwrap()
+            .iter()
+            .map(|x| x.markdown())
+            .collect::<Vec<_>>()
+            .join("\n"),
+        "kr" => kr::get(word.as_str())
             .await
             .unwrap()
             .iter()

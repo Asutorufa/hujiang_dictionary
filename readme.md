@@ -32,6 +32,7 @@ Example:
 ```shell
 ./target/release/hj jc こんにちは
 ./target/release/hj cj 你好
+./target/release/hj kr 안녕하세요
 ./target/release/hj en hello
 ./target/release/hj en 你好
 ./target/release/hj weblio こんにちは

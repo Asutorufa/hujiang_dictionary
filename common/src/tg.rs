@@ -9,7 +9,7 @@ use frankenstein::types::{
     ChatId, LinkPreviewOptions, MaybeInaccessibleMessage, MessageEntityType,
 };
 use frankenstein::updates::UpdateContent;
-use hjdict::{en, google, jp, kotobanku, weblio};
+use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use log::*;
 use std::sync::Arc;
 
@@ -17,6 +17,7 @@ use std::sync::Arc;
 pub enum Command {
     JPCN(String),
     CNJP(String),
+    KR(String),
     EN(String),
     Weblio(String),
     Ktbk(String),
@@ -282,6 +283,7 @@ pub fn parse_command(
     match command {
         "cnjp" => Ok((Command::CNJP(quote_or_argument), None)),
         "jpcn" => Ok((Command::JPCN(quote_or_argument), None)),
+        "kr" => Ok((Command::KR(quote_or_argument), None)),
         "en" => Ok((Command::EN(quote_or_argument), None)),
         "weblio" => Ok((Command::Weblio(quote_or_argument), None)),
         "ktbk" => Ok((Command::Ktbk(quote_or_argument), None)),
@@ -351,6 +353,13 @@ pub async fn answer<T: DB, T2: WorkersAI>(
             ),
         },
         Command::JPCN(word) => match jp::get(word.as_str(), "jc").await {
+            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Ok(v) => (
+                word,
+                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
+            ),
+        },
+        Command::KR(word) => match kr::get(word.as_str()).await {
             Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
             Ok(v) => (
                 word,

@@ -1,4 +1,4 @@
-use hjdict::{en, google, jp, kotobanku, weblio};
+use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use serde::{Deserialize, Serialize};
 use std::str;
 
@@ -310,6 +310,14 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
                 Err(e) => return Err(Error(e.to_string())),
             },
             "cj" => match jp::get(req.word.as_str(), "cj").await {
+                Ok(v) => v
+                    .iter()
+                    .map(|x| x.markdown())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                Err(e) => return Err(Error(e.to_string())),
+            },
+            "kr" => match kr::get(req.word.as_str()).await {
                 Ok(v) => v
                     .iter()
                     .map(|x| x.markdown())

@@ -5,4 +5,5 @@ pub mod google;
 pub mod google_search;
 pub mod jp;
 pub mod kotobanku;
+pub mod kr;
 pub mod weblio;
