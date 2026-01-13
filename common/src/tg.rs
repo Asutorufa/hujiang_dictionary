@@ -43,6 +43,10 @@ pub fn bot_commands() -> Vec<frankenstein::types::BotCommand> {
             description: "cn -> jp".to_string(),
         },
         frankenstein::types::BotCommand {
+            command: "kr".to_string(),
+            description: "kr <-> cn".to_string(),
+        },
+        frankenstein::types::BotCommand {
             command: "en".to_string(),
             description: "en <-> cn".to_string(),
         },

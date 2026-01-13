@@ -13,3 +13,4 @@ scraper = { workspace = true }
 ego-tree = { workspace = true }
 html2text = { workspace = true }
 dom_smoothie = { workspace = true }
+url = { workspace = true }

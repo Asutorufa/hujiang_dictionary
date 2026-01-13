@@ -2,8 +2,10 @@ use crate::{
     en::{COOKIE, USER_AGENT},
     error::Error,
 };
+use log::info;
 use scraper::{Html, Selector};
 use std::fmt::Write;
+use url::form_urlencoded;
 
 #[derive(Debug, Default)]
 pub struct Word {
@@ -94,9 +96,14 @@ impl Word {
 }
 
 pub async fn get(word: &str) -> Result<Vec<Word>, Error> {
+    info!("Fetching Korean dictionary for word: {}", word);
+
     let r = reqwest::Client::builder()
         .build()?
-        .get(format!("https://dict.hjenglish.com/kr/{}", word))
+        .get(format!(
+            "https://dict.hjenglish.com/kr/{}",
+            form_urlencoded::byte_serialize(word.as_bytes()).collect::<String>()
+        ))
         .header("User-Agent", USER_AGENT)
         .header("Cookie", COOKIE)
         .send()

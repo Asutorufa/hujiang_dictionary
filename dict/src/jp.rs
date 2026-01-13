@@ -4,6 +4,7 @@ use crate::{
 };
 use scraper::{ElementRef, Selector};
 use std::fmt::Write;
+use url::form_urlencoded;
 
 #[derive(Debug)]
 pub struct Simple {
@@ -96,7 +97,11 @@ impl Word {
 pub async fn get(word: &str, t: &str) -> Result<Vec<Word>, Error> {
     let r = reqwest::Client::builder()
         .build()?
-        .get(format!("https://dict.hjenglish.com/jp/{}/{}", t, word))
+        .get(format!(
+            "https://dict.hjenglish.com/jp/{}/{}",
+            t,
+            form_urlencoded::byte_serialize(word.as_bytes()).collect::<String>()
+        ))
         .header("User-Agent", USER_AGENT)
         .header("Cookie", COOKIE)
         .send()

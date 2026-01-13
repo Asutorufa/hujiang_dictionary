@@ -1,11 +1,15 @@
 use scraper::{Html, Selector};
+use url::form_urlencoded;
 
 use crate::error::Error;
 
 pub async fn get(str: &str) -> Result<Vec<String>, Error> {
     let r = reqwest::Client::builder()
         .build()?
-        .get(format!("https://www.weblio.jp/content/{}", str))
+        .get(format!(
+            "https://www.weblio.jp/content/{}",
+            form_urlencoded::byte_serialize(str.as_bytes()).collect::<String>()
+        ))
         .send()
         .await?;
 

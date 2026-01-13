@@ -1,11 +1,15 @@
 use scraper::Selector;
+use url::form_urlencoded;
 
 use crate::error::Error;
 
 pub async fn get(str: &str) -> Result<Vec<String>, Error> {
     let r = reqwest::Client::builder()
         .build()?
-        .get(format!("https://kotobank.jp/word/{}", str))
+        .get(format!(
+            "https://kotobank.jp/word/{}",
+            form_urlencoded::byte_serialize(str.as_bytes()).collect::<String>()
+        ))
         .send()
         .await?;
 
