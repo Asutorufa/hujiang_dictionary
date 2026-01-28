@@ -2,7 +2,7 @@
 
 import { BookIcon, changePriority, countWord, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, queryWord, Spoiler } from "@/app/components";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Spinner, Tab, Tabs } from "@heroui/react";
-import { AnimatePresence, motion, PanInfo, useAnimation, useMotionValue, useTransform } from "framer-motion";
+import { AnimatePresence, motion, useAnimation, useMotionValue, useTransform } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
@@ -40,14 +40,11 @@ export default function Flashcard() {
 
         const neededChunks: number[] = [];
 
-        // Check if we loaded this chunk
         if (!loadedChunksRef.current.has(targetPage)) {
              neededChunks.push(targetPage);
         }
 
-        // Check next chunk
-        if (targetIndex % CHUNK_SIZE > 5) { // If past half-way
-             // We can just check the chunk index
+        if (targetIndex % CHUNK_SIZE > 5) {
              if (!loadedChunksRef.current.has(targetPage + 1)) {
                  neededChunks.push(targetPage + 1);
              }
@@ -55,7 +52,6 @@ export default function Flashcard() {
 
         if (neededChunks.length > 0) {
             setLoading(true);
-            // Mark as loading/loaded to prevent duplicate requests
             neededChunks.forEach(c => loadedChunksRef.current.add(c));
 
             await Promise.all(neededChunks.map(p =>
@@ -65,8 +61,6 @@ export default function Flashcard() {
                             setWordsMap(prev => {
                                 const newMap = new Map(prev);
                                 data.forEach((w, i) => {
-                                    // Calculate absolute index
-                                    // (p-1)*CHUNK + 1 + i
                                     const absIndex = (p - 1) * CHUNK_SIZE + 1 + i;
                                     newMap.set(absIndex, w);
                                 });
@@ -81,9 +75,7 @@ export default function Flashcard() {
         }
     }, [orderBy, grammar, CHUNK_SIZE]);
 
-    // Initial load and on change
     useEffect(() => {
-        // Reset map on filter change
         setWordsMap(new Map());
         loadedChunksRef.current.clear();
         fetchChunksIfNeeded(page);
@@ -91,8 +83,6 @@ export default function Flashcard() {
 
     useEffect(() => {
         fetchChunksIfNeeded(page);
-
-        // Count update
         countWord(grammar, (size) => {
             if (size) setTotal(size);
         });
@@ -100,36 +90,23 @@ export default function Flashcard() {
 
     const currentWord = wordsMap.get(page);
 
-    // Animation controls
     const controls = useAnimation();
     const x = useMotionValue(0);
     const rotate = useTransform(x, [-200, 200], [-10, 10]);
     const opacityRight = useTransform(x, [50, 150], [0, 1]);
     const opacityLeft = useTransform(x, [-150, -50], [1, 0]);
 
-    const handleSwipe = async (action: 'know' | 'skip') => {
+    const handleSwipe = useCallback(async (action: 'know' | 'skip') => {
         if (action === 'know') {
             await controls.start({ x: 500, opacity: 0 });
             if (currentWord) {
                 await incrementRemindCount(currentWord.word, () => {});
             }
-        } else { // 'skip'
+        } else {
             await controls.start({ x: -500, opacity: 0 });
         }
-        // Move next
         setPage(p => Math.min(p + 1, total));
-    };
-
-    const handleDragEnd = async (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-        const threshold = 100;
-        if (info.offset.x > threshold) {
-            await handleSwipe('know');
-        } else if (info.offset.x < -threshold) {
-            await handleSwipe('skip');
-        } else {
-            controls.start({ x: 0, rotate: 0, scale: 1 });
-        }
-    };
+    }, [controls, currentWord, setPage, total]);
 
     const handleLongPress = () => {
         if (currentWord) {
@@ -138,6 +115,89 @@ export default function Flashcard() {
             });
         }
     };
+
+    // Custom Swipe Logic
+    const isDragging = useRef(false);
+    const startX = useRef(0);
+    const startY = useRef(0);
+    const isScrolling = useRef(false);
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+        isDragging.current = false;
+        isScrolling.current = false;
+        startX.current = e.clientX;
+        startY.current = e.clientY;
+
+        // Start long press timer
+        longPressTimer.current = setTimeout(handleLongPress, 800);
+
+        // We don't capture yet. We wait to see if it's a scroll or swipe.
+    };
+
+    useEffect(() => {
+        const handlePointerMove = (e: PointerEvent) => {
+            if (longPressTimer.current && (Math.abs(e.clientX - startX.current) > 10 || Math.abs(e.clientY - startY.current) > 10)) {
+                clearTimeout(longPressTimer.current);
+            }
+
+            if (isScrolling.current) return;
+
+            const dx = e.clientX - startX.current;
+            const dy = e.clientY - startY.current;
+
+            if (isDragging.current) {
+                e.preventDefault(); // Prevent scroll if we are already dragging
+                x.set(dx);
+            } else {
+                // Determine intent
+                // Ignore small movements
+                if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    // Horizontal swipe detected
+                    isDragging.current = true;
+                    x.set(dx);
+                    // Capture pointer to ensure we get events even if mouse leaves or we go over scrollable areas
+                    // But we can't easily capture on window.
+                    // We rely on window listener.
+                    // e.preventDefault() here might be too late for some browsers to stop scroll,
+                    // but combined with touch-action: pan-y on the element, browser shouldn't have started horizontal scroll (nav).
+                } else {
+                    // Vertical scroll detected
+                    isScrolling.current = true;
+                }
+            }
+        };
+
+        const handlePointerUp = (e: PointerEvent) => {
+            if (longPressTimer.current) clearTimeout(longPressTimer.current);
+
+            if (isDragging.current) {
+                const dx = e.clientX - startX.current;
+                const threshold = 100;
+                if (dx > threshold) {
+                    handleSwipe('know');
+                } else if (dx < -threshold) {
+                    handleSwipe('skip');
+                } else {
+                    controls.start({ x: 0, rotate: 0, scale: 1 });
+                }
+            }
+            isDragging.current = false;
+            isScrolling.current = false;
+        };
+
+        window.addEventListener("pointermove", handlePointerMove, { passive: false });
+        window.addEventListener("pointerup", handlePointerUp);
+        window.addEventListener("pointercancel", handlePointerUp);
+
+        return () => {
+            window.removeEventListener("pointermove", handlePointerMove);
+            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("pointercancel", handlePointerUp);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [controls, currentWord, handleSwipe, x]); // Add deps if needed
 
     return (
         <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden items-center relative p-4">
@@ -211,33 +271,15 @@ export default function Flashcard() {
                 <AnimatePresence mode="wait">
                     {currentWord && (
                         <motion.div
-                            key={page} // Key change triggers mount/unmount animation
+                            key={page}
                             initial={{ opacity: 0, y: 50, scale: 0.9 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, x: 0 }} // Exit handled by manual controls for swipe, but this handles 'back' or abrupt changes
+                            exit={{ opacity: 0, x: 0 }}
                             transition={{ duration: 0.2 }}
 
-                            // Drag props
-                            drag="x"
-                            dragConstraints={{ left: 0, right: 0 }}
-
                             style={{ x, rotate, touchAction: "pan-y" }}
-                            onDragEnd={handleDragEnd}
-                            className="w-full h-full max-h-[600px] absolute cursor-grab active:cursor-grabbing select-none"
-
-                            // Long press simulation using Framer Motion gestures
-                            onTapStart={() => {
-                                longPressTimer.current = setTimeout(handleLongPress, 800);
-                            }}
-                            onTapCancel={() => {
-                                if (longPressTimer.current) clearTimeout(longPressTimer.current);
-                            }}
-                            onTap={() => {
-                                if (longPressTimer.current) clearTimeout(longPressTimer.current);
-                            }}
-                            onDragStart={() => {
-                                if (longPressTimer.current) clearTimeout(longPressTimer.current);
-                            }}
+                            className="w-full h-full max-h-[600px] absolute select-none"
+                            onPointerDown={handlePointerDown}
                         >
                              {/* Visual Feedback Overlays */}
                              <motion.div
