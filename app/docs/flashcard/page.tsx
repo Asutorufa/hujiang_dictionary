@@ -1,9 +1,9 @@
 "use client";
 
-import { BookIcon, changePriority, countWord, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, queryWord } from "@/app/components";
-import { Button, Card, CardBody, CardHeader, Divider, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Spinner, Tab, Tabs } from "@heroui/react";
-import { motion, PanInfo, useAnimation, useMotionValue, useTransform } from "framer-motion";
-import { useEffect, useState } from "react";
+import { BookIcon, changePriority, countWord, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, queryWord, Spoiler } from "@/app/components";
+import { addToast, Button, Card, CardBody, CardHeader, Divider, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Spinner, Tab, Tabs } from "@heroui/react";
+import { AnimatePresence, motion, PanInfo, useAnimation, useMotionValue, useTransform } from "framer-motion";
+import { useCallback, useEffect, useState } from "react";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { Streamdown } from "streamdown";
@@ -18,59 +18,101 @@ const CrossIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10s10-4.47 10-10S17.53 2 12 2m5 13.59L15.59 17L12 13.41L8.41 17L7 15.59L10.59 12L7 8.41L8.41 7L12 10.59L15.59 7L17 8.41L13.41 12z" /></svg>
 );
 
-export default function Flashcard() {
-    const [wordData, setWordData] = useState<ListWordResponse | null>(null);
-    const [page, setPage] = useLocalStorage<number>("flashcard_page", 1);
-    const [total, setTotal] = useLocalStorage<number>("total_page", 100);
+const LeftArrowIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6l6 6l1.41-1.41L10.83 12z" /></svg>
+);
 
-    const [loading, setLoading] = useState(false);
+export default function Flashcard() {
+    const [page, setPage] = useLocalStorage<number>("flashcard_page_v2", 1);
+    const [total, setTotal] = useLocalStorage<number>("total_page", 100);
     const [orderBy, setOrderBy] = useLocalStorage("order_by", "word");
     const [grammar, setGrammar] = useLocalStorage("grammar", false);
 
+    const [wordsMap, setWordsMap] = useState<Map<number, ListWordResponse>>(new Map());
+    const [loading, setLoading] = useState(false);
+
+    const CHUNK_SIZE = 10;
+
+    const fetchChunksIfNeeded = useCallback(async (targetIndex: number) => {
+        const targetPage = Math.ceil(targetIndex / CHUNK_SIZE);
+
+        const neededChunks: number[] = [];
+
+        // Check current chunk
+        const startOfCurrentChunk = (targetPage - 1) * CHUNK_SIZE + 1;
+        if (!wordsMap.has(startOfCurrentChunk)) {
+             neededChunks.push(targetPage);
+        }
+
+        // Check next chunk
+        if (targetIndex % CHUNK_SIZE > 5) { // If past half-way
+             const startOfNext = (targetPage) * CHUNK_SIZE + 1;
+             if (!wordsMap.has(startOfNext)) {
+                 neededChunks.push(targetPage + 1);
+             }
+        }
+
+        if (neededChunks.length > 0) {
+            setLoading(true);
+            await Promise.all(neededChunks.map(p =>
+                new Promise<void>(resolve => {
+                    queryWord(p, CHUNK_SIZE, orderBy, grammar, (data) => {
+                        if (data) {
+                            setWordsMap(prev => {
+                                const newMap = new Map(prev);
+                                data.forEach((w, i) => {
+                                    // Calculate absolute index
+                                    // (p-1)*CHUNK + 1 + i
+                                    const absIndex = (p - 1) * CHUNK_SIZE + 1 + i;
+                                    newMap.set(absIndex, w);
+                                });
+                                return newMap;
+                            });
+                        }
+                        resolve();
+                    });
+                })
+            ));
+            setLoading(false);
+        }
+    }, [orderBy, grammar, wordsMap, CHUNK_SIZE]);
+
+    // Initial load and on change
+    useEffect(() => {
+        // Reset map on filter change
+        setWordsMap(new Map());
+        fetchChunksIfNeeded(page);
+    }, [orderBy, grammar, fetchChunksIfNeeded, page]);
+
+    useEffect(() => {
+        fetchChunksIfNeeded(page);
+
+        // Count update
+        countWord(grammar, (size) => {
+            if (size) setTotal(size);
+        });
+    }, [page, grammar, orderBy, fetchChunksIfNeeded, setTotal]);
+
+    const currentWord = wordsMap.get(page);
+
+    // Animation controls
     const controls = useAnimation();
     const x = useMotionValue(0);
     const rotate = useTransform(x, [-200, 200], [-10, 10]);
     const opacityRight = useTransform(x, [50, 150], [0, 1]);
     const opacityLeft = useTransform(x, [-150, -50], [1, 0]);
-    const scale = useTransform(x, [-200, 0, 200], [0.9, 1, 0.9]);
-
-    // Fetch total count to know limits
-    useEffect(() => {
-        countWord(grammar, (size) => {
-            if (size) {
-                setTotal(size);
-                if (page > size && size > 0) setPage(1);
-            }
-        });
-    }, [grammar, page, setPage, setTotal]);
-
-    // Fetch current word
-    useEffect(() => {
-        setLoading(true);
-        setWordData(null);
-        x.set(0);
-        controls.set({ x: 0, opacity: 1, scale: 1, rotate: 0 });
-
-        queryWord(page, 1, orderBy, grammar, (data) => {
-            if (data && data.length > 0) {
-                setWordData(data[0]);
-            } else {
-                setWordData(null);
-            }
-            setLoading(false);
-        });
-    }, [page, orderBy, grammar, controls, x]);
 
     const handleSwipe = async (action: 'know' | 'skip') => {
         if (action === 'know') {
             await controls.start({ x: 500, opacity: 0 });
-            if (wordData) {
-                await incrementRemindCount(wordData.word, () => {});
+            if (currentWord) {
+                await incrementRemindCount(currentWord.word, () => {});
             }
         } else { // 'skip'
             await controls.start({ x: -500, opacity: 0 });
         }
-        setPage(p => p + 1);
+        // Move next
+        setPage(p => Math.min(p + 1, total));
     };
 
     const handleDragEnd = async (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
@@ -80,8 +122,15 @@ export default function Flashcard() {
         } else if (info.offset.x < -threshold) {
             await handleSwipe('skip');
         } else {
-            // Reset
             controls.start({ x: 0, rotate: 0, scale: 1 });
+        }
+    };
+
+    const handleLongPress = () => {
+        if (currentWord) {
+            navigator.clipboard.writeText(currentWord.word).then(() => {
+                addToast({ title: "Copied!", color: "success" });
+            });
         }
     };
 
@@ -91,7 +140,7 @@ export default function Flashcard() {
             <div className="flex gap-2 mb-4 z-10 w-full justify-center">
                 <Dropdown>
                     <DropdownTrigger>
-                        <Button isDisabled={loading} variant="bordered" className="shadow-md backdrop-blur-sm capitalize">
+                        <Button isDisabled={loading && wordsMap.size === 0} variant="bordered" className="shadow-md backdrop-blur-sm capitalize">
                             <FilterIcon /> {orderBy.replace("_", " ")}
                         </Button>
                     </DropdownTrigger>
@@ -101,10 +150,10 @@ export default function Flashcard() {
                         onSelectionChange={(e) => {
                             const val = e.currentKey ? String(e.currentKey) : "word";
                             setOrderBy(val);
-                            setPage(1); // Reset to start on sort change
+                            setPage(1);
                         }}
                     >
-                         <DropdownItem key="word">Word</DropdownItem>
+                        <DropdownItem key="word">Word</DropdownItem>
                         <DropdownItem key="word desc">Word DESC</DropdownItem>
                         <DropdownItem key="priority">Priority</DropdownItem>
                         <DropdownItem key="priority desc">Priority DESC</DropdownItem>
@@ -121,7 +170,7 @@ export default function Flashcard() {
 
                 <Dropdown>
                     <DropdownTrigger>
-                        <Button isDisabled={loading} variant="bordered" className="shadow-md backdrop-blur-sm capitalize">
+                        <Button isDisabled={loading && wordsMap.size === 0} variant="bordered" className="shadow-md backdrop-blur-sm capitalize">
                             <BookIcon /> {grammar ? "Grammar" : "Word"}
                         </Button>
                     </DropdownTrigger>
@@ -145,117 +194,163 @@ export default function Flashcard() {
 
             {/* Main Content Area */}
             <div className="flex-1 w-full max-w-md flex items-center justify-center relative">
-                {loading && <Spinner size="lg" />}
+                {loading && wordsMap.size === 0 && <Spinner size="lg" />}
 
-                {!loading && !wordData && (
+                {!loading && wordsMap.size === 0 && (
                     <div className="text-center text-default-500">
                         <p>No words found.</p>
                         <Button className="mt-4" onPress={() => setPage(1)}>Reset to start</Button>
                     </div>
                 )}
 
-                {!loading && wordData && (
-                    <motion.div
-                        drag="x"
-                        dragConstraints={{ left: 0, right: 0 }}
-                        animate={controls}
-                        style={{ x, rotate, scale, touchAction: "none" }}
-                        onDragEnd={handleDragEnd}
-                        className="w-full h-full max-h-[600px] absolute cursor-grab active:cursor-grabbing"
-                    >
-                         {/* Visual Feedback Overlays */}
-                         <motion.div
-                            className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
-                            style={{ opacity: opacityRight }}
-                         >
-                            <div className="text-success p-6 rounded-full border-4 border-success bg-background/80 backdrop-blur-sm">
-                                <CheckIcon />
-                            </div>
-                         </motion.div>
+                <AnimatePresence mode="wait">
+                    {currentWord && (
+                        <motion.div
+                            key={page} // Key change triggers mount/unmount animation
+                            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, x: 0 }} // Exit handled by manual controls for swipe, but this handles 'back' or abrupt changes
+                            transition={{ duration: 0.2 }}
 
-                         <motion.div
-                            className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
-                            style={{ opacity: opacityLeft }}
-                         >
-                            <div className="text-danger p-6 rounded-full border-4 border-danger bg-background/80 backdrop-blur-sm">
-                                <CrossIcon />
-                            </div>
-                         </motion.div>
+                            // Drag props
+                            drag="x"
+                            dragConstraints={{ left: 0, right: 0 }}
+                            // We need to pass controls to animate prop, BUT we also want entrance animation.
+                            // Framer Motion allows animate to be a variant string or object or controls.
+                            // When using controls, initial/exit might fight.
+                            // Strategy: Use a wrapper for entrance/exit? Or just set controls initially?
+                            // Actually, standard swipe cards often don't use AnimatePresence for the SWIPE itself if using controls.
+                            // But here we want NEW card to enter.
 
-                        <Card className="w-full h-full shadow-xl bg-content1 border border-default-200">
-                            <CardHeader className="flex justify-between items-start pb-0">
-                                <span className="text-default-500 text-sm">
-                                    Count: {wordData.anki_count}
-                                </span>
-                                <Tabs
-                                    size="sm"
-                                    variant="solid"
-                                    color={getPriorityColor(wordData.priority)}
-                                    selectedKey={wordData.priority.toString()}
-                                    onSelectionChange={(e) => {
-                                        const newP = parseInt(e.toString());
-                                        changePriority(wordData.word, newP, (err) => {
-                                            if (!err) {
-                                                setWordData({ ...wordData, priority: newP });
-                                            }
-                                        });
-                                    }}
-                                >
-                                    <Tab title="Low" key={0} />
-                                    <Tab title="Medium" key={1} />
-                                    <Tab title="High" key={2} />
-                                </Tabs>
-                            </CardHeader>
+                            // Let's bind controls to this element.
+                            // Note: `animate={controls}` overrides `animate={{...}}`.
+                            // So we need to start controls with the "entered" state.
+                            onAnimationComplete={() => {
+                                // controls.set({ x: 0, opacity: 1, scale: 1 });
+                            }}
 
-                            <CardBody className="flex flex-col items-center pt-8 px-6 text-center overflow-y-auto scrollbar-hide">
-                                <h1 className="text-4xl font-bold mb-6 break-words w-full">
-                                    {wordData.word}
-                                </h1>
+                            style={{ x, rotate, touchAction: "none" }}
+                            onDragEnd={handleDragEnd}
+                            className="w-full h-full max-h-[600px] absolute cursor-grab active:cursor-grabbing"
 
-                                <Divider className="my-4" />
-
-                                <div className="w-full text-left prose max-w-none dark:prose-invert flex-1">
-                                    {wordData.example && (
-                                        <div className="mb-4 bg-default-50 p-3 rounded-lg">
-                                            <p className="font-semibold text-xs text-default-400 mb-1">EXAMPLE</p>
-                                            <Streamdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
-                                                {wordData.example}
-                                            </Streamdown>
-                                        </div>
-                                    )}
-
-                                    <div className="mt-4">
-                                        <p className="font-semibold text-xs text-default-400 mb-1">EXPLANATION</p>
-                                        <Streamdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
-                                            {wordData.explain}
-                                        </Streamdown>
-                                    </div>
+                            // Long press simulation
+                            onPointerDown={(e) => {
+                                // Start timer
+                                const timer = setTimeout(handleLongPress, 800);
+                                const target = e.target as HTMLElement;
+                                target.addEventListener("pointerup", () => clearTimeout(timer), { once: true });
+                                target.addEventListener("pointercancel", () => clearTimeout(timer), { once: true });
+                            }}
+                        >
+                             {/* Visual Feedback Overlays */}
+                             <motion.div
+                                className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
+                                style={{ opacity: opacityRight }}
+                             >
+                                <div className="text-success p-6 rounded-full border-4 border-success bg-background/80 backdrop-blur-sm">
+                                    <CheckIcon />
                                 </div>
-                            </CardBody>
+                             </motion.div>
 
-                            {/* Mobile/Desktop helper instructions or buttons if drag is hard */}
-                            <div className="p-4 flex justify-between w-full border-t border-default-100">
-                                <Button
-                                    color="danger"
-                                    variant="flat"
-                                    onPress={() => handleSwipe('skip')}
-                                >
-                                    Skip
-                                </Button>
-                                <span className="text-xs text-default-400 flex items-center">
-                                    Swipe Left/Right
-                                </span>
-                                <Button
-                                    color="success"
-                                    variant="flat"
-                                    onPress={() => handleSwipe('know')}
-                                >
-                                    Know
-                                </Button>
-                            </div>
-                        </Card>
-                    </motion.div>
-                )}
+                             <motion.div
+                                className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
+                                style={{ opacity: opacityLeft }}
+                             >
+                                <div className="text-danger p-6 rounded-full border-4 border-danger bg-background/80 backdrop-blur-sm">
+                                    <CrossIcon />
+                                </div>
+                             </motion.div>
+
+                            <Card className="w-full h-full shadow-xl bg-content1 border border-default-200">
+                                <CardHeader className="flex justify-between items-start pb-0">
+                                    <span className="text-default-500 text-sm">
+                                        Count: {currentWord.anki_count}
+                                    </span>
+                                    <Tabs
+                                        size="sm"
+                                        variant="solid"
+                                        color={getPriorityColor(currentWord.priority)}
+                                        selectedKey={currentWord.priority.toString()}
+                                        onSelectionChange={(e) => {
+                                            const newP = parseInt(e.toString());
+                                            changePriority(currentWord.word, newP, (err) => {
+                                                if (!err) {
+                                                    setWordsMap(prev => {
+                                                        const newMap = new Map(prev);
+                                                        const w = newMap.get(page);
+                                                        if (w) w.priority = newP;
+                                                        return newMap;
+                                                    });
+                                                }
+                                            });
+                                        }}
+                                    >
+                                        <Tab title="Low" key={0} />
+                                        <Tab title="Medium" key={1} />
+                                        <Tab title="High" key={2} />
+                                    </Tabs>
+                                </CardHeader>
+
+                                <CardBody className="flex flex-col items-center pt-8 px-6 text-center overflow-y-auto scrollbar-hide">
+                                    <h1 className="text-4xl font-bold mb-6 break-words w-full select-text">
+                                        {currentWord.word}
+                                    </h1>
+
+                                    <Divider className="my-4" />
+
+                                    <div className="w-full text-left prose max-w-none dark:prose-invert flex-1">
+                                        <Spoiler>
+                                            {currentWord.example && (
+                                                <div className="mb-4 bg-default-50 p-3 rounded-lg">
+                                                    <p className="font-semibold text-xs text-default-400 mb-1">EXAMPLE</p>
+                                                    <Streamdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
+                                                        {currentWord.example}
+                                                    </Streamdown>
+                                                </div>
+                                            )}
+
+                                            <div className="mt-4">
+                                                <p className="font-semibold text-xs text-default-400 mb-1">EXPLANATION</p>
+                                                <Streamdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
+                                                    {currentWord.explain}
+                                                </Streamdown>
+                                            </div>
+                                        </Spoiler>
+                                    </div>
+                                </CardBody>
+
+                                <div className="p-4 flex justify-between w-full border-t border-default-100">
+                                    <Button
+                                        color="danger"
+                                        variant="flat"
+                                        onPress={() => handleSwipe('skip')}
+                                    >
+                                        Skip
+                                    </Button>
+
+                                    <div className="flex gap-2">
+                                         <Button
+                                            isIconOnly
+                                            variant="light"
+                                            isDisabled={page <= 1}
+                                            onPress={() => setPage(p => Math.max(1, p - 1))}
+                                         >
+                                            <LeftArrowIcon />
+                                         </Button>
+                                    </div>
+
+                                    <Button
+                                        color="success"
+                                        variant="flat"
+                                        onPress={() => handleSwipe('know')}
+                                    >
+                                        Know
+                                    </Button>
+                                </div>
+                            </Card>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );
