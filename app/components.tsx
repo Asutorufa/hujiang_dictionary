@@ -304,3 +304,23 @@ export const Spoiler: FC<{ children: ReactNode }> = ({ children }) => {
         </div>
     );
 }
+
+export function getPriorityColor(priority: number) {
+    if (priority === 0) {
+        return "success"
+    } else if (priority === 1) {
+        return "warning"
+    } else {
+        return "secondary"
+    }
+}
+
+export function getPriorityText(priority: number) {
+    if (priority === 0) {
+        return "Low"
+    } else if (priority === 1) {
+        return "Medium"
+    } else {
+        return "High"
+    }
+}
