@@ -61,19 +61,24 @@ export default function Flashcard() {
         });
     }, [page, orderBy, grammar, controls, x]);
 
-    const handleDragEnd = async (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-        const threshold = 100;
-        if (info.offset.x > threshold) {
-            // Swipe Right - Remember
+    const handleSwipe = async (action: 'know' | 'skip') => {
+        if (action === 'know') {
             await controls.start({ x: 500, opacity: 0 });
             if (wordData) {
                 await incrementRemindCount(wordData.word, () => {});
             }
-            setPage(p => p + 1);
-        } else if (info.offset.x < -threshold) {
-            // Swipe Left - Skip/Forgot
+        } else { // 'skip'
             await controls.start({ x: -500, opacity: 0 });
-            setPage(p => p + 1);
+        }
+        setPage(p => p + 1);
+    };
+
+    const handleDragEnd = async (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+        const threshold = 100;
+        if (info.offset.x > threshold) {
+            await handleSwipe('know');
+        } else if (info.offset.x < -threshold) {
+            await handleSwipe('skip');
         } else {
             // Reset
             controls.start({ x: 0, rotate: 0, scale: 1 });
@@ -233,9 +238,7 @@ export default function Flashcard() {
                                 <Button
                                     color="danger"
                                     variant="flat"
-                                    onPress={() => {
-                                        controls.start({ x: -500, opacity: 0 }).then(() => setPage(p => p + 1));
-                                    }}
+                                    onPress={() => handleSwipe('skip')}
                                 >
                                     Skip
                                 </Button>
@@ -245,12 +248,7 @@ export default function Flashcard() {
                                 <Button
                                     color="success"
                                     variant="flat"
-                                    onPress={() => {
-                                        controls.start({ x: 500, opacity: 0 }).then(() => {
-                                            incrementRemindCount(wordData.word, () => {});
-                                            setPage(p => p + 1);
-                                        });
-                                    }}
+                                    onPress={() => handleSwipe('know')}
                                 >
                                     Know
                                 </Button>
