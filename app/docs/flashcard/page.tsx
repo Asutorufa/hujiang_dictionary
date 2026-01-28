@@ -3,7 +3,7 @@
 import { BookIcon, changePriority, countWord, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, queryWord, Spoiler } from "@/app/components";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Spinner, Tab, Tabs } from "@heroui/react";
 import { AnimatePresence, motion, PanInfo, useAnimation, useMotionValue, useTransform } from "framer-motion";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { Streamdown } from "streamdown";
@@ -30,6 +30,7 @@ export default function Flashcard() {
 
     const [wordsMap, setWordsMap] = useState<Map<number, ListWordResponse>>(new Map());
     const [loading, setLoading] = useState(false);
+    const loadedChunksRef = useRef<Set<number>>(new Set());
 
     const CHUNK_SIZE = 10;
 
@@ -38,22 +39,24 @@ export default function Flashcard() {
 
         const neededChunks: number[] = [];
 
-        // Check current chunk
-        const startOfCurrentChunk = (targetPage - 1) * CHUNK_SIZE + 1;
-        if (!wordsMap.has(startOfCurrentChunk)) {
+        // Check if we loaded this chunk
+        if (!loadedChunksRef.current.has(targetPage)) {
              neededChunks.push(targetPage);
         }
 
         // Check next chunk
         if (targetIndex % CHUNK_SIZE > 5) { // If past half-way
-             const startOfNext = (targetPage) * CHUNK_SIZE + 1;
-             if (!wordsMap.has(startOfNext)) {
+             // We can just check the chunk index
+             if (!loadedChunksRef.current.has(targetPage + 1)) {
                  neededChunks.push(targetPage + 1);
              }
         }
 
         if (neededChunks.length > 0) {
             setLoading(true);
+            // Mark as loading/loaded to prevent duplicate requests
+            neededChunks.forEach(c => loadedChunksRef.current.add(c));
+
             await Promise.all(neededChunks.map(p =>
                 new Promise<void>(resolve => {
                     queryWord(p, CHUNK_SIZE, orderBy, grammar, (data) => {
@@ -75,12 +78,13 @@ export default function Flashcard() {
             ));
             setLoading(false);
         }
-    }, [orderBy, grammar, wordsMap, CHUNK_SIZE]);
+    }, [orderBy, grammar, CHUNK_SIZE]);
 
     // Initial load and on change
     useEffect(() => {
         // Reset map on filter change
         setWordsMap(new Map());
+        loadedChunksRef.current.clear();
         fetchChunksIfNeeded(page);
     }, [orderBy, grammar, fetchChunksIfNeeded, page]);
 
