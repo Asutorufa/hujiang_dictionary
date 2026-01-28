@@ -221,9 +221,9 @@ export default function Flashcard() {
                             drag="x"
                             dragConstraints={{ left: 0, right: 0 }}
 
-                            style={{ x, rotate, touchAction: "none" }}
+                            style={{ x, rotate, touchAction: "pan-y" }}
                             onDragEnd={handleDragEnd}
-                            className="w-full h-full max-h-[600px] absolute cursor-grab active:cursor-grabbing"
+                            className="w-full h-full max-h-[600px] absolute cursor-grab active:cursor-grabbing select-none"
 
                             // Long press simulation using Framer Motion gestures
                             onTapStart={() => {
@@ -289,7 +289,7 @@ export default function Flashcard() {
                                 </CardHeader>
 
                                 <CardBody className="flex flex-col items-center pt-8 px-6 text-center overflow-y-auto scrollbar-hide">
-                                    <h1 className="text-4xl font-bold mb-6 break-words w-full select-text">
+                                    <h1 className="text-4xl font-bold mb-6 break-words w-full">
                                         {currentWord.word}
                                     </h1>
 
