@@ -31,6 +31,7 @@ export default function Flashcard() {
     const [wordsMap, setWordsMap] = useState<Map<number, ListWordResponse>>(new Map());
     const [loading, setLoading] = useState(false);
     const loadedChunksRef = useRef<Set<number>>(new Set());
+    const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
     const CHUNK_SIZE = 10;
 
@@ -219,31 +220,23 @@ export default function Flashcard() {
                             // Drag props
                             drag="x"
                             dragConstraints={{ left: 0, right: 0 }}
-                            // We need to pass controls to animate prop, BUT we also want entrance animation.
-                            // Framer Motion allows animate to be a variant string or object or controls.
-                            // When using controls, initial/exit might fight.
-                            // Strategy: Use a wrapper for entrance/exit? Or just set controls initially?
-                            // Actually, standard swipe cards often don't use AnimatePresence for the SWIPE itself if using controls.
-                            // But here we want NEW card to enter.
-
-                            // Let's bind controls to this element.
-                            // Note: `animate={controls}` overrides `animate={{...}}`.
-                            // So we need to start controls with the "entered" state.
-                            onAnimationComplete={() => {
-                                // controls.set({ x: 0, opacity: 1, scale: 1 });
-                            }}
 
                             style={{ x, rotate, touchAction: "none" }}
                             onDragEnd={handleDragEnd}
                             className="w-full h-full max-h-[600px] absolute cursor-grab active:cursor-grabbing"
 
-                            // Long press simulation
-                            onPointerDown={(e) => {
-                                // Start timer
-                                const timer = setTimeout(handleLongPress, 800);
-                                const target = e.target as HTMLElement;
-                                target.addEventListener("pointerup", () => clearTimeout(timer), { once: true });
-                                target.addEventListener("pointercancel", () => clearTimeout(timer), { once: true });
+                            // Long press simulation using Framer Motion gestures
+                            onTapStart={() => {
+                                longPressTimer.current = setTimeout(handleLongPress, 800);
+                            }}
+                            onTapCancel={() => {
+                                if (longPressTimer.current) clearTimeout(longPressTimer.current);
+                            }}
+                            onTap={() => {
+                                if (longPressTimer.current) clearTimeout(longPressTimer.current);
+                            }}
+                            onDragStart={() => {
+                                if (longPressTimer.current) clearTimeout(longPressTimer.current);
                             }}
                         >
                              {/* Visual Feedback Overlays */}
