@@ -1,6 +1,6 @@
 "use client";
 
-import { BookIcon, changePriority, ConfirmModal, countWord, deleteWord, EditIcon, FilterIcon, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, Spoiler, TrashIcon } from "@/app/components";
+import { BookIcon, changePriority, ConfirmModal, countWord, deleteWord, EditIcon, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, Spoiler, TrashIcon } from "@/app/components";
 import { Button, Card, CardBody, CardHeader, Divider, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination, Spinner, Tab, Tabs, Tooltip } from "@heroui/react";
 import { useEffect, useState } from "react";
 import rehypeRaw from "rehype-raw";
@@ -116,7 +116,7 @@ export default function Words() {
 
     useEffect(() => {
         setLoading(true)
-        queryWord(page, 10, orderBy, grammar, (data, error) => {
+        queryWord(page, 10, orderBy, grammar, (data) => {
             if (data) {
                 setWords(data)
             }
@@ -404,26 +404,6 @@ export default function Words() {
     </>
 }
 
-
-function getPriorityColor(priority: number) {
-    if (priority === 0) {
-        return "success"
-    } else if (priority === 1) {
-        return "warning"
-    } else {
-        return "secondary"
-    }
-}
-
-function getPriorityText(priority: number) {
-    if (priority === 0) {
-        return "Low"
-    } else if (priority === 1) {
-        return "Medium"
-    } else {
-        return "High"
-    }
-}
 
 function Up() {
     return (

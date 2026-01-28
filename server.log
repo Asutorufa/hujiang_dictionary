@@ -1,0 +1,33 @@
+
+> hj-react@0.1.0 dev
+> next dev --turbopack
+
+   ▲ Next.js 15.5.9 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.2:3000
+
+ ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+ ✓ Ready in 1597ms
+ ○ Compiling / ...
+(node:3412) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///app/app/hero.ts?id=1769589677562 is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /app/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ Compiled / in 33.1s
+ GET / 200 in 34897ms
+ GET / 200 in 231ms
+ ○ Compiling /_not-found/page ...
+ ✓ Compiled /_not-found/page in 2.4s
+ POST /word/ai_custom 404 in 2628ms
+ ○ Compiling /docs/flashcard ...
+ ✓ Compiled /docs/flashcard in 5.5s
+ GET /docs/flashcard 200 in 5635ms
+ POST /word/count 404 in 787ms
+ POST /word/list 404 in 778ms
+ POST /word/list 404 in 741ms
+ POST /word/count 404 in 748ms
