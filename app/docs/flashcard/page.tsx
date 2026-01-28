@@ -2,7 +2,7 @@
 
 import { BookIcon, changePriority, countWord, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, queryWord, Spoiler } from "@/app/components";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Spinner, Tab, Tabs } from "@heroui/react";
-import { AnimatePresence, motion, PanInfo, useAnimation, useMotionValue, useTransform } from "framer-motion";
+import { AnimatePresence, motion, PanInfo, useAnimation, useDragControls, useMotionValue, useTransform } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
@@ -92,6 +92,7 @@ export default function Flashcard() {
     const currentWord = wordsMap.get(page);
 
     const controls = useAnimation();
+    const dragControls = useDragControls();
     const x = useMotionValue(0);
     const rotate = useTransform(x, [-200, 200], [-10, 10]);
     const opacityRight = useTransform(x, [50, 150], [0, 1]);
@@ -206,8 +207,8 @@ export default function Flashcard() {
                             exit={{ opacity: 0, x: 0 }}
                             transition={{ duration: 0.2 }}
 
-                            // Revert to framer-motion drag
                             drag="x"
+                            dragControls={dragControls}
                             dragConstraints={{ left: 0, right: 0 }}
                             dragDirectionLock
                             dragElastic={0.9}
@@ -279,7 +280,12 @@ export default function Flashcard() {
                                     </Tabs>
                                 </CardHeader>
 
-                                <CardBody className="flex flex-col items-center pt-8 px-6 text-center overflow-y-auto overflow-x-hidden scrollbar-hide">
+                                <CardBody
+                                    className="flex flex-col items-center pt-8 px-6 text-center overflow-y-auto overflow-x-hidden scrollbar-hide"
+                                    onPointerDown={(e) => {
+                                        dragControls.start(e);
+                                    }}
+                                >
                                     <h1 className="text-4xl font-bold mb-6 break-words w-full">
                                         {currentWord.word}
                                     </h1>
