@@ -1,12 +1,10 @@
-"use client"
-
 import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownSection, DropdownTrigger, Switch, Textarea, Tooltip } from "@heroui/react";
 import { useCallback, useEffect, useState } from "react";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { Streamdown } from "streamdown";
 import { useLocalStorage } from "usehooks-ts";
-import { DiskIcon, listModel as listModels, PlayIcon, SaveWordModal } from "./components";
+import { DiskIcon, listModel as listModels, PlayIcon, SaveWordModal } from "../components";
 
 async function queryWord(opts: {
   selected: string,

@@ -2,3 +2,6 @@ node_modules
 .next
 out
 .DS_Store
+dist
+dist-ssr
+*.local
