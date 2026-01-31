@@ -20,5 +20,7 @@ worker-macros = { workspace = true }
 console_error_panic_hook = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
+jsonwebtoken = { workspace = true }
+chrono = { workspace = true }
 
 hjcommon = { path = "../common" }

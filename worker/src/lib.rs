@@ -3,17 +3,37 @@ pub mod consolelog;
 pub mod d1;
 
 use crate::{ai::WasmAI, d1::WasmD1};
+use chrono::{Duration, Utc};
 use frankenstein::{client_reqwest, updates::Update};
 use hjcommon::ai::OpenAI;
 use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{self, send_random_word};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use log::{debug, error, info};
+use serde::{Deserialize, Serialize};
 use std::sync::Once;
 use std::{collections::HashSet, sync::Arc};
 use worker::*;
 
 static INIT: Once = Once::new();
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Claims {
+    sub: String,
+    exp: usize,
+}
+
+#[derive(Deserialize)]
+struct LoginRequest {
+    username: String,
+    password: String,
+}
+
+#[derive(Serialize)]
+struct LoginResponse {
+    token: String,
+}
 
 fn get_string_from_env(env: &Env, key: &str) -> String {
     match env.var(key) {
@@ -22,6 +42,73 @@ fn get_string_from_env(env: &Env, key: &str) -> String {
             None => "".to_string(),
         },
         _ => "".to_string(),
+    }
+}
+
+fn get_secret(env: &Env) -> String {
+    let s = get_string_from_env(env, "AUTH_SECRET");
+    if s.is_empty() {
+        "default_secret".to_string()
+    } else {
+        s
+    }
+}
+
+fn create_token(env: &Env, username: &str) -> Result<String, worker::Error> {
+    let secret = get_secret(env);
+    let expiration_days = get_string_from_env(env, "AUTH_TOKEN_EXPIRATION")
+        .parse::<i64>()
+        .unwrap_or(1);
+
+    let expiration = Utc::now()
+        .checked_add_signed(Duration::days(expiration_days))
+        .expect("valid timestamp")
+        .timestamp() as usize;
+
+    let claims = Claims {
+        sub: username.to_owned(),
+        exp: expiration,
+    };
+
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret.as_bytes()),
+    )
+    .map_err(|e| worker::Error::from(e.to_string()))
+}
+
+fn check_auth(req: &Request, env: &Env) -> Result<(), Response> {
+    let username = get_string_from_env(env, "AUTH_USERNAME");
+    let password = get_string_from_env(env, "AUTH_PASSWORD");
+
+    // If no credentials configured, auth is disabled.
+    if username.is_empty() || password.is_empty() {
+        return Ok(());
+    }
+
+    let auth_header = match req.headers().get("Authorization") {
+        Ok(Some(h)) => h,
+        Ok(None) => return Err(Response::error("Missing Authorization header", 401).unwrap()),
+        Err(e) => return Err(Response::error(e.to_string(), 500).unwrap()),
+    };
+
+    if !auth_header.starts_with("Bearer ") {
+        return Err(Response::error("Invalid Authorization header format", 401).unwrap());
+    }
+
+    let token = &auth_header[7..];
+
+    let secret = get_secret(env);
+    let validation = Validation::default();
+
+    match decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(secret.as_bytes()),
+        &validation,
+    ) {
+        Ok(_) => Ok(()),
+        Err(_) => Err(Response::error("Invalid or expired token", 401).unwrap()),
     }
 }
 
@@ -68,7 +155,34 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
     ctx.pass_through_on_exception();
 
     Router::new()
+        .post_async("/login", async |mut req, ctx| {
+            let username = get_string_from_env(&ctx.env, "AUTH_USERNAME");
+            let password = get_string_from_env(&ctx.env, "AUTH_PASSWORD");
+
+            if username.is_empty() || password.is_empty() {
+                return Response::error("Authentication not configured", 500);
+            }
+
+            let body: Result<LoginRequest, _> = req.json().await;
+            match body {
+                Ok(creds) => {
+                    if creds.username == username && creds.password == password {
+                        match create_token(&ctx.env, &username) {
+                            Ok(token) => Response::from_json(&LoginResponse { token }),
+                            Err(e) => Response::error(e.to_string(), 500),
+                        }
+                    } else {
+                        Response::error("Invalid credentials", 401)
+                    }
+                }
+                Err(_) => Response::error("Invalid request body", 400),
+            }
+        })
         .on_async("/tgbot/register", async |req, ctx| {
+            if let Err(resp) = check_auth(&req, &ctx.env) {
+                return Ok(resp);
+            }
+
             let url = format!("https://{}/tgbot", req.url()?.host().unwrap());
 
             let opt = get_opt(ctx.env).await;
@@ -79,7 +193,11 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
 
             Response::ok(format!("register telegram bot to {} successful", url))
         })
-        .on_async("/d1/create_table", async |_, ctx| {
+        .on_async("/d1/create_table", async |req, ctx| {
+            if let Err(resp) = check_auth(&req, &ctx.env) {
+                return Ok(resp);
+            }
+
             let opt = get_opt(ctx.env).await;
             opt.d1
                 .create_table()
@@ -106,6 +224,10 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
             };
         })
         .post_async("/word/:path", async |mut req, ctx| {
+            if let Err(resp) = check_auth(&req, &ctx.env) {
+                return Ok(resp);
+            }
+
             let opt = get_opt(ctx.env).await;
 
             info!("new word request, path: {}", req.url()?.path());
