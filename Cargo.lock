@@ -893,9 +893,11 @@ name = "hjcommon"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "chrono",
  "env_logger",
  "frankenstein",
  "hjdict",
+ "jsonwebtoken",
  "log",
  "reqwest 0.13.1",
  "rust-embed",
@@ -948,12 +950,10 @@ dependencies = [
 name = "hjworker"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "cloudflare",
  "console_error_panic_hook",
  "frankenstein",
  "hjcommon",
- "jsonwebtoken",
  "log",
  "reqwest 0.13.1",
  "serde",
