@@ -2,25 +2,27 @@
   "name": "hj-react",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
-    "start": "next start",
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build && rm -f out/mockServiceWorker.js",
+    "preview": "vite preview",
     "lint": "eslint"
   },
   "dependencies": {
     "@heroui/react": "^2.8.2",
     "@tailwindcss/typography": "^0.5.16",
+    "@tailwindcss/vite": "^4.1.18",
     "framer-motion": "^12.29.2",
-    "next": "^15.5.0",
     "next-themes": "^0.4.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
     "sass": "^1.91.0",
-    "streamdown": "^1.6.10",
-    "usehooks-ts": "^3.1.1"
+    "streamdown": "^2",
+    "usehooks-ts": "^3.1.1",
+    "wouter": "^3.9.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -28,9 +30,17 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.1.2",
     "eslint": "^9",
-    "eslint-config-next": "15.5.0",
+    "msw": "^2.12.7",
+    "rollup-plugin-visualizer": "^6.0.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^7.3.1"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }

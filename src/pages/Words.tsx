@@ -1,6 +1,4 @@
-"use client";
-
-import { BookIcon, changePriority, ConfirmModal, countWord, deleteWord, EditIcon, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, Spoiler, TrashIcon } from "@/app/components";
+import { BookIcon, changePriority, ConfirmModal, countWord, deleteWord, EditIcon, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, Spoiler, TrashIcon } from "@/components";
 import { Button, Card, CardBody, CardHeader, Divider, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination, Spinner, Tab, Tabs, Tooltip } from "@heroui/react";
 import { useEffect, useState } from "react";
 import rehypeRaw from "rehype-raw";

@@ -1,5 +1,3 @@
-'use client';
-
 import { addToast, Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Switch, Textarea, useDisclosure, useDraggable } from "@heroui/react";
 import { FC, ReactNode, useEffect, useRef, useState } from "react";
 import './Spoiler.scss';
