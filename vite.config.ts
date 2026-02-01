@@ -23,6 +23,7 @@ export default defineConfig({
     allowedHosts: true,
   },
   build: {
+    outDir: 'out',
     rollupOptions: {
       output: {
         manualChunks(id) {
