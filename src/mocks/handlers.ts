@@ -41,14 +41,7 @@ export const handlers = [
   http.post('/word/list', async ({ request }) => {
     const { page_size, page_number, order_by, type } = await request.json() as { page_size: number; page_number: number; order_by: string; type: number; }
     // Simple filter
-    let filtered = words.filter(w => type === undefined || type === 0 || w.type === type)
-    if (type === 1) { // Grammar
-         filtered = words.filter(w => w.type === 1)
-    } else { // Word (0) or all? Code sends 0 for word, 1 for grammar.
-         // app logic: grammar ? 1 : 0.
-         // If type is 0, it likely means words.
-         filtered = words.filter(w => w.type === type)
-    }
+    let filtered = words.filter(w => w.type === type)
 
     // Simple sort (mocking basic sorting)
     if (order_by === 'word') filtered.sort((a, b) => a.word.localeCompare(b.word))
