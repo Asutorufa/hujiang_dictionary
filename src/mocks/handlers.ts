@@ -39,7 +39,7 @@ let words: Word[] = [
 
 export const handlers = [
   http.post('/word/list', async ({ request }) => {
-    const { page_size, page_number, order_by, type } = await request.json() as any
+    const { page_size, page_number, order_by, type } = await request.json() as { page_size: number; page_number: number; order_by: string; type: number; }
     // Simple filter
     let filtered = words.filter(w => type === undefined || type === 0 || w.type === type)
     if (type === 1) { // Grammar
