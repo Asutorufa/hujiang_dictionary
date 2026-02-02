@@ -121,5 +121,12 @@ export const handlers = [
          result: `Mock translation for: ${word}\n\nThis is a mock response from the MSW handler.`,
          reasoning: `Mock reasoning for: ${word}`
      })
+  }),
+
+  http.post('/login', async () => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return HttpResponse.json({
+        token: "mock_jwt_token_example"
+    })
   })
 ]
