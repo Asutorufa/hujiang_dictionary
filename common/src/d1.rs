@@ -409,7 +409,7 @@ mod tests {
                     let exists = self.existing_columns.iter().any(|c| c == col);
                     let val = if exists { 1 } else { 0 };
                     let json = json!([{ "exist": val }]);
-                    let res: Vec<T> = serde_json::from_value(json).unwrap();
+                    let res: Vec<T> = serde_json::from_value(json).expect("MockDB: failed to deserialize for CheckColumnExists");
                     Ok(res)
                 }
                 SQL::GetTableInfo => {
@@ -418,8 +418,7 @@ mod tests {
                         .iter()
                         .map(|c| json!({ "name": c }))
                         .collect();
-                    let res: Vec<T> =
-                        serde_json::from_value(serde_json::Value::Array(rows)).unwrap();
+                    let res: Vec<T> = serde_json::from_value(serde_json::Value::Array(rows)).expect("MockDB: failed to deserialize for GetTableInfo");
                     Ok(res)
                 }
                 SQL::AddColumn(_, _) => Ok(vec![]),
