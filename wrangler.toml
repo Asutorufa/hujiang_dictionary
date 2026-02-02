@@ -9,10 +9,7 @@ cwd = "worker"
 [vars]
 TELEGRAM_TOKEN = ""
 ALLOW_USERS = ""
-MAINTAINER_ID = ""          # send random word to the chat id when cron job run
-AUTH_USERNAME = "admin"
-AUTH_PASSWORD = "password"
-AUTH_TOKEN_EXPIRATION = "1" # in days
+MAINTAINER_ID = ""  # send random word to the chat id when cron job run
 
 [ai]
 binding = "AI"
@@ -22,7 +19,7 @@ enabled = true
 
 [[d1_databases]]
 binding = "DB"
-database_name = "words"
+database_name = ""
 database_id = ""
 
 [triggers]

@@ -1,6 +1,6 @@
 use chrono::{Duration, Utc};
 use hjdict::{en, google, jp, kotobanku, kr, weblio};
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use std::str;
 
@@ -13,7 +13,7 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
     pub sub: String,
-    pub exp: usize,
+    pub exp: u64,
 }
 
 #[derive(Deserialize)]
@@ -163,7 +163,7 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::days(self.auth_token_expiration))
             .expect("valid timestamp")
-            .timestamp() as usize;
+            .timestamp() as u64;
 
         let claims = Claims {
             sub: self.auth_username.clone(),

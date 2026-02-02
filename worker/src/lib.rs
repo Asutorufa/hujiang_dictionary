@@ -26,6 +26,13 @@ fn get_string_from_env(env: &Env, key: &str) -> String {
     }
 }
 
+fn check_auth(req: &Request, opt: &RunOpt<WasmD1, WasmAI>) -> Result<(), Response> {
+    match opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref()) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(Response::error(e, 401).unwrap()),
+    }
+}
+
 async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
     console_error_panic_hook::set_once();
     INIT.call_once(|| {
@@ -95,10 +102,8 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
         })
         .on_async("/tgbot/register", async |req, ctx| {
             let opt = get_opt(ctx.env).await;
-            if let Err(e) =
-                opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref())
-            {
-                return Response::error(e, 401);
+            if let Err(e) = check_auth(&req, &opt) {
+                return Ok(e);
             }
 
             let url = format!("https://{}/tgbot", req.url()?.host().unwrap());
@@ -111,10 +116,8 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
         })
         .on_async("/d1/create_table", async |req, ctx| {
             let opt = get_opt(ctx.env).await;
-            if let Err(e) =
-                opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref())
-            {
-                return Response::error(e, 401);
+            if let Err(e) = check_auth(&req, &opt) {
+                return Ok(e);
             }
 
             opt.d1
@@ -143,10 +146,8 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
         })
         .post_async("/word/:path", async |mut req, ctx| {
             let opt = get_opt(ctx.env).await;
-            if let Err(e) =
-                opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref())
-            {
-                return Response::error(e, 401);
+            if let Err(e) = check_auth(&req, &opt) {
+                return Ok(e);
             }
 
             info!("new word request, path: {}", req.url()?.path());
