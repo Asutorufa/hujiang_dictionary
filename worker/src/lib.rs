@@ -7,6 +7,7 @@ use frankenstein::{client_reqwest, updates::Update};
 use hjcommon::ai::OpenAI;
 use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
+use hjcommon::route::LoginRequest;
 use hjcommon::tg::{self, send_random_word};
 use log::{debug, error, info};
 use std::sync::Once;
@@ -22,6 +23,13 @@ fn get_string_from_env(env: &Env, key: &str) -> String {
             None => "".to_string(),
         },
         _ => "".to_string(),
+    }
+}
+
+fn check_auth(req: &Request, opt: &RunOpt<WasmD1, WasmAI>) -> Result<(), Response> {
+    match opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref()) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(Response::error(e, 401).unwrap()),
     }
 }
 
@@ -56,6 +64,19 @@ async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
         matainer: maintainer_id,
         bot: client_reqwest::Bot::new(&token),
         custom_llms: OpenAI::from_assets(),
+        auth_secret: {
+            let s = get_string_from_env(&env, "AUTH_SECRET");
+            if s.is_empty() {
+                "default_secret".to_string()
+            } else {
+                s
+            }
+        },
+        auth_username: get_string_from_env(&env, "AUTH_USERNAME"),
+        auth_password: get_string_from_env(&env, "AUTH_PASSWORD"),
+        auth_token_expiration: get_string_from_env(&env, "AUTH_TOKEN_EXPIRATION")
+            .parse::<i64>()
+            .unwrap_or(1),
     })
 }
 
@@ -68,10 +89,24 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
     ctx.pass_through_on_exception();
 
     Router::new()
-        .on_async("/tgbot/register", async |req, ctx| {
-            let url = format!("https://{}/tgbot", req.url()?.host().unwrap());
-
+        .post_async("/login", async |mut req, ctx| {
             let opt = get_opt(ctx.env).await;
+            let body: Result<LoginRequest, _> = req.json().await;
+            match body {
+                Ok(creds) => match opt.login(creds) {
+                    Ok(resp) => Response::from_json(&resp),
+                    Err((msg, status)) => Response::error(msg, status),
+                },
+                Err(_) => Response::error("Invalid request body", 400),
+            }
+        })
+        .on_async("/tgbot/register", async |req, ctx| {
+            let opt = get_opt(ctx.env).await;
+            if let Err(e) = check_auth(&req, &opt) {
+                return Ok(e);
+            }
+
+            let url = format!("https://{}/tgbot", req.url()?.host().unwrap());
 
             tg::set_webhook(&opt.bot, url.as_ref(), opt.matainer)
                 .await
@@ -79,8 +114,12 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
 
             Response::ok(format!("register telegram bot to {} successful", url))
         })
-        .on_async("/d1/create_table", async |_, ctx| {
+        .on_async("/d1/create_table", async |req, ctx| {
             let opt = get_opt(ctx.env).await;
+            if let Err(e) = check_auth(&req, &opt) {
+                return Ok(e);
+            }
+
             opt.d1
                 .create_table()
                 .await
@@ -107,6 +146,9 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
         })
         .post_async("/word/:path", async |mut req, ctx| {
             let opt = get_opt(ctx.env).await;
+            if let Err(e) = check_auth(&req, &opt) {
+                return Ok(e);
+            }
 
             info!("new word request, path: {}", req.url()?.path());
 

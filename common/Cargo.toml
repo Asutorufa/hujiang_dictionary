@@ -11,6 +11,9 @@ reqwest = { workspace = true }
 log = { workspace = true }
 frankenstein = { workspace = true }
 rust-embed = { workspace = true }
+jsonwebtoken = { workspace = true }
+chrono = { workspace = true }
+subtle = "2"
 
 value2struct = { path = "../value2struct" }
 hjdict = { path = "../dict" }
