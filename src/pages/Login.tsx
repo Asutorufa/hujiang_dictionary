@@ -22,13 +22,17 @@ export default function Login() {
       });
 
       if (res.ok) {
-        const data = await res.json() as { token: string };
-        localStorage.setItem(TOKEN_KEY, data.token);
-        setLocation(ROUTE_HOME);
-        addToast({
-            title: "Login Successful",
-            color: "success"
-        });
+        const data = await res.json();
+        if (data && typeof data === 'object' && 'token' in data && typeof data.token === 'string') {
+          localStorage.setItem(TOKEN_KEY, data.token);
+          setLocation(ROUTE_HOME);
+          addToast({
+              title: "Login Successful",
+              color: "success"
+          });
+        } else {
+          throw new Error("Invalid response format");
+        }
       } else {
         const text = await res.text();
         addToast({
