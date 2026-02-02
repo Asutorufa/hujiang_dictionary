@@ -1,3 +1,4 @@
+import { authorizedRequest } from "@/lib/api";
 import { addToast, Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Switch, Textarea, useDisclosure, useDraggable } from "@heroui/react";
 import { FC, ReactNode, useEffect, useRef, useState } from "react";
 import './Spoiler.scss';
@@ -124,7 +125,7 @@ export type ListWordResponse = {
 }
 
 export async function wordRequest<T>(path: string, body: string, callback: (data?: T, error?: string) => void) {
-    fetch(path, {
+    authorizedRequest(path, {
         method: "POST",
         headers: {},
         body: body,

@@ -7,6 +7,8 @@ import { useScrollDirection } from "@/hooks/useScrollDirection";
 import Home from "./pages/Home";
 import Words from "./pages/Words";
 import Flashcard from "./pages/Flashcard";
+import Login from "./pages/Login";
+import { ROUTE_FLASHCARD, ROUTE_HOME, ROUTE_LOGIN, ROUTE_WORDS } from "./lib/constants";
 
 function Main() {
   const [location, setLocation] = useLocation();
@@ -17,25 +19,28 @@ function Main() {
     <HeroUIProvider navigate={setLocation}>
       <ToastProvider />
       <NextThemesProvider attribute="class" defaultTheme={systemTheme}>
-        <div className={`fixed bottom-15 left-1/2 -translate-x-1/2 z-50 transition-transform duration-300 ${scrollDirection === 'down' ? 'translate-y-32' : 'translate-y-0'}`}>
-          <Tabs
-            variant="bordered"
-            aria-label="Options"
-            classNames={{
-              tabList: "backdrop-blur-sm shadow-md"
-            }}
-            selectedKey={location}
-          >
-            <Tab title="Home" href="/" key="/" />
-            <Tab title="Words" href="/docs/words" key="/docs/words" />
-            <Tab title="Flashcard" href="/docs/flashcard" key="/docs/flashcard" />
-          </Tabs>
-        </div>
+        {location !== ROUTE_LOGIN &&
+          <div className={`fixed bottom-15 left-1/2 -translate-x-1/2 z-50 transition-transform duration-300 ${scrollDirection === 'down' ? 'translate-y-32' : 'translate-y-0'}`}>
+            <Tabs
+              variant="bordered"
+              aria-label="Options"
+              classNames={{
+                tabList: "backdrop-blur-sm shadow-md"
+              }}
+              selectedKey={location}
+            >
+              <Tab title="Home" href={ROUTE_HOME} key={ROUTE_HOME} />
+              <Tab title="Words" href={ROUTE_WORDS} key={ROUTE_WORDS} />
+              <Tab title="Flashcard" href={ROUTE_FLASHCARD} key={ROUTE_FLASHCARD} />
+            </Tabs>
+          </div>
+        }
 
         <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/docs/words" component={Words} />
-            <Route path="/docs/flashcard" component={Flashcard} />
+            <Route path={ROUTE_HOME} component={Home} />
+            <Route path={ROUTE_LOGIN} component={Login} />
+            <Route path={ROUTE_WORDS} component={Words} />
+            <Route path={ROUTE_FLASHCARD} component={Flashcard} />
         </Switch>
       </NextThemesProvider>
     </HeroUIProvider>

@@ -4,6 +4,7 @@ import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
 import { Streamdown } from "streamdown";
 import { useLocalStorage } from "usehooks-ts";
+import { authorizedRequest } from "@/lib/api";
 import { DiskIcon, listModel as listModels, PlayIcon, SaveWordModal } from "../components";
 
 async function queryWord(opts: {
@@ -16,7 +17,7 @@ async function queryWord(opts: {
   custom_llm?: { name: string, model: string }
 },
   callback: (data?: { result: string, reasoning?: string }, error?: string) => void) {
-  const resp = await fetch("/word/query", {
+  const resp = await authorizedRequest("/word/query", {
     method: "POST",
     headers: {
     },

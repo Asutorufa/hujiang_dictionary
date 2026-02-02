@@ -29,7 +29,7 @@ export default function Flashcard() {
     const [wordsMap, setWordsMap] = useState<Map<number, ListWordResponse>>(new Map());
     const [loading, setLoading] = useState(false);
     const loadedChunksRef = useRef<Set<number>>(new Set());
-    const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+    const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const CHUNK_SIZE = 10;
 
