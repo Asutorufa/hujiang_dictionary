@@ -1,5 +1,7 @@
+import { ROUTE_LOGIN, TOKEN_KEY } from "./constants";
+
 export async function authorizedRequest(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem(TOKEN_KEY);
 
   const headers = new Headers(init?.headers);
 
@@ -15,9 +17,8 @@ export async function authorizedRequest(input: RequestInfo | URL, init?: Request
   const response = await fetch(input, newInit);
 
   if (response.status === 401) {
-    localStorage.removeItem("token");
-    window.location.hash = "/login";
-    return new Promise<Response>(() => {}); // Return a pending promise to prevent downstream processing
+    localStorage.removeItem(TOKEN_KEY);
+    window.location.hash = ROUTE_LOGIN;
   }
 
   return response;

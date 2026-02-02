@@ -1,3 +1,4 @@
+import { ROUTE_HOME, TOKEN_KEY } from "@/lib/constants";
 import { addToast, Button, Card, CardBody, CardHeader, Input } from "@heroui/react";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -22,8 +23,8 @@ export default function Login() {
 
       if (res.ok) {
         const data = await res.json() as { token: string };
-        localStorage.setItem("token", data.token);
-        setLocation("/");
+        localStorage.setItem(TOKEN_KEY, data.token);
+        setLocation(ROUTE_HOME);
         addToast({
             title: "Login Successful",
             color: "success"
