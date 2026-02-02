@@ -17,6 +17,7 @@ export async function authorizedRequest(input: RequestInfo | URL, init?: Request
   if (response.status === 401) {
     localStorage.removeItem("token");
     window.location.hash = "/login";
+    return new Promise<Response>(() => {}); // Return a pending promise to prevent downstream processing
   }
 
   return response;
