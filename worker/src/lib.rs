@@ -10,11 +10,12 @@ use hjcommon::opts::RunOpt;
 use hjcommon::route::LoginRequest;
 use hjcommon::tg::{self, send_random_word};
 use log::{debug, error, info};
-use std::sync::Once;
+use std::sync::{Once, OnceLock};
 use std::{collections::HashSet, sync::Arc};
 use worker::*;
 
 static INIT: Once = Once::new();
+static ALLOW_USERS_CACHE: OnceLock<Arc<HashSet<i64>>> = OnceLock::new();
 
 fn get_string_from_env(env: &Env, key: &str) -> String {
     match env.var(key) {
@@ -48,17 +49,25 @@ async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
         .parse::<i64>()
         .unwrap_or(0);
 
-    let mut set = HashSet::from([maintainer_id]);
+    let allow_users = match ALLOW_USERS_CACHE.get() {
+        Some(users) => users.clone(),
+        None => {
+            let mut set = HashSet::from([maintainer_id]);
 
-    for v in get_string_from_env(&env, "ALLOW_USERS")
-        .split(",")
-        .map(|v| return v.parse::<i64>().unwrap_or(0))
-    {
-        set.insert(v);
-    }
+            for v in get_string_from_env(&env, "ALLOW_USERS")
+                .split(",")
+                .map(|v| return v.parse::<i64>().unwrap_or(0))
+            {
+                set.insert(v);
+            }
+            let arc_set = Arc::new(set);
+            let _ = ALLOW_USERS_CACHE.set(arc_set.clone());
+            arc_set
+        }
+    };
 
     Arc::new(RunOpt {
-        allow_users: set,
+        allow_users,
         d1: WasmD1::new(&env, "DB").await,
         workers_ai: WasmAI::new(&env, "AI"),
         matainer: maintainer_id,
@@ -255,3 +264,49 @@ fn get_file(paths: Vec<String>) -> Result<(String, EmbeddedFile)> {
     Err(worker::Error::from("file not found"))
 }
 */
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+    use std::sync::Arc;
+    use std::time::Instant;
+
+    #[test]
+    fn benchmark_env_parsing_vs_arc_clone() {
+        // Generate a simulated ALLOW_USERS string with 1000 IDs
+        let ids: Vec<String> = (0..1000).map(|i| i.to_string()).collect();
+        let env_val = ids.join(",");
+
+        let iterations = 1000;
+
+        // Baseline: Parse every time
+        let start = Instant::now();
+        for _ in 0..iterations {
+            let mut set = HashSet::new();
+            for v in env_val.split(",").map(|v| v.parse::<i64>().unwrap_or(0)) {
+                set.insert(v);
+            }
+            // Simulate creation of RunOpt (just the set part)
+            let _ = set;
+        }
+        let duration_parse = start.elapsed();
+
+        // Optimization: Arc clone
+        let mut initial_set = HashSet::new();
+        for v in env_val.split(",").map(|v| v.parse::<i64>().unwrap_or(0)) {
+            initial_set.insert(v);
+        }
+        let cached_arc = Arc::new(initial_set);
+
+        let start = Instant::now();
+        for _ in 0..iterations {
+            let _ = cached_arc.clone();
+        }
+        let duration_clone = start.elapsed();
+
+        println!("Parsing {} times took: {:?}", iterations, duration_parse);
+        println!("Cloning Arc {} times took: {:?}", iterations, duration_clone);
+
+        assert!(duration_clone < duration_parse, "Optimization should be faster");
+    }
+}
