@@ -903,6 +903,7 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde_json",
+ "subtle",
  "tokio",
  "value2struct",
 ]

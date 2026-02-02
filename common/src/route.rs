@@ -3,6 +3,7 @@ use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use std::str;
+use subtle::ConstantTimeEq;
 
 use crate::{
     ai::{self, Models, WorkersAI},
@@ -205,7 +206,10 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
             return Err(("Authentication not configured".to_string(), 500));
         }
 
-        if req.username == self.auth_username && req.password == self.auth_password {
+        let username_match = req.username.as_bytes().ct_eq(self.auth_username.as_bytes());
+        let password_match = req.password.as_bytes().ct_eq(self.auth_password.as_bytes());
+
+        if (username_match & password_match).into() {
             match self.create_token() {
                 Ok(token) => Ok(LoginResponse { token }),
                 Err(e) => Err((e, 500)),
