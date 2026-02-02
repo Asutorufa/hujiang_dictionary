@@ -11,10 +11,14 @@ use hjcommon::route::LoginRequest;
 use hjcommon::tg::{self, send_random_word};
 use log::{debug, error, info};
 use std::sync::Once;
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::{Arc, OnceLock},
+};
 use worker::*;
 
 static INIT: Once = Once::new();
+static CUSTOM_LLMS: OnceLock<HashMap<String, OpenAI>> = OnceLock::new();
 
 fn get_string_from_env(env: &Env, key: &str) -> String {
     match env.var(key) {
@@ -63,7 +67,7 @@ async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
         workers_ai: WasmAI::new(&env, "AI"),
         matainer: maintainer_id,
         bot: client_reqwest::Bot::new(&token),
-        custom_llms: OpenAI::from_assets(),
+        custom_llms: CUSTOM_LLMS.get_or_init(OpenAI::from_assets).clone(),
         auth_secret: {
             let s = get_string_from_env(&env, "AUTH_SECRET");
             if s.is_empty() {
