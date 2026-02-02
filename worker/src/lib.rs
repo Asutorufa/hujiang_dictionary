@@ -95,7 +95,9 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
         })
         .on_async("/tgbot/register", async |req, ctx| {
             let opt = get_opt(ctx.env).await;
-            if let Err(e) = opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref()) {
+            if let Err(e) =
+                opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref())
+            {
                 return Response::error(e, 401);
             }
 
@@ -109,7 +111,9 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
         })
         .on_async("/d1/create_table", async |req, ctx| {
             let opt = get_opt(ctx.env).await;
-            if let Err(e) = opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref()) {
+            if let Err(e) =
+                opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref())
+            {
                 return Response::error(e, 401);
             }
 
@@ -139,7 +143,9 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
         })
         .post_async("/word/:path", async |mut req, ctx| {
             let opt = get_opt(ctx.env).await;
-            if let Err(e) = opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref()) {
+            if let Err(e) =
+                opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref())
+            {
                 return Response::error(e, 401);
             }
 
