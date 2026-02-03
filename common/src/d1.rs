@@ -28,6 +28,11 @@ pub struct ColumnExist {
     pub exist: u32,
 }
 
+#[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
+pub struct ColumnName {
+    pub name: String,
+}
+
 #[derive(Debug)]
 pub struct Error(pub String);
 
@@ -161,8 +166,12 @@ pub trait DB {
 
     fn add_column(&self, columns: Vec<(&str, &str)>) -> impl Future<Output = Result<(), Error>> {
         async move {
+            let existing_columns = self.exec::<ColumnName>(SQL::GetTableInfo).await?;
+            let existing_set: std::collections::HashSet<String> =
+                existing_columns.into_iter().map(|c| c.name).collect();
+
             for (column, r#type) in columns {
-                if self.check_column_exists(column).await? {
+                if existing_set.contains(column) {
                     continue;
                 }
 
@@ -218,6 +227,7 @@ pub enum SQL<'a> {
     ChangePriority(&'a str, u64),
 
     CheckColumnExists(&'a str),
+    GetTableInfo,
     AddColumn(&'a str, &'a str),
 }
 
@@ -308,6 +318,7 @@ SELECT CASE
 END AS exist;
 "#, column)
             }
+            SQL::GetTableInfo => "SELECT name FROM pragma_table_info('words')".to_string(),
             SQL::AddColumn(column,r#type) => {
                 format!("ALTER TABLE words ADD COLUMN {} {}", column,r#type)
             }
@@ -356,10 +367,87 @@ END AS exist;
             }
 
             SQL::CheckColumnExists(_)
+            | SQL::GetTableInfo
             | SQL::AddColumn(_, _)
             | SQL::RandomNotRemind
             | SQL::Random
             | SQL::CreateTable => vec![],
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use std::sync::{Arc, Mutex};
+
+    struct MockDB {
+        exec_count: Arc<Mutex<usize>>,
+        existing_columns: Vec<String>,
+    }
+
+    impl MockDB {
+        fn new(existing_columns: Vec<&str>) -> Self {
+            Self {
+                exec_count: Arc::new(Mutex::new(0)),
+                existing_columns: existing_columns.iter().map(|s| s.to_string()).collect(),
+            }
+        }
+    }
+
+    impl DB for MockDB {
+        async fn exec<T>(&self, sql: SQL<'_>) -> Result<Vec<T>, Error>
+        where
+            T: for<'a> Deserialize<'a>,
+        {
+            let mut count = self.exec_count.lock().unwrap();
+            *count += 1;
+
+            match sql {
+                SQL::CheckColumnExists(col) => {
+                    let exists = self.existing_columns.iter().any(|c| c == col);
+                    let val = if exists { 1 } else { 0 };
+                    let json = json!([{ "exist": val }]);
+                    let res: Vec<T> = serde_json::from_value(json).expect("MockDB: failed to deserialize for CheckColumnExists");
+                    Ok(res)
+                }
+                SQL::GetTableInfo => {
+                    let rows: Vec<serde_json::Value> = self
+                        .existing_columns
+                        .iter()
+                        .map(|c| json!({ "name": c }))
+                        .collect();
+                    let res: Vec<T> = serde_json::from_value(serde_json::Value::Array(rows)).expect("MockDB: failed to deserialize for GetTableInfo");
+                    Ok(res)
+                }
+                SQL::AddColumn(_, _) => Ok(vec![]),
+                _ => Ok(vec![]),
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_add_column_n_plus_1() {
+        let db = MockDB::new(vec![]);
+        let columns = vec![("col1", "TEXT"), ("col2", "TEXT"), ("col3", "TEXT")];
+
+        db.add_column(columns).await.unwrap();
+
+        let count = *db.exec_count.lock().unwrap();
+        // Optimized: 1 call to GetTableInfo + 3 calls to AddColumn = 4 calls
+        assert_eq!(count, 4, "Expected 4 calls (1 fetch + N add)");
+    }
+
+    #[tokio::test]
+    async fn test_add_column_already_exists() {
+        let db = MockDB::new(vec!["col1", "col2", "col3"]);
+        let columns = vec![("col1", "TEXT"), ("col2", "TEXT"), ("col3", "TEXT")];
+
+        db.add_column(columns).await.unwrap();
+
+        let count = *db.exec_count.lock().unwrap();
+        // Optimized: 1 call to GetTableInfo + 0 calls to AddColumn = 1 call
+        assert_eq!(count, 1, "Expected 1 call (1 fetch + 0 add)");
     }
 }
