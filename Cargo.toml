@@ -36,7 +36,7 @@ reqwest = { version = "^0.13", default-features = false, features = [
     "json",
     "query",
 ] }
-frankenstein = { version = "^0.45", features = ["client-reqwest"] }
+frankenstein = { version = "0.46", features = ["client-reqwest"] }
 tokio = { version = "1", default-features = false, features = ["macros", "rt"] }
 env_logger = "0.11"
 cloudflare = { version = "^0.14", default-features = false, features = [
@@ -45,15 +45,15 @@ cloudflare = { version = "^0.14", default-features = false, features = [
 scraper = "^0.25"
 ego-tree = "^0.10"
 html2text = { version = "^0.16", default-features = false }
-dom_smoothie = { version = "^0.14", features = ["aho-corasick"] }
-rust-embed = "^8.7"
+dom_smoothie = { version = "0.15", features = ["aho-corasick"] }
+rust-embed = "8.11"
 worker = { version = "^0.7", features = ["d1"] }
 worker-macros = "^0.7"
 console_error_panic_hook = "^0.1"
 wasm-bindgen = "^0.2"
 web-sys = { version = "^0.3", features = ["console"] }
 url = "2.5.8"
-jsonwebtoken = "9"
+jsonwebtoken = "10"
 chrono = { version = "0.4", features = ["serde"] }
 
 [profile.release]
