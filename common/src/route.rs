@@ -236,15 +236,15 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
     pub async fn list_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<ListWordRequest>(&body)?;
 
-        let order_by = req.order_by.clone().unwrap_or("word".to_string());
+        let order_by = req.order_by.as_deref().unwrap_or("word");
 
         let order_by = if let Some(r) = order_by.strip_suffix(" desc") {
-            r.to_string()
+            r
         } else {
             order_by
         };
 
-        match order_by.as_str() {
+        match order_by {
             "word" | "update_time" | "priority" | "reminder_time" | "anki_count" | "add_time" => {}
             _ => return Err(Error("invalid order_by".to_string())),
         }
@@ -254,7 +254,7 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
             .list_word(
                 req.page_size.unwrap_or(10),
                 req.page_number.unwrap_or(1),
-                req.order_by.unwrap_or("word".to_string()).as_ref(),
+                req.order_by.as_deref().unwrap_or("word"),
                 req.r#type.unwrap_or(0),
             )
             .await?;
