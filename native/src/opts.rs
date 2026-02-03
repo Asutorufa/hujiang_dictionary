@@ -3,6 +3,7 @@ use crate::d1::{D1, Database};
 use frankenstein::client_reqwest;
 use hjcommon::opts::RunOpt;
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error>> {
     let maintainer_id = std::env::var("MAINTAINER_ID")?.parse::<i64>()?;
@@ -50,7 +51,7 @@ pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error
     let d1 = D1::new(&cloudflare_account_id, &cloudflare_api_token, database).await;
 
     Ok(RunOpt {
-        allow_users: set,
+        allow_users: Arc::new(set),
         matainer: maintainer_id,
         d1,
         workers_ai: workers,
