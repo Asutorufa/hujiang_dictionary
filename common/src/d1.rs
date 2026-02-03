@@ -333,10 +333,10 @@ END AS exist;
             },
 
             SQL::DeleteWord(word) => {
-                vec![(*word).into()]
+                vec![word.into()]
             }
             SQL::UpdateRemindTime(word) => {
-                vec![(*word).into()]
+                vec![word.into()]
             }
             SQL::ListWord(page_size, page_number, _, r#type) => {
                 let size = if *page_size > 0 { 10 } else { *page_size };
@@ -349,10 +349,10 @@ END AS exist;
                 ]
             }
             SQL::CountWord(r#type) => vec![(*r#type).to_string().into()],
-            SQL::IncrementRemindCount(word) => vec![(*word).into()],
+            SQL::IncrementRemindCount(word) => vec![word.into()],
 
             SQL::ChangePriority(word, priority) => {
-                vec![(*priority).to_string().into(), (*word).into()]
+                vec![(*priority).to_string().into(), word.into()]
             }
 
             SQL::CheckColumnExists(_)
