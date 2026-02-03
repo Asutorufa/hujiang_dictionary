@@ -66,7 +66,7 @@ async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
         .clone();
 
     Arc::new(RunOpt {
-        allow_users: allow_users,
+        allow_users,
         d1: WasmD1::new(&env, "DB").await,
         workers_ai: WasmAI::new(&env, "AI"),
         matainer: maintainer_id,
@@ -306,8 +306,14 @@ mod tests {
         let duration_clone = start.elapsed();
 
         println!("Parsing {} times took: {:?}", iterations, duration_parse);
-        println!("Cloning Arc {} times took: {:?}", iterations, duration_clone);
+        println!(
+            "Cloning Arc {} times took: {:?}",
+            iterations, duration_clone
+        );
 
-        assert!(duration_clone < duration_parse, "Optimization should be faster");
+        assert!(
+            duration_clone < duration_parse,
+            "Optimization should be faster"
+        );
     }
 }
