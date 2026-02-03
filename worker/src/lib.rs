@@ -67,7 +67,7 @@ async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
         workers_ai: WasmAI::new(&env, "AI"),
         matainer: maintainer_id,
         bot: client_reqwest::Bot::new(&token),
-        custom_llms: CUSTOM_LLMS.get_or_init(OpenAI::from_assets).clone(),
+        custom_llms: CUSTOM_LLMS.get_or_init(|| Arc::new(OpenAI::from_assets())).clone(),
         auth_secret: {
             let s = get_string_from_env(&env, "AUTH_SECRET");
             if s.is_empty() {
