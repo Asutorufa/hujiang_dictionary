@@ -49,22 +49,20 @@ async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
         .parse::<i64>()
         .unwrap_or(0);
 
-    let allow_users = match ALLOW_USERS_CACHE.get() {
-        Some(users) => users.clone(),
-        None => {
+    let allow_users = ALLOW_USERS_CACHE
+        .get_or_init(|| {
             let mut set = HashSet::from([maintainer_id]);
 
-            for v in get_string_from_env(&env, "ALLOW_USERS")
-                .split(",")
-                .map(|v| return v.parse::<i64>().unwrap_or(0))
-            {
-                set.insert(v);
-            }
-            let arc_set = Arc::new(set);
-            let _ = ALLOW_USERS_CACHE.set(arc_set.clone());
-            arc_set
-        }
-    };
+            set.extend(
+                get_string_from_env(&env, "ALLOW_USERS")
+                    .split(',')
+                    .filter(|s| !s.is_empty())
+                    .filter_map(|s| s.parse::<i64>().ok()),
+            );
+
+            Arc::new(set)
+        })
+        .clone();
 
     Arc::new(RunOpt {
         allow_users,
@@ -282,20 +280,22 @@ mod tests {
         // Baseline: Parse every time
         let start = Instant::now();
         for _ in 0..iterations {
-            let mut set = HashSet::new();
-            for v in env_val.split(",").map(|v| v.parse::<i64>().unwrap_or(0)) {
-                set.insert(v);
-            }
+            let set: HashSet<i64> = env_val
+                .split(',')
+                .filter(|s| !s.is_empty())
+                .filter_map(|v| v.parse().ok())
+                .collect();
             // Simulate creation of RunOpt (just the set part)
             let _ = set;
         }
         let duration_parse = start.elapsed();
 
         // Optimization: Arc clone
-        let mut initial_set = HashSet::new();
-        for v in env_val.split(",").map(|v| v.parse::<i64>().unwrap_or(0)) {
-            initial_set.insert(v);
-        }
+        let initial_set: HashSet<i64> = env_val
+            .split(',')
+            .filter(|s| !s.is_empty())
+            .filter_map(|v| v.parse().ok())
+            .collect();
         let cached_arc = Arc::new(initial_set);
 
         let start = Instant::now();
