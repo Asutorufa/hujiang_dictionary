@@ -314,29 +314,29 @@ END AS exist;
         }
     }
 
-    pub fn params<T: From<String>>(&self) -> Vec<T> {
+    pub fn params<T: From<String> + From<&'a str>>(&self) -> Vec<T> {
         match self {
             SQL::SaveWord(req) => match req.origin_word {
                 Some(origin) if origin != req.word => vec![
-                    (*req.word).to_string().into(),
-                    (*req.explain).to_string().into(),
+                    req.word.into(),
+                    req.explain.into(),
                     (req.r#type).to_string().into(),
-                    (*req.example).to_string().into(),
-                    (*origin).to_string().into(),
+                    req.example.into(),
+                    origin.into(),
                 ],
                 _ => vec![
-                    (*req.word).to_string().into(),
-                    (*req.explain).to_string().into(),
+                    req.word.into(),
+                    req.explain.into(),
                     (req.r#type).to_string().into(),
-                    (*req.example).to_string().into(),
+                    req.example.into(),
                 ],
             },
 
             SQL::DeleteWord(word) => {
-                vec![(*word).to_string().into()]
+                vec![(*word).into()]
             }
             SQL::UpdateRemindTime(word) => {
-                vec![(*word).to_string().into()]
+                vec![(*word).into()]
             }
             SQL::ListWord(page_size, page_number, _, r#type) => {
                 let size = if *page_size > 0 { 10 } else { *page_size };
@@ -349,10 +349,10 @@ END AS exist;
                 ]
             }
             SQL::CountWord(r#type) => vec![(*r#type).to_string().into()],
-            SQL::IncrementRemindCount(word) => vec![(*word).to_string().into()],
+            SQL::IncrementRemindCount(word) => vec![(*word).into()],
 
             SQL::ChangePriority(word, priority) => {
-                vec![(*priority).to_string().into(), (*word).to_string().into()]
+                vec![(*priority).to_string().into(), (*word).into()]
             }
 
             SQL::CheckColumnExists(_)
