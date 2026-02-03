@@ -11,11 +11,12 @@ use hjcommon::route::LoginRequest;
 use hjcommon::tg::{self, send_random_word};
 use log::{debug, error, info};
 use std::sync::{Once, OnceLock};
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashMap, collections::HashSet, sync::Arc};
 use worker::*;
 
 static INIT: Once = Once::new();
 static ALLOW_USERS_CACHE: OnceLock<Arc<HashSet<i64>>> = OnceLock::new();
+static CUSTOM_LLMS: OnceLock<HashMap<String, OpenAI>> = OnceLock::new();
 
 fn get_string_from_env(env: &Env, key: &str) -> String {
     match env.var(key) {
@@ -70,7 +71,7 @@ async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
         workers_ai: WasmAI::new(&env, "AI"),
         matainer: maintainer_id,
         bot: client_reqwest::Bot::new(&token),
-        custom_llms: OpenAI::from_assets(),
+        custom_llms: CUSTOM_LLMS.get_or_init(OpenAI::from_assets).clone(),
         auth_secret: {
             let s = get_string_from_env(&env, "AUTH_SECRET");
             if s.is_empty() {
@@ -305,8 +306,14 @@ mod tests {
         let duration_clone = start.elapsed();
 
         println!("Parsing {} times took: {:?}", iterations, duration_parse);
-        println!("Cloning Arc {} times took: {:?}", iterations, duration_clone);
+        println!(
+            "Cloning Arc {} times took: {:?}",
+            iterations, duration_clone
+        );
 
-        assert!(duration_clone < duration_parse, "Optimization should be faster");
+        assert!(
+            duration_clone < duration_parse,
+            "Optimization should be faster"
+        );
     }
 }
