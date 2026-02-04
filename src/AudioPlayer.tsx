@@ -105,7 +105,10 @@ export const AudioPlayer = (props: React.AudioHTMLAttributes<HTMLAudioElement>) 
     const { controls, className, style, ...restProps } = props;
 
     return (
-        <div className="flex items-center gap-3 bg-default-100 dark:bg-default-50 rounded-xl p-3 w-full max-w-md border border-default-200 shadow-sm my-2">
+        <div
+            className={`flex items-center gap-3 bg-default-100 dark:bg-default-50 rounded-xl p-3 w-full max-w-md border border-default-200 shadow-sm my-2 ${className || ""}`}
+            style={style}
+        >
             <audio ref={audioRef} {...restProps} className="hidden" />
 
             <Button
