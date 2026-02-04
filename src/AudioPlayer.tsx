@@ -63,7 +63,10 @@ export const AudioPlayer = (props: React.AudioHTMLAttributes<HTMLAudioElement>) 
 
         const onTimeUpdate = () => setCurrentTime(audio.currentTime);
         const onLoadedMetadata = () => setDuration(audio.duration);
-        const onEnded = () => setIsPlaying(false);
+        const onEnded = () => {
+            setIsPlaying(false);
+            if (audio.duration) setCurrentTime(audio.duration);
+        };
         const onPlay = () => setIsPlaying(true);
         const onPause = () => setIsPlaying(false);
 

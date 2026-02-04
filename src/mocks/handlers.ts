@@ -34,6 +34,30 @@ let words: Word[] = [
     anki_count: 0,
     priority: 1,
     type: 0
+  },
+  {
+    word: "事柄",
+    explain: `[ことがら][kotogara]④或◎
+<audio controls controlsList="nodownload" preload="none" src="http://d1.g.hjfile.cn/voice/jpsound/J26521.mp3"></audio>
+
+- simple explain
+  - 【名词】
+    - 事情，事体；事态。
+
+- More Detail
+  - 名词
+    - ものごとの模様・ありさま・内容。事情。情况。事态。
+      - 見てきた事柄。
+        亲眼看到的情况。
+      - いかがわしい事柄。
+        可疑的事情。 试试。`,
+    example: "事柄の性質上",
+    add_time: Date.now() / 1000,
+    update_time: Date.now() / 1000,
+    reminder_time: Date.now() / 1000,
+    anki_count: 0,
+    priority: 1,
+    type: 0
   }
 ]
 
