@@ -1,10 +1,7 @@
-import { BookIcon, changePriority, countWord, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, queryWord, Spoiler } from "@/components";
+import { BookIcon, changePriority, countWord, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, Markdown, queryWord, Spoiler } from "@/components";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Spinner, Tab, Tabs } from "@heroui/react";
 import { AnimatePresence, motion, PanInfo, useAnimation, useDragControls, useMotionValue, useTransform } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
-import rehypeRaw from "rehype-raw";
-import remarkGfm from "remark-gfm";
-import { Streamdown } from "streamdown";
 import { useLocalStorage } from "usehooks-ts";
 
 // Helper for swipe icons
@@ -295,17 +292,17 @@ export default function Flashcard() {
                                             {currentWord.example && (
                                                 <div className="mb-4 bg-default-50 p-3 rounded-lg">
                                                     <p className="font-semibold text-xs text-default-400 mb-1">EXAMPLE</p>
-                                                    <Streamdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
+                                                    <Markdown>
                                                         {currentWord.example}
-                                                    </Streamdown>
+                                                    </Markdown>
                                                 </div>
                                             )}
 
                                             <div className="mt-4">
                                                 <p className="font-semibold text-xs text-default-400 mb-1">EXPLANATION</p>
-                                                <Streamdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
+                                                <Markdown>
                                                     {currentWord.explain}
-                                                </Streamdown>
+                                                </Markdown>
                                             </div>
                                         </Spoiler>
                                     </div>

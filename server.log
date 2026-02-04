@@ -1,0 +1,9 @@
+
+> hj-react@0.1.0 dev
+> vite --host 0.0.0.0
+
+
+  VITE v7.3.1  ready in 428 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://192.168.0.2:5173/
