@@ -250,7 +250,7 @@ export default function Flashcard() {
                             onDragEnd={handleDragEnd}
 
                             style={{ x, rotate, touchAction: "pan-y" }}
-                            className="w-full h-full max-h-[600px] absolute cursor-grab active:cursor-grabbing select-none"
+                            className="w-full h-full max-h-[600px] absolute cursor-grab active:cursor-grabbing"
 
                             // Gestures for long press
                             onTapStart={() => {

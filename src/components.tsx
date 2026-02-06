@@ -313,13 +313,13 @@ export const Spoiler: FC<{ children: ReactNode, className?: string }> = ({ child
             )}
 
             {!hide && (
-                 <div className="flex justify-end mt-1">
+                 <div className="flex justify-end mt-1 relative z-20">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             setHide(true);
                         }}
-                        className="text-[10px] text-default-400 hover:text-default-600 uppercase tracking-wider font-bold"
+                        className="text-[10px] text-default-400 hover:text-default-600 uppercase tracking-wider font-bold cursor-pointer p-2"
                     >
                         Hide
                     </button>
