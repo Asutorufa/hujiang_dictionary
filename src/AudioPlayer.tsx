@@ -148,8 +148,9 @@ export const AudioPlayer = (props: React.AudioHTMLAttributes<HTMLAudioElement>) 
                     aria-label="Audio Progress"
                     color="primary"
                     classNames={{
-                        track: "h-1",
-                        thumb: "w-3 h-3 after:w-3 after:h-3"
+                        base: "max-w-full w-full gap-0",
+                        track: "h-1 cursor-pointer",
+                        thumb: "w-2 h-2 after:w-2 after:h-2"
                     }}
                 />
             </div>
