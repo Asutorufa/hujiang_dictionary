@@ -303,7 +303,7 @@ export default function Flashcard() {
                                                 <Chip
                                                     size="sm"
                                                     variant="flat"
-                                                    color={getPriorityColor(currentWord.priority) as any}
+                                                    color={getPriorityColor(currentWord.priority)}
                                                     className="cursor-pointer px-2"
                                                 >
                                                     {getPriorityText(currentWord.priority)}

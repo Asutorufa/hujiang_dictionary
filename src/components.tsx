@@ -335,7 +335,7 @@ export function MoreVertIcon() {
     )
 }
 
-export function getPriorityColor(priority: number) {
+export function getPriorityColor(priority: number): "success" | "warning" | "secondary" {
     if (priority === 0) {
         return "success"
     } else if (priority === 1) {

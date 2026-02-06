@@ -75,7 +75,7 @@ export default function WordCard({ word, onEdit, onDelete, onWordUpdate }: WordC
                             <Chip
                                 size="sm"
                                 variant="flat"
-                                color={getPriorityColor(word.priority) as any}
+                                color={getPriorityColor(word.priority)}
                                 className="cursor-pointer px-2 min-w-unit-12"
                             >
                                 {getPriorityText(word.priority)}
