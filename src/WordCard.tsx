@@ -34,6 +34,7 @@ interface WordCardProps {
 
 export default function WordCard({ word, onEdit, onDelete, onWordUpdate }: WordCardProps) {
     const [loading, setLoading] = useState(false);
+    const [isIncrementing, setIsIncrementing] = useState(false);
 
     const handlePriorityChange = async (key: string) => {
         const priority = parseInt(key);
@@ -48,7 +49,10 @@ export default function WordCard({ word, onEdit, onDelete, onWordUpdate }: WordC
     };
 
     const handleIncrement = async () => {
+        if (isIncrementing) return;
+        setIsIncrementing(true);
         await incrementRemindCount(word.word, (error) => {
+            setIsIncrementing(false);
             if (!error) {
                 onWordUpdate({ ...word, anki_count: word.anki_count + 1 });
             }
@@ -139,7 +143,8 @@ export default function WordCard({ word, onEdit, onDelete, onWordUpdate }: WordC
                             radius="full"
                             className="text-tiny px-1 h-6 min-w-12 text-default-400 hover:text-primary"
                             onPress={handleIncrement}
-                            startContent={<span className="text-small">+</span>}
+                            startContent={!isIncrementing ? <span className="text-small">+</span> : null}
+                            isLoading={isIncrementing}
                         >
                             {word.anki_count}
                         </Button>
