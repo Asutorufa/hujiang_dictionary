@@ -5,3 +5,4 @@ out
 dist
 dist-ssr
 *.local
+*.log

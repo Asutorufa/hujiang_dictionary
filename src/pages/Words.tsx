@@ -1,9 +1,6 @@
-import { BookIcon, changePriority, ConfirmModal, countWord, deleteWord, EditIcon, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, queryWord, RefreshIcon, SaveWordModal, Spoiler, TrashIcon } from "@/components";
+import { BookIcon, changePriority, ConfirmModal, countWord, deleteWord, EditIcon, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, Markdown, queryWord, RefreshIcon, SaveWordModal, Spoiler, TrashIcon } from "@/components";
 import { Button, Card, CardBody, CardHeader, Divider, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Pagination, Spinner, Tab, Tabs, Tooltip } from "@heroui/react";
 import { useEffect, useState } from "react";
-import rehypeRaw from "rehype-raw";
-import remarkGfm from "remark-gfm";
-import { Streamdown } from "streamdown";
 import { useLocalStorage } from "usehooks-ts";
 
 
@@ -326,11 +323,11 @@ export default function Words() {
                             </CardHeader>
                             <CardBody>
                                 <div className="px-2 py-1 rounded-small bg-default-100 group-data-[hover=true]:bg-default-200">
-                                    <span className="text-tiny text-default-600 prose max-w-none dark:prose-invert">
-                                        <Streamdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>{w.example.length > 0 ? w.example : "No Example"}</Streamdown>
+                                    <span className="text-tiny text-default-600 max-w-none">
+                                        <Markdown>{w.example.length > 0 ? w.example : "No Example"}</Markdown>
                                         <Divider />
                                         <Spoiler>
-                                            <Streamdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>{w.explain}</Streamdown>
+                                            <Markdown>{w.explain}</Markdown>
                                         </Spoiler>
                                     </span>
                                 </div>

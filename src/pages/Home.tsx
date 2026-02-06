@@ -1,11 +1,8 @@
+import { authorizedRequest } from "@/lib/api";
 import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownSection, DropdownTrigger, Switch, Textarea, Tooltip } from "@heroui/react";
 import { useCallback, useEffect, useState } from "react";
-import rehypeRaw from "rehype-raw";
-import remarkGfm from "remark-gfm";
-import { Streamdown } from "streamdown";
 import { useLocalStorage } from "usehooks-ts";
-import { authorizedRequest } from "@/lib/api";
-import { DiskIcon, listModel as listModels, PlayIcon, SaveWordModal } from "../components";
+import { DiskIcon, listModel as listModels, Markdown, PlayIcon, SaveWordModal } from "../components";
 
 async function queryWord(opts: {
   selected: string,
@@ -372,8 +369,8 @@ export default function Home() {
           <div className="mt-2">
             <Card>
               <CardBody>
-                <div className="flex-1 prose max-w-none dark:prose-invert">
-                  <Streamdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>{result.reasoning}</Streamdown>
+                <div className="flex-1 max-w-none">
+                  <Markdown>{result.reasoning}</Markdown>
                 </div>
               </CardBody>
             </Card>
@@ -384,8 +381,8 @@ export default function Home() {
           <Card>
             <CardBody>
               {result.result ?
-                <div className="flex-1 prose max-w-none dark:prose-invert">
-                  <Streamdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>{result.result}</Streamdown>
+                <div className="flex-1 max-w-none">
+                  <Markdown>{result.result}</Markdown>
                 </div>
                 :
                 <>
