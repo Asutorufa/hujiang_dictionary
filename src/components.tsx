@@ -296,7 +296,7 @@ export const Spoiler: FC<{ children: ReactNode }> = ({ children }) => {
     const [hide, setHide] = useState(true);
     return (
         <div
-            className={`transition-all duration-500 overflow-hidden ${hide ? "cursor-pointer relative" : ""}`}
+            className={`transition-all duration-500 overflow-hidden min-h-[3rem] ${hide ? "cursor-pointer relative" : ""}`}
             onClick={() => {
                 if (hide) setHide(false);
             }}
