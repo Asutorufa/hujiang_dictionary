@@ -70,13 +70,13 @@ export default function WordCard({ word, onEdit, onDelete, onWordUpdate }: WordC
                 </div>
 
                 <div className="flex items-center gap-1">
-                    <Dropdown>
+                    <Dropdown isDisabled={loading}>
                         <DropdownTrigger>
                             <Chip
                                 size="sm"
                                 variant="flat"
                                 color={getPriorityColor(word.priority)}
-                                className="cursor-pointer px-2 min-w-unit-12"
+                                className={`cursor-pointer px-2 min-w-unit-12 ${loading ? 'opacity-50 pointer-events-none' : ''}`}
                             >
                                 {getPriorityText(word.priority)}
                             </Chip>
