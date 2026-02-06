@@ -135,11 +135,11 @@ export default function WordCard({ word, onEdit, onDelete, onWordUpdate }: WordC
                      <Tooltip content="Increment Anki Count">
                         <Button
                             size="sm"
-                            variant="flat"
+                            variant="light"
                             radius="full"
-                            className="text-tiny px-3"
+                            className="text-tiny px-1 h-6 min-w-12 text-default-400 hover:text-primary"
                             onPress={handleIncrement}
-                            startContent={<span className="text-lg leading-none">+</span>}
+                            startContent={<span className="text-small">+</span>}
                         >
                             {word.anki_count}
                         </Button>

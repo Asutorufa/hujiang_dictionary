@@ -297,7 +297,9 @@ export const Spoiler: FC<{ children: ReactNode }> = ({ children }) => {
     return (
         <div
             className={`transition-all duration-500 overflow-hidden ${hide ? "cursor-pointer relative" : ""}`}
-            onClick={() => setHide(prev => !prev)}
+            onClick={() => {
+                if (hide) setHide(false);
+            }}
         >
             <div className={`transition-all duration-500 ${hide ? "blur-sm opacity-50 select-none grayscale" : "blur-0 opacity-100"}`}>
                 {children}
@@ -307,6 +309,20 @@ export const Spoiler: FC<{ children: ReactNode }> = ({ children }) => {
                     <span className="text-tiny font-bold uppercase tracking-widest text-default-500 bg-default-100/50 px-2 py-1 rounded-full border border-default-200 shadow-sm backdrop-blur-md">
                         Spoiler
                     </span>
+                </div>
+            )}
+
+            {!hide && (
+                 <div className="flex justify-end mt-1">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setHide(true);
+                        }}
+                        className="text-[10px] text-default-400 hover:text-default-600 uppercase tracking-wider font-bold"
+                    >
+                        Hide
+                    </button>
                 </div>
             )}
         </div>
