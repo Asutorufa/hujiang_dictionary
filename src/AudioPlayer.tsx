@@ -56,18 +56,27 @@ export const AudioPlayer = (props: React.AudioHTMLAttributes<HTMLAudioElement>) 
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
+    const [isEnded, setIsEnded] = useState(false);
 
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
 
-        const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+        const onTimeUpdate = () => {
+            if (!isEnded) {
+                setCurrentTime(audio.currentTime);
+            }
+        };
         const onLoadedMetadata = () => setDuration(audio.duration);
         const onEnded = () => {
             setIsPlaying(false);
+            setIsEnded(true);
             if (audio.duration) setCurrentTime(audio.duration);
         };
-        const onPlay = () => setIsPlaying(true);
+        const onPlay = () => {
+            setIsPlaying(true);
+            setIsEnded(false);
+        };
         const onPause = () => setIsPlaying(false);
 
         audio.addEventListener("timeupdate", onTimeUpdate);
@@ -83,7 +92,7 @@ export const AudioPlayer = (props: React.AudioHTMLAttributes<HTMLAudioElement>) 
             audio.removeEventListener("play", onPlay);
             audio.removeEventListener("pause", onPause);
         };
-    }, []);
+    }, [isEnded]);
 
     const togglePlay = useCallback(() => {
         if (audioRef.current) {
@@ -97,6 +106,7 @@ export const AudioPlayer = (props: React.AudioHTMLAttributes<HTMLAudioElement>) 
 
     const handleSeek = useCallback((value: number | number[]) => {
         if (audioRef.current) {
+            setIsEnded(false);
             const time = Array.isArray(value) ? value[0] : value;
             audioRef.current.currentTime = time;
             setCurrentTime(time);
@@ -130,10 +140,10 @@ export const AudioPlayer = (props: React.AudioHTMLAttributes<HTMLAudioElement>) 
             <div className="flex-1 flex flex-col justify-center gap-1">
                 <Slider
                     size="sm"
-                    step={0.1}
+                    step={0.01}
                     maxValue={duration || 100}
                     minValue={0}
-                    value={currentTime}
+                    value={isEnded ? duration : currentTime}
                     onChange={handleSeek}
                     aria-label="Audio Progress"
                     color="primary"
