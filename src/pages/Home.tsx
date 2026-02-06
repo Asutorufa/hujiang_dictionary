@@ -1,7 +1,7 @@
+import { authorizedRequest } from "@/lib/api";
 import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownSection, DropdownTrigger, Switch, Textarea, Tooltip } from "@heroui/react";
 import { useCallback, useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
-import { authorizedRequest } from "@/lib/api";
 import { DiskIcon, listModel as listModels, Markdown, PlayIcon, SaveWordModal } from "../components";
 
 async function queryWord(opts: {
@@ -369,7 +369,7 @@ export default function Home() {
           <div className="mt-2">
             <Card>
               <CardBody>
-                <div className="flex-1 prose max-w-none dark:prose-invert">
+                <div className="flex-1 max-w-none">
                   <Markdown>{result.reasoning}</Markdown>
                 </div>
               </CardBody>
@@ -381,7 +381,7 @@ export default function Home() {
           <Card>
             <CardBody>
               {result.result ?
-                <div className="flex-1 prose max-w-none dark:prose-invert">
+                <div className="flex-1 max-w-none">
                   <Markdown>{result.result}</Markdown>
                 </div>
                 :

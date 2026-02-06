@@ -1,6 +1,6 @@
+import { cjk } from '@streamdown/cjk';
 import { FC } from "react";
 import rehypeRaw from "rehype-raw";
-import remarkGfm from "remark-gfm";
 import { Streamdown } from "streamdown";
 import { AudioPlayer } from "./AudioPlayer";
 
@@ -13,7 +13,7 @@ export const Markdown: FC<{ children: string | null | undefined, className?: str
         <Streamdown
             className={className}
             rehypePlugins={[rehypeRaw]}
-            remarkPlugins={[remarkGfm]}
+            plugins={{ cjk: cjk }}
             components={{
                 audio: AudioPlayer as any // Cast to any to avoid potential strict type mismatches with hast nodes
             }}

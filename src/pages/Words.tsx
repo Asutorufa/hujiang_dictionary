@@ -323,7 +323,7 @@ export default function Words() {
                             </CardHeader>
                             <CardBody>
                                 <div className="px-2 py-1 rounded-small bg-default-100 group-data-[hover=true]:bg-default-200">
-                                    <span className="text-tiny text-default-600 prose max-w-none dark:prose-invert">
+                                    <span className="text-tiny text-default-600 max-w-none">
                                         <Markdown>{w.example.length > 0 ? w.example : "No Example"}</Markdown>
                                         <Divider />
                                         <Spoiler>

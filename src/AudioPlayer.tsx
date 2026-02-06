@@ -1,5 +1,5 @@
 import { Button, Slider } from "@heroui/react";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 function PlayIcon({ size = 24, width, height, ...props }: { size?: number, width?: number, height?: number }) {
     return (
@@ -149,7 +149,7 @@ export const AudioPlayer = (props: React.AudioHTMLAttributes<HTMLAudioElement>) 
                     color="primary"
                     classNames={{
                         base: "max-w-full w-full gap-0",
-                        track: "h-1 cursor-pointer",
+                        track: "h-1 cursor-pointer border-x-0",
                         thumb: "w-2 h-2 after:w-2 after:h-2"
                     }}
                 />
