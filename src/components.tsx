@@ -292,16 +292,16 @@ export function BookIcon() {
     )
 }
 
-export const Spoiler: FC<{ children: ReactNode }> = ({ children }) => {
+export const Spoiler: FC<{ children: ReactNode, className?: string }> = ({ children, className }) => {
     const [hide, setHide] = useState(true);
     return (
         <div
-            className={`transition-all duration-500 overflow-hidden min-h-[3rem] ${hide ? "cursor-pointer relative" : ""}`}
+            className={`transition-all duration-500 overflow-hidden min-h-[3rem] ${hide ? "cursor-pointer relative" : ""} ${className || ""}`}
             onClick={() => {
                 if (hide) setHide(false);
             }}
         >
-            <div className={`transition-all duration-500 ${hide ? "blur-sm opacity-50 select-none grayscale" : "blur-0 opacity-100"}`}>
+            <div className={`transition-all duration-500 ${hide ? "blur-sm opacity-50 select-none grayscale" : "blur-0 opacity-100"} ${className?.includes('h-full') ? 'h-full' : ''}`}>
                 {children}
             </div>
             {hide && (

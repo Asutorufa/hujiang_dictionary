@@ -327,14 +327,14 @@ export default function Flashcard() {
                                         dragControls.start(e);
                                     }}
                                 >
-                                    <div className="w-full text-left prose max-w-none dark:prose-invert flex-1">
+                                    <div className="w-full text-left prose max-w-none dark:prose-invert flex-1 flex flex-col h-full">
                                          {currentWord.example && (
                                              <div className="bg-default-50 rounded-lg p-3 mb-2 text-small">
                                                 <Markdown>{currentWord.example}</Markdown>
                                              </div>
                                          )}
 
-                                        <Spoiler>
+                                        <Spoiler className="flex-1 h-full">
                                             <div className="mt-2">
                                                  <Markdown>
                                                     {currentWord.explain}
