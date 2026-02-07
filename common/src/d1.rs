@@ -221,7 +221,13 @@ impl<'a> From<i64> for D1Value<'a> {
 
 impl<'a> From<u64> for D1Value<'a> {
     fn from(v: u64) -> Self {
-        D1Value::Integer(v as i64)
+        // SQLite integers are signed 64-bit.
+        // Saturate at i64::MAX to prevent wrapping to negative values.
+        if v > i64::MAX as u64 {
+            D1Value::Integer(i64::MAX)
+        } else {
+            D1Value::Integer(v as i64)
+        }
     }
 }
 
