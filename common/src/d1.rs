@@ -204,6 +204,56 @@ pub trait DB {
     }
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(untagged)]
+pub enum D1Value<'a> {
+    Integer(i64),
+    Real(f64),
+    Text(std::borrow::Cow<'a, str>),
+    Null,
+}
+
+impl<'a> From<i64> for D1Value<'a> {
+    fn from(v: i64) -> Self {
+        D1Value::Integer(v)
+    }
+}
+
+impl<'a> From<u64> for D1Value<'a> {
+    fn from(v: u64) -> Self {
+        D1Value::Integer(v as i64)
+    }
+}
+
+impl<'a> From<String> for D1Value<'a> {
+    fn from(v: String) -> Self {
+        D1Value::Text(std::borrow::Cow::Owned(v))
+    }
+}
+
+impl<'a> From<&'a str> for D1Value<'a> {
+    fn from(v: &'a str) -> Self {
+        D1Value::Text(std::borrow::Cow::Borrowed(v))
+    }
+}
+
+impl<'a> From<f64> for D1Value<'a> {
+    fn from(v: f64) -> Self {
+        D1Value::Real(v)
+    }
+}
+
+impl<'a> fmt::Display for D1Value<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            D1Value::Integer(v) => write!(f, "{}", v),
+            D1Value::Real(v) => write!(f, "{}", v),
+            D1Value::Text(v) => write!(f, "{}", v),
+            D1Value::Null => write!(f, "null"),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct SaveWord<'a> {
     pub origin_word: Option<&'a str>,
@@ -325,20 +375,20 @@ END AS exist;
         }
     }
 
-    pub fn params<T: From<String> + From<&'a str>>(&self) -> Vec<T> {
+    pub fn params(&self) -> Vec<D1Value<'a>> {
         match self {
             SQL::SaveWord(req) => match req.origin_word {
                 Some(origin) if origin != req.word => vec![
                     req.word.into(),
                     req.explain.into(),
-                    (req.r#type).to_string().into(),
+                    (req.r#type).into(),
                     req.example.into(),
                     origin.into(),
                 ],
                 _ => vec![
                     req.word.into(),
                     req.explain.into(),
-                    (req.r#type).to_string().into(),
+                    (req.r#type).into(),
                     req.example.into(),
                 ],
             },
@@ -354,16 +404,16 @@ END AS exist;
                 let offset = (*page_number - 1) * size;
 
                 vec![
-                    (*r#type).to_string().into(),
-                    size.to_string().into(),
-                    offset.to_string().into(),
+                    (*r#type).into(),
+                    size.into(),
+                    offset.into(),
                 ]
             }
-            SQL::CountWord(r#type) => vec![(*r#type).to_string().into()],
+            SQL::CountWord(r#type) => vec![(*r#type).into()],
             SQL::IncrementRemindCount(word) => vec![(*word).into()],
 
             SQL::ChangePriority(word, priority) => {
-                vec![(*priority).to_string().into(), (*word).into()]
+                vec![(*priority).into(), (*word).into()]
             }
 
             SQL::CheckColumnExists(_)

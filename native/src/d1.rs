@@ -1,4 +1,4 @@
-use hjcommon::d1::{DB, Error, SQL};
+use hjcommon::d1::{D1Value, DB, Error, SQL};
 use log::*;
 use serde::{Deserialize, Serialize};
 
@@ -10,10 +10,10 @@ pub struct D1 {
     pub(crate) api_token: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct QueryBody {
+#[derive(Serialize, Debug)]
+pub struct QueryBody<'a> {
     pub sql: String,
-    pub params: Vec<String>,
+    pub params: Vec<D1Value<'a>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -144,12 +144,12 @@ impl D1 {
         info!(
             "exec sql: [{}] args: {:?}",
             sql.sql(),
-            sql.params::<String>()
+            sql.params()
         );
 
         let body = serde_json::to_string(&QueryBody {
             sql: sql.sql(),
-            params: sql.params::<String>(),
+            params: sql.params(),
         })?;
 
         let r = reqwest::Client::builder()
