@@ -324,6 +324,26 @@ export default function Flashcard() {
                                 <CardBody
                                     className="flex flex-col pt-4 px-4 overflow-y-auto overflow-x-hidden scrollbar-hide"
                                     onPointerDown={(e) => {
+                                        // Only start drag if not selecting text (simple heuristic: not on a text node directly, though React events bubble)
+                                        // Better: Only start drag if target is the CardBody itself or specific areas, NOT prose content.
+                                        // Actually, let's move the drag listener to the Card itself, but we need text selection to work.
+                                        // If we check if the target is interactive (like button) or text, we can skip.
+
+                                        // Allow default behavior (text selection) if clicking on text content
+                                        // checking if the target or its parent has 'prose' class might be complex.
+                                        // Simplest: Don't start drag on CardBody pointer down.
+                                        // Move drag start to the Header or a specific area.
+                                        // But user wants to swipe the card.
+
+                                        // Let's try: if user is selecting text, they are likely clicking and dragging on text.
+                                        // If we don't call dragControls.start(e), text selection works.
+                                        // We can require dragging from the edges or header/footer?
+                                        // Or just check if the target is likely text.
+
+                                        const target = e.target as HTMLElement;
+                                        // If clicking on text content (p, span, etc inside prose), don't drag.
+                                        if (target.closest('.prose')) return;
+
                                         dragControls.start(e);
                                     }}
                                 >
