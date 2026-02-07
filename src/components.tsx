@@ -1,7 +1,6 @@
 import { authorizedRequest } from "@/lib/api";
 import { addToast, Button, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Switch, Textarea, useDisclosure, useDraggable } from "@heroui/react";
 import { FC, ReactNode, useEffect, useRef, useState } from "react";
-import './Spoiler.scss';
 
 
 export const SaveWordModal: FC<{
@@ -293,18 +292,50 @@ export function BookIcon() {
     )
 }
 
-export const Spoiler: FC<{ children: ReactNode }> = ({ children }) => {
+export const Spoiler: FC<{ children: ReactNode, className?: string }> = ({ children, className }) => {
     const [hide, setHide] = useState(true);
     return (
-        <div className={hide ? "Spoiler Spoiler--concealed Spoiler--animated" : ""} onClick={() => {
-            setHide(prev => !prev);
-        }}>
-            <div className="Spoiler__content">{children}</div>
+        <div
+            className={`transition-all duration-500 overflow-hidden min-h-[3rem] ${hide ? "cursor-pointer relative" : ""} ${className || ""}`}
+            onClick={() => {
+                if (hide) setHide(false);
+            }}
+        >
+            <div className={`transition-all duration-500 ${hide ? "blur-sm opacity-50 select-none grayscale" : "blur-0 opacity-100"} ${className?.includes('h-full') ? 'h-full' : ''}`}>
+                {children}
+            </div>
+            {hide && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                    <span className="text-tiny font-bold uppercase tracking-widest text-default-500 bg-default-100/50 px-2 py-1 rounded-full border border-default-200 shadow-sm backdrop-blur-md">
+                        Spoiler
+                    </span>
+                </div>
+            )}
+
+            {!hide && (
+                 <div className="flex justify-end mt-1 relative z-20">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setHide(true);
+                        }}
+                        className="text-[10px] text-default-400 hover:text-default-600 uppercase tracking-wider font-bold cursor-pointer p-2"
+                    >
+                        Hide
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
 
-export function getPriorityColor(priority: number) {
+export function MoreVertIcon() {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M12 16a2 2 0 0 1 2 2a2 2 0 0 1-2 2a2 2 0 0 1-2-2a2 2 0 0 1 2-2m0-6a2 2 0 0 1 2 2a2 2 0 0 1-2 2a2 2 0 0 1-2-2a2 2 0 0 1 2-2m0-6a2 2 0 0 1 2 2a2 2 0 0 1-2 2a2 2 0 0 1-2-2a2 2 0 0 1 2-2" /></svg>
+    )
+}
+
+export function getPriorityColor(priority: number): "success" | "warning" | "secondary" {
     if (priority === 0) {
         return "success"
     } else if (priority === 1) {

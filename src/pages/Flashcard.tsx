@@ -1,5 +1,30 @@
-import { BookIcon, changePriority, countWord, FilterIcon, getPriorityColor, incrementRemindCount, ListWordResponse, Markdown, queryWord, Spoiler } from "@/components";
-import { addToast, Button, Card, CardBody, CardHeader, Divider, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Spinner, Tab, Tabs } from "@heroui/react";
+import {
+    BookIcon,
+    changePriority,
+    countWord,
+    FilterIcon,
+    getPriorityColor,
+    getPriorityText,
+    incrementRemindCount,
+    ListWordResponse,
+    Markdown,
+    queryWord,
+    Spoiler
+} from "@/components";
+import {
+    addToast,
+    Button,
+    Card,
+    CardBody,
+    CardHeader,
+    Chip,
+    Divider,
+    Dropdown,
+    DropdownItem,
+    DropdownMenu,
+    DropdownTrigger,
+    Spinner
+} from "@heroui/react";
 import { AnimatePresence, motion, PanInfo, useAnimation, useDragControls, useMotionValue, useTransform } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
@@ -124,6 +149,21 @@ export default function Flashcard() {
         }
     };
 
+    const handlePriorityChange = (key: string) => {
+        if (!currentWord) return;
+        const newP = parseInt(key);
+        changePriority(currentWord.word, newP, (err) => {
+            if (!err) {
+                setWordsMap(prev => {
+                    const newMap = new Map(prev);
+                    const w = newMap.get(page);
+                    if (w) w.priority = newP;
+                    return newMap;
+                });
+            }
+        });
+    };
+
     return (
         <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden items-center relative p-4">
             {/* Header / Filter Bar */}
@@ -210,7 +250,7 @@ export default function Flashcard() {
                             onDragEnd={handleDragEnd}
 
                             style={{ x, rotate, touchAction: "pan-y" }}
-                            className="w-full h-full max-h-[600px] absolute cursor-grab active:cursor-grabbing select-none"
+                            className="w-full h-full max-h-[600px] absolute cursor-grab active:cursor-grabbing"
 
                             // Gestures for long press
                             onTapStart={() => {
@@ -246,61 +286,77 @@ export default function Flashcard() {
                              </motion.div>
 
                             <Card className="w-full h-full shadow-xl bg-content1 border border-default-200">
-                                <CardHeader className="flex justify-between items-start pb-0">
-                                    <span className="text-default-500 text-sm">
-                                        Count: {currentWord.anki_count}
-                                    </span>
-                                    <Tabs
-                                        size="sm"
-                                        variant="solid"
-                                        color={getPriorityColor(currentWord.priority)}
-                                        selectedKey={currentWord.priority.toString()}
-                                        onSelectionChange={(e) => {
-                                            const newP = parseInt(e.toString());
-                                            changePriority(currentWord.word, newP, (err) => {
-                                                if (!err) {
-                                                    setWordsMap(prev => {
-                                                        const newMap = new Map(prev);
-                                                        const w = newMap.get(page);
-                                                        if (w) w.priority = newP;
-                                                        return newMap;
-                                                    });
-                                                }
-                                            });
-                                        }}
-                                    >
-                                        <Tab title="Low" key={0} />
-                                        <Tab title="Medium" key={1} />
-                                        <Tab title="High" key={2} />
-                                    </Tabs>
+                                <CardHeader className="flex justify-between items-start pb-0 pt-4 px-4">
+                                     <div className="flex flex-col">
+                                         <h3 className="text-lg font-bold break-words">{currentWord.word}</h3>
+                                          <span className="text-tiny text-default-400">
+                                            {new Date(currentWord.update_time * 1000).toLocaleDateString()}
+                                        </span>
+                                     </div>
+
+                                     <div className="flex items-center gap-2">
+                                         <span className="text-default-400 text-tiny">
+                                            Review: {new Date(currentWord.reminder_time * 1000).toLocaleDateString()}
+                                         </span>
+                                         <Dropdown>
+                                            <DropdownTrigger>
+                                                <Chip
+                                                    size="sm"
+                                                    variant="flat"
+                                                    color={getPriorityColor(currentWord.priority)}
+                                                    className="cursor-pointer px-2"
+                                                >
+                                                    {getPriorityText(currentWord.priority)}
+                                                </Chip>
+                                            </DropdownTrigger>
+                                            <DropdownMenu
+                                                aria-label="Priority Actions"
+                                                onAction={(key) => handlePriorityChange(key as string)}
+                                            >
+                                                <DropdownItem key="0" className="text-success">Low</DropdownItem>
+                                                <DropdownItem key="1" className="text-warning">Medium</DropdownItem>
+                                                <DropdownItem key="2" className="text-secondary">High</DropdownItem>
+                                            </DropdownMenu>
+                                        </Dropdown>
+                                     </div>
                                 </CardHeader>
 
                                 <CardBody
-                                    className="flex flex-col items-center pt-8 px-6 text-center overflow-y-auto overflow-x-hidden scrollbar-hide"
+                                    className="flex flex-col pt-4 px-4 overflow-y-auto overflow-x-hidden scrollbar-hide"
                                     onPointerDown={(e) => {
+                                        // Only start drag if not selecting text (simple heuristic: not on a text node directly, though React events bubble)
+                                        // Better: Only start drag if target is the CardBody itself or specific areas, NOT prose content.
+                                        // Actually, let's move the drag listener to the Card itself, but we need text selection to work.
+                                        // If we check if the target is interactive (like button) or text, we can skip.
+
+                                        // Allow default behavior (text selection) if clicking on text content
+                                        // checking if the target or its parent has 'prose' class might be complex.
+                                        // Simplest: Don't start drag on CardBody pointer down.
+                                        // Move drag start to the Header or a specific area.
+                                        // But user wants to swipe the card.
+
+                                        // Let's try: if user is selecting text, they are likely clicking and dragging on text.
+                                        // If we don't call dragControls.start(e), text selection works.
+                                        // We can require dragging from the edges or header/footer?
+                                        // Or just check if the target is likely text.
+
+                                        const target = e.target as HTMLElement;
+                                        // If clicking on text content (p, span, etc inside prose), don't drag.
+                                        if (target.closest('.prose')) return;
+
                                         dragControls.start(e);
                                     }}
                                 >
-                                    <h1 className="text-4xl font-bold mb-6 break-words w-full">
-                                        {currentWord.word}
-                                    </h1>
+                                    <div className="w-full text-left prose max-w-none dark:prose-invert flex-1 flex flex-col h-full">
+                                         {currentWord.example && (
+                                             <div className="bg-default-50 rounded-lg p-3 mb-2 text-small">
+                                                <Markdown>{currentWord.example}</Markdown>
+                                             </div>
+                                         )}
 
-                                    <Divider className="my-4" />
-
-                                    <div className="w-full text-left prose max-w-none dark:prose-invert flex-1">
-                                        <Spoiler>
-                                            {currentWord.example && (
-                                                <div className="mb-4 bg-default-50 p-3 rounded-lg">
-                                                    <p className="font-semibold text-xs text-default-400 mb-1">EXAMPLE</p>
-                                                    <Markdown>
-                                                        {currentWord.example}
-                                                    </Markdown>
-                                                </div>
-                                            )}
-
-                                            <div className="mt-4">
-                                                <p className="font-semibold text-xs text-default-400 mb-1">EXPLANATION</p>
-                                                <Markdown>
+                                        <Spoiler className="flex-1 h-full">
+                                            <div className="mt-2">
+                                                 <Markdown>
                                                     {currentWord.explain}
                                                 </Markdown>
                                             </div>
@@ -308,30 +364,30 @@ export default function Flashcard() {
                                     </div>
                                 </CardBody>
 
-                                <div className="p-4 flex justify-between w-full border-t border-default-100">
+                                <div className="p-4 flex justify-between w-full border-t border-default-100 items-center">
                                     <Button
                                         color="danger"
                                         variant="flat"
                                         onPress={() => handleSwipe('skip')}
+                                        className="w-24"
                                     >
                                         Skip
                                     </Button>
 
-                                    <div className="flex gap-2">
-                                         <Button
-                                            isIconOnly
-                                            variant="light"
-                                            isDisabled={page <= 1}
-                                            onPress={() => setPage(p => Math.max(1, p - 1))}
-                                         >
-                                            <LeftArrowIcon />
-                                         </Button>
-                                    </div>
+                                    <Button
+                                        isIconOnly
+                                        variant="light"
+                                        isDisabled={page <= 1}
+                                        onPress={() => setPage(p => Math.max(1, p - 1))}
+                                    >
+                                        <LeftArrowIcon />
+                                    </Button>
 
                                     <Button
                                         color="success"
                                         variant="flat"
                                         onPress={() => handleSwipe('know')}
+                                        className="w-24"
                                     >
                                         Know
                                     </Button>
