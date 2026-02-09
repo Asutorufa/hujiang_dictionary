@@ -1,7 +1,8 @@
-use hjcommon::d1::{DB, Error as D1Error, SQL};
+use hjcommon::d1::{D1Value, DB, Error as D1Error, SQL};
 use log::info;
 use serde::Deserialize;
 use std::sync::Arc;
+use worker::wasm_bindgen::JsValue;
 use worker::{D1Database, Env};
 
 pub struct Error(worker::Error);
@@ -43,10 +44,24 @@ impl WasmD1 {
     where
         T: for<'a> Deserialize<'a>,
     {
+        let params: Vec<JsValue> = sql
+            .params()
+            .iter()
+            .map(|v| match v {
+                // Note: casting i64 to f64 is safe for timestamps (seconds) and small counters used here.
+                // JavaScript numbers are doubles (f64) with safe integer limit of 2^53.
+                // Current timestamp ~1.7e9 is well within limit.
+                D1Value::Integer(i) => JsValue::from(*i as f64),
+                D1Value::Real(f) => JsValue::from(*f),
+                D1Value::Text(s) => JsValue::from(s.as_ref()),
+                D1Value::Null => JsValue::null(),
+            })
+            .collect();
+
         let prepare_statement = self
             .get_d1()?
             .prepare(sql.sql())
-            .bind(&sql.params())
+            .bind(&params)
             .map_err(|v| Error(v))?;
 
         let result = match prepare_statement.run().await {
@@ -62,7 +77,7 @@ impl WasmD1 {
         info!(
             "exec sql [{}], args: [{:?}], result: {:?}",
             sql.sql(),
-            sql.params::<String>(),
+            sql.params(),
             result,
         );
 
