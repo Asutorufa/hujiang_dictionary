@@ -141,15 +141,18 @@ impl D1 {
             return Err(Error("api_token is empty".to_string()));
         }
 
+        let sql_str = sql.sql();
+        let params = sql.params();
+
         info!(
             "exec sql: [{}] args: {:?}",
-            sql.sql(),
-            sql.params()
+            sql_str,
+            params
         );
 
         let body = serde_json::to_string(&QueryBody {
-            sql: sql.sql(),
-            params: sql.params(),
+            sql: sql_str,
+            params,
         })?;
 
         let r = reqwest::Client::builder()
