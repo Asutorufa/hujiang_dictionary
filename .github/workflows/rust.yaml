@@ -36,6 +36,59 @@ jobs:
           path: web/out
           key: cache-web-${{ github.run_id }}-${{ github.run_attempt }}
 
+  worker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: get run id
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "GITHUB_RUN_ID=$(gh run list -b react -w React -L 1 -s success --json databaseId -q .[0].databaseId)" >> $GITHUB_ENV
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: statics
+          path: web/out
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ env.GITHUB_RUN_ID }}
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-index-
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-build-target-
+
+      - name: Install worker-build
+        run: cargo install worker-build
+
+      - name: Build Worker
+        run: npx wrangler build
+
   build:
     name: Build - ${{ matrix.platform.os-name }}
     strategy:
