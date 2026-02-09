@@ -430,7 +430,7 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
                     .await?
             }
             "google" | "googlev1" => {
-                let target = req.dst_lang.clone().unwrap_or("en".to_string());
+                let target = req.dst_lang.as_deref().unwrap_or("en");
 
                 let query = async |src: Option<String>, target: &str| {
                     if req.method == "googlev1" {
