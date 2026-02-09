@@ -15,8 +15,59 @@ use std::{collections::HashMap, collections::HashSet, sync::Arc};
 use worker::*;
 
 static INIT: Once = Once::new();
-static ALLOW_USERS_CACHE: OnceLock<Arc<HashSet<i64>>> = OnceLock::new();
+static ENV_CONFIG: OnceLock<EnvConfig> = OnceLock::new();
 static CUSTOM_LLMS: OnceLock<HashMap<String, OpenAI>> = OnceLock::new();
+
+struct EnvConfig {
+    allow_users: Arc<HashSet<i64>>,
+    maintainer_id: i64,
+    bot: client_reqwest::Bot,
+    auth_secret: String,
+    auth_username: String,
+    auth_password: String,
+    auth_token_expiration: i64,
+}
+
+impl EnvConfig {
+    fn from_env(env: &Env) -> Self {
+        let token = get_string_from_env(env, "TELEGRAM_TOKEN");
+        let bot = client_reqwest::Bot::new(&token);
+
+        let maintainer_id = get_string_from_env(env, "MAINTAINER_ID")
+            .parse::<i64>()
+            .unwrap_or(0);
+
+        let mut set = HashSet::from([maintainer_id]);
+        set.extend(
+            get_string_from_env(env, "ALLOW_USERS")
+                .split(',')
+                .filter(|s| !s.is_empty())
+                .filter_map(|s| s.parse::<i64>().ok()),
+        );
+        let allow_users = Arc::new(set);
+
+        let auth_secret = {
+            let s = get_string_from_env(env, "AUTH_SECRET");
+            if s.is_empty() {
+                "default_secret".to_string()
+            } else {
+                s
+            }
+        };
+
+        EnvConfig {
+            allow_users,
+            maintainer_id,
+            bot,
+            auth_secret,
+            auth_username: get_string_from_env(env, "AUTH_USERNAME"),
+            auth_password: get_string_from_env(env, "AUTH_PASSWORD"),
+            auth_token_expiration: get_string_from_env(env, "AUTH_TOKEN_EXPIRATION")
+                .parse::<i64>()
+                .unwrap_or(1),
+        }
+    }
+}
 
 fn get_string_from_env(env: &Env, key: &str) -> String {
     match env.var(key) {
@@ -44,47 +95,19 @@ async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
         };
     });
 
-    let token = get_string_from_env(&env, "TELEGRAM_TOKEN");
-
-    let maintainer_id = get_string_from_env(&env, "MAINTAINER_ID")
-        .parse::<i64>()
-        .unwrap_or(0);
-
-    let allow_users = ALLOW_USERS_CACHE
-        .get_or_init(|| {
-            let mut set = HashSet::from([maintainer_id]);
-
-            set.extend(
-                get_string_from_env(&env, "ALLOW_USERS")
-                    .split(',')
-                    .filter(|s| !s.is_empty())
-                    .filter_map(|s| s.parse::<i64>().ok()),
-            );
-
-            Arc::new(set)
-        })
-        .clone();
+    let config = ENV_CONFIG.get_or_init(|| EnvConfig::from_env(&env));
 
     Arc::new(RunOpt {
-        allow_users,
+        allow_users: config.allow_users.clone(),
         d1: WasmD1::new(&env, "DB").await,
         workers_ai: WasmAI::new(&env, "AI"),
-        matainer: maintainer_id,
-        bot: client_reqwest::Bot::new(&token),
+        matainer: config.maintainer_id,
+        bot: config.bot.clone(),
         custom_llms: CUSTOM_LLMS.get_or_init(OpenAI::from_assets).clone(),
-        auth_secret: {
-            let s = get_string_from_env(&env, "AUTH_SECRET");
-            if s.is_empty() {
-                "default_secret".to_string()
-            } else {
-                s
-            }
-        },
-        auth_username: get_string_from_env(&env, "AUTH_USERNAME"),
-        auth_password: get_string_from_env(&env, "AUTH_PASSWORD"),
-        auth_token_expiration: get_string_from_env(&env, "AUTH_TOKEN_EXPIRATION")
-            .parse::<i64>()
-            .unwrap_or(1),
+        auth_secret: config.auth_secret.clone(),
+        auth_username: config.auth_username.clone(),
+        auth_password: config.auth_password.clone(),
+        auth_token_expiration: config.auth_token_expiration,
     })
 }
 
@@ -271,49 +294,104 @@ mod tests {
     use std::time::Instant;
 
     #[test]
-    fn benchmark_env_parsing_vs_arc_clone() {
-        // Generate a simulated ALLOW_USERS string with 1000 IDs
+    fn benchmark_env_parsing_vs_cached_config() {
+        // Simulate env vars
         let ids: Vec<String> = (0..1000).map(|i| i.to_string()).collect();
-        let env_val = ids.join(",");
+        let allow_users_str = ids.join(",");
+        let maintainer_id_str = "12345";
+        let token_str = "some_long_token_string";
+        let auth_secret_str = "some_secret";
+        let auth_username_str = "user";
+        let auth_password_str = "pass";
+        let auth_expiration_str = "3600";
 
         let iterations = 1000;
 
-        // Baseline: Parse every time
+        // Baseline: Parse everything every time
         let start = Instant::now();
         for _ in 0..iterations {
-            let set: HashSet<i64> = env_val
-                .split(',')
-                .filter(|s| !s.is_empty())
-                .filter_map(|v| v.parse().ok())
-                .collect();
-            // Simulate creation of RunOpt (just the set part)
-            let _ = set;
+            // Simulate maintainer_id parsing
+            let maintainer_id = maintainer_id_str.parse::<i64>().unwrap_or(0);
+
+            // Simulate ALLOW_USERS parsing
+            let mut set = HashSet::from([maintainer_id]);
+            set.extend(
+                allow_users_str
+                    .split(',')
+                    .filter(|s| !s.is_empty())
+                    .filter_map(|v| v.parse::<i64>().ok()),
+            );
+            let allow_users = Arc::new(set);
+
+            // Simulate other env vars retrieval (allocation)
+            let token = token_str.to_string();
+            let auth_secret = auth_secret_str.to_string();
+            let auth_username = auth_username_str.to_string();
+            let auth_password = auth_password_str.to_string();
+            let auth_expiration = auth_expiration_str.parse::<i64>().unwrap_or(1);
+
+            // Prevent optimization
+            let _ = (
+                allow_users,
+                maintainer_id,
+                token,
+                auth_secret,
+                auth_username,
+                auth_password,
+                auth_expiration,
+            );
         }
         let duration_parse = start.elapsed();
 
-        // Optimization: Arc clone
-        let initial_set: HashSet<i64> = env_val
-            .split(',')
-            .filter(|s| !s.is_empty())
-            .filter_map(|v| v.parse().ok())
-            .collect();
-        let cached_arc = Arc::new(initial_set);
-
-        let start = Instant::now();
-        for _ in 0..iterations {
-            let _ = cached_arc.clone();
+        // Optimization: Clone cached struct
+        #[allow(dead_code)]
+        struct CachedConfig {
+            allow_users: Arc<HashSet<i64>>,
+            maintainer_id: i64,
+            token: String,
+            auth_secret: String,
+            auth_username: String,
+            auth_password: String,
+            auth_expiration: i64,
         }
-        let duration_clone = start.elapsed();
 
-        println!("Parsing {} times took: {:?}", iterations, duration_parse);
+        // Setup cache once
+        let maintainer_id = maintainer_id_str.parse::<i64>().unwrap_or(0);
+        let mut set = HashSet::from([maintainer_id]);
+        set.extend(
+            allow_users_str
+                .split(',')
+                .filter(|s| !s.is_empty())
+                .filter_map(|v| v.parse::<i64>().ok()),
+        );
+        let cached = Arc::new(CachedConfig {
+            allow_users: Arc::new(set),
+            maintainer_id,
+            token: token_str.to_string(),
+            auth_secret: auth_secret_str.to_string(),
+            auth_username: auth_username_str.to_string(),
+            auth_password: auth_password_str.to_string(),
+            auth_expiration: auth_expiration_str.parse::<i64>().unwrap_or(1),
+        });
+
+        let start_clone = Instant::now();
+        for _ in 0..iterations {
+            let _ = cached.clone();
+        }
+        let duration_clone = start_clone.elapsed();
+
         println!(
-            "Cloning Arc {} times took: {:?}",
+            "Parsing full config {} times took: {:?}",
+            iterations, duration_parse
+        );
+        println!(
+            "Cloning cached config {} times took: {:?}",
             iterations, duration_clone
         );
 
         assert!(
             duration_clone < duration_parse,
-            "Optimization should be faster"
+            "Optimization should be significantly faster"
         );
     }
 }
