@@ -103,7 +103,7 @@ pub fn split_message(text: &str, max_len: usize) -> Vec<String> {
     let mut start = 0;
 
     for (idx, c) in text.char_indices() {
-        if idx - start + c.len_utf8() > max_len {
+        if idx - start + c.len_utf8() > max_len && idx > start {
             chunks.push(text[start..idx].to_string());
             start = idx;
         }
@@ -129,6 +129,10 @@ mod tests {
         let text = "你好世界";
         let chunks = split_message(text, 6);
         assert_eq!(chunks, vec!["你好", "世界"]);
+
+        let text = "嗨";
+        let chunks = split_message(text, 2);
+        assert_eq!(chunks, vec!["嗨"]);
     }
 }
 
