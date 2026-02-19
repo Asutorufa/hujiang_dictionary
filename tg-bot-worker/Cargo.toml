@@ -1,0 +1,23 @@
+[package]
+name = "tg-bot-worker"
+version = "0.1.0"
+edition = "2024"
+authors = ["Your Name <you@example.com>"]
+description = "A generic Telegram bot framework for Cloudflare Workers."
+license = "MIT"
+keywords = ["telegram", "bot", "worker", "framework"]
+categories = ["api-bindings", "web-programming"]
+repository = "https://github.com/your/repo"
+documentation = "https://docs.rs/tg-bot-worker"
+
+[dependencies]
+frankenstein = { workspace = true }
+log = { workspace = true }
+serde = { workspace = true }
+thiserror = "1.0"
+async-trait = "0.1"
+
+[dev-dependencies]
+tokio = { workspace = true }
+frankenstein = { workspace = true }
+serde_json = { workspace = true }

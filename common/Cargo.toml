@@ -13,10 +13,12 @@ frankenstein = { workspace = true }
 rust-embed = { workspace = true }
 jsonwebtoken = { workspace = true }
 chrono = { workspace = true }
+async-trait = "0.1"
 subtle = "2"
 
 value2struct = { path = "../value2struct" }
 hjdict = { path = "../dict" }
+tg-bot-worker = { path = "../tg-bot-worker" }
 
 # test only
 tokio = { workspace = true }

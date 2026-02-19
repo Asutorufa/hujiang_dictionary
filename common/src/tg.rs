@@ -5,13 +5,14 @@ use core::fmt;
 use frankenstein::AsyncTelegramApi;
 use frankenstein::client_reqwest::Bot;
 use frankenstein::methods::{SendMessageParams, SetMyCommandsParams, SetWebhookParams};
-use frankenstein::types::{
-    ChatId, LinkPreviewOptions, MaybeInaccessibleMessage, MessageEntityType,
-};
-use frankenstein::updates::UpdateContent;
+use frankenstein::types::{ChatId, LinkPreviewOptions, MaybeInaccessibleMessage};
 use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use log::*;
 use std::sync::Arc;
+use tg_bot_worker::utils::{
+    html_escape, markdown_escape, split_message, vec_string_markdown_escape,
+};
+use tg_bot_worker::{process_update, TelegramBot};
 
 #[derive(Debug)]
 pub enum Command {
@@ -98,44 +99,6 @@ pub fn bot_commands() -> Vec<frankenstein::types::BotCommand> {
     ]
 }
 
-pub fn split_message(text: &str, max_len: usize) -> Vec<String> {
-    let mut chunks = Vec::with_capacity(text.len() / max_len.max(1) + 1);
-    let mut start = 0;
-
-    for (idx, c) in text.char_indices() {
-        if idx - start + c.len_utf8() > max_len && idx > start {
-            chunks.push(text[start..idx].to_string());
-            start = idx;
-        }
-    }
-
-    if start < text.len() {
-        chunks.push(text[start..].to_string());
-    }
-
-    chunks
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_split_message() {
-        let text = "hello world";
-        let chunks = split_message(text, 5);
-        assert_eq!(chunks, vec!["hello", " worl", "d"]);
-
-        let text = "你好世界";
-        let chunks = split_message(text, 6);
-        assert_eq!(chunks, vec!["你好", "世界"]);
-
-        let text = "嗨";
-        let chunks = split_message(text, 2);
-        assert_eq!(chunks, vec!["嗨"]);
-    }
-}
-
 #[derive(Debug)]
 pub enum CallbackQueryCommand {
     Delete,
@@ -143,102 +106,61 @@ pub enum CallbackQueryCommand {
     Remove(String),
 }
 
-pub(super) const MARKDOWN_ESCAPE_CHARS: [char; 19] = [
-    '\\', '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!',
-];
+#[async_trait::async_trait(?Send)]
+impl<T, T2> TelegramBot for RunOpt<T, T2>
+where
+    T: DB + Clone,
+    T2: WorkersAI + Clone,
+{
+    type Error = Error;
 
-pub fn markdown_escape(s: &str) -> String {
-    s.chars().fold(String::with_capacity(s.len()), |mut s, c| {
-        if MARKDOWN_ESCAPE_CHARS.contains(&c) {
-            s.push('\\');
-        }
-        s.push(c);
-        s
-    })
-}
+    async fn handle_command(
+        &self,
+        msg: frankenstein::types::Message,
+        cmd: &str,
+        args: &str,
+    ) -> Result<(), Self::Error> {
+        let quote_or_reply_message = match msg.quote.as_ref() {
+            None => match msg.reply_to_message.as_ref() {
+                None => "",
+                Some(v) => match v.text.as_ref() {
+                    Some(v) => v,
+                    None => "",
+                },
+            },
+            Some(v) => v.text.as_ref(),
+        };
 
-pub fn html_escape(s: &str) -> String {
-    s.chars().fold(String::with_capacity(s.len()), |mut s, c| {
-        match c {
-            '&' => s.push_str("&amp;"),
-            '<' => s.push_str("&lt;"),
-            '>' => s.push_str("&gt;"),
-            c => s.push(c),
-        }
-        s
-    })
-}
-
-pub fn vec_string_markdown_escape(v: &Vec<String>) -> String {
-    let mut s = String::new();
-    for i in v {
-        s.push_str(markdown_escape(i.as_str()).as_str());
-        s.push_str("\n");
+        let (command_enum, _) = parse_command(cmd, args, quote_or_reply_message)?;
+        answer(Arc::new(self.clone()), Box::new(msg), command_enum)
+            .await
+            .map_err(|e| Error(e.to_string()))
     }
-    s
+
+    async fn handle_callback(
+        &self,
+        query: frankenstein::types::CallbackQuery,
+        cmd: &str,
+        args: &str,
+    ) -> Result<(), Self::Error> {
+        let (command_enum, _) = parse_callback_query_command(cmd, args)?;
+        callback_query(Arc::new(self.clone()), Box::new(query), command_enum)
+            .await
+            .map_err(|e| Error(e.to_string()))
+    }
 }
 
-pub async fn handle<T: DB, T2: WorkersAI>(
+pub async fn handle<T, T2>(
     opt: Arc<RunOpt<T, T2>>,
     update: frankenstein::updates::Update,
-) -> Result<(), Error> {
-    match update.content {
-        UpdateContent::Message(msg) | UpdateContent::EditedMessage(msg) => {
-            let entity = match msg.entities.as_ref() {
-                Some(v) if !v.is_empty() && v[0].type_field == MessageEntityType::BotCommand => {
-                    &v[0]
-                }
-                _ => return Err(Error("no command entity".to_string())),
-            };
-
-            let txt = match msg.text.as_ref() {
-                Some(v) => v,
-                None => return Err(Error("no text".to_string())),
-            };
-
-            let quote_or_reply_message = match msg.quote.as_ref() {
-                None => match msg.reply_to_message.as_ref() {
-                    None => "",
-                    Some(v) => match v.text.as_ref() {
-                        Some(v) => v,
-                        None => "",
-                    },
-                },
-                Some(v) => v.text.as_ref(),
-            };
-
-            let command =
-                &txt[entity.offset as usize..entity.offset as usize + entity.length as usize];
-
-            let argument = txt[entity.offset as usize + entity.length as usize..].trim();
-
-            let (cmd, text) = parse_command(command, argument, quote_or_reply_message)?;
-
-            info!("message command: {:?}, argument: {:?}", cmd, text);
-
-            answer(opt, msg, cmd).await?;
-        }
-        UpdateContent::CallbackQuery(msg) => {
-            let (command, argument) = match msg.data.as_ref() {
-                Some(v) => {
-                    let mut data = v.splitn(2, ' ');
-                    let command = data.next().unwrap_or("");
-                    let argument = data.next().unwrap_or("");
-                    (command.to_string(), argument.to_string())
-                }
-                None => return Err(Error("no data".to_string())),
-            };
-
-            let (cmd, text) = parse_callback_query_command(command.as_str(), argument.as_str())?;
-
-            info!("callback query command: {:?}, argument: {:?}", cmd, text);
-
-            callback_query(opt, msg, cmd).await?;
-        }
-        _ => return Err(Error("not message".to_string())),
-    };
-
-    Ok(())
+) -> Result<(), Error>
+where
+    T: DB + Clone,
+    T2: WorkersAI + Clone,
+{
+    process_update(&*opt, update)
+        .await
+        .map_err(|e| Error(e.to_string()))
 }
 
 #[derive(Debug)]
