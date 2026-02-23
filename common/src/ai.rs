@@ -11,12 +11,12 @@ pub struct Response {
     pub reasoning: Option<String>,
 }
 
-impl ToString for Response {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for Response {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(reasoning) = &self.reasoning {
-            format!("reasoning:\n{}\ncontent:\n{}", reasoning, self.content)
+            write!(f, "reasoning:\n{}\ncontent:\n{}", reasoning, self.content)
         } else {
-            self.content.clone()
+            write!(f, "{}", self.content)
         }
     }
 }
@@ -135,7 +135,7 @@ pub trait WorkersAI {
                     }
                 }
 
-                Models::GPTOss20B | _ => {
+                _ => {
                     let result = self.responses(req.responses_request()).await?.content();
 
                     Ok(result)
@@ -161,7 +161,7 @@ async fn google_search(query: &str) -> Result<String, Error> {
                 instruct.push_str(&format!("<content>{}</content>\n", s));
             }
             Body::Link(v) => {
-                if length <= 0 {
+                if length == 0 {
                     continue;
                 }
 
@@ -246,7 +246,7 @@ impl Models {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Models> {
+    pub fn from_model_name(s: &str) -> Option<Models> {
         match s {
             "@cf/google/gemma-3-12b-it" => Some(Models::Gemma3_12bIt),
             "@cf/meta/llama-4-scout-17b-16e-instruct" => Some(Models::Llama4Scout17B16EInstruct),
@@ -303,11 +303,7 @@ impl ResponsesRequest {
     pub fn new_translate_request<'a>(req: TranslateRequest<'a>) -> Self {
         let msgs = vec![Message {
             role: "user".to_string(),
-            content: format!(
-                "{}\n{}",
-                req.instruction.unwrap_or_default(),
-                req.query.to_string()
-            ),
+            content: format!("{}\n{}", req.instruction.unwrap_or_default(), req.query),
             reasoning: None,
         }];
 
@@ -420,11 +416,7 @@ impl CompletionRequest {
 
         msgs.push(Message {
             role: "user".to_string(),
-            content: format!(
-                "{}\n{}",
-                req.instruction.unwrap_or_default(),
-                req.query.to_string()
-            ),
+            content: format!("{}\n{}", req.instruction.unwrap_or_default(), req.query),
             ..Default::default()
         });
 
@@ -500,10 +492,7 @@ impl OpenAI {
             Err(_) => return HashMap::new(),
         };
 
-        match serde_json::from_slice(&env) {
-            Ok(v) => v,
-            Err(_) => HashMap::new(),
-        }
+        serde_json::from_slice(&env).unwrap_or_default()
     }
 
     pub fn from_assets() -> HashMap<String, OpenAI> {
@@ -587,7 +576,7 @@ impl OpenAI {
 
     fn allow_model(&self, model: &str) -> Result<(), Error> {
         if !self.allow_all_models.unwrap_or(false) && !self.models.contains(model) {
-            return Err(Error("model not supported".to_string()));
+            Err(Error("model not supported".to_string()))
         } else {
             Ok(())
         }
@@ -624,83 +613,67 @@ impl OpenAI {
         self.exec("/responses", req).await
     }
 
-    pub fn explain<'a>(
+    pub async fn explain<'a>(
         &self,
         google_search: bool,
         req: TranslateRequest<'a>,
-    ) -> impl Future<Output = Result<Response, Error>> {
-        async move {
-            if google_search {
-                info!("google search enabled, model: {}", req.model);
-                self.google_search(req).await
-            } else {
-                self.translate(req).await
-            }
+    ) -> Result<Response, Error> {
+        if google_search {
+            info!("google search enabled, model: {}", req.model);
+            self.google_search(req).await
+        } else {
+            self.translate(req).await
         }
     }
 
-    pub fn translate<'a>(
-        &self,
-        req: TranslateRequest<'a>,
-    ) -> impl Future<Output = Result<Response, Error>> {
-        async move {
-            let instruction = match req.instruction {
-                Some(i) if !i.is_empty() => Some(i.to_string()),
-                _ => {
-                    if let Some(dst) = req.dst_lang {
-                        Some(format!("\nTarget Language: {}", dst))
-                    } else {
-                        None
-                    }
-                }
-            };
+    pub async fn translate<'a>(&self, req: TranslateRequest<'a>) -> Result<Response, Error> {
+        let instruction = match req.instruction {
+            Some(i) if !i.is_empty() => Some(i.to_string()),
+            _ => req
+                .dst_lang
+                .map(|dst| format!("\nTarget Language: {}", dst)),
+        };
 
-            let req = TranslateRequest {
-                model: req.model,
-                query: req.query,
-                chars_limit: req.chars_limit,
-                instruction: instruction.as_deref(),
-                dst_lang: req.dst_lang,
-            };
+        let req = TranslateRequest {
+            model: req.model,
+            query: req.query,
+            chars_limit: req.chars_limit,
+            instruction: instruction.as_deref(),
+            dst_lang: req.dst_lang,
+        };
 
-            let result = self.completion(req.completion_request()).await?;
+        let result = self.completion(req.completion_request()).await?;
 
-            if let Some(r) = result.choices.first() {
-                Ok(r.message.to_response())
-            } else {
-                Err(Error("no choice".to_string()))
-            }
+        if let Some(r) = result.choices.first() {
+            Ok(r.message.to_response())
+        } else {
+            Err(Error("no choice".to_string()))
         }
     }
 
-    pub fn google_search<'a>(
-        &self,
-        req: TranslateRequest<'a>,
-    ) -> impl Future<Output = Result<Response, Error>> {
-        async move {
-            let mut instruction = google_search(req.query).await?;
+    pub async fn google_search<'a>(&self, req: TranslateRequest<'a>) -> Result<Response, Error> {
+        let mut instruction = google_search(req.query).await?;
 
-            if let Some(dst) = req.dst_lang {
-                instruction.push_str(&format!("\nTarget Language: {}", dst));
-            }
+        if let Some(dst) = req.dst_lang {
+            instruction.push_str(&format!("\nTarget Language: {}", dst));
+        }
 
-            info!("google search instruct: {}", instruction);
+        info!("google search instruct: {}", instruction);
 
-            let req = TranslateRequest {
-                model: req.model,
-                query: req.query,
-                chars_limit: req.chars_limit,
-                instruction: Some(&instruction),
-                dst_lang: req.dst_lang,
-            };
+        let req = TranslateRequest {
+            model: req.model,
+            query: req.query,
+            chars_limit: req.chars_limit,
+            instruction: Some(&instruction),
+            dst_lang: req.dst_lang,
+        };
 
-            let result = self.completion(req.completion_request()).await?;
+        let result = self.completion(req.completion_request()).await?;
 
-            if let Some(r) = result.choices.first() {
-                Ok(r.message.to_response())
-            } else {
-                Err(Error("no choice".to_string()))
-            }
+        if let Some(r) = result.choices.first() {
+            Ok(r.message.to_response())
+        } else {
+            Err(Error("no choice".to_string()))
         }
     }
 }
@@ -712,7 +685,7 @@ mod test {
     use crate::ai::OpenAI;
 
     fn init() {
-        let _ = env_logger::builder()
+        env_logger::builder()
             .filter_level(log::LevelFilter::Info)
             .format_line_number(true)
             .init();

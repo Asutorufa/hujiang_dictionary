@@ -1,5 +1,5 @@
 use crate::ai::Models;
-use crate::d1::{Queries, Word};
+use crate::d1::Queries;
 use crate::{ai::WorkersAI, opts::RunOpt};
 use core::fmt;
 use d1_orm::DatabaseExecutor;
@@ -174,7 +174,7 @@ pub fn vec_string_markdown_escape(v: &Vec<String>) -> String {
     let mut s = String::new();
     for i in v {
         s.push_str(markdown_escape(i.as_str()).as_str());
-        s.push_str("\n");
+        s.push('\n');
     }
     s
 }
@@ -565,7 +565,7 @@ pub async fn callback_query<T: DatabaseExecutor, T2: WorkersAI>(
                 Some(v) => v.to_string(),
             };
 
-            match opt
+            if let Err(e) = opt
                 .d1
                 .execute(Queries::SaveWord {
                     word: &v,
@@ -573,13 +573,9 @@ pub async fn callback_query<T: DatabaseExecutor, T2: WorkersAI>(
                     word_type: 0,
                     example: "",
                 })
-                .await
-            {
-                Err(e) => {
-                    error!("save word failed: {}", e);
-                    return Ok(());
-                }
-                _ => {}
+                .await {
+                error!("save word failed: {}", e);
+                return Ok(());
             }
 
             let req = frankenstein::methods::EditMessageReplyMarkupParams::builder()
@@ -604,12 +600,9 @@ pub async fn callback_query<T: DatabaseExecutor, T2: WorkersAI>(
             opt.bot.edit_message_reply_markup(&req).await?;
         }
         CallbackQueryCommand::Remove(v) => {
-            match opt.d1.execute(Queries::DeleteWord { word: &v }).await {
-                Err(e) => {
-                    error!("delete word failed: {}", e);
-                    return Ok(());
-                }
-                _ => {}
+            if let Err(e) = opt.d1.execute(Queries::DeleteWord { word: &v }).await {
+                error!("delete word failed: {}", e);
+                return Ok(());
             }
 
             let req = frankenstein::methods::EditMessageReplyMarkupParams::builder()
@@ -655,7 +648,7 @@ pub async fn send_random_word<T: DatabaseExecutor, T2: WorkersAI>(
     opt.bot
         .send_message(
             &SendMessageParams::builder()
-                .chat_id(frankenstein::types::ChatId::Integer(opt.matainer as i64))
+                .chat_id(frankenstein::types::ChatId::Integer(opt.matainer))
                 .text(reply)
                 .parse_mode(frankenstein::ParseMode::Html)
                 .link_preview_options(frankenstein::types::LinkPreviewOptions::DISABLED)

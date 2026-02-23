@@ -157,7 +157,7 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
             )
             .await
             .map_err(|e| worker::Error::from(e.to_string()))?;
-            Response::ok(format!("create table [words] successful"))
+            Response::ok("create table [words] successful".to_string())
         })
         .post_async("/tgbot", async |mut req, ctx| {
             let opt = get_opt(ctx.env).await;
@@ -166,7 +166,7 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
 
             debug!("body: {:?}", update);
 
-            return match tg::handle(opt, update).await {
+            match tg::handle(opt, update).await {
                 Ok(_) => {
                     debug!("Update was handled by bot.");
                     Response::ok("Update was handled by bot.")
@@ -175,7 +175,7 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
                     error!("Update was not handled by bot: {}", e);
                     Response::ok(format!("Update was not handled by bot: {}", e))
                 }
-            };
+            }
         })
         .post_async("/word/:path", async |mut req, ctx| {
             let opt = get_opt(ctx.env).await;
@@ -211,11 +211,8 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
 pub async fn scheduled(_: ScheduledEvent, env: Env, _: ScheduleContext) {
     let opt = get_opt(env).await;
 
-    match send_random_word(opt).await {
-        Err(e) => {
-            error!("Error: {}", e);
-        }
-        Ok(_) => {}
+    if let Err(e) = send_random_word(opt).await {
+        error!("Error: {}", e);
     }
 }
 

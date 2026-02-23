@@ -230,7 +230,7 @@ pub async fn translate(
 
     let mut outputs = vec![];
 
-    if body.len() < 1 || !body[0].is_array() {
+    if body.is_empty() || !body[0].is_array() {
         return Ok(outputs);
     }
 

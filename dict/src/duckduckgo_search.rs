@@ -39,7 +39,7 @@ pub async fn get(word: &str) -> Result<Vec<Body>, Error> {
 fn parse(text: &str) -> Vec<Body> {
     let mut ws: Vec<Body> = vec![];
 
-    let q = scraper::Html::parse_document(&text);
+    let q = scraper::Html::parse_document(text);
 
     let selector = scraper::Selector::parse(".result__title .result__a").unwrap();
 

@@ -9,7 +9,7 @@ async fn main() {
 
     let args = &args().collect::<Vec<_>>()[1..];
 
-    if args.len() == 0 || args[0] == "help" || args.len() < 2 {
+    if args.is_empty() || args[0] == "help" || args.len() < 2 {
         println!(
             r#"Usage:
   jc <word> - Japanese to Chinese
@@ -54,8 +54,8 @@ async fn main() {
             .map(|x| x.markdown())
             .collect::<Vec<_>>()
             .join("\n"),
-        "weblio" => weblio::get(&word).await.unwrap().join("\n"),
-        "ktbk" => kotobanku::get(&word).await.unwrap().join("\n"),
+        "weblio" => weblio::get(word).await.unwrap().join("\n"),
+        "ktbk" => kotobanku::get(word).await.unwrap().join("\n"),
         "google" | "googlev1" => {
             let target = &args[1];
             let words = args[2..].join(" ");

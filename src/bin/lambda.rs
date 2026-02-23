@@ -54,7 +54,7 @@ impl LambdaHandler {
         } else if let Ok(v) = serde_json::from_value::<LambdaRequest>(payload.clone()) {
             return self.request_handler(v).await;
         } else {
-            return Err(lambda_runtime::Error::from("Unknown request"));
+            Err(lambda_runtime::Error::from("Unknown request"))
         }
     }
 
@@ -65,9 +65,9 @@ impl LambdaHandler {
         match request.command {
             RequestCommand::SendRandomWord => {
                 send_random_word(self.run_opt.clone()).await?;
-                return Ok(Response {
+                Ok(Response {
                     msg: "Send successful.".to_string(),
-                });
+                })
             }
         }
     }
@@ -143,7 +143,7 @@ impl LambdaHandler {
             _ => {}
         }
 
-        Err(lambda_runtime::Error::from(format!("404 NOT FOUND")))
+        Err(lambda_runtime::Error::from("404 NOT FOUND".to_string()))
     }
 }
 
@@ -154,7 +154,7 @@ mod test {
     use crate::LambdaRequest;
 
     fn init() {
-        let _ = env_logger::builder()
+        env_logger::builder()
             .filter_level(log::LevelFilter::Debug)
             .init();
     }

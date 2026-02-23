@@ -92,8 +92,8 @@ impl Word {
 
         let mut s = String::new();
 
-        write!(s, "{}\n", word.word).unwrap();
-        write!(s, "{}   \n", word.pronounce.pronounce).unwrap();
+        writeln!(s, "{}", word.word).unwrap();
+        writeln!(s, "{}   ", word.pronounce.pronounce).unwrap();
         write!(
             s,
             r#"
@@ -112,19 +112,19 @@ impl Word {
         if !word.simple.is_empty() {
             s.push_str("\n- simple explain\n");
             for explain in &word.simple {
-                write!(s, "  - {}\n", explain).unwrap();
+                writeln!(s, "  - {}", explain).unwrap();
             }
         }
 
         if !word.detail.is_empty() {
             s.push_str("\n- More Detail\n");
             for detail in &word.detail {
-                write!(s, "  - {}  \n", detail.attribute).unwrap();
+                writeln!(s, "  - {}  ", detail.attribute).unwrap();
                 for explain_ex in &detail.explains {
-                    write!(s, "    - {}  \n", explain_ex.explain).unwrap();
+                    writeln!(s, "    - {}  ", explain_ex.explain).unwrap();
                     for example in &explain_ex.examples {
-                        write!(s, "      - {}  \n", example.original).unwrap();
-                        write!(s, "        {}  \n", example.translate).unwrap();
+                        writeln!(s, "      - {}  ", example.original).unwrap();
+                        writeln!(s, "        {}  ", example.translate).unwrap();
                     }
                 }
             }
@@ -133,9 +133,9 @@ impl Word {
         if !word.english_explain.is_empty() {
             s.push_str("\n- English Explain\n");
             for eng in &word.english_explain {
-                write!(s, "  - {}  \n", eng.attribute).unwrap();
+                writeln!(s, "  - {}  ", eng.attribute).unwrap();
                 for explain in &eng.explains {
-                    write!(s, "    - {}  \n", explain).unwrap();
+                    writeln!(s, "    - {}  ", explain).unwrap();
                 }
             }
         }
@@ -143,28 +143,28 @@ impl Word {
         if !word.inflections.is_empty() {
             s.push_str("\n- Inflections\n");
             for infl in &word.inflections {
-                write!(s, "  - {}  \n", infl).unwrap();
+                writeln!(s, "  - {}  ", infl).unwrap();
             }
         }
 
         if !word.phrase.is_empty() {
             s.push_str("\n- Phrase\n");
             for p in &word.phrase {
-                write!(s, "  - {}  \n", p).unwrap();
+                writeln!(s, "  - {}  ", p).unwrap();
             }
         }
 
         if !word.synonym.is_empty() {
             s.push_str("\n- Synonym\n");
             for syn in &word.synonym {
-                write!(s, "  - {}  \n", syn).unwrap();
+                writeln!(s, "  - {}  ", syn).unwrap();
             }
         }
 
         if !word.antonym.is_empty() {
             s.push_str("\n- Antonym\n");
             for ant in &word.antonym {
-                write!(s, "  - {}  \n", ant).unwrap();
+                writeln!(s, "  - {}  ", ant).unwrap();
             }
         }
 
@@ -189,7 +189,6 @@ impl TrimText for scraper::element_ref::ElementRef<'_> {
         self.text()
             .collect::<Vec<_>>()
             .join("")
-            .trim()
             .split_whitespace()
             .collect::<Vec<_>>()
             .join(" ")
@@ -203,7 +202,6 @@ impl StringOrEmpty for scraper::element_ref::Select<'_, '_> {
                 .text()
                 .collect::<Vec<_>>()
                 .join("")
-                .trim()
                 .split_whitespace()
                 .collect::<Vec<_>>()
                 .join(" "),
@@ -215,7 +213,7 @@ impl StringOrEmpty for scraper::element_ref::Select<'_, '_> {
 impl AttrOrEmpty for scraper::element_ref::Select<'_, '_> {
     fn attr_or_empty(&mut self, attr: &str) -> String {
         match self.next() {
-            Some(x) => x.attr(attr).unwrap_or(&"").to_string(),
+            Some(x) => x.attr(attr).unwrap_or("").to_string(),
             None => "".to_string(),
         }
     }

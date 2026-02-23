@@ -77,9 +77,9 @@ pub struct Message {
     pub source: Option<Source>,
 }
 
-impl ToString for Message {
-    fn to_string(&self) -> String {
-        serde_json::to_string(self).unwrap()
+impl std::fmt::Display for Message {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", serde_json::to_string(self).unwrap())
     }
 }
 
@@ -149,7 +149,7 @@ impl D1 {
             .await
             .map_err(|e| Error::Other(e.to_string()))?;
 
-        if lr.result.len() == 0 {
+        if lr.result.is_empty() {
             return Err(Error::Other(
                 format!("database {} not found", database_name).to_string(),
             ));
@@ -167,15 +167,15 @@ impl D1 {
     where
         T: DeserializeOwned,
     {
-        if self.database_id == "" {
+        if self.database_id.is_empty() {
             return Err(Error::Other("database_id is empty".to_string()));
         }
 
-        if self.account_id == "" {
+        if self.account_id.is_empty() {
             return Err(Error::Other("account_id is empty".to_string()));
         }
 
-        if self.api_token == "" {
+        if self.api_token.is_empty() {
             return Err(Error::Other("api_token is empty".to_string()));
         }
 
@@ -274,32 +274,30 @@ impl DatabaseExecutor for D1 {
 
 #[cfg(test)]
 mod test {
-    use crate::d1::D1;
-    use serde::{Deserialize, Serialize};
-    use std::fs;
+    // use crate::d1::D1;
+    // use std::fs;
+    // use serde::{Deserialize, Serialize};
     // use hjcommon::d1::DatabaseExecutor;
 
-    #[derive(Serialize, Deserialize)]
-    struct Auth {
-        account_id: String,
-        database_id: String,
-        api_token: String,
-    }
+    // #[derive(Serialize, Deserialize)]
+    // struct Auth {
+    //     account_id: String,
+    //     database_id: String,
+    //     api_token: String,
+    // }
 
-    async fn new_d1() -> D1 {
-        let auth_json = fs::read_to_string("src/.api.json").unwrap();
-
-        let auth = serde_json::from_str::<Auth>(&auth_json).unwrap();
-
-        let d1 = D1::new(
-            auth.account_id.as_str(),
-            auth.api_token.as_str(),
-            crate::d1::Database::UUID(auth.database_id),
-        )
-        .await;
-
-        d1
-    }
+    // async fn new_d1() -> D1 {
+    //     let auth_json = fs::read_to_string("src/.api.json").unwrap();
+    //
+    //     let auth = serde_json::from_str::<Auth>(&auth_json).unwrap();
+    //
+    //     D1::new(
+    //         auth.account_id.as_str(),
+    //         auth.api_token.as_str(),
+    //         crate::d1::Database::UUID(auth.database_id),
+    //     )
+    //     .await
+    // }
 
     /*
     #[tokio::test]

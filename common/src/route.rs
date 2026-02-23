@@ -78,20 +78,20 @@ impl WordQueryRequest {
 
         if let Some(i) = &self.instruction {
             if !ret.is_empty() {
-                ret.push_str("\n");
+                ret.push('\n');
             }
             ret.push_str(i.as_str());
         }
 
-        if let Some(l) = &self.dst_lang {
-            if !l.is_empty() {
-                if !ret.is_empty() {
-                    ret.push_str("\n");
-                }
-
-                ret.push_str("\nTarget Language: ");
-                ret.push_str(l);
+        if let Some(l) = &self.dst_lang
+            && !l.is_empty()
+        {
+            if !ret.is_empty() {
+                ret.push('\n');
             }
+
+            ret.push_str("\nTarget Language: ");
+            ret.push_str(l);
         }
 
         if ret.is_empty() {
@@ -260,7 +260,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
             req.r#type.unwrap_or(0),
         );
 
-        let words: Vec<Word> = self.d1.query_all(query).await.map_err(D1Error::from)?;
+        let words: Vec<Word> = self.d1.query_all(query).await?;
 
         Ok(serde_json::to_vec(&words)?)
     }
@@ -268,21 +268,20 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
     pub async fn save_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<SaveWordRequest>(&body)?;
 
-        if let Some(origin) = req.origin.as_deref() {
-            if origin != req.word {
-                self.d1
-                    .execute(Queries::RenameWord {
-                        new_word: &req.word,
-                        explain: &req.explain,
-                        word_type: req.r#type.unwrap_or(0),
-                        example: req.example.as_deref().unwrap_or(""),
-                        old_word: origin,
-                    })
-                    .await
-                    .map_err(D1Error::from)?;
+        if let Some(origin) = req.origin.as_deref()
+            && origin != req.word
+        {
+            self.d1
+                .execute(Queries::RenameWord {
+                    new_word: &req.word,
+                    explain: &req.explain,
+                    word_type: req.r#type.unwrap_or(0),
+                    example: req.example.as_deref().unwrap_or(""),
+                    old_word: origin,
+                })
+                .await?;
 
-                return Ok(['{' as u8, '}' as u8].to_vec());
-            }
+            return Ok([b'{', b'}'].to_vec());
         }
 
         self.d1
@@ -292,10 +291,9 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                 word_type: req.r#type.unwrap_or(0),
                 example: req.example.as_deref().unwrap_or(""),
             })
-            .await
-            .map_err(D1Error::from)?;
+            .await?;
 
-        Ok(['{' as u8, '}' as u8].to_vec())
+        Ok([b'{', b'}'].to_vec())
     }
 
     pub async fn delete_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
@@ -303,10 +301,9 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
 
         self.d1
             .execute(Queries::DeleteWord { word: &req.word })
-            .await
-            .map_err(D1Error::from)?;
+            .await?;
 
-        Ok(['{' as u8, '}' as u8].to_vec())
+        Ok([b'{', b'}'].to_vec())
     }
 
     pub async fn count_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
@@ -318,8 +315,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
         let count: Option<Count> = self
             .d1
             .query_first(Queries::CountWord { word_type: r#type })
-            .await
-            .map_err(D1Error::from)?;
+            .await?;
         let size = count.map(|c| c.size).unwrap_or(0);
 
         Ok(serde_json::to_vec(&WordCountResponse { size })?)
@@ -329,9 +325,8 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
         let req = serde_json::from_slice::<SingleWordRequest>(&body)?;
         self.d1
             .execute(Queries::IncrementRemindCount { word: &req.word })
-            .await
-            .map_err(D1Error::from)?;
-        Ok(['{' as u8, '}' as u8].to_vec())
+            .await?;
+        Ok([b'{', b'}'].to_vec())
     }
 
     pub async fn change_priority(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
@@ -341,9 +336,8 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                 priority: req.priority,
                 word: &req.word,
             })
-            .await
-            .map_err(D1Error::from)?;
-        Ok(['{' as u8, '}' as u8].to_vec())
+            .await?;
+        Ok([b'{', b'}'].to_vec())
     }
 
     pub async fn custom_llms(&self) -> Result<Vec<u8>, Error> {
@@ -380,7 +374,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                         self.workers_ai
                             .explain(
                                 req.google_search.unwrap_or(false),
-                                Models::from_str(model)
+                                Models::from_model_name(model)
                                     .ok_or(Error("model not supported".to_string()))?,
                                 false,
                                 &req.word,
@@ -395,7 +389,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                             .explain(
                                 req.google_search.unwrap_or(false),
                                 ai::TranslateRequest {
-                                    model: model,
+                                    model,
                                     chars_limit: false,
                                     query: &req.word,
                                     dst_lang: req.dst_lang.as_deref(),
@@ -477,7 +471,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                     }
                 };
 
-                match query(req.src_lang, target.as_ref()).await {
+                match query(req.src_lang, target).await {
                     Ok(v) => v
                         .iter()
                         .map(|x| x.translation.as_ref())

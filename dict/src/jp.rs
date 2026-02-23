@@ -45,8 +45,8 @@ impl Word {
         let mut s = String::new();
 
         // Add word, katakana, and audio
-        write!(s, "{}\n", self.word).unwrap();
-        write!(s, "{}\n", self.katakana).unwrap();
+        writeln!(s, "{}", self.word).unwrap();
+        writeln!(s, "{}", self.katakana).unwrap();
         write!(
             s,
             r#"<audio controls controlsList="nodownload" preload="none" src="{}"></audio>"#,
@@ -62,13 +62,13 @@ impl Word {
             }
 
             if !simple.attribute.is_empty() {
-                write!(s, "  - {}  \n", simple.attribute).unwrap();
+                writeln!(s, "  - {}  ", simple.attribute).unwrap();
             } else {
                 s.push_str("  - *\n");
             }
 
             for explain in &simple.explains {
-                write!(s, "    - {}  \n", explain).unwrap();
+                writeln!(s, "    - {}  ", explain).unwrap();
             }
         }
 
@@ -78,14 +78,14 @@ impl Word {
                 s.push_str("\n- More Detail\n");
             }
 
-            write!(s, "  - {}  \n", detail.attribute).unwrap();
+            writeln!(s, "  - {}  ", detail.attribute).unwrap();
 
             for example in &detail.explains {
-                write!(s, "    - {}  \n", example.explain).unwrap();
+                writeln!(s, "    - {}  ", example.explain).unwrap();
 
                 for e in &example.examples {
-                    write!(s, "      - {}  \n", e.original).unwrap();
-                    write!(s, "        {}  \n", e.translate).unwrap();
+                    writeln!(s, "      - {}  ", e.original).unwrap();
+                    writeln!(s, "        {}  ", e.translate).unwrap();
                 }
             }
         }
@@ -180,7 +180,7 @@ fn parse_detail(element: ElementRef) -> Vec<Detail> {
         }
     }
 
-    return eps;
+    eps
 }
 
 fn parse_simple(element: ElementRef) -> Vec<Simple> {
@@ -209,7 +209,7 @@ fn parse_simple(element: ElementRef) -> Vec<Simple> {
 
             for li in lis {
                 let li_text = li.trim_text();
-                if li_text.len() == 0 {
+                if li_text.is_empty() {
                     continue;
                 }
 
@@ -233,16 +233,16 @@ fn parse_simple(element: ElementRef) -> Vec<Simple> {
             }
         }
     }
-    return sps;
+    sps
 }
 
 fn parse(text: &str) -> Vec<Word> {
     let mut ws: Vec<Word> = vec![];
 
-    let mut q = scraper::Html::parse_document(&text);
+    let mut q = scraper::Html::parse_document(text);
 
     // remove useless nodes
-    for selector_str in vec![".simple ul li span"] {
+    for selector_str in [".simple ul li span"] {
         let selector = Selector::parse(selector_str).unwrap();
         for id in q
             .select(&selector)
@@ -283,7 +283,7 @@ fn parse(text: &str) -> Vec<Word> {
         ws.push(w);
     }
 
-    return ws;
+    ws
 }
 
 #[cfg(test)]

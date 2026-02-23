@@ -70,7 +70,7 @@ pub async fn getv2(word: &str) -> Result<Vec<Body>, Error> {
 
     for element in q.select(&div_selector) {
         match element.attr("data-sncf") {
-            Some(path) if path == "1" => {}
+            Some("1") => {}
             _ => continue,
         };
 
@@ -205,11 +205,11 @@ impl SearchLink {
                         .no_table_borders()
                         .link_footnotes(false)
                         .string_from_read(
-                            &bytes
+                            bytes
                                 .clone()
                                 .replace("<a", "<span")
                                 .replace("</a>", "</span>")
-                                .as_bytes()[..],
+                                .as_bytes(),
                             9999,
                         )
                         .unwrap(),
@@ -222,7 +222,7 @@ impl SearchLink {
 fn parse(text: &str) -> Vec<Body> {
     let mut ws: Vec<Body> = vec![];
 
-    let q = scraper::Html::parse_document(&text);
+    let q = scraper::Html::parse_document(text);
 
     let selector = scraper::Selector::parse("a").unwrap();
 
@@ -289,10 +289,7 @@ mod test {
 
     #[test]
     fn test_eow() {
-        let text = fs::read_to_string("../assets/test_data/eow.html.txt")
-            .unwrap()
-            .replace("<a", "<a")
-            .replace("</a", "</a");
+        let text = fs::read_to_string("../assets/test_data/eow.html.txt").unwrap();
 
         let cfg = dom_smoothie::Config {
             text_mode: dom_smoothie::TextMode::Formatted,
@@ -312,7 +309,7 @@ mod test {
 
         println!(
             "text_content: {}",
-            clean_text_lines(&drc.text_content.to_string())
+            clean_text_lines(drc.text_content.as_ref())
         );
         println!("title: {}", drc.title);
         println!("excerpt: {:?}", drc.excerpt);
@@ -327,12 +324,9 @@ mod test {
         println!("{:?}", v2text);
 
         for v in v2text {
-            match v {
-                Body::Link(link) => {
-                    println!("{:?}", link.get_raw_page().await.unwrap());
-                    break;
-                }
-                _ => {}
+            if let Body::Link(link) = v {
+                println!("{:?}", link.get_raw_page().await.unwrap());
+                break;
             }
         }
     }
