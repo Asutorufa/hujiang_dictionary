@@ -40,7 +40,7 @@ impl DatabaseExecutor for WasmD1 {
 
         let stmt = self
             .d1
-            .prepare(&sql)
+            .prepare(sql.as_ref())
             .bind(&js_params)
             .map_err(|e| Error::Other(e.to_string()))?;
         stmt.run().await.map_err(|e| Error::Other(e.to_string()))?;
@@ -57,7 +57,7 @@ impl DatabaseExecutor for WasmD1 {
 
         let stmt = self
             .d1
-            .prepare(&sql)
+            .prepare(sql.as_ref())
             .bind(&js_params)
             .map_err(|e| Error::Other(e.to_string()))?;
         let result = stmt.run().await.map_err(|e| Error::Other(e.to_string()))?;
@@ -77,7 +77,7 @@ impl DatabaseExecutor for WasmD1 {
 
         let stmt = self
             .d1
-            .prepare(&sql)
+            .prepare(sql.as_ref())
             .bind(&js_params)
             .map_err(|e| Error::Other(e.to_string()))?;
         let result = stmt
@@ -97,7 +97,7 @@ impl DatabaseExecutor for WasmD1 {
             let js_params: Vec<JsValue> = params.iter().map(to_js_value).collect();
             let stmt = self
                 .d1
-                .prepare(&sql)
+                .prepare(sql.as_ref())
                 .bind(&js_params)
                 .map_err(|e| Error::Other(e.to_string()))?;
             batch.push(stmt);

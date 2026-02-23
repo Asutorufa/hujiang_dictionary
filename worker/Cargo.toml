@@ -24,3 +24,4 @@ getrandom = { version = "0.2", features = ["js"] }
 
 hjcommon = { path = "../common" }
 d1-orm = { version = "0.1.1", features = ["d1"] }
+async-trait = "0.1.89"

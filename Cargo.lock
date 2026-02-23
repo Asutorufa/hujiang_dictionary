@@ -968,6 +968,7 @@ dependencies = [
 name = "hjworker"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "cloudflare",
  "console_error_panic_hook",
  "d1-orm",
