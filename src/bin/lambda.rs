@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use aws_lambda_events::lambda_function_urls::LambdaFunctionUrlRequest;
 use base64::{Engine, engine::general_purpose};
-use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{send_random_word, set_webhook};
 use hjnative::opts::run_opts;
@@ -99,7 +98,14 @@ impl LambdaHandler {
             }
 
             "/d1/create_table" => {
-                self.run_opt.d1.create_table().await?;
+                d1_orm::migrate(
+                    &self.run_opt.d1,
+                    hjcommon::d1::migrations(),
+                    None,
+                    Some(|s: &str| info!("{}", s)),
+                )
+                .await
+                .map_err(|e| lambda_runtime::Error::from(e.to_string()))?;
                 return Ok(Response {
                     msg: "create table [words] successful".to_string(),
                 });

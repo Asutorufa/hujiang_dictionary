@@ -1,7 +1,8 @@
 use crate::ai::Models;
-use crate::d1::DB;
+use crate::d1::{Queries, Word};
 use crate::{ai::WorkersAI, opts::RunOpt};
 use core::fmt;
+use d1_orm::DatabaseExecutor;
 use frankenstein::AsyncTelegramApi;
 use frankenstein::client_reqwest::Bot;
 use frankenstein::methods::{SendMessageParams, SetMyCommandsParams, SetWebhookParams};
@@ -178,7 +179,7 @@ pub fn vec_string_markdown_escape(v: &Vec<String>) -> String {
     s
 }
 
-pub async fn handle<T: DB, T2: WorkersAI>(
+pub async fn handle<T: DatabaseExecutor, T2: WorkersAI>(
     opt: Arc<RunOpt<T, T2>>,
     update: frankenstein::updates::Update,
 ) -> Result<(), Error> {
@@ -271,7 +272,7 @@ pub fn parse_callback_query_command(
     }
 }
 
-pub async fn llm_answer<T: DB, T2: WorkersAI>(
+pub async fn llm_answer<T: DatabaseExecutor, T2: WorkersAI>(
     opt: Arc<RunOpt<T, T2>>,
     model: Models,
     v: String,
@@ -341,7 +342,7 @@ pub fn parse_command(
     }
 }
 
-pub async fn answer<T: DB, T2: WorkersAI>(
+pub async fn answer<T: DatabaseExecutor, T2: WorkersAI>(
     opt: Arc<RunOpt<T, T2>>,
     msg: Box<frankenstein::types::Message>,
     cmd: Command,
@@ -443,10 +444,11 @@ pub async fn answer<T: DB, T2: WorkersAI>(
                 parse_mode = frankenstein::ParseMode::Html;
                 match opt
                     .d1
-                    .save_word(crate::d1::SaveWord {
+                    .execute(Queries::SaveWord {
                         word: &word,
                         explain: &explain,
-                        ..Default::default()
+                        word_type: 0,
+                        example: "",
                     })
                     .await
                 {
@@ -458,7 +460,7 @@ pub async fn answer<T: DB, T2: WorkersAI>(
                 }
             }
         }
-        Command::Random => match opt.d1.random_word().await.as_ref() {
+        Command::Random => match crate::d1::random_word(&opt.d1).await.as_ref() {
             Err(e) => ("".to_string(), e.to_string()),
             Ok(v) => {
                 parse_mode = frankenstein::ParseMode::Html;
@@ -525,7 +527,7 @@ pub async fn answer<T: DB, T2: WorkersAI>(
     Ok(())
 }
 
-pub async fn callback_query<T: DB, T2: WorkersAI>(
+pub async fn callback_query<T: DatabaseExecutor, T2: WorkersAI>(
     opt: Arc<RunOpt<T, T2>>,
     call_query: Box<frankenstein::types::CallbackQuery>,
     command: CallbackQueryCommand,
@@ -565,10 +567,11 @@ pub async fn callback_query<T: DB, T2: WorkersAI>(
 
             match opt
                 .d1
-                .save_word(crate::d1::SaveWord {
+                .execute(Queries::SaveWord {
                     word: &v,
                     explain: &explain,
-                    ..Default::default()
+                    word_type: 0,
+                    example: "",
                 })
                 .await
             {
@@ -601,7 +604,7 @@ pub async fn callback_query<T: DB, T2: WorkersAI>(
             opt.bot.edit_message_reply_markup(&req).await?;
         }
         CallbackQueryCommand::Remove(v) => {
-            match opt.d1.delete_word(v.as_ref()).await {
+            match opt.d1.execute(Queries::DeleteWord { word: &v }).await {
                 Err(e) => {
                     error!("delete word failed: {}", e);
                     return Ok(());
@@ -635,10 +638,10 @@ pub async fn callback_query<T: DB, T2: WorkersAI>(
     Ok(())
 }
 
-pub async fn send_random_word<T: DB, T2: WorkersAI>(
+pub async fn send_random_word<T: DatabaseExecutor, T2: WorkersAI>(
     opt: Arc<RunOpt<T, T2>>,
 ) -> Result<(), frankenstein::Error> {
-    let reply = match opt.d1.random_word().await {
+    let reply = match crate::d1::random_word(&opt.d1).await {
         Err(e) => e.to_string(),
         Ok(v) => {
             format!(

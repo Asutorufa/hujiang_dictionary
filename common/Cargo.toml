@@ -21,3 +21,4 @@ hjdict = { path = "../dict" }
 # test only
 tokio = { workspace = true }
 env_logger = { workspace = true }
+d1-orm = "0.1.1"

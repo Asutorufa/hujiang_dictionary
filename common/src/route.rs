@@ -4,10 +4,11 @@ use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode}
 use serde::{Deserialize, Serialize};
 use std::str;
 use subtle::ConstantTimeEq;
+use d1_orm::DatabaseExecutor;
 
 use crate::{
     ai::{self, Models, WorkersAI},
-    d1::{DB, Error as D1Error, SaveWord},
+    d1::{Error as D1Error, Queries, list_word_query, Word, Count},
     opts::RunOpt,
 };
 
@@ -159,7 +160,7 @@ impl From<ai::Error> for Error {
     }
 }
 
-impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
+impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
     pub fn create_token(&self) -> Result<String, String> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::days(self.auth_token_expiration))
@@ -249,15 +250,14 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
             _ => return Err(Error("invalid order_by".to_string())),
         }
 
-        let words = self
-            .d1
-            .list_word(
-                req.page_size.unwrap_or(10),
-                req.page_number.unwrap_or(1),
-                req.order_by.as_deref().unwrap_or("word"),
-                req.r#type.unwrap_or(0),
-            )
-            .await?;
+        let query = list_word_query(
+            req.page_size.unwrap_or(10),
+            req.page_number.unwrap_or(1),
+            req.order_by.as_deref().unwrap_or("word"),
+            req.r#type.unwrap_or(0),
+        );
+
+        let words: Vec<Word> = self.d1.query_all(query).await.map_err(D1Error::from)?;
 
         Ok(serde_json::to_vec(&words)?)
     }
@@ -265,15 +265,32 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
     pub async fn save_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<SaveWordRequest>(&body)?;
 
+        if let Some(origin) = req.origin.as_deref() {
+            if origin != req.word {
+                self.d1
+                    .execute(Queries::RenameWord {
+                        new_word: &req.word,
+                        explain: &req.explain,
+                        word_type: req.r#type.unwrap_or(0),
+                        example: req.example.as_deref().unwrap_or(""),
+                        old_word: origin,
+                    })
+                    .await
+                    .map_err(D1Error::from)?;
+
+                return Ok(['{' as u8, '}' as u8].to_vec());
+            }
+        }
+
         self.d1
-            .save_word(SaveWord {
-                origin_word: req.origin.as_deref(),
+            .execute(Queries::SaveWord {
                 word: &req.word,
                 explain: &req.explain,
-                r#type: req.r#type.unwrap_or(0),
-                example: &req.example.unwrap_or("".to_string()),
+                word_type: req.r#type.unwrap_or(0),
+                example: req.example.as_deref().unwrap_or(""),
             })
-            .await?;
+            .await
+            .map_err(D1Error::from)?;
 
         Ok(['{' as u8, '}' as u8].to_vec())
     }
@@ -281,7 +298,10 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
     pub async fn delete_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<SingleWordRequest>(&body)?;
 
-        self.d1.delete_word(&req.word).await?;
+        self.d1
+            .execute(Queries::DeleteWord { word: &req.word })
+            .await
+            .map_err(D1Error::from)?;
 
         Ok(['{' as u8, '}' as u8].to_vec())
     }
@@ -292,20 +312,30 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
             Err(_) => 0,
         };
 
-        let size = self.d1.count_word(r#type).await?;
+        let count: Option<Count> = self.d1.query_first(Queries::CountWord { word_type: r#type }).await.map_err(D1Error::from)?;
+        let size = count.map(|c| c.size).unwrap_or(0);
 
         Ok(serde_json::to_vec(&WordCountResponse { size })?)
     }
 
     pub async fn increment_remind_count(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<SingleWordRequest>(&body)?;
-        self.d1.increment_remind_count(&req.word).await?;
+        self.d1
+            .execute(Queries::IncrementRemindCount { word: &req.word })
+            .await
+            .map_err(D1Error::from)?;
         Ok(['{' as u8, '}' as u8].to_vec())
     }
 
     pub async fn change_priority(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<ChangeWordPriorityRequest>(&body)?;
-        self.d1.change_priority(&req.word, req.priority).await?;
+        self.d1
+            .execute(Queries::ChangePriority {
+                priority: req.priority,
+                word: &req.word,
+            })
+            .await
+            .map_err(D1Error::from)?;
         Ok(['{' as u8, '}' as u8].to_vec())
     }
 

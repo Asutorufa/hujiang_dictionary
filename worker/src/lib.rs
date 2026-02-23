@@ -5,7 +5,6 @@ pub mod d1;
 use crate::{ai::WasmAI, d1::WasmD1};
 use frankenstein::{client_reqwest, updates::Update};
 use hjcommon::ai::OpenAI;
-use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::route::LoginRequest;
 use hjcommon::tg::{self, send_random_word};
@@ -151,10 +150,14 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
                 return Ok(e);
             }
 
-            opt.d1
-                .create_table()
-                .await
-                .map_err(|e| worker::Error::from(e.to_string()))?;
+            d1_orm::migrate(
+                &opt.d1,
+                hjcommon::d1::migrations(),
+                None,
+                Some(|s: &str| info!("{}", s)),
+            )
+            .await
+            .map_err(|e| worker::Error::from(e.to_string()))?;
             Response::ok(format!("create table [words] successful"))
         })
         .post_async("/tgbot", async |mut req, ctx| {
