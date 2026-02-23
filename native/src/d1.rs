@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use d1_orm::{DatabaseExecutor, DatabaseValue, Error, Query};
 use log::*;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 // see: https://developers.cloudflare.com/api/resources/d1/subresources/database
 #[derive(Clone)]
@@ -9,6 +9,7 @@ pub struct D1 {
     pub(crate) account_id: String,
     pub(crate) database_id: String,
     pub(crate) api_token: String,
+    pub(crate) client: reqwest::Client,
 }
 
 #[derive(Serialize, Debug)]
@@ -113,10 +114,13 @@ pub enum Database {
 
 impl D1 {
     pub async fn new(account_id: &str, api_token: &str, database: Database) -> D1 {
+        let client = reqwest::Client::builder().build().unwrap();
+
         let mut d1 = D1 {
             account_id: account_id.to_string(),
             database_id: "".to_string(),
             api_token: api_token.to_string(),
+            client,
         };
 
         d1.database_id = match database {
@@ -128,10 +132,12 @@ impl D1 {
     }
 
     pub async fn get_database_id(&self, database_name: &str) -> Result<String, Error> {
-        let r = reqwest::Client::builder()
-            .build()
-            .map_err(|e| Error::Other(e.to_string()))?
-            .get(format!("/accounts/{}/d1/database", self.account_id,))
+        let r = self
+            .client
+            .get(format!(
+                "https://api.cloudflare.com/client/v4/accounts/{}/d1/database",
+                self.account_id
+            ))
             .query(&vec![("name", database_name)])
             .header("Authorization", format!("Bearer {}", self.api_token))
             .send()
@@ -152,7 +158,12 @@ impl D1 {
         Ok(lr.result[0].name.to_owned())
     }
 
-    pub async fn request<T>(&self, path: &str, sql: &str, params: Vec<DatabaseValue>) -> Result<T, Error>
+    pub async fn request<T>(
+        &self,
+        path: &str,
+        sql: &str,
+        params: Vec<DatabaseValue>,
+    ) -> Result<T, Error>
     where
         T: DeserializeOwned,
     {
@@ -173,9 +184,8 @@ impl D1 {
         let body = serde_json::to_string(&QueryBody { sql, params })
             .map_err(|e| Error::Other(e.to_string()))?;
 
-        let r = reqwest::Client::builder()
-            .build()
-            .map_err(|e| Error::Other(e.to_string()))?
+        let r = self
+            .client
             .post(format!(
                 "https://api.cloudflare.com/client/v4/accounts/{}/d1/database/{}/{}",
                 self.account_id, self.database_id, path
@@ -208,7 +218,8 @@ impl DatabaseExecutor for D1 {
         Q: Query,
     {
         let (sql, params) = query.build()?;
-        self.request::<RawQueryResult>("query", &sql, params).await?;
+        self.request::<RawQueryResult>("query", &sql, params)
+            .await?;
         Ok(())
     }
 
@@ -218,7 +229,9 @@ impl DatabaseExecutor for D1 {
         Q: Query,
     {
         let (sql, params) = query.build()?;
-        let result = self.request::<RawQueryResult>("query", &sql, params).await?;
+        let result = self
+            .request::<RawQueryResult>("query", &sql, params)
+            .await?;
 
         if !result.success {
             return Err(Error::Other(format!("query failed: {}", result.errors)));
@@ -261,9 +274,9 @@ impl DatabaseExecutor for D1 {
 
 #[cfg(test)]
 mod test {
-    use std::fs;
-    use serde::{Deserialize, Serialize};
     use crate::d1::D1;
+    use serde::{Deserialize, Serialize};
+    use std::fs;
     // use hjcommon::d1::DatabaseExecutor;
 
     #[derive(Serialize, Deserialize)]

@@ -1,8 +1,7 @@
 pub mod ai;
 pub mod consolelog;
-pub mod d1;
 
-use crate::{ai::WasmAI, d1::WasmD1};
+use crate::ai::WasmAI;
 use frankenstein::{client_reqwest, updates::Update};
 use hjcommon::ai::OpenAI;
 use hjcommon::opts::RunOpt;
@@ -78,14 +77,14 @@ fn get_string_from_env(env: &Env, key: &str) -> String {
     }
 }
 
-fn check_auth(req: &Request, opt: &RunOpt<WasmD1, WasmAI>) -> Result<(), Response> {
+fn check_auth(req: &Request, opt: &RunOpt<worker::D1Database, WasmAI>) -> Result<(), Response> {
     match opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref()) {
         Ok(_) => Ok(()),
         Err(e) => Err(Response::error(e, 401).unwrap()),
     }
 }
 
-async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
+async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
     console_error_panic_hook::set_once();
     INIT.call_once(|| {
         match consolelog::init_with_level(log::Level::Info) {
@@ -98,7 +97,7 @@ async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
 
     Arc::new(RunOpt {
         allow_users: config.allow_users.clone(),
-        d1: WasmD1::new(&env, "DB").await,
+        d1: env.d1("DB").expect("D1 binding not found"),
         workers_ai: WasmAI::new(&env, "AI"),
         matainer: config.maintainer_id,
         bot: config.bot.clone(),

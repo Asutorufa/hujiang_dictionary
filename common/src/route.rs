@@ -1,14 +1,14 @@
 use chrono::{Duration, Utc};
+use d1_orm::DatabaseExecutor;
 use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 use std::str;
 use subtle::ConstantTimeEq;
-use d1_orm::DatabaseExecutor;
 
 use crate::{
     ai::{self, Models, WorkersAI},
-    d1::{Error as D1Error, Queries, list_word_query, Word, Count},
+    d1::{Count, Error as D1Error, Queries, Word, list_word_query},
     opts::RunOpt,
 };
 
@@ -239,7 +239,9 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
 
         let order_by = req.order_by.as_deref().unwrap_or("word");
 
+        let mut is_desc = false;
         let order_by = if let Some(r) = order_by.strip_suffix(" desc") {
+            is_desc = true;
             r
         } else {
             order_by
@@ -253,7 +255,8 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
         let query = list_word_query(
             req.page_size.unwrap_or(10),
             req.page_number.unwrap_or(1),
-            req.order_by.as_deref().unwrap_or("word"),
+            order_by,
+            is_desc,
             req.r#type.unwrap_or(0),
         );
 
@@ -312,7 +315,11 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
             Err(_) => 0,
         };
 
-        let count: Option<Count> = self.d1.query_first(Queries::CountWord { word_type: r#type }).await.map_err(D1Error::from)?;
+        let count: Option<Count> = self
+            .d1
+            .query_first(Queries::CountWord { word_type: r#type })
+            .await
+            .map_err(D1Error::from)?;
         let size = count.map(|c| c.size).unwrap_or(0);
 
         Ok(serde_json::to_vec(&WordCountResponse { size })?)

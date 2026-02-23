@@ -975,6 +975,7 @@ dependencies = [
  "frankenstein",
  "getrandom 0.2.17",
  "hjcommon",
+ "js-sys",
  "log",
  "reqwest 0.13.1",
  "serde",

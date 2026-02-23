@@ -9,7 +9,7 @@ define_model!(
     Word,
     WordField,
     WordUpdate {
-        word: String [pk],
+        word: String[pk],
         explain: String,
         example: String,
         add_time: i64,
@@ -27,7 +27,7 @@ define_model!(
     Configuration,
     ConfigurationField,
     ConfigurationUpdate {
-        key: String [pk],
+        key: String[pk],
         value: String,
     }
 );
@@ -158,6 +158,7 @@ pub fn list_word_query(
     page_size: u64,
     page_number: u64,
     order_by: &str,
+    is_desc: bool,
     word_type: i64,
 ) -> RawQuery {
     let limit = if page_size > 0 { page_size } else { 10 };
@@ -172,8 +173,9 @@ pub fn list_word_query(
     };
 
     let sql = format!(
-        "SELECT * FROM words WHERE word_type = ? ORDER BY {} LIMIT ? OFFSET ?",
-        safe_order_by
+        "SELECT * FROM words WHERE word_type = ? ORDER BY {}{} LIMIT ? OFFSET ?",
+        safe_order_by,
+        if is_desc { " DESC" } else { "" }
     );
     let params = vec![
         DatabaseValue::from(word_type),
@@ -188,10 +190,14 @@ pub async fn random_word(db: &impl DatabaseExecutor) -> Result<Word, Box<dyn std
     let word: Option<Word> = db.query_first(Queries::RandomNotRemind).await?;
     let word = match word {
         Some(v) => v,
-        None => db.query_first(Queries::Random).await?.ok_or("no word found")?,
+        None => db
+            .query_first(Queries::Random)
+            .await?
+            .ok_or("no word found")?,
     };
 
-    db.execute(Queries::UpdateRemindTime { word: &word.word }).await?;
+    db.execute(Queries::UpdateRemindTime { word: &word.word })
+        .await?;
 
     Ok(word)
 }
