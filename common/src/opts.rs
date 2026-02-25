@@ -4,9 +4,10 @@ use std::sync::Arc;
 use frankenstein::client_reqwest;
 
 use crate::ai::OpenAI;
+use d1_orm::DatabaseExecutor;
 
 #[derive(Clone)]
-pub struct RunOpt<T: crate::d1::DB, T2: crate::ai::WorkersAI> {
+pub struct RunOpt<T: DatabaseExecutor, T2: crate::ai::WorkersAI> {
     pub allow_users: Arc<HashSet<i64>>,
     pub matainer: i64,
     pub d1: T,

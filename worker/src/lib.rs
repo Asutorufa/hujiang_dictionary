@@ -1,11 +1,9 @@
 pub mod ai;
 pub mod consolelog;
-pub mod d1;
 
-use crate::{ai::WasmAI, d1::WasmD1};
+use crate::ai::WasmAI;
 use frankenstein::{client_reqwest, updates::Update};
 use hjcommon::ai::OpenAI;
-use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::route::LoginRequest;
 use hjcommon::tg::{self, send_random_word};
@@ -79,14 +77,14 @@ fn get_string_from_env(env: &Env, key: &str) -> String {
     }
 }
 
-fn check_auth(req: &Request, opt: &RunOpt<WasmD1, WasmAI>) -> Result<(), Response> {
+fn check_auth(req: &Request, opt: &RunOpt<worker::D1Database, WasmAI>) -> Result<(), Response> {
     match opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref()) {
         Ok(_) => Ok(()),
         Err(e) => Err(Response::error(e, 401).unwrap()),
     }
 }
 
-async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
+async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
     console_error_panic_hook::set_once();
     INIT.call_once(|| {
         match consolelog::init_with_level(log::Level::Info) {
@@ -99,7 +97,7 @@ async fn get_opt(env: Env) -> Arc<RunOpt<WasmD1, WasmAI>> {
 
     Arc::new(RunOpt {
         allow_users: config.allow_users.clone(),
-        d1: WasmD1::new(&env, "DB").await,
+        d1: env.d1("DB").expect("D1 binding not found"),
         workers_ai: WasmAI::new(&env, "AI"),
         matainer: config.maintainer_id,
         bot: config.bot.clone(),
@@ -151,11 +149,15 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
                 return Ok(e);
             }
 
-            opt.d1
-                .create_table()
-                .await
-                .map_err(|e| worker::Error::from(e.to_string()))?;
-            Response::ok(format!("create table [words] successful"))
+            d1_orm::migrate(
+                &opt.d1,
+                hjcommon::d1::migrations(),
+                None,
+                Some(|s: &str| info!("{}", s)),
+            )
+            .await
+            .map_err(|e| worker::Error::from(e.to_string()))?;
+            Response::ok("create table [words] successful".to_string())
         })
         .post_async("/tgbot", async |mut req, ctx| {
             let opt = get_opt(ctx.env).await;
@@ -164,7 +166,7 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
 
             debug!("body: {:?}", update);
 
-            return match tg::handle(opt, update).await {
+            match tg::handle(opt, update).await {
                 Ok(_) => {
                     debug!("Update was handled by bot.");
                     Response::ok("Update was handled by bot.")
@@ -173,7 +175,7 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
                     error!("Update was not handled by bot: {}", e);
                     Response::ok(format!("Update was not handled by bot: {}", e))
                 }
-            };
+            }
         })
         .post_async("/word/:path", async |mut req, ctx| {
             let opt = get_opt(ctx.env).await;
@@ -209,11 +211,8 @@ async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
 pub async fn scheduled(_: ScheduledEvent, env: Env, _: ScheduleContext) {
     let opt = get_opt(env).await;
 
-    match send_random_word(opt).await {
-        Err(e) => {
-            error!("Error: {}", e);
-        }
-        Ok(_) => {}
+    if let Err(e) = send_random_word(opt).await {
+        error!("Error: {}", e);
     }
 }
 

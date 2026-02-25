@@ -411,6 +411,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "d1-orm"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c46b9dd91591d3fef799c5f7aad7ba2418d8f36393db0682d0b2b9cfb12e5767"
+dependencies = [
+ "async-trait",
+ "js-sys",
+ "serde",
+ "serde_json",
+ "worker",
+]
+
+[[package]]
 name = "darling"
 version = "0.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -876,6 +889,7 @@ version = "0.1.0"
 dependencies = [
  "aws_lambda_events",
  "base64 0.22.1",
+ "d1-orm",
  "env_logger",
  "frankenstein",
  "hjcommon",
@@ -894,6 +908,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "chrono",
+ "d1-orm",
  "env_logger",
  "frankenstein",
  "hjdict",
@@ -928,7 +943,9 @@ dependencies = [
 name = "hjnative"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "cloudflare",
+ "d1-orm",
  "frankenstein",
  "hjcommon",
  "hjdict",
@@ -951,11 +968,14 @@ dependencies = [
 name = "hjworker"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "cloudflare",
  "console_error_panic_hook",
+ "d1-orm",
  "frankenstein",
  "getrandom 0.2.17",
  "hjcommon",
+ "js-sys",
  "log",
  "reqwest 0.13.1",
  "serde",

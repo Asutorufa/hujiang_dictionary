@@ -70,7 +70,7 @@ pub async fn get(str: &str) -> Result<Vec<String>, Error> {
             .allow_width_overflow()
             .no_table_borders()
             .link_footnotes(false)
-            .string_from_read(&output.as_bytes()[..], 9999)
+            .string_from_read(output.as_bytes(), 9999)
             .unwrap();
         results.push(text);
     }

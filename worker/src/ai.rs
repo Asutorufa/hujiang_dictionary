@@ -31,7 +31,7 @@ fn completion_request_to_messages_params(msg: &CompletionRequest) -> MessagesPar
     }
 
     MessagesParams {
-        messages: messages,
+        messages,
         stream: Some(false),
         ..Default::default()
     }

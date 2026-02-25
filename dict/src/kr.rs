@@ -46,8 +46,8 @@ impl Word {
         let mut s = String::new();
 
         // Add word, katakana, and audio
-        write!(s, "{}\n", self.word).unwrap();
-        write!(s, "{}\n", self.katakana).unwrap();
+        writeln!(s, "{}", self.word).unwrap();
+        writeln!(s, "{}", self.katakana).unwrap();
         write!(
             s,
             r#"<audio controls controlsList="nodownload" preload="none" src="{}"></audio>"#,
@@ -63,13 +63,13 @@ impl Word {
             }
 
             if !simple.attribute.is_empty() {
-                write!(s, "  - {}  \n", simple.attribute).unwrap();
+                writeln!(s, "  - {}  ", simple.attribute).unwrap();
             } else {
                 s.push_str("  - *\n");
             }
 
             for explain in &simple.explains {
-                write!(s, "    - {}  \n", explain).unwrap();
+                writeln!(s, "    - {}  ", explain).unwrap();
             }
         }
 
@@ -79,14 +79,14 @@ impl Word {
                 s.push_str("\n- More Detail\n");
             }
 
-            write!(s, "  - {}  \n", detail.attribute).unwrap();
+            writeln!(s, "  - {}  ", detail.attribute).unwrap();
 
             for example in &detail.explains_and_example {
-                write!(s, "    - {}  \n", example.explain).unwrap();
+                writeln!(s, "    - {}  ", example.explain).unwrap();
 
                 for e in &example.example {
-                    write!(s, "      - {}  \n", e.original).unwrap();
-                    write!(s, "        {}  \n", e.translate).unwrap();
+                    writeln!(s, "      - {}  ", e.original).unwrap();
+                    writeln!(s, "        {}  ", e.translate).unwrap();
                 }
             }
         }
@@ -140,13 +140,14 @@ fn parse(html: &str) -> Vec<Word> {
     let mut words = Vec::new();
 
     for pane in document.select(&pane_sel) {
-        let mut word = Word::default();
-
-        word.word = pane
-            .select(&word_sel)
-            .next()
-            .map(|n| n.text().collect::<String>())
-            .unwrap_or_default();
+        let mut word = Word {
+            word: pane
+                .select(&word_sel)
+                .next()
+                .map(|n| n.text().collect::<String>())
+                .unwrap_or_default(),
+            ..Default::default()
+        };
 
         if let Some(p) = pane.select(&pronounce_sel).next() {
             word.katakana = p
@@ -180,8 +181,10 @@ fn parse(html: &str) -> Vec<Word> {
             let lists: Vec<_> = simple.select(&ul_sel).collect();
 
             for (i, attr) in attrs.iter().enumerate() {
-                let mut se = SimpleExplain::default();
-                se.attribute = attr.text().collect();
+                let mut se = SimpleExplain {
+                    attribute: attr.text().collect(),
+                    ..Default::default()
+                };
 
                 if let Some(ul) = lists.get(i) {
                     for li in ul.select(&li_sel) {
@@ -236,13 +239,14 @@ fn get_detail(dl: &scraper::ElementRef) -> Detail {
     let from_sel = Selector::parse(".def-sentence-from").unwrap();
     let to_sel = Selector::parse(".def-sentence-to").unwrap();
 
-    let mut detail = Detail::default();
-
-    detail.attribute = dl
-        .select(&dt_sel)
-        .next()
-        .map(|n| re_sum(&n.text().collect::<String>()))
-        .unwrap_or_default();
+    let mut detail = Detail {
+        attribute: dl
+            .select(&dt_sel)
+            .next()
+            .map(|n| re_sum(&n.text().collect::<String>()))
+            .unwrap_or_default(),
+        ..Default::default()
+    };
 
     for dd in dl.select(&dd_sel) {
         let mut explain = String::new();
@@ -281,7 +285,7 @@ fn get_detail(dl: &scraper::ElementRef) -> Detail {
 }
 
 fn re_sum(s: &str) -> String {
-    s.trim().replace('\n', "").replace(' ', "")
+    s.trim().replace(['\n', ' '], "")
 }
 
 #[cfg(test)]

@@ -1,509 +1,203 @@
+use d1_orm::*;
 use serde::{Deserialize, Serialize};
-use std::fmt;
-use value2struct::FromValueVec;
 
-#[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
-pub struct Word {
-    pub word: String,
-    pub explain: String,
-    pub example: String,
-    add_time: i64,
-    update_time: i64,
-    reminder_time: i64,
-    anki_count: u64,
-    priority: u64,
-    r#type: u64,
-}
+// Re-export needed types
+pub use d1_orm::Error;
+use d1_orm::MigrationInfo;
 
-#[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
+define_model!(
+    Word,
+    WordField,
+    WordUpdate {
+        word: String[pk],
+        explain: String,
+        example: String,
+        add_time: i64,
+        update_time: i64,
+        reminder_time: i64,
+        anki_count: u64,
+        priority: u64,
+        #[serde(rename(serialize = "type"))]
+        word_type: i64,
+        rand_key: i64,
+    }
+);
+
+define_model!(
+    Configuration,
+    ConfigurationField,
+    ConfigurationUpdate {
+        key: String[pk],
+        value: String,
+    }
+);
+
+define_sql!(
+    Queries
+
+    RandomNotRemind => "SELECT * FROM words WHERE reminder_time <= strftime('%s', 'now') - 43200 AND rand_key >= abs(random()) ORDER BY rand_key LIMIT 1",
+    Random => "SELECT * FROM words WHERE rand_key >= abs(random()) ORDER BY rand_key LIMIT 1",
+
+    UpdateRemindTime { word: &'a str } => "UPDATE words SET reminder_time = strftime('%s', 'now') WHERE word = ?",
+    IncrementRemindCount { word: &'a str } => "UPDATE words SET anki_count = anki_count + 1 WHERE word = ?",
+    ChangePriority { priority: u64, word: &'a str } => "UPDATE words SET priority = ? WHERE word = ?",
+
+    DeleteWord { word: &'a str } => "DELETE FROM words WHERE word = ?",
+    CountWord { word_type: i64 } => "SELECT count(*) as size FROM words WHERE word_type = ?",
+
+    // SaveWord (Upsert)
+    SaveWord {
+        word: &'a str,
+        explain: &'a str,
+        word_type: i64,
+        example: &'a str
+    } => r#"
+        INSERT INTO words (word, explain, add_time, update_time, word_type, example, rand_key)
+        VALUES (?1, ?2, strftime('%s', 'now'), strftime('%s', 'now'), ?3, ?4, abs(random()))
+        ON CONFLICT(word) DO UPDATE SET
+            explain = excluded.explain,
+            update_time = strftime('%s', 'now'),
+            word_type = excluded.word_type,
+            example = excluded.example
+    "#,
+
+    // Rename (Update PK)
+    RenameWord {
+        new_word: &'a str,
+        explain: &'a str,
+        word_type: i64,
+        example: &'a str,
+        old_word: &'a str
+    } => "UPDATE words SET word = ?1, explain = ?2, update_time = strftime('%s', 'now'), word_type = ?3, example = ?4 WHERE word = ?5",
+);
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Count {
     pub size: u64,
 }
 
-#[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
-pub struct Empty {}
+#[derive(Clone, Debug)]
+pub struct SqlStatement(pub String);
 
-#[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
-pub struct ColumnExist {
-    pub exist: u32,
-}
-
-#[derive(Serialize, Deserialize, Debug, FromValueVec, Clone)]
-pub struct ColumnName {
-    pub name: String,
-}
-
-#[derive(Debug)]
-pub struct Error(pub String);
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+impl Query for SqlStatement {
+    fn build(&self) -> Result<(Cow<'static, str>, Vec<DatabaseValue>), Error> {
+        Ok((Cow::Owned(self.0.clone()), vec![]))
     }
 }
 
-impl std::error::Error for Error {}
-
-impl From<&str> for Error {
-    fn from(s: &str) -> Self {
-        Error(s.to_string())
+impl MigrationMeta for SqlStatement {
+    fn migration_info(&self) -> Option<MigrationInfo> {
+        None
     }
 }
 
-impl From<reqwest::Error> for Error {
-    fn from(value: reqwest::Error) -> Self {
-        Error(value.to_string())
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(value: serde_json::Error) -> Self {
-        Error(value.to_string())
-    }
-}
-
-impl From<String> for Error {
-    fn from(s: String) -> Self {
-        Error(s)
-    }
-}
-
-pub trait DB {
-    fn exec<T>(&self, sql: SQL<'_>) -> impl Future<Output = Result<Vec<T>, Error>>
-    where
-        T: for<'a> Deserialize<'a>;
-
-    fn save_word(&self, req: SaveWord) -> impl Future<Output = Result<(), Error>> {
-        async move {
-            self.exec::<Empty>(SQL::SaveWord(req)).await?;
-            Ok(())
-        }
-    }
-
-    fn delete_word(&self, word: &str) -> impl Future<Output = Result<(), Error>> {
-        async move {
-            self.exec::<Empty>(SQL::DeleteWord(word)).await?;
-            Ok(())
-        }
-    }
-
-    fn list_word(
-        &self,
-        page_size: u64,
-        page_number: u64,
-        order_by: &str,
-        r#type: i64,
-    ) -> impl Future<Output = Result<Vec<Word>, Error>> {
-        async move {
-            self.exec::<Word>(SQL::ListWord(page_size, page_number, order_by, r#type))
-                .await
-        }
-    }
-
-    fn count_word(&self, r#type: i64) -> impl Future<Output = Result<u64, Error>> {
-        async move {
-            let c = self.exec::<Count>(SQL::CountWord(r#type)).await?;
-
-            if c.is_empty() {
-                Err(Error("get count failed".to_string()))
-            } else {
-                Ok(c[0].size)
-            }
-        }
-    }
-
-    fn increment_remind_count(&self, word: &str) -> impl Future<Output = Result<(), Error>> {
-        async move {
-            self.exec::<Empty>(SQL::IncrementRemindCount(word)).await?;
-            Ok(())
-        }
-    }
-
-    fn change_priority(
-        &self,
-        word: &str,
-        priority: u64,
-    ) -> impl Future<Output = Result<(), Error>> {
-        async move {
-            self.exec::<Empty>(SQL::ChangePriority(word, priority))
-                .await?;
-            Ok(())
-        }
-    }
-
-    fn random_word(&self) -> impl Future<Output = Result<Word, Error>> {
-        async move {
-            let words = match self.exec::<Word>(SQL::RandomNotRemind).await?.first() {
-                Some(v) => v.clone(),
-                _ => self
-                    .exec::<Word>(SQL::Random)
-                    .await?
-                    .first()
-                    .ok_or(Error("no word found".to_string()))?
-                    .clone(),
-            };
-
-            let update_sql = SQL::UpdateRemindTime(words.word.as_ref());
-
-            self.exec::<Empty>(update_sql).await?;
-
-            Ok(words)
-        }
-    }
-
-    fn check_column_exists(&self, column: &str) -> impl Future<Output = Result<bool, Error>> {
-        async move {
-            let c = self
-                .exec::<ColumnExist>(SQL::CheckColumnExists(column))
-                .await?;
-            if c.is_empty() {
-                return Ok(false);
-            }
-
-            Ok(c[0].exist == 1)
-        }
-    }
-
-    fn add_column(&self, columns: Vec<(&str, &str)>) -> impl Future<Output = Result<(), Error>> {
-        async move {
-            let existing_columns = self.exec::<ColumnName>(SQL::GetTableInfo).await?;
-            let existing_set: std::collections::HashSet<String> =
-                existing_columns.into_iter().map(|c| c.name).collect();
-
-            for (column, r#type) in columns {
-                if existing_set.contains(column) {
-                    continue;
-                }
-
-                self.exec::<Empty>(SQL::AddColumn(column, r#type)).await?;
-            }
-            Ok(())
-        }
-    }
-
-    fn create_table(&self) -> impl Future<Output = Result<(), Error>> {
-        async move {
-            self.exec::<Empty>(SQL::CreateTable).await?;
-
-            /*
-                ALTER TABLE words ADD COLUMN IF NOT EXISTS anki_count INTEGER DEFAULT 1;
-                ALTER TABLE words ADD COLUMN IF NOT EXISTS priority INTEGER DEFAULT 0;
-                ALTER TABLE words ADD COLUMN IF NOT EXISTS type INTEGER DEFAULT 0;
-            */
-            self.add_column(vec![
-                ("anki_count", "INTEGER DEFAULT 1"),
-                ("priority", "INTEGER DEFAULT 0"),
-                ("type", "INTEGER DEFAULT 0"),
-                ("example", "TEXT DEFAULT ''"),
-                ("rand_key", "INTEGER"),
-            ])
-            .await?;
-
-            Ok(())
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(untagged)]
-pub enum D1Value<'a> {
-    Integer(i64),
-    Real(f64),
-    Text(std::borrow::Cow<'a, str>),
-    Null,
-}
-
-impl<'a> From<i64> for D1Value<'a> {
-    fn from(v: i64) -> Self {
-        D1Value::Integer(v)
-    }
-}
-
-impl<'a> From<u64> for D1Value<'a> {
-    fn from(v: u64) -> Self {
-        // SQLite integers are signed 64-bit.
-        // Saturate at i64::MAX to prevent wrapping to negative values.
-        if v > i64::MAX as u64 {
-            D1Value::Integer(i64::MAX)
-        } else {
-            D1Value::Integer(v as i64)
-        }
-    }
-}
-
-impl<'a> From<String> for D1Value<'a> {
-    fn from(v: String) -> Self {
-        D1Value::Text(std::borrow::Cow::Owned(v))
-    }
-}
-
-impl<'a> From<&'a str> for D1Value<'a> {
-    fn from(v: &'a str) -> Self {
-        D1Value::Text(std::borrow::Cow::Borrowed(v))
-    }
-}
-
-impl<'a> From<f64> for D1Value<'a> {
-    fn from(v: f64) -> Self {
-        D1Value::Real(v)
-    }
-}
-
-impl<'a> fmt::Display for D1Value<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            D1Value::Integer(v) => write!(f, "{}", v),
-            D1Value::Real(v) => write!(f, "{}", v),
-            D1Value::Text(v) => write!(f, "{}", v),
-            D1Value::Null => write!(f, "null"),
-        }
-    }
-}
-
-#[derive(Default)]
-pub struct SaveWord<'a> {
-    pub origin_word: Option<&'a str>,
-    pub word: &'a str,
-    pub explain: &'a str,
-    pub r#type: i64,
-    pub example: &'a str,
-}
-
-pub enum SQL<'a> {
-    CreateTable,
-    RandomNotRemind,
-    Random,
-    UpdateRemindTime(&'a str),
-    // origin, word, explain, r#type
-    SaveWord(SaveWord<'a>),
-    DeleteWord(&'a str),
-    ListWord(u64, u64, &'a str, i64),
-    CountWord(i64),
-    IncrementRemindCount(&'a str),
-    ChangePriority(&'a str, u64),
-
-    CheckColumnExists(&'a str),
-    GetTableInfo,
-    AddColumn(&'a str, &'a str),
-}
-
-impl<'a> SQL<'a> {
-    pub fn sql(&self) -> String {
-        match self {
-            SQL::RandomNotRemind => {
-                "SELECT * FROM words WHERE reminder_time <= strftime('%s', 'now') - 43200 AND rand_key >= abs(random()) ORDER BY rand_key LIMIT 1".to_string()
-            }
-            SQL::Random => "SELECT * FROM words WHERE rand_key >= abs(random()) ORDER BY rand_key LIMIT 1;".to_string(),
-            SQL::UpdateRemindTime(_) => {
-                "UPDATE words SET reminder_time = strftime('%s', 'now') WHERE word = ?".to_string()
-            }
-            SQL::CreateTable => {
+pub fn migrations() -> Vec<Migration<SqlStatement>> {
+    vec![
+        Migration::new(
+            1,
+            "initial",
+            vec![SqlStatement(
                 r#"
-CREATE TABLE IF NOT EXISTS [words] (
-    "word" TEXT PRIMARY KEY,
-    "explain" TEXT,
-    "add_time" INTEGER,
-    "update_time" INTEGER,
-    "reminder_time" INTEGER DEFAULT 0,
-    "anki_count" INTEGER DEFAULT 1,
-    "priority" INTEGER DEFAULT 0,
-    -- 0: word, 1: grammar
-    "type" INTEGER DEFAULT 0,
-    "example" TEXT DEFAULT '',
-    "rand_key" INTEGER
-);
-CREATE TABLE IF NOT EXISTS [configurations] (
-    "key" TEXT PRIMARY KEY,
-    "value" TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_word_key ON words(word);
-CREATE INDEX IF NOT EXISTS idx_type_key ON words(type);
-CREATE INDEX IF NOT EXISTS idx_rand_key ON words(rand_key);
-CREATE INDEX IF NOT EXISTS idx_reminder_time_key ON words(reminder_time);
-CREATE INDEX IF NOT EXISTS idx_type_reminder_time_key ON words(type, reminder_time);
-CREATE INDEX IF NOT EXISTS idx_type_update_time_key ON words(type, update_time);
-CREATE INDEX IF NOT EXISTS idx_type_add_time_key ON words(type, add_time);
-CREATE INDEX IF NOT EXISTS idx_type_priority_key ON words(type, priority);
-CREATE INDEX IF NOT EXISTS idx_words_reminder_rand ON words(reminder_time, rand_key);
-"#.to_string()
-            }
+            CREATE TABLE IF NOT EXISTS words (
+                "word" TEXT PRIMARY KEY,
+                "explain" TEXT,
+                "add_time" INTEGER,
+                "update_time" INTEGER,
+                "reminder_time" INTEGER DEFAULT 0,
+                "anki_count" INTEGER DEFAULT 1,
+                "priority" INTEGER DEFAULT 0,
+                "type" INTEGER DEFAULT 0,
+                "example" TEXT DEFAULT '',
+                "rand_key" INTEGER
+            );
+            CREATE TABLE IF NOT EXISTS configurations (
+                "key" TEXT PRIMARY KEY,
+                "value" TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_word_key ON words(word);
+            CREATE INDEX IF NOT EXISTS idx_type_key ON words(type);
+            CREATE INDEX IF NOT EXISTS idx_rand_key ON words(rand_key);
+            CREATE INDEX IF NOT EXISTS idx_reminder_time_key ON words(reminder_time);
+            CREATE INDEX IF NOT EXISTS idx_type_reminder_time_key ON words(type, reminder_time);
+            CREATE INDEX IF NOT EXISTS idx_type_update_time_key ON words(type, update_time);
+            CREATE INDEX IF NOT EXISTS idx_type_add_time_key ON words(type, add_time);
+            CREATE INDEX IF NOT EXISTS idx_type_priority_key ON words(type, priority);
+            CREATE INDEX IF NOT EXISTS idx_words_reminder_rand ON words(reminder_time, rand_key);
+            "#
+                .to_string(),
+            )],
+        ),
+        Migration::new(
+            2,
+            "rename_type",
+            vec![SqlStatement(
+                r#"
+            ALTER TABLE words RENAME COLUMN type TO word_type;
+            "#
+                .to_string(),
+            )],
+        ),
+    ]
+}
 
-            SQL::SaveWord(req) =>   match req.origin_word {
-                    Some(word) if word!=req.word=>"UPDATE words SET word = ?, explain = ?, update_time = strftime('%s', 'now'), type = ?, example = ? WHERE word = ?".to_string(),
-                    _ => r#"
-INSERT INTO words (
-	word,
-    explain,
-    add_time,
-    update_time,
-    type,
-    example,
-    rand_key
-	)
-VALUES (
-	?,
-    ?,
-    strftime('%s', 'now'),
-    strftime('%s', 'now'),
-    ?,
-    ?,
-    abs(random())
-	) 
-ON CONFLICT(word) DO
-UPDATE
-SET
-    explain = excluded.explain,
-    update_time = strftime('%s', 'now'),
-    type = excluded.type,
-    example = excluded.example
-                    "#.to_string(),
-                }
-            SQL::DeleteWord(_) => "DELETE FROM words WHERE word = ?".to_string(),
-            SQL::ListWord(_, _, order_by, _) => format!("SELECT * FROM words WHERE type = ? ORDER BY {} LIMIT ? OFFSET ?", order_by),
-            SQL::CountWord(_) => "SELECT count(*) as size FROM words WHERE type = ?".to_string(),
-            SQL::IncrementRemindCount(_) => {
-                "UPDATE words SET anki_count = anki_count + 1 WHERE word = ?".to_string()
-            }
-            SQL::ChangePriority(_, _) => "UPDATE words SET priority = ? WHERE word = ?".to_string(),
+pub struct RawQuery {
+    pub sql: String,
+    pub params: Vec<DatabaseValue>,
+}
 
-            SQL::CheckColumnExists(column) => {
-                format!(r#"
-SELECT CASE 
-    WHEN EXISTS (SELECT 1 FROM pragma_table_info('words') WHERE name='{}') 
-    THEN 1 ELSE 0 
-END AS exist;
-"#, column)
-            }
-            SQL::GetTableInfo => "SELECT name FROM pragma_table_info('words')".to_string(),
-            SQL::AddColumn(column,r#type) => {
-                format!("ALTER TABLE words ADD COLUMN {} {}", column,r#type)
-            }
-        }
-    }
+use std::borrow::Cow;
 
-    pub fn params(&self) -> Vec<D1Value<'a>> {
-        match self {
-            SQL::SaveWord(req) => match req.origin_word {
-                Some(origin) if origin != req.word => vec![
-                    req.word.into(),
-                    req.explain.into(),
-                    (req.r#type).into(),
-                    req.example.into(),
-                    origin.into(),
-                ],
-                _ => vec![
-                    req.word.into(),
-                    req.explain.into(),
-                    (req.r#type).into(),
-                    req.example.into(),
-                ],
-            },
-
-            SQL::DeleteWord(word) => {
-                vec![(*word).into()]
-            }
-            SQL::UpdateRemindTime(word) => {
-                vec![(*word).into()]
-            }
-            SQL::ListWord(page_size, page_number, _, r#type) => {
-                let size = if *page_size > 0 { 10 } else { *page_size };
-                let offset = (*page_number - 1) * size;
-
-                vec![
-                    (*r#type).into(),
-                    size.into(),
-                    offset.into(),
-                ]
-            }
-            SQL::CountWord(r#type) => vec![(*r#type).into()],
-            SQL::IncrementRemindCount(word) => vec![(*word).into()],
-
-            SQL::ChangePriority(word, priority) => {
-                vec![(*priority).into(), (*word).into()]
-            }
-
-            SQL::CheckColumnExists(_)
-            | SQL::GetTableInfo
-            | SQL::AddColumn(_, _)
-            | SQL::RandomNotRemind
-            | SQL::Random
-            | SQL::CreateTable => vec![],
-        }
+impl Query for RawQuery {
+    fn build(&self) -> Result<(Cow<'static, str>, Vec<DatabaseValue>), Error> {
+        Ok((Cow::Owned(self.sql.clone()), self.params.clone()))
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-    use std::sync::{Arc, Mutex};
+// Helper to construct dynamic List query
+pub fn list_word_query(
+    page_size: u64,
+    page_number: u64,
+    order_by: &str,
+    is_desc: bool,
+    word_type: i64,
+) -> RawQuery {
+    let limit = if page_size > 0 { page_size } else { 10 };
+    let offset = (page_number.max(1) - 1) * limit;
 
-    struct MockDB {
-        exec_count: Arc<Mutex<usize>>,
-        existing_columns: Vec<String>,
-    }
-
-    impl MockDB {
-        fn new(existing_columns: Vec<&str>) -> Self {
-            Self {
-                exec_count: Arc::new(Mutex::new(0)),
-                existing_columns: existing_columns.iter().map(|s| s.to_string()).collect(),
-            }
+    // Validate order_by to prevent injection (though route.rs already does checks, good to be safe)
+    let safe_order_by = match order_by {
+        "word" | "update_time" | "priority" | "reminder_time" | "anki_count" | "add_time" => {
+            order_by
         }
-    }
+        _ => "word",
+    };
 
-    impl DB for MockDB {
-        async fn exec<T>(&self, sql: SQL<'_>) -> Result<Vec<T>, Error>
-        where
-            T: for<'a> Deserialize<'a>,
-        {
-            let mut count = self.exec_count.lock().unwrap();
-            *count += 1;
+    let sql = format!(
+        "SELECT * FROM words WHERE word_type = ? ORDER BY {}{} LIMIT ? OFFSET ?",
+        safe_order_by,
+        if is_desc { " DESC" } else { "" }
+    );
+    let params = vec![
+        DatabaseValue::from(word_type),
+        DatabaseValue::from(limit as i64),
+        DatabaseValue::from(offset as i64),
+    ];
 
-            match sql {
-                SQL::CheckColumnExists(col) => {
-                    let exists = self.existing_columns.iter().any(|c| c == col);
-                    let val = if exists { 1 } else { 0 };
-                    let json = json!([{ "exist": val }]);
-                    let res: Vec<T> = serde_json::from_value(json).expect("MockDB: failed to deserialize for CheckColumnExists");
-                    Ok(res)
-                }
-                SQL::GetTableInfo => {
-                    let rows: Vec<serde_json::Value> = self
-                        .existing_columns
-                        .iter()
-                        .map(|c| json!({ "name": c }))
-                        .collect();
-                    let res: Vec<T> = serde_json::from_value(serde_json::Value::Array(rows)).expect("MockDB: failed to deserialize for GetTableInfo");
-                    Ok(res)
-                }
-                SQL::AddColumn(_, _) => Ok(vec![]),
-                _ => Ok(vec![]),
-            }
-        }
-    }
+    RawQuery { sql, params }
+}
 
-    #[tokio::test]
-    async fn test_add_column_n_plus_1() {
-        let db = MockDB::new(vec![]);
-        let columns = vec![("col1", "TEXT"), ("col2", "TEXT"), ("col3", "TEXT")];
+pub async fn random_word(db: &impl DatabaseExecutor) -> Result<Word, Box<dyn std::error::Error>> {
+    let word: Option<Word> = db.query_first(Queries::RandomNotRemind).await?;
+    let word = match word {
+        Some(v) => v,
+        None => db
+            .query_first(Queries::Random)
+            .await?
+            .ok_or("no word found")?,
+    };
 
-        db.add_column(columns).await.unwrap();
+    db.execute(Queries::UpdateRemindTime { word: &word.word })
+        .await?;
 
-        let count = *db.exec_count.lock().unwrap();
-        // Optimized: 1 call to GetTableInfo + 3 calls to AddColumn = 4 calls
-        assert_eq!(count, 4, "Expected 4 calls (1 fetch + N add)");
-    }
-
-    #[tokio::test]
-    async fn test_add_column_already_exists() {
-        let db = MockDB::new(vec!["col1", "col2", "col3"]);
-        let columns = vec![("col1", "TEXT"), ("col2", "TEXT"), ("col3", "TEXT")];
-
-        db.add_column(columns).await.unwrap();
-
-        let count = *db.exec_count.lock().unwrap();
-        // Optimized: 1 call to GetTableInfo + 0 calls to AddColumn = 1 call
-        assert_eq!(count, 1, "Expected 1 call (1 fetch + 0 add)");
-    }
+    Ok(word)
 }

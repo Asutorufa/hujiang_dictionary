@@ -6,7 +6,7 @@ pub struct Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(status) = self.status {
-            write!(f, "status: {}\n", status)?;
+            writeln!(f, "status: {}", status)?;
         }
 
         write!(f, "{}", self.message)
@@ -16,7 +16,7 @@ impl std::fmt::Display for Error {
 impl std::fmt::Debug for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if let Some(status) = self.status {
-            write!(f, "status: {}\n", status)?;
+            writeln!(f, "status: {}", status)?;
         }
 
         write!(f, "{}", self.message)

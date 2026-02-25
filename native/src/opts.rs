@@ -12,7 +12,7 @@ pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error
     let allow_users = std::env::var("ALLOW_USERS")
         .unwrap_or("".to_string())
         .split(",")
-        .map(|v| return v.parse::<i64>().unwrap_or(0))
+        .map(|v| v.parse::<i64>().unwrap_or(0))
         .collect::<Vec<_>>();
 
     let cloudflare_account_id = std::env::var("CLOUDFLARE_ACCOUNT_ID").unwrap_or("".to_string());

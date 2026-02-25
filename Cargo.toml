@@ -24,6 +24,7 @@ lambda_runtime = "1"
 hjnative = { path = "./native" }
 hjcommon = { path = "./common" }
 hjdict = { path = "./dict" }
+d1-orm = "0.1.1"
 
 
 [workspace.dependencies]

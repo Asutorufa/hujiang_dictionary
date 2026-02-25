@@ -1,4 +1,5 @@
 use chrono::{Duration, Utc};
+use d1_orm::DatabaseExecutor;
 use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
@@ -7,7 +8,7 @@ use subtle::ConstantTimeEq;
 
 use crate::{
     ai::{self, Models, WorkersAI},
-    d1::{DB, Error as D1Error, SaveWord},
+    d1::{Count, Error as D1Error, Queries, Word, list_word_query},
     opts::RunOpt,
 };
 
@@ -77,20 +78,20 @@ impl WordQueryRequest {
 
         if let Some(i) = &self.instruction {
             if !ret.is_empty() {
-                ret.push_str("\n");
+                ret.push('\n');
             }
             ret.push_str(i.as_str());
         }
 
-        if let Some(l) = &self.dst_lang {
-            if !l.is_empty() {
-                if !ret.is_empty() {
-                    ret.push_str("\n");
-                }
-
-                ret.push_str("\nTarget Language: ");
-                ret.push_str(l);
+        if let Some(l) = &self.dst_lang
+            && !l.is_empty()
+        {
+            if !ret.is_empty() {
+                ret.push('\n');
             }
+
+            ret.push_str("\nTarget Language: ");
+            ret.push_str(l);
         }
 
         if ret.is_empty() {
@@ -159,7 +160,7 @@ impl From<ai::Error> for Error {
     }
 }
 
-impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
+impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
     pub fn create_token(&self) -> Result<String, String> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::days(self.auth_token_expiration))
@@ -238,7 +239,9 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
 
         let order_by = req.order_by.as_deref().unwrap_or("word");
 
+        let mut is_desc = false;
         let order_by = if let Some(r) = order_by.strip_suffix(" desc") {
+            is_desc = true;
             r
         } else {
             order_by
@@ -249,15 +252,15 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
             _ => return Err(Error("invalid order_by".to_string())),
         }
 
-        let words = self
-            .d1
-            .list_word(
-                req.page_size.unwrap_or(10),
-                req.page_number.unwrap_or(1),
-                req.order_by.as_deref().unwrap_or("word"),
-                req.r#type.unwrap_or(0),
-            )
-            .await?;
+        let query = list_word_query(
+            req.page_size.unwrap_or(10),
+            req.page_number.unwrap_or(1),
+            order_by,
+            is_desc,
+            req.r#type.unwrap_or(0),
+        );
+
+        let words: Vec<Word> = self.d1.query_all(query).await?;
 
         Ok(serde_json::to_vec(&words)?)
     }
@@ -265,25 +268,42 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
     pub async fn save_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<SaveWordRequest>(&body)?;
 
+        if let Some(origin) = req.origin.as_deref()
+            && origin != req.word
+        {
+            self.d1
+                .execute(Queries::RenameWord {
+                    new_word: &req.word,
+                    explain: &req.explain,
+                    word_type: req.r#type.unwrap_or(0),
+                    example: req.example.as_deref().unwrap_or(""),
+                    old_word: origin,
+                })
+                .await?;
+
+            return Ok([b'{', b'}'].to_vec());
+        }
+
         self.d1
-            .save_word(SaveWord {
-                origin_word: req.origin.as_deref(),
+            .execute(Queries::SaveWord {
                 word: &req.word,
                 explain: &req.explain,
-                r#type: req.r#type.unwrap_or(0),
-                example: &req.example.unwrap_or("".to_string()),
+                word_type: req.r#type.unwrap_or(0),
+                example: req.example.as_deref().unwrap_or(""),
             })
             .await?;
 
-        Ok(['{' as u8, '}' as u8].to_vec())
+        Ok([b'{', b'}'].to_vec())
     }
 
     pub async fn delete_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<SingleWordRequest>(&body)?;
 
-        self.d1.delete_word(&req.word).await?;
+        self.d1
+            .execute(Queries::DeleteWord { word: &req.word })
+            .await?;
 
-        Ok(['{' as u8, '}' as u8].to_vec())
+        Ok([b'{', b'}'].to_vec())
     }
 
     pub async fn count_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
@@ -292,21 +312,32 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
             Err(_) => 0,
         };
 
-        let size = self.d1.count_word(r#type).await?;
+        let count: Option<Count> = self
+            .d1
+            .query_first(Queries::CountWord { word_type: r#type })
+            .await?;
+        let size = count.map(|c| c.size).unwrap_or(0);
 
         Ok(serde_json::to_vec(&WordCountResponse { size })?)
     }
 
     pub async fn increment_remind_count(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<SingleWordRequest>(&body)?;
-        self.d1.increment_remind_count(&req.word).await?;
-        Ok(['{' as u8, '}' as u8].to_vec())
+        self.d1
+            .execute(Queries::IncrementRemindCount { word: &req.word })
+            .await?;
+        Ok([b'{', b'}'].to_vec())
     }
 
     pub async fn change_priority(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<ChangeWordPriorityRequest>(&body)?;
-        self.d1.change_priority(&req.word, req.priority).await?;
-        Ok(['{' as u8, '}' as u8].to_vec())
+        self.d1
+            .execute(Queries::ChangePriority {
+                priority: req.priority,
+                word: &req.word,
+            })
+            .await?;
+        Ok([b'{', b'}'].to_vec())
     }
 
     pub async fn custom_llms(&self) -> Result<Vec<u8>, Error> {
@@ -343,7 +374,7 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
                         self.workers_ai
                             .explain(
                                 req.google_search.unwrap_or(false),
-                                Models::from_str(model)
+                                Models::from_model_name(model)
                                     .ok_or(Error("model not supported".to_string()))?,
                                 false,
                                 &req.word,
@@ -358,7 +389,7 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
                             .explain(
                                 req.google_search.unwrap_or(false),
                                 ai::TranslateRequest {
-                                    model: model,
+                                    model,
                                     chars_limit: false,
                                     query: &req.word,
                                     dst_lang: req.dst_lang.as_deref(),
@@ -440,7 +471,7 @@ impl<T1: DB, T2: WorkersAI> RunOpt<T1, T2> {
                     }
                 };
 
-                match query(req.src_lang, target.as_ref()).await {
+                match query(req.src_lang, target).await {
                     Ok(v) => v
                         .iter()
                         .map(|x| x.translation.as_ref())

@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use aws_lambda_events::lambda_function_urls::LambdaFunctionUrlRequest;
 use base64::{Engine, engine::general_purpose};
-use hjcommon::d1::DB;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::{send_random_word, set_webhook};
 use hjnative::opts::run_opts;
@@ -55,7 +54,7 @@ impl LambdaHandler {
         } else if let Ok(v) = serde_json::from_value::<LambdaRequest>(payload.clone()) {
             return self.request_handler(v).await;
         } else {
-            return Err(lambda_runtime::Error::from("Unknown request"));
+            Err(lambda_runtime::Error::from("Unknown request"))
         }
     }
 
@@ -66,9 +65,9 @@ impl LambdaHandler {
         match request.command {
             RequestCommand::SendRandomWord => {
                 send_random_word(self.run_opt.clone()).await?;
-                return Ok(Response {
+                Ok(Response {
                     msg: "Send successful.".to_string(),
-                });
+                })
             }
         }
     }
@@ -99,7 +98,14 @@ impl LambdaHandler {
             }
 
             "/d1/create_table" => {
-                self.run_opt.d1.create_table().await?;
+                d1_orm::migrate(
+                    &self.run_opt.d1,
+                    hjcommon::d1::migrations(),
+                    None,
+                    Some(|s: &str| info!("{}", s)),
+                )
+                .await
+                .map_err(|e| lambda_runtime::Error::from(e.to_string()))?;
                 return Ok(Response {
                     msg: "create table [words] successful".to_string(),
                 });
@@ -137,7 +143,7 @@ impl LambdaHandler {
             _ => {}
         }
 
-        Err(lambda_runtime::Error::from(format!("404 NOT FOUND")))
+        Err(lambda_runtime::Error::from("404 NOT FOUND".to_string()))
     }
 }
 
@@ -148,7 +154,7 @@ mod test {
     use crate::LambdaRequest;
 
     fn init() {
-        let _ = env_logger::builder()
+        env_logger::builder()
             .filter_level(log::LevelFilter::Debug)
             .init();
     }

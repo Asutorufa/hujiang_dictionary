@@ -22,7 +22,7 @@ fn remove_last_path(url: &str) -> &str {
 impl Workers {
     pub fn new(account_id: &str, api_key: &str) -> Self {
         Workers {
-            openai: if account_id == "" || api_key == "" {
+            openai: if account_id.is_empty() || api_key.is_empty() {
                 None
             } else {
                 Some(Arc::new(
@@ -142,7 +142,6 @@ mod test {
             )
             .await
             .unwrap()
-            .to_string()
         );
     }
 
@@ -174,7 +173,6 @@ mod test {
             )
             .await
             .unwrap()
-            .to_string()
         );
     }
 }
