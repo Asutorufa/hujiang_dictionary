@@ -34,7 +34,7 @@ export const SaveWordModal: FC<{
         setNewExplain(explain || "");
         setNewExample(example || "");
         setNewType(type);
-    }, [word, explain, type])
+    }, [word, explain, type, example])
 
     return <Modal
         isOpen={isOpen}
@@ -124,7 +124,7 @@ export type ListWordResponse = {
 }
 
 export async function wordRequest<T>(path: string, body: string, callback: (data?: T, error?: string) => void) {
-    authorizedRequest(path, {
+    await authorizedRequest(path, {
         method: "POST",
         headers: {},
         body: body,
@@ -133,7 +133,7 @@ export async function wordRequest<T>(path: string, body: string, callback: (data
         .then((data) => {
             callback(data, undefined);
         })
-        .catch((error) => {
+        .catch((error: Error) => {
             callback(undefined, error.message);
             addToast({
                 title: `Words Request Error(${path})`,
