@@ -65,7 +65,7 @@ export const handlers = [
   http.post('/word/list', async ({ request }) => {
     const { page_size, page_number, order_by, type } = await request.json() as { page_size: number; page_number: number; order_by: string; type: number; }
     // Simple filter
-    let filtered = words.filter(w => w.type === type)
+    const filtered = words.filter(w => w.type === type)
 
     // Simple sort (mocking basic sorting)
     if (order_by === 'word') filtered.sort((a, b) => a.word.localeCompare(b.word))

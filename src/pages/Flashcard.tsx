@@ -93,7 +93,7 @@ export default function Flashcard() {
             ));
             setLoading(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     }, [orderBy, grammar, CHUNK_SIZE]);
 
     useEffect(() => {

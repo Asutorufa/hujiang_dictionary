@@ -6,22 +6,56 @@ on:
   pull_request:
     branches: [react]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      - name: Lint check
+        run: npm run lint
+
+      - name: Lint fix
+        if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/react'
+        run: npm run lint:fix
+
+      - name: Create Pull Request
+        if: failure() && github.event_name == 'push' && github.ref == 'refs/heads/react'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore: fix lint issues"
+          title: "chore: fix lint issues"
+          body: "This PR was automatically created by CI to fix lint issues."
+          branch: lint-fixes
+          delete-branch: true
+
   web:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
 
-      - name: Use Node.js 23.x
+      - name: Use Node.js 22.x
         uses: actions/setup-node@v4
         with:
-          node-version: 23.x
+          node-version: 22.x
           cache: "npm"
           cache-dependency-path: package-lock.json
       - run: |
-          ls -la
-          npm install
+          npm ci
           npm run build
 
       - name: upload_static
