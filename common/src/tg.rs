@@ -573,7 +573,8 @@ pub async fn callback_query<T: DatabaseExecutor, T2: WorkersAI>(
                     word_type: 0,
                     example: "",
                 })
-                .await {
+                .await
+            {
                 error!("save word failed: {}", e);
                 return Ok(());
             }
