@@ -8,6 +8,58 @@ on:
     branches: [ "rust" ]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Create dummy web assets
+        run: mkdir -p web/out && touch web/out/index.html
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - name: Run fmt check
+        run: cargo fmt --all --check
+
+      - name: Run clippy check
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Auto fix
+        if: failure() && github.event_name == 'push' && github.ref_name == 'rust'
+        run: |
+          cargo fmt --all
+          cargo clippy --fix --allow-dirty --all-targets --all-features -- -D warnings || true
+
+      - name: Create Pull Request
+        if: failure() && github.event_name == 'push' && github.ref_name == 'rust'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: fix linting issues"
+          title: "chore: fix linting issues"
+          body: |
+            Automated fix for linting issues.
+            - cargo fmt
+            - cargo clippy --fix
+          branch: lint-fix
+          base: rust
+          delete-branch: true
+
   web:
     runs-on: ubuntu-latest
     steps:

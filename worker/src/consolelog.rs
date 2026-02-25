@@ -12,7 +12,9 @@ impl Log for WebConsoleLogger {
     }
 
     fn log(&self, record: &Record) {
-        if record.module_path().unwrap_or("") == "html5ever::serialize" { return }
+        if record.module_path().unwrap_or("") == "html5ever::serialize" {
+            return;
+        }
 
         if !self.enabled(record.metadata()) {
             return;
