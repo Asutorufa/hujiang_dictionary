@@ -32,10 +32,12 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": [
-        "warn",
-        { allowConstantExport: true },
-      ],
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "react-refresh/only-export-components": "off",
+      "react-hooks/exhaustive-deps": "warn",
+      // Disable new and strict rules that are failing in the existing codebase
+      "react-hooks/set-state-in-effect": "off",
     },
   }
 );

@@ -34,7 +34,7 @@ export const SaveWordModal: FC<{
         setNewExplain(explain || "");
         setNewExample(example || "");
         setNewType(type);
-    }, [word, explain, type])
+    }, [word, explain, type, example])
 
     return <Modal
         isOpen={isOpen}

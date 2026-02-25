@@ -18,7 +18,6 @@ import {
     CardBody,
     CardHeader,
     Chip,
-    Divider,
     Dropdown,
     DropdownItem,
     DropdownMenu,
