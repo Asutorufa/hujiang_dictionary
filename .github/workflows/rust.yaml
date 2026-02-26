@@ -168,13 +168,13 @@ jobs:
 
           - os-name: Windows-x86_64
             runs-on: ubuntu-latest
-            target: x86_64-pc-windows-gnu
+            target: x86_64-pc-windows-msvc
             use-cross: false
 
           - os-name: Windows-aarch64
             runs-on: ubuntu-latest
-            target: aarch64-pc-windows-gnullvm
-            use-cross: true
+            target: aarch64-pc-windows-msvc
+            use-cross: false
 
           - os-name: macOS-x86_64
             runs-on: macOS-latest
@@ -231,14 +231,18 @@ jobs:
             ${{ runner.os }}-cargo-build-target-
 
       - name: Install Zig
-        if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross
+        if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross && contains(matrix.platform.target, 'linux')
         uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.13.0
 
       - name: Install cargo-zigbuild
-        if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross
+        if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross && contains(matrix.platform.target, 'linux')
         run: cargo install cargo-zigbuild
+
+      - name: Install cargo-xwin
+        if: contains(matrix.platform.target, 'windows')
+        run: cargo install cargo-xwin
 
       - name: Cache Web
         id: cache-web
@@ -248,8 +252,12 @@ jobs:
           key: cache-web-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Build binary (Zigbuild)
-        if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross
+        if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross && contains(matrix.platform.target, 'linux')
         run: cargo zigbuild --target ${{ matrix.platform.target }} --locked --release
+
+      - name: Build binary (Windows/Xwin)
+        if: contains(matrix.platform.target, 'windows')
+        run: cargo xwin build --target ${{ matrix.platform.target }} --locked --release
 
       - name: Build binary (Cross)
         if: contains(matrix.platform.runs-on, 'ubuntu') && matrix.platform.use-cross
