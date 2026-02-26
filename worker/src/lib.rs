@@ -2,12 +2,11 @@ pub mod ai;
 pub mod consolelog;
 
 use crate::ai::WasmAI;
-use frankenstein::{client_reqwest, updates::Update};
+use frankenstein::client_reqwest;
 use hjcommon::ai::OpenAI;
 use hjcommon::opts::RunOpt;
-use hjcommon::route::LoginRequest;
-use hjcommon::tg::{self, send_random_word};
-use log::{debug, error, info};
+use hjcommon::tg::send_random_word;
+use log::error;
 use std::sync::{Once, OnceLock};
 use std::{collections::HashMap, collections::HashSet, sync::Arc};
 use worker::*;
@@ -77,13 +76,6 @@ fn get_string_from_env(env: &Env, key: &str) -> String {
     }
 }
 
-fn check_auth(req: &Request, opt: &RunOpt<worker::D1Database, WasmAI>) -> Result<(), Response> {
-    match opt.check_auth(req.headers().get("Authorization").ok().flatten().as_deref()) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(Response::error(e, 401).unwrap()),
-    }
-}
-
 async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
     console_error_panic_hook::set_once();
     INIT.call_once(|| {
@@ -110,101 +102,50 @@ async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
 }
 
 #[event(fetch)]
-async fn main(req: Request, env: Env, ctx: Context) -> Result<Response> {
+async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
     if req.method() == Method::Options {
         return Response::ok("");
     }
 
     ctx.pass_through_on_exception();
 
-    Router::new()
-        .post_async("/login", async |mut req, ctx| {
-            let opt = get_opt(ctx.env).await;
-            let body: Result<LoginRequest, _> = req.json().await;
-            match body {
-                Ok(creds) => match opt.login(creds) {
-                    Ok(resp) => Response::from_json(&resp),
-                    Err((msg, status)) => Response::error(msg, status),
-                },
-                Err(_) => Response::error("Invalid request body", 400),
-            }
-        })
-        .on_async("/tgbot/register", async |req, ctx| {
-            let opt = get_opt(ctx.env).await;
-            if let Err(e) = check_auth(&req, &opt) {
-                return Ok(e);
-            }
+    let opt = get_opt(env.clone()).await;
 
-            let url = format!("https://{}/tgbot", req.url()?.host().unwrap());
+    let req_clone = req.clone()?;
 
-            tg::set_webhook(&opt.bot, url.as_ref(), opt.matainer)
-                .await
-                .map_err(|e| worker::Error::from(e.to_string()))?;
+    let url = req.url()?;
+    let domain = url.host_str().unwrap_or("").to_string();
+    let path = url.path();
+    let method = req.method().to_string();
 
-            Response::ok(format!("register telegram bot to {} successful", url))
-        })
-        .on_async("/d1/create_table", async |req, ctx| {
-            let opt = get_opt(ctx.env).await;
-            if let Err(e) = check_auth(&req, &opt) {
-                return Ok(e);
-            }
+    let headers = req.headers();
+    let auth_header = headers
+        .get("Authorization")
+        .ok()
+        .flatten()
+        .or_else(|| headers.get("authorization").ok().flatten());
 
-            d1_orm::migrate(
-                &opt.d1,
-                hjcommon::d1::migrations(),
-                None,
-                Some(|s: &str| info!("{}", s)),
-            )
-            .await
-            .map_err(|e| worker::Error::from(e.to_string()))?;
-            Response::ok("create table [words] successful".to_string())
-        })
-        .post_async("/tgbot", async |mut req, ctx| {
-            let opt = get_opt(ctx.env).await;
+    let body = req.bytes().await?;
 
-            let update = req.json::<Update>().await?;
-
-            debug!("body: {:?}", update);
-
-            match tg::handle(opt, update).await {
-                Ok(_) => {
-                    debug!("Update was handled by bot.");
-                    Response::ok("Update was handled by bot.")
-                }
-                Err(e) => {
-                    error!("Update was not handled by bot: {}", e);
-                    Response::ok(format!("Update was not handled by bot: {}", e))
-                }
-            }
-        })
-        .post_async("/word/:path", async |mut req, ctx| {
-            let opt = get_opt(ctx.env).await;
-            if let Err(e) = check_auth(&req, &opt) {
-                return Ok(e);
-            }
-
-            info!("new word request, path: {}", req.url()?.path());
-
-            let body = match req.bytes().await {
-                Ok(v) => v,
-                Err(e) => return Response::error(e.to_string(), 500),
-            };
-
-            let words = match opt.route(req.url()?.path(), body).await {
-                Ok(v) => v,
-                Err(e) => return Response::error(e.to_string(), 500),
-            };
-
-            Response::ok(String::from_utf8_lossy(&words).to_string())
-        })
-        .on_async("/", async |req, ctx| {
-            ctx.env.assets("ASSETS")?.fetch_request(req).await
-        })
-        .or_else_any_method_async("/*catchall", async |req, ctx| {
-            ctx.env.assets("ASSETS")?.fetch_request(req).await
-        })
-        .run(req, env)
+    match opt
+        .serve(&method, path, auth_header.as_deref(), body, &domain)
         .await
+    {
+        Ok(resp) => {
+            let mut r = Response::from_bytes(resp.body)?;
+            r = r.with_status(resp.status);
+            for (k, v) in resp.headers {
+                r.headers_mut().set(&k, &v)?;
+            }
+            Ok(r)
+        }
+        Err(e) => match e {
+            hjcommon::route::Error::NotFound => {
+                env.assets("ASSETS")?.fetch_request(req_clone).await
+            }
+            _ => Response::error(e.to_string(), 500),
+        },
+    }
 }
 
 #[event(scheduled)]

@@ -1,13 +1,13 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use aws_lambda_events::lambda_function_urls::LambdaFunctionUrlRequest;
 use base64::{Engine, engine::general_purpose};
 use hjcommon::opts::RunOpt;
-use hjcommon::tg::{send_random_word, set_webhook};
+use hjcommon::tg::send_random_word;
 use hjnative::opts::run_opts;
 use hjnative::{ai::Workers, d1::D1};
 use lambda_runtime::LambdaEvent;
-use log::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -31,6 +31,24 @@ struct Response {
     msg: String,
 }
 
+#[derive(Serialize)]
+pub struct LocalLambdaFunctionUrlResponse {
+    #[serde(rename = "statusCode")]
+    pub status_code: i64,
+    pub headers: HashMap<String, String>,
+    pub body: Option<String>,
+    #[serde(rename = "isBase64Encoded")]
+    pub is_base64_encoded: bool,
+    pub cookies: Vec<String>,
+}
+
+#[derive(Serialize)]
+#[serde(untagged)]
+enum MainResponse {
+    Url(LocalLambdaFunctionUrlResponse),
+    Direct(Response),
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum RequestCommand {
@@ -47,12 +65,15 @@ struct LambdaHandler {
 }
 
 impl LambdaHandler {
-    async fn handler(&self, event: LambdaEvent<Value>) -> Result<Response, lambda_runtime::Error> {
+    async fn handler(
+        &self,
+        event: LambdaEvent<Value>,
+    ) -> Result<MainResponse, lambda_runtime::Error> {
         let (payload, _) = event.into_parts();
         if let Ok(v) = serde_json::from_value::<LambdaFunctionUrlRequest>(payload.clone()) {
-            return self.bot_handler(v).await;
+            Ok(MainResponse::Url(self.bot_handler(v).await?))
         } else if let Ok(v) = serde_json::from_value::<LambdaRequest>(payload.clone()) {
-            return self.request_handler(v).await;
+            Ok(MainResponse::Direct(self.request_handler(v).await?))
         } else {
             Err(lambda_runtime::Error::from("Unknown request"))
         }
@@ -75,75 +96,61 @@ impl LambdaHandler {
     async fn bot_handler(
         &self,
         event: LambdaFunctionUrlRequest,
-    ) -> Result<Response, lambda_runtime::Error> {
-        match event.raw_path.ok_or("Path is None")?.as_str() {
-            "/tgbot/register" => {
-                let url = format!(
-                    "https://{}/tgbot",
-                    event
-                        .request_context
-                        .domain_name
-                        .ok_or("domain name is none")?
-                );
+    ) -> Result<LocalLambdaFunctionUrlResponse, lambda_runtime::Error> {
+        let path = event.raw_path.unwrap_or_default();
+        let method = event.request_context.http.method.unwrap_or_default();
+        let domain = event.request_context.domain_name.unwrap_or_default();
 
-                let result =
-                    match set_webhook(&self.run_opt.bot, url.as_ref(), self.run_opt.matainer).await
-                    {
-                        Ok(_) => format!("register telegram bot to {} successful", url),
-                        Err(e) => format!("Set webhook failed: {}", e),
-                    };
+        let headers = event.headers;
+        let auth_header = headers
+            .get("authorization")
+            .or(headers.get("Authorization"))
+            .and_then(|h| h.to_str().ok());
 
-                info!("{}", result);
-                return Ok(Response { msg: result });
+        let body_bytes = if let Some(body) = event.body {
+            if event.is_base64_encoded {
+                general_purpose::STANDARD.decode(body)?
+            } else {
+                body.into_bytes()
             }
+        } else {
+            vec![]
+        };
 
-            "/d1/create_table" => {
-                d1_orm::migrate(
-                    &self.run_opt.d1,
-                    hjcommon::d1::migrations(),
-                    None,
-                    Some(|s: &str| info!("{}", s)),
-                )
-                .await
-                .map_err(|e| lambda_runtime::Error::from(e.to_string()))?;
-                return Ok(Response {
-                    msg: "create table [words] successful".to_string(),
-                });
+        match self
+            .run_opt
+            .clone()
+            .serve(&method, &path, auth_header, body_bytes, &domain)
+            .await
+        {
+            Ok(resp) => {
+                let mut headers = HashMap::new();
+                for (k, v) in resp.headers {
+                    headers.insert(k, v);
+                }
+
+                Ok(LocalLambdaFunctionUrlResponse {
+                    status_code: resp.status as i64,
+                    headers,
+                    body: Some(String::from_utf8_lossy(&resp.body).to_string()),
+                    is_base64_encoded: false,
+                    cookies: vec![],
+                })
             }
-
-            "/tgbot" => {
-                let bytes = event.body.ok_or("body is none")?;
-
-                let body = if event.is_base64_encoded {
-                    general_purpose::STANDARD.decode(bytes)?
-                } else {
-                    bytes.as_bytes().to_vec()
+            Err(e) => {
+                let status = match e {
+                    hjcommon::route::Error::NotFound => 404,
+                    _ => 500,
                 };
-
-                debug!("body: {}", String::from_utf8_lossy(&body));
-
-                let update2: frankenstein::updates::Update = serde_json::from_slice(&body)?;
-
-                return match hjcommon::tg::handle(self.run_opt.clone(), update2).await {
-                    Ok(_) => {
-                        debug!("Update was handled by bot.");
-                        Ok(Response {
-                            msg: "Update was handled by bot.".to_string(),
-                        })
-                    }
-                    Err(e) => {
-                        error!("Update was not handled by bot: {}", e);
-                        Ok(Response {
-                            msg: format!("Update was not handled by bot: {}", e).to_string(),
-                        })
-                    }
-                };
+                Ok(LocalLambdaFunctionUrlResponse {
+                    status_code: status,
+                    headers: HashMap::new(),
+                    body: Some(format!("{{\"error\": \"{}\"}}", e)),
+                    is_base64_encoded: false,
+                    cookies: vec![],
+                })
             }
-
-            _ => {}
         }
-
-        Err(lambda_runtime::Error::from("404 NOT FOUND".to_string()))
     }
 }
 

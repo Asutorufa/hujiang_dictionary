@@ -6,9 +6,6 @@ edition = "2024"
 [workspace]
 members = ["native", "common", "dict", "worker", "web"]
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 base64 = { workspace = true }
 log = { workspace = true }
@@ -20,6 +17,7 @@ env_logger = { workspace = true }
 
 aws_lambda_events = "1"
 lambda_runtime = "1"
+http = "1"
 
 hjnative = { path = "./native" }
 hjcommon = { path = "./common" }

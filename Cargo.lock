@@ -895,6 +895,7 @@ dependencies = [
  "hjcommon",
  "hjdict",
  "hjnative",
+ "http",
  "lambda_runtime",
  "log",
  "serde",
