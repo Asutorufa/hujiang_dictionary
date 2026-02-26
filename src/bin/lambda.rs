@@ -137,13 +137,19 @@ impl LambdaHandler {
                     cookies: vec![],
                 })
             }
-            Err(e) => Ok(LocalLambdaFunctionUrlResponse {
-                status_code: 500,
-                headers: HashMap::new(),
-                body: Some(format!("{{\"error\": \"{}\"}}", e)),
-                is_base64_encoded: false,
-                cookies: vec![],
-            }),
+            Err(e) => {
+                let status = match e {
+                    hjcommon::route::Error::NotFound => 404,
+                    _ => 500,
+                };
+                Ok(LocalLambdaFunctionUrlResponse {
+                    status_code: status,
+                    headers: HashMap::new(),
+                    body: Some(format!("{{\"error\": \"{}\"}}", e)),
+                    is_base64_encoded: false,
+                    cookies: vec![],
+                })
+            }
         }
     }
 }
