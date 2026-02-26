@@ -167,13 +167,13 @@ jobs:
             use-cross: true
 
           - os-name: Windows-x86_64
-            runs-on: windows-latest
-            target: x86_64-pc-windows-msvc
+            runs-on: ubuntu-latest
+            target: x86_64-pc-windows-gnu
             use-cross: false
 
           - os-name: Windows-aarch64
-            runs-on: windows-latest
-            target: aarch64-pc-windows-msvc
+            runs-on: ubuntu-latest
+            target: aarch64-pc-windows-gnullvm
             use-cross: false
 
           - os-name: macOS-x86_64
