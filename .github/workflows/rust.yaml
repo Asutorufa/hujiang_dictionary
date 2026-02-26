@@ -224,7 +224,7 @@ jobs:
         if: contains(matrix.platform.runs-on, 'ubuntu')
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.13.0
+          version: 0.12.0
 
       - name: Install cargo-zigbuild
         if: contains(matrix.platform.runs-on, 'ubuntu')
