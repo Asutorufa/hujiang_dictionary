@@ -120,7 +120,11 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
     let method = req.method().to_string();
 
     let headers = req.headers();
-    let auth_header = headers.get("Authorization").ok().flatten();
+    let auth_header = headers
+        .get("Authorization")
+        .ok()
+        .flatten()
+        .or_else(|| headers.get("authorization").ok().flatten());
 
     let body = req.bytes().await?;
 
