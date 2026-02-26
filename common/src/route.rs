@@ -273,7 +273,10 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
         match path {
             "/login" => {
                 if method != "POST" {
-                    return Ok(UnifiedResponse::error(405, "Method not allowed".to_string()));
+                    return Ok(UnifiedResponse::error(
+                        405,
+                        "Method not allowed".to_string(),
+                    ));
                 }
                 let req = serde_json::from_slice::<LoginRequest>(&body)?;
                 match self.login(req) {
@@ -311,7 +314,10 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
             }
             "/tgbot" => {
                 if method != "POST" {
-                    return Ok(UnifiedResponse::error(405, "Method not allowed".to_string()));
+                    return Ok(UnifiedResponse::error(
+                        405,
+                        "Method not allowed".to_string(),
+                    ));
                 }
                 let update = serde_json::from_slice::<Update>(&body)?;
                 match crate::tg::handle(self, update).await {
