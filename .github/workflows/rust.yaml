@@ -265,7 +265,11 @@ jobs:
         if: contains(matrix.platform.target, 'windows')
         env:
           AR_aarch64_pc_windows_msvc: llvm-lib
+          CC_aarch64_pc_windows_msvc: clang-cl
+          CXX_aarch64_pc_windows_msvc: clang-cl
           AR_x86_64_pc_windows_msvc: llvm-lib
+          CC_x86_64_pc_windows_msvc: clang-cl
+          CXX_x86_64_pc_windows_msvc: clang-cl
         run: cargo xwin build --target ${{ matrix.platform.target }} --locked --release
 
       - name: Build binary (Cross)
