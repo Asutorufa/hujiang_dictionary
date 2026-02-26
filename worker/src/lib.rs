@@ -2,12 +2,11 @@ pub mod ai;
 pub mod consolelog;
 
 use crate::ai::WasmAI;
-use frankenstein::{client_reqwest, updates::Update};
+use frankenstein::client_reqwest;
 use hjcommon::ai::OpenAI;
 use hjcommon::opts::RunOpt;
-use hjcommon::route::LoginRequest;
 use hjcommon::tg::send_random_word;
-use log::{error, info};
+use log::error;
 use std::sync::{Once, OnceLock};
 use std::{collections::HashMap, collections::HashSet, sync::Arc};
 use worker::*;

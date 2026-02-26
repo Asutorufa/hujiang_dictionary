@@ -6,9 +6,6 @@ edition = "2024"
 [workspace]
 members = ["native", "common", "dict", "worker", "web"]
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 base64 = { workspace = true }
 log = { workspace = true }
