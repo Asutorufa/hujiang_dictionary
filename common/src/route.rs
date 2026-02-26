@@ -129,11 +129,17 @@ pub struct CustomLLM {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Error(pub String);
+pub enum Error {
+    NotFound,
+    Internal(String),
+}
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        match self {
+            Error::NotFound => write!(f, "not found"),
+            Error::Internal(msg) => write!(f, "{}", msg),
+        }
     }
 }
 
@@ -141,25 +147,25 @@ impl std::error::Error for Error {}
 
 impl From<&str> for Error {
     fn from(s: &str) -> Self {
-        Error(s.to_string())
+        Error::Internal(s.to_string())
     }
 }
 
 impl From<serde_json::Error> for Error {
     fn from(value: serde_json::Error) -> Self {
-        Self(value.to_string())
+        Self::Internal(value.to_string())
     }
 }
 
 impl From<D1Error> for Error {
     fn from(value: D1Error) -> Self {
-        Self(value.to_string())
+        Self::Internal(value.to_string())
     }
 }
 
 impl From<ai::Error> for Error {
     fn from(value: ai::Error) -> Self {
-        Self(value.to_string())
+        Self::Internal(value.to_string())
     }
 }
 
@@ -267,7 +273,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
         match path {
             "/login" => {
                 if method != "POST" {
-                    return Err(Error("Method not allowed".to_string()));
+                    return Err(Error::Internal("Method not allowed".to_string()));
                 }
                 let req = serde_json::from_slice::<LoginRequest>(&body)?;
                 match self.login(req) {
@@ -282,7 +288,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                 let url = format!("https://{}/tgbot", domain);
                 crate::tg::set_webhook(&self.bot, url.as_ref(), self.matainer)
                     .await
-                    .map_err(|e| Error(e.to_string()))?;
+                    .map_err(|e| Error::Internal(e.to_string()))?;
                 Ok(UnifiedResponse::ok(
                     format!("register telegram bot to {} successful", url).into_bytes(),
                 ))
@@ -298,14 +304,14 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                     Some(|s: &str| info!("{}", s)),
                 )
                 .await
-                .map_err(|e| Error(e.to_string()))?;
+                .map_err(|e| Error::Internal(e.to_string()))?;
                 Ok(UnifiedResponse::ok(
                     "create table [words] successful".to_string().into_bytes(),
                 ))
             }
             "/tgbot" => {
                 if method != "POST" {
-                    return Err(Error("Method not allowed".to_string()));
+                    return Err(Error::Internal("Method not allowed".to_string()));
                 }
                 let update = serde_json::from_slice::<Update>(&body)?;
                 match crate::tg::handle(self, update).await {
@@ -325,7 +331,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                     let resp = self.route(path, body).await?;
                     Ok(UnifiedResponse::json(resp))
                 } else {
-                    Err(Error("not found".to_string()))
+                    Err(Error::NotFound)
                 }
             }
         }
@@ -341,7 +347,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
             "/word/remind_count_increment" => self.increment_remind_count(body).await,
             "/word/priority" => self.change_priority(body).await,
             "/word/ai_custom" => self.custom_llms().await,
-            _ => Err(Error("not found".to_string())),
+            _ => Err(Error::NotFound),
         }
     }
 
@@ -360,7 +366,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
 
         match order_by {
             "word" | "update_time" | "priority" | "reminder_time" | "anki_count" | "add_time" => {}
-            _ => return Err(Error("invalid order_by".to_string())),
+            _ => return Err(Error::Internal("invalid order_by".to_string())),
         }
 
         let query = list_word_query(
@@ -477,7 +483,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
             "custom_llm" => {
                 let (name, model) = match req.custom_llm.as_ref() {
                     Some(llm) => (&llm.name, &llm.model),
-                    None => return Err(Error("custom llm is empty".to_string())),
+                    None => return Err(Error::Internal("custom llm is empty".to_string())),
                 };
 
                 match name.as_str() {
@@ -486,7 +492,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                             .explain(
                                 req.google_search.unwrap_or(false),
                                 Models::from_model_name(model)
-                                    .ok_or(Error("model not supported".to_string()))?,
+                                    .ok_or(Error::Internal("model not supported".to_string()))?,
                                 false,
                                 &req.word,
                                 req.instruction().as_deref(),
@@ -496,7 +502,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                     _ => Some(
                         self.custom_llms
                             .get(name)
-                            .ok_or(Error("custom llm not found".to_string()))?
+                            .ok_or(Error::Internal("custom llm not found".to_string()))?
                             .explain(
                                 req.google_search.unwrap_or(false),
                                 ai::TranslateRequest {
@@ -528,7 +534,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                     .map(|x| x.markdown())
                     .collect::<Vec<_>>()
                     .join("\n"),
-                Err(e) => return Err(Error(e.to_string())),
+                Err(e) => return Err(Error::Internal(e.to_string())),
             },
             "cj" => match jp::get(req.word.as_str(), "cj").await {
                 Ok(v) => v
@@ -536,7 +542,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                     .map(|x| x.markdown())
                     .collect::<Vec<_>>()
                     .join("\n"),
-                Err(e) => return Err(Error(e.to_string())),
+                Err(e) => return Err(Error::Internal(e.to_string())),
             },
             "kr" => match kr::get(req.word.as_str()).await {
                 Ok(v) => v
@@ -544,7 +550,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                     .map(|x| x.markdown())
                     .collect::<Vec<_>>()
                     .join("\n"),
-                Err(e) => return Err(Error(e.to_string())),
+                Err(e) => return Err(Error::Internal(e.to_string())),
             },
             "en" => match en::get(req.word.as_str()).await {
                 Ok(v) => v
@@ -552,15 +558,15 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                     .map(|x| x.markdown())
                     .collect::<Vec<_>>()
                     .join("\n"),
-                Err(e) => return Err(Error(e.to_string())),
+                Err(e) => return Err(Error::Internal(e.to_string())),
             },
             "weblio" => match weblio::get(&req.word).await {
                 Ok(v) => v.join("\n"),
-                Err(e) => return Err(Error(e.to_string())),
+                Err(e) => return Err(Error::Internal(e.to_string())),
             },
             "ktbk" => match kotobanku::get(&req.word).await {
                 Ok(v) => v.join("\n"),
-                Err(e) => return Err(Error(e.to_string())),
+                Err(e) => return Err(Error::Internal(e.to_string())),
             },
             "m2m100_1_2b" => {
                 self.workers_ai
@@ -588,7 +594,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                         .map(|x| x.translation.as_ref())
                         .collect::<Vec<_>>()
                         .join(""),
-                    Err(e) => return Err(Error(e.to_string())),
+                    Err(e) => return Err(Error::Internal(e.to_string())),
                 }
             }
             _ => {

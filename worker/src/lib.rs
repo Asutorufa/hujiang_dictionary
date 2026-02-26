@@ -136,13 +136,12 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
             }
             Ok(r)
         }
-        Err(e) => {
-            if e.to_string() == "not found" {
+        Err(e) => match e {
+            hjcommon::route::Error::NotFound => {
                 env.assets("ASSETS")?.fetch_request(req_clone).await
-            } else {
-                Response::error(e.to_string(), 500)
             }
-        }
+            _ => Response::error(e.to_string(), 500),
+        },
     }
 }
 
