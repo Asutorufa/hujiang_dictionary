@@ -1,9 +1,12 @@
 use chrono::{Duration, Utc};
 use d1_orm::DatabaseExecutor;
+use frankenstein::updates::Update;
 use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use log::*;
 use serde::{Deserialize, Serialize};
 use std::str;
+use std::sync::Arc;
 use subtle::ConstantTimeEq;
 
 use crate::{
@@ -160,6 +163,39 @@ impl From<ai::Error> for Error {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct UnifiedResponse {
+    pub status: u16,
+    pub body: Vec<u8>,
+    pub headers: Vec<(String, String)>,
+}
+
+impl UnifiedResponse {
+    pub fn ok(body: Vec<u8>) -> Self {
+        Self {
+            status: 200,
+            body,
+            headers: vec![],
+        }
+    }
+
+    pub fn json(body: Vec<u8>) -> Self {
+        Self {
+            status: 200,
+            body,
+            headers: vec![("Content-Type".to_string(), "application/json".to_string())],
+        }
+    }
+
+    pub fn error(status: u16, msg: String) -> Self {
+        Self {
+            status,
+            body: msg.into_bytes(),
+            headers: vec![],
+        }
+    }
+}
+
 impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
     pub fn create_token(&self) -> Result<String, String> {
         let expiration = Utc::now()
@@ -217,6 +253,81 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
             }
         } else {
             Err(("Invalid credentials".to_string(), 401))
+        }
+    }
+
+    pub async fn serve(
+        self: Arc<Self>,
+        method: &str,
+        path: &str,
+        auth_header: Option<&str>,
+        body: Vec<u8>,
+        domain: &str,
+    ) -> Result<UnifiedResponse, Error> {
+        match path {
+            "/login" => {
+                if method != "POST" {
+                    return Err(Error("Method not allowed".to_string()));
+                }
+                let req = serde_json::from_slice::<LoginRequest>(&body)?;
+                match self.login(req) {
+                    Ok(resp) => Ok(UnifiedResponse::json(serde_json::to_vec(&resp)?)),
+                    Err((msg, status)) => Ok(UnifiedResponse::error(status, msg)),
+                }
+            }
+            "/tgbot/register" => {
+                if let Err(e) = self.check_auth(auth_header) {
+                    return Ok(UnifiedResponse::error(401, e));
+                }
+                let url = format!("https://{}/tgbot", domain);
+                crate::tg::set_webhook(&self.bot, url.as_ref(), self.matainer)
+                    .await
+                    .map_err(|e| Error(e.to_string()))?;
+                Ok(UnifiedResponse::ok(
+                    format!("register telegram bot to {} successful", url).into_bytes(),
+                ))
+            }
+            "/d1/create_table" => {
+                if let Err(e) = self.check_auth(auth_header) {
+                    return Ok(UnifiedResponse::error(401, e));
+                }
+                d1_orm::migrate(
+                    &self.d1,
+                    crate::d1::migrations(),
+                    None,
+                    Some(|s: &str| info!("{}", s)),
+                )
+                .await
+                .map_err(|e| Error(e.to_string()))?;
+                Ok(UnifiedResponse::ok(
+                    "create table [words] successful".to_string().into_bytes(),
+                ))
+            }
+            "/tgbot" => {
+                if method != "POST" {
+                    return Err(Error("Method not allowed".to_string()));
+                }
+                let update = serde_json::from_slice::<Update>(&body)?;
+                match crate::tg::handle(self, update).await {
+                    Ok(_) => Ok(UnifiedResponse::ok(
+                        "Update was handled by bot.".to_string().into_bytes(),
+                    )),
+                    Err(e) => Ok(UnifiedResponse::ok(
+                        format!("Update was not handled by bot: {}", e).into_bytes(),
+                    )),
+                }
+            }
+            _ => {
+                if path.starts_with("/word/") {
+                    if let Err(e) = self.check_auth(auth_header) {
+                        return Ok(UnifiedResponse::error(401, e));
+                    }
+                    let resp = self.route(path, body).await?;
+                    Ok(UnifiedResponse::json(resp))
+                } else {
+                    Err(Error("not found".to_string()))
+                }
+            }
         }
     }
 
