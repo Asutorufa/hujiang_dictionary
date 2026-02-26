@@ -273,6 +273,7 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
         match path {
             "/login" => {
                 if method != "POST" {
+                    // Return 405 Method Not Allowed
                     return Ok(UnifiedResponse::error(
                         405,
                         "Method not allowed".to_string(),
