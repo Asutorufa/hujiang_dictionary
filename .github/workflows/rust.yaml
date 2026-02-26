@@ -149,42 +149,52 @@ jobs:
           - os-name: FreeBSD-x86_64
             runs-on: ubuntu-latest
             target: x86_64-unknown-freebsd
+            use-cross: true
 
           - os-name: Linux-x86_64
             runs-on: ubuntu-latest
             target: x86_64-unknown-linux-musl
+            use-cross: false
 
           - os-name: Linux-aarch64
             runs-on: ubuntu-latest
             target: aarch64-unknown-linux-musl
+            use-cross: false
 
           - os-name: Linux-riscv64
             runs-on: ubuntu-latest
             target: riscv64gc-unknown-linux-gnu
+            use-cross: true
 
           - os-name: Windows-x86_64
             runs-on: windows-latest
             target: x86_64-pc-windows-msvc
+            use-cross: false
 
           - os-name: Windows-aarch64
             runs-on: windows-latest
             target: aarch64-pc-windows-msvc
+            use-cross: false
 
           - os-name: macOS-x86_64
             runs-on: macOS-latest
             target: x86_64-apple-darwin
+            use-cross: false
 
           - os-name: macOS-aarch64
             runs-on: macOS-latest
             target: aarch64-apple-darwin
+            use-cross: false
 
           - os-name: android-x86_64
             runs-on: ubuntu-latest
             target: x86_64-linux-android
+            use-cross: true
 
           - os-name: android-aarch64
             runs-on: ubuntu-latest
             target: aarch64-linux-android
+            use-cross: true
 
     runs-on: ${{ matrix.platform.runs-on }}
     steps:
@@ -221,13 +231,13 @@ jobs:
             ${{ runner.os }}-cargo-build-target-
 
       - name: Install Zig
-        if: contains(matrix.platform.runs-on, 'ubuntu')
+        if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross
         uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.12.0
+          version: 0.13.0
 
       - name: Install cargo-zigbuild
-        if: contains(matrix.platform.runs-on, 'ubuntu')
+        if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross
         run: cargo install cargo-zigbuild
 
       - name: Cache Web
@@ -237,11 +247,21 @@ jobs:
           path: web/out
           key: cache-web-${{ github.run_id }}-${{ github.run_attempt }}
 
-      - name: Build binary (Ubuntu)
-        if: contains(matrix.platform.runs-on, 'ubuntu')
+      - name: Build binary (Zigbuild)
+        if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross
         run: cargo zigbuild --target ${{ matrix.platform.target }} --locked --release
 
-      - name: Build binary (Non-Ubuntu)
+      - name: Build binary (Cross)
+        if: contains(matrix.platform.runs-on, 'ubuntu') && matrix.platform.use-cross
+        uses: houseabsolute/actions-rust-cross@v1
+        with:
+          command: build
+          target: ${{ matrix.platform.target }}
+          args: "--locked --release"
+          strip: true
+          cross-version: "e281947ca900da425e4ecea7483cfde646c8a1ea"
+
+      - name: Build binary (Native)
         if: "!contains(matrix.platform.runs-on, 'ubuntu')"
         run: cargo build --target ${{ matrix.platform.target }} --locked --release
 
