@@ -14,6 +14,8 @@ pub struct Part {
     pub text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub inline_data: Option<Blob>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thought: Option<bool>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

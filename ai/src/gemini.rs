@@ -1,7 +1,7 @@
 use futures_util::Stream;
-use gemini::{Content, GenerateContentRequest, Part, Client};
+use gemini::{Client, Content, GenerateContentRequest, Part};
 
-use crate::{Completion, Message, CompletionResponse};
+use crate::{Completion, CompletionResponse, Message};
 
 #[derive(Clone, Default)]
 pub struct Gemini {
@@ -27,6 +27,7 @@ impl Gemini {
                 parts: vec![Part {
                     text: Some(m.content),
                     inline_data: None,
+                    thought: None,
                 }],
             })
             .collect();
@@ -39,8 +40,10 @@ impl Gemini {
             generation_config: None,
         };
 
+        // Use owned version if I added it, or ensure req is not borrowed.
+        // I added `stream_generate_content_owned`.
         let stream = client
-            .stream_generate_content(&req)
+            .stream_generate_content_owned(req)
             .await
             .map_err(|e| e.to_string())?;
 
@@ -50,20 +53,43 @@ impl Gemini {
                 use futures_util::StreamExt;
                 match stream.next().await {
                     Some(Ok(resp)) => {
+                        let mut content = String::new();
+                        let mut thinking = None;
+
                         if let Some(candidate) = resp.candidates.first() {
-                            if let Some(part) = candidate.content.parts.first() {
+                            for part in &candidate.content.parts {
                                 if let Some(text) = &part.text {
-                                    return Some((Ok(CompletionResponse {
-                                        content: text.clone(),
-                                        thinking: None,
-                                    }), stream));
+                                    if part.thought.unwrap_or(false) {
+                                        if thinking.is_none() {
+                                            thinking = Some(String::new());
+                                        }
+                                        if let Some(t) = &mut thinking {
+                                            t.push_str(text);
+                                        }
+                                    } else {
+                                        content.push_str(text);
+                                    }
                                 }
                             }
                         }
-                        Some((Ok(CompletionResponse {
-                            content: "".to_string(),
-                            thinking: None,
-                        }), stream))
+
+                        if !content.is_empty() || thinking.is_some() {
+                             return Some((
+                                Ok(CompletionResponse {
+                                    content,
+                                    thinking,
+                                }),
+                                stream,
+                            ));
+                        }
+
+                        Some((
+                            Ok(CompletionResponse {
+                                content: "".to_string(),
+                                thinking: None,
+                            }),
+                            stream,
+                        ))
                     }
                     Some(Err(e)) => Some((Err(e.to_string()), stream)),
                     None => None,
@@ -88,6 +114,7 @@ impl Completion for Gemini {
                 parts: vec![Part {
                     text: Some(m.content),
                     inline_data: None,
+                    thought: None,
                 }],
             })
             .collect();
@@ -106,14 +133,28 @@ impl Completion for Gemini {
             .map_err(|e| e.to_string())?;
 
         if let Some(candidate) = resp.candidates.first() {
-            if let Some(part) = candidate.content.parts.first() {
+            let mut content = String::new();
+            let mut thinking = None;
+
+            for part in &candidate.content.parts {
                 if let Some(text) = &part.text {
-                    return Ok(CompletionResponse {
-                        content: text.clone(),
-                        thinking: None,
-                    });
+                    if part.thought.unwrap_or(false) {
+                        if thinking.is_none() {
+                            thinking = Some(String::new());
+                        }
+                        if let Some(t) = &mut thinking {
+                            t.push_str(text);
+                        }
+                    } else {
+                        content.push_str(text);
+                    }
                 }
             }
+
+            return Ok(CompletionResponse {
+                content,
+                thinking,
+            });
         }
 
         Err("No content found".to_string())

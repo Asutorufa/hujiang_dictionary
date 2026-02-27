@@ -57,15 +57,23 @@ impl Completion for OpenAIResponses {
 
         let resp_json: ResponsesResponse = resp.json().await.map_err(|e| e.to_string())?;
 
+        let mut content = String::new();
+        let mut thinking = None;
+
         if let Some(output) = resp_json.output.first() {
-            if let Some(content) = output.content.first() {
-                Ok(CompletionResponse {
-                    content: content.text.clone(),
-                    thinking: None,
-                })
-            } else {
-                Err("No content found".to_string())
+            for c in &output.content {
+                if c.r#type == "reasoning" {
+                    if thinking.is_none() {
+                        thinking = Some(String::new());
+                    }
+                    if let Some(t) = &mut thinking {
+                        t.push_str(&c.text);
+                    }
+                } else {
+                    content.push_str(&c.text);
+                }
             }
+            Ok(CompletionResponse { content, thinking })
         } else {
             Err("No output found".to_string())
         }
@@ -111,11 +119,27 @@ impl Completion for OpenAIResponses {
                                 match serde_json::from_str::<ResponsesResponse>(data) {
                                     Ok(response) => {
                                         if let Some(output) = response.output.first() {
-                                            if let Some(content) = output.content.first() {
+                                            let mut content = String::new();
+                                            let mut thinking = None;
+
+                                            for c in &output.content {
+                                                if c.r#type == "reasoning" {
+                                                    if thinking.is_none() {
+                                                        thinking = Some(String::new());
+                                                    }
+                                                    if let Some(t) = &mut thinking {
+                                                        t.push_str(&c.text);
+                                                    }
+                                                } else {
+                                                    content.push_str(&c.text);
+                                                }
+                                            }
+
+                                            if !content.is_empty() || thinking.is_some() {
                                                 return Some((
                                                     Ok(CompletionResponse {
-                                                        content: content.text.clone(),
-                                                        thinking: None,
+                                                        content,
+                                                        thinking,
                                                     }),
                                                     (stream, buffer),
                                                 ));
@@ -144,11 +168,27 @@ impl Completion for OpenAIResponses {
                                         match serde_json::from_str::<ResponsesResponse>(data) {
                                             Ok(response) => {
                                                 if let Some(output) = response.output.first() {
-                                                    if let Some(content) = output.content.first() {
+                                                    let mut content = String::new();
+                                                    let mut thinking = None;
+
+                                                    for c in &output.content {
+                                                        if c.r#type == "reasoning" {
+                                                            if thinking.is_none() {
+                                                                thinking = Some(String::new());
+                                                            }
+                                                            if let Some(t) = &mut thinking {
+                                                                t.push_str(&c.text);
+                                                            }
+                                                        } else {
+                                                            content.push_str(&c.text);
+                                                        }
+                                                    }
+
+                                                    if !content.is_empty() || thinking.is_some() {
                                                         return Some((
                                                             Ok(CompletionResponse {
-                                                                content: content.text.clone(),
-                                                                thinking: None,
+                                                                content,
+                                                                thinking,
                                                             }),
                                                             (stream, buffer),
                                                         ));
@@ -156,7 +196,10 @@ impl Completion for OpenAIResponses {
                                                 }
                                             }
                                             Err(e) => {
-                                                return Some((Err(e.to_string()), (stream, buffer)));
+                                                return Some((
+                                                    Err(e.to_string()),
+                                                    (stream, buffer),
+                                                ));
                                             }
                                         }
                                     }

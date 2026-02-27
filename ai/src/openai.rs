@@ -148,7 +148,10 @@ impl OpenAI {
                                                 }
                                             }
                                             Err(e) => {
-                                                return Some((Err(e.to_string()), (stream, buffer)));
+                                                return Some((
+                                                    Err(e.to_string()),
+                                                    (stream, buffer),
+                                                ));
                                             }
                                         }
                                     }
