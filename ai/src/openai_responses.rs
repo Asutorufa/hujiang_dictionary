@@ -4,7 +4,7 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct OpenAIResponses {
     pub name: String,
     pub base_url: String,
@@ -12,6 +12,21 @@ pub struct OpenAIResponses {
     pub models: HashSet<String>,
     pub allow_all_models: Option<bool>,
     pub model: String,
+    pub client: Client,
+}
+
+impl Default for OpenAIResponses {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            base_url: Default::default(),
+            api_key: Default::default(),
+            models: Default::default(),
+            allow_all_models: Default::default(),
+            model: Default::default(),
+            client: Client::new(),
+        }
+    }
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -46,8 +61,8 @@ impl Completion for OpenAIResponses {
             stream: Some(false),
         };
 
-        let client = Client::new();
-        let resp = client
+        let resp = self
+            .client
             .post(format!("{}/responses", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&req)
@@ -88,8 +103,8 @@ impl Completion for OpenAIResponses {
             stream: Some(true),
         };
 
-        let client = Client::new();
-        let resp = client
+        let resp = self
+            .client
             .post(format!("{}/responses", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&req)
@@ -135,15 +150,16 @@ impl Completion for OpenAIResponses {
 
                                             if !content.is_empty() || thinking.is_some() {
                                                 return Some((
-                                                    Ok(CompletionResponse { content, thinking }),
+                                                    Ok(CompletionResponse {
+                                                        content,
+                                                        thinking,
+                                                    }),
                                                     (stream, buffer),
                                                 ));
                                             }
                                         }
                                     }
-                                    Err(e) => {
-                                        return Some((Err(Error::from(e)), (stream, buffer)));
-                                    }
+                                    Err(e) => return Some((Err(Error::from(e)), (stream, buffer))),
                                 }
                             }
                         }

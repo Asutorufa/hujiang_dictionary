@@ -3,19 +3,22 @@ use gemini::{Client, Content, GenerateContentRequest, Part};
 
 use crate::{Completion, CompletionResponse, Error, Message};
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Gemini {
-    pub api_key: String,
-    pub model: String,
+    client: Client,
 }
 
 impl Gemini {
+    pub fn new(api_key: String, model: String) -> Self {
+        Self {
+            client: Client::new(api_key, model),
+        }
+    }
+
     pub async fn create_completion_stream(
         self,
         messages: Vec<Message>,
     ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error> {
-        let client = Client::new(self.api_key.clone(), self.model.clone());
-
         let contents = messages
             .into_iter()
             .map(|m| Content {
@@ -40,9 +43,11 @@ impl Gemini {
             generation_config: None,
         };
 
-        // Use owned version if I added it, or ensure req is not borrowed.
-        // I added `stream_generate_content_owned`.
-        let stream = client
+        // Use owned version or standard version if client handles it.
+        // `gemini::Client::stream_generate_content_owned` consumes `self`.
+        // So we can use `self.client` which we own.
+        let stream = self
+            .client
             .stream_generate_content_owned(req)
             .await
             .map_err(|e| Error::Api(e.to_string()))?;
@@ -98,8 +103,6 @@ impl Gemini {
 
 impl Completion for Gemini {
     async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, Error> {
-        let client = Client::new(self.api_key.clone(), self.model.clone());
-
         let contents = messages
             .into_iter()
             .map(|m| Content {
@@ -124,7 +127,8 @@ impl Completion for Gemini {
             generation_config: None,
         };
 
-        let resp = client
+        let resp = self
+            .client
             .generate_content(&req)
             .await
             .map_err(|e| Error::Api(e.to_string()))?;
