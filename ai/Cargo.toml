@@ -12,6 +12,7 @@ log = { workspace = true }
 futures-util = "0.3"
 gemini = { path = "../gemini" }
 worker = { workspace = true, optional = true }
+bytes = "1.0"
 
 [dev-dependencies]
 tokio = { workspace = true }
