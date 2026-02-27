@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::{Completion, Message, CompletionResponse};
+use crate::{Completion, CompletionResponse, Message};
 use futures_util::Stream;
 use serde::{Deserialize, Serialize};
 
@@ -59,7 +59,7 @@ impl OpenAI {
         self,
         messages: Vec<Message>,
     ) -> Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String> {
-         let req = CompletionRequest {
+        let req = CompletionRequest {
             model: self.model.clone(),
             messages,
             stream: Some(true),
@@ -95,13 +95,14 @@ impl OpenAI {
                                 match serde_json::from_str::<StreamCompletionResponse>(data) {
                                     Ok(response) => {
                                         if let Some(choice) = response.choices.first() {
-                                            let content = choice.delta.content.clone().unwrap_or_default();
+                                            let content =
+                                                choice.delta.content.clone().unwrap_or_default();
                                             let thinking = choice.delta.reasoning_content.clone();
                                             if !content.is_empty() || thinking.is_some() {
-                                                return Some((Ok(CompletionResponse {
-                                                    content,
-                                                    thinking,
-                                                }), (stream, buffer)));
+                                                return Some((
+                                                    Ok(CompletionResponse { content, thinking }),
+                                                    (stream, buffer),
+                                                ));
                                             }
                                         }
                                     }
@@ -118,32 +119,43 @@ impl OpenAI {
                         }
                         Some(Err(e)) => return Some((Err(e.to_string()), (stream, buffer))),
                         None => {
-                             if !buffer.is_empty() {
+                            if !buffer.is_empty() {
                                 let message = buffer.clone();
                                 buffer.clear();
                                 if let Some(data) = message.strip_prefix("data: ") {
                                     let data = data.trim();
                                     if !data.is_empty() && data != "[DONE]" {
-                                        match serde_json::from_str::<StreamCompletionResponse>(data) {
+                                        match serde_json::from_str::<StreamCompletionResponse>(data)
+                                        {
                                             Ok(response) => {
                                                 if let Some(choice) = response.choices.first() {
-                                                     let content = choice.delta.content.clone().unwrap_or_default();
-                                                    let thinking = choice.delta.reasoning_content.clone();
+                                                    let content = choice
+                                                        .delta
+                                                        .content
+                                                        .clone()
+                                                        .unwrap_or_default();
+                                                    let thinking =
+                                                        choice.delta.reasoning_content.clone();
                                                     if !content.is_empty() || thinking.is_some() {
-                                                        return Some((Ok(CompletionResponse {
-                                                            content,
-                                                            thinking,
-                                                        }), (stream, buffer)));
+                                                        return Some((
+                                                            Ok(CompletionResponse {
+                                                                content,
+                                                                thinking,
+                                                            }),
+                                                            (stream, buffer),
+                                                        ));
                                                     }
                                                 }
                                             }
-                                            Err(e) => return Some((Err(e.to_string()), (stream, buffer))),
+                                            Err(e) => {
+                                                return Some((Err(e.to_string()), (stream, buffer)));
+                                            }
                                         }
                                     }
                                 }
                             }
                             return None;
-                        },
+                        }
                     }
                 }
             },

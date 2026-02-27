@@ -1,8 +1,8 @@
+use crate::{Completion, CompletionResponse, Message};
 use futures_util::Stream;
-use std::collections::HashSet;
-use crate::{Completion, Message, CompletionResponse};
-use serde::{Deserialize, Serialize};
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 #[derive(Clone, Default)]
 pub struct OpenAIResponses {
@@ -112,10 +112,13 @@ impl Completion for OpenAIResponses {
                                     Ok(response) => {
                                         if let Some(output) = response.output.first() {
                                             if let Some(content) = output.content.first() {
-                                                return Some((Ok(CompletionResponse {
-                                                    content: content.text.clone(),
-                                                    thinking: None,
-                                                }), (stream, buffer)));
+                                                return Some((
+                                                    Ok(CompletionResponse {
+                                                        content: content.text.clone(),
+                                                        thinking: None,
+                                                    }),
+                                                    (stream, buffer),
+                                                ));
                                             }
                                         }
                                     }
@@ -142,20 +145,25 @@ impl Completion for OpenAIResponses {
                                             Ok(response) => {
                                                 if let Some(output) = response.output.first() {
                                                     if let Some(content) = output.content.first() {
-                                                        return Some((Ok(CompletionResponse {
-                                                            content: content.text.clone(),
-                                                            thinking: None,
-                                                        }), (stream, buffer)));
+                                                        return Some((
+                                                            Ok(CompletionResponse {
+                                                                content: content.text.clone(),
+                                                                thinking: None,
+                                                            }),
+                                                            (stream, buffer),
+                                                        ));
                                                     }
                                                 }
                                             }
-                                            Err(e) => return Some((Err(e.to_string()), (stream, buffer))),
+                                            Err(e) => {
+                                                return Some((Err(e.to_string()), (stream, buffer)));
+                                            }
                                         }
                                     }
                                 }
                             }
                             return None;
-                        },
+                        }
                     }
                 }
             },

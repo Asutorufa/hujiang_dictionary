@@ -1,5 +1,5 @@
 use futures_util::Stream;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::future::Future;
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
@@ -24,5 +24,7 @@ pub trait Completion {
     fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> impl Future<Output = Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String>> + Send;
+    ) -> impl Future<
+        Output = Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String>,
+    > + Send;
 }

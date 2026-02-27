@@ -1,6 +1,6 @@
 use futures_util::Stream;
 
-use crate::{Completion, Message, CompletionResponse, openai};
+use crate::{Completion, CompletionResponse, Message, openai};
 
 #[derive(Clone, Default)]
 pub struct WorkersAI {

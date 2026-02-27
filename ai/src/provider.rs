@@ -1,7 +1,7 @@
 use futures_util::Stream;
 use std::pin::Pin;
 
-use crate::{Completion, Message, CompletionResponse, openai, workers, gemini, openai_responses};
+use crate::{Completion, CompletionResponse, Message, gemini, openai, openai_responses, workers};
 
 #[derive(Clone)]
 pub enum Provider {
@@ -28,19 +28,31 @@ impl Completion for Provider {
         match self {
             Provider::OpenAI(provider) => {
                 let stream = provider.completion_stream(messages).await?;
-                Ok(Box::pin(stream) as Pin<Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>>)
+                Ok(Box::pin(stream)
+                    as Pin<
+                        Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>,
+                    >)
             }
             Provider::WorkersAI(provider) => {
                 let stream = provider.completion_stream(messages).await?;
-                Ok(Box::pin(stream) as Pin<Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>>)
+                Ok(Box::pin(stream)
+                    as Pin<
+                        Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>,
+                    >)
             }
             Provider::Gemini(provider) => {
                 let stream = provider.completion_stream(messages).await?;
-                Ok(Box::pin(stream) as Pin<Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>>)
+                Ok(Box::pin(stream)
+                    as Pin<
+                        Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>,
+                    >)
             }
             Provider::OpenAIResponses(provider) => {
                 let stream = provider.completion_stream(messages).await?;
-                Ok(Box::pin(stream) as Pin<Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>>)
+                Ok(Box::pin(stream)
+                    as Pin<
+                        Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>,
+                    >)
             }
         }
     }
