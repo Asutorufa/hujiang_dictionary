@@ -7,9 +7,7 @@ struct StreamCompletionResponse {
     response: Option<String>,
 }
 
-pub fn parse_stream<S, E>(
-    stream: S,
-) -> impl Stream<Item = Result<CompletionResponse, Error>> + Send
+pub fn parse_stream<S, E>(stream: S) -> impl Stream<Item = Result<CompletionResponse, Error>> + Send
 where
     S: Stream<Item = Result<bytes::Bytes, E>> + Send + 'static + Unpin,
     E: std::error::Error + Send + Sync + 'static,
@@ -24,7 +22,9 @@ where
                     Some(Ok(chunk)) => {
                         buffer.push_str(&String::from_utf8_lossy(&chunk));
                     }
-                    Some(Err(e)) => return Some((Err(Error::Internal(e.to_string())), (stream, buffer))),
+                    Some(Err(e)) => {
+                        return Some((Err(Error::Internal(e.to_string())), (stream, buffer)));
+                    }
                     None => {
                         if !buffer.is_empty() {
                             let message = buffer.clone();
@@ -45,10 +45,7 @@ where
                                             }
                                         }
                                         Err(e) => {
-                                            return Some((
-                                                Err(Error::from(e)),
-                                                (stream, buffer),
-                                            ));
+                                            return Some((Err(Error::from(e)), (stream, buffer)));
                                         }
                                     }
                                 }

@@ -53,7 +53,9 @@ impl Completion for WorkersAI {
             });
         }
 
-        Err(Error::Internal("WorkersAI only supported with worker feature and binding".to_string()))
+        Err(Error::Internal(
+            "WorkersAI only supported with worker feature and binding".to_string(),
+        ))
     }
 
     async fn completion_stream(
@@ -75,21 +77,23 @@ impl Completion for WorkersAI {
             let byte_stream = stream_result.stream();
 
             use futures_util::StreamExt;
-            let mapped_stream = byte_stream.map(|item| {
-                item.map(bytes::Bytes::from)
-            });
+            let mapped_stream = byte_stream.map(|item| item.map(bytes::Bytes::from));
 
             return Ok(crate::sse::parse_stream(Box::pin(mapped_stream)));
         }
 
         #[cfg(feature = "worker")]
-        return Err(Error::Internal("WorkersAI only supported with worker feature and binding".to_string()));
+        return Err(Error::Internal(
+            "WorkersAI only supported with worker feature and binding".to_string(),
+        ));
 
         #[cfg(not(feature = "worker"))]
         {
             // Dummy usage to suppress unused variable warning if messages is used only in feature
             let _ = messages;
-            Err::<futures_util::stream::Empty<_>, _>(Error::Internal("WorkersAI only supported with worker feature and binding".to_string()))
+            Err::<futures_util::stream::Empty<_>, _>(Error::Internal(
+                "WorkersAI only supported with worker feature and binding".to_string(),
+            ))
         }
     }
 }

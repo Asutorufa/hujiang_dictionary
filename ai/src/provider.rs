@@ -1,7 +1,9 @@
 use futures_util::Stream;
 use std::pin::Pin;
 
-use crate::{Completion, CompletionResponse, Error, Message, gemini, openai, openai_responses, workers};
+use crate::{
+    Completion, CompletionResponse, Error, Message, gemini, openai, openai_responses, workers,
+};
 
 #[derive(Clone)]
 pub enum Provider {

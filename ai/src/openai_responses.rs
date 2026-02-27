@@ -150,10 +150,7 @@ impl Completion for OpenAIResponses {
 
                                             if !content.is_empty() || thinking.is_some() {
                                                 return Some((
-                                                    Ok(CompletionResponse {
-                                                        content,
-                                                        thinking,
-                                                    }),
+                                                    Ok(CompletionResponse { content, thinking }),
                                                     (stream, buffer),
                                                 ));
                                             }
