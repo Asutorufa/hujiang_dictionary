@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::{Completion, Message};
+use crate::{Completion, Message, CompletionResponse};
 use futures_util::Stream;
 use serde::{Deserialize, Serialize};
 
@@ -23,13 +23,19 @@ struct CompletionRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct CompletionResponse {
+struct APICompletionResponse {
     pub choices: Vec<Choice>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Choice {
-    pub message: Message,
+    pub message: APICompletionMessage,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct APICompletionMessage {
+    pub content: String,
+    pub reasoning_content: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -45,39 +51,15 @@ struct StreamChoice {
 #[derive(Debug, Serialize, Deserialize)]
 struct StreamMessage {
     pub content: Option<String>,
+    pub reasoning_content: Option<String>,
 }
 
-impl Completion for OpenAI {
-    async fn completion(&self, messages: Vec<Message>) -> Result<String, String> {
-        let req = CompletionRequest {
-            model: self.model.clone(),
-            messages,
-            stream: Some(false),
-        };
-
-        let client = reqwest::Client::new();
-        let resp = client
-            .post(format!("{}/chat/completions", self.base_url))
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .json(&req)
-            .send()
-            .await
-            .map_err(|e| e.to_string())?;
-
-        let resp_json: CompletionResponse = resp.json().await.map_err(|e| e.to_string())?;
-
-        if let Some(choice) = resp_json.choices.first() {
-            Ok(choice.message.content.clone())
-        } else {
-            Err("No choices found".to_string())
-        }
-    }
-
-    async fn completion_stream(
-        &self,
+impl OpenAI {
+    pub async fn create_completion_stream(
+        self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<String, String>> + Send, String> {
-        let req = CompletionRequest {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String> {
+         let req = CompletionRequest {
             model: self.model.clone(),
             messages,
             stream: Some(true),
@@ -113,8 +95,13 @@ impl Completion for OpenAI {
                                 match serde_json::from_str::<StreamCompletionResponse>(data) {
                                     Ok(response) => {
                                         if let Some(choice) = response.choices.first() {
-                                            if let Some(content) = &choice.delta.content {
-                                                return Some((Ok(content.clone()), (stream, buffer)));
+                                            let content = choice.delta.content.clone().unwrap_or_default();
+                                            let thinking = choice.delta.reasoning_content.clone();
+                                            if !content.is_empty() || thinking.is_some() {
+                                                return Some((Ok(CompletionResponse {
+                                                    content,
+                                                    thinking,
+                                                }), (stream, buffer)));
                                             }
                                         }
                                     }
@@ -140,8 +127,13 @@ impl Completion for OpenAI {
                                         match serde_json::from_str::<StreamCompletionResponse>(data) {
                                             Ok(response) => {
                                                 if let Some(choice) = response.choices.first() {
-                                                    if let Some(content) = &choice.delta.content {
-                                                        return Some((Ok(content.clone()), (stream, buffer)));
+                                                     let content = choice.delta.content.clone().unwrap_or_default();
+                                                    let thinking = choice.delta.reasoning_content.clone();
+                                                    if !content.is_empty() || thinking.is_some() {
+                                                        return Some((Ok(CompletionResponse {
+                                                            content,
+                                                            thinking,
+                                                        }), (stream, buffer)));
                                                     }
                                                 }
                                             }
@@ -156,5 +148,42 @@ impl Completion for OpenAI {
                 }
             },
         ))
+    }
+}
+
+impl Completion for OpenAI {
+    async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, String> {
+        let req = CompletionRequest {
+            model: self.model.clone(),
+            messages,
+            stream: Some(false),
+        };
+
+        let client = reqwest::Client::new();
+        let resp = client
+            .post(format!("{}/chat/completions", self.base_url))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&req)
+            .send()
+            .await
+            .map_err(|e| e.to_string())?;
+
+        let resp_json: APICompletionResponse = resp.json().await.map_err(|e| e.to_string())?;
+
+        if let Some(choice) = resp_json.choices.first() {
+            Ok(CompletionResponse {
+                content: choice.message.content.clone(),
+                thinking: choice.message.reasoning_content.clone(),
+            })
+        } else {
+            Err("No choices found".to_string())
+        }
+    }
+
+    async fn completion_stream(
+        &self,
+        messages: Vec<Message>,
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String> {
+        self.clone().create_completion_stream(messages).await
     }
 }

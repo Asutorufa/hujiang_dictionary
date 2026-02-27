@@ -1,6 +1,6 @@
 use futures_util::Stream;
 use std::collections::HashSet;
-use crate::{Completion, Message};
+use crate::{Completion, Message, CompletionResponse};
 use serde::{Deserialize, Serialize};
 use reqwest::Client;
 
@@ -39,7 +39,7 @@ struct ResponsesContent {
 }
 
 impl Completion for OpenAIResponses {
-    async fn completion(&self, messages: Vec<Message>) -> Result<String, String> {
+    async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, String> {
         let req = ResponsesRequest {
             model: self.model.clone(),
             input: messages,
@@ -59,7 +59,10 @@ impl Completion for OpenAIResponses {
 
         if let Some(output) = resp_json.output.first() {
             if let Some(content) = output.content.first() {
-                Ok(content.text.clone())
+                Ok(CompletionResponse {
+                    content: content.text.clone(),
+                    thinking: None,
+                })
             } else {
                 Err("No content found".to_string())
             }
@@ -71,7 +74,7 @@ impl Completion for OpenAIResponses {
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<String, String>> + Send, String> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String> {
         let req = ResponsesRequest {
             model: self.model.clone(),
             input: messages,
@@ -109,7 +112,10 @@ impl Completion for OpenAIResponses {
                                     Ok(response) => {
                                         if let Some(output) = response.output.first() {
                                             if let Some(content) = output.content.first() {
-                                                return Some((Ok(content.text.clone()), (stream, buffer)));
+                                                return Some((Ok(CompletionResponse {
+                                                    content: content.text.clone(),
+                                                    thinking: None,
+                                                }), (stream, buffer)));
                                             }
                                         }
                                     }
@@ -136,7 +142,10 @@ impl Completion for OpenAIResponses {
                                             Ok(response) => {
                                                 if let Some(output) = response.output.first() {
                                                     if let Some(content) = output.content.first() {
-                                                        return Some((Ok(content.text.clone()), (stream, buffer)));
+                                                        return Some((Ok(CompletionResponse {
+                                                            content: content.text.clone(),
+                                                            thinking: None,
+                                                        }), (stream, buffer)));
                                                     }
                                                 }
                                             }

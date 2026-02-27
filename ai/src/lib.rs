@@ -5,7 +5,7 @@ pub mod workers;
 pub mod openai_responses;
 pub mod provider;
 
-pub use completion::{Completion, Message};
+pub use completion::{Completion, Message, CompletionResponse};
 
 #[cfg(test)]
 pub mod tests;

@@ -8,14 +8,21 @@ pub struct Message {
     pub content: String,
 }
 
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct CompletionResponse {
+    pub content: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thinking: Option<String>,
+}
+
 pub trait Completion {
     fn completion(
         &self,
         messages: Vec<Message>,
-    ) -> impl Future<Output = Result<String, String>> + Send;
+    ) -> impl Future<Output = Result<CompletionResponse, String>> + Send;
 
     fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> impl Future<Output = Result<impl Stream<Item = Result<String, String>> + Send, String>> + Send;
+    ) -> impl Future<Output = Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String>> + Send;
 }
