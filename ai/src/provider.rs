@@ -13,6 +13,15 @@ pub enum Provider {
     OpenAIResponses(openai_responses::OpenAIResponses),
 }
 
+fn box_stream<S>(
+    stream: S,
+) -> Pin<Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>>
+where
+    S: Stream<Item = Result<CompletionResponse, Error>> + Send + 'static,
+{
+    Box::pin(stream)
+}
+
 impl Completion for Provider {
     async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, Error> {
         match self {
@@ -29,32 +38,16 @@ impl Completion for Provider {
     ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error> {
         match self {
             Provider::OpenAI(provider) => {
-                let stream = provider.completion_stream(messages).await?;
-                Ok(Box::pin(stream)
-                    as Pin<
-                        Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>,
-                    >)
+                Ok(box_stream(provider.completion_stream(messages).await?))
             }
             Provider::WorkersAI(provider) => {
-                let stream = provider.completion_stream(messages).await?;
-                Ok(Box::pin(stream)
-                    as Pin<
-                        Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>,
-                    >)
+                Ok(box_stream(provider.completion_stream(messages).await?))
             }
             Provider::Gemini(provider) => {
-                let stream = provider.completion_stream(messages).await?;
-                Ok(Box::pin(stream)
-                    as Pin<
-                        Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>,
-                    >)
+                Ok(box_stream(provider.completion_stream(messages).await?))
             }
             Provider::OpenAIResponses(provider) => {
-                let stream = provider.completion_stream(messages).await?;
-                Ok(Box::pin(stream)
-                    as Pin<
-                        Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>,
-                    >)
+                Ok(box_stream(provider.completion_stream(messages).await?))
             }
         }
     }
