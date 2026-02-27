@@ -11,7 +11,11 @@ reqwest = { workspace = true, features = ["stream"] }
 log = { workspace = true }
 futures-util = "0.3"
 gemini = { path = "../gemini" }
+worker = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
 env_logger = { workspace = true }
+
+[features]
+worker = ["dep:worker"]
