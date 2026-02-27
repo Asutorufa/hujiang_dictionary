@@ -1,7 +1,7 @@
 use futures_util::Stream;
 use std::pin::Pin;
 
-use crate::{Completion, CompletionResponse, Message, gemini, openai, openai_responses, workers};
+use crate::{Completion, CompletionResponse, Error, Message, gemini, openai, openai_responses, workers};
 
 #[derive(Clone)]
 pub enum Provider {
@@ -12,7 +12,7 @@ pub enum Provider {
 }
 
 impl Completion for Provider {
-    async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, String> {
+    async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, Error> {
         match self {
             Provider::OpenAI(provider) => provider.completion(messages).await,
             Provider::WorkersAI(provider) => provider.completion(messages).await,
@@ -24,34 +24,34 @@ impl Completion for Provider {
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error> {
         match self {
             Provider::OpenAI(provider) => {
                 let stream = provider.completion_stream(messages).await?;
                 Ok(Box::pin(stream)
                     as Pin<
-                        Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>,
+                        Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>,
                     >)
             }
             Provider::WorkersAI(provider) => {
                 let stream = provider.completion_stream(messages).await?;
                 Ok(Box::pin(stream)
                     as Pin<
-                        Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>,
+                        Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>,
                     >)
             }
             Provider::Gemini(provider) => {
                 let stream = provider.completion_stream(messages).await?;
                 Ok(Box::pin(stream)
                     as Pin<
-                        Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>,
+                        Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>,
                     >)
             }
             Provider::OpenAIResponses(provider) => {
                 let stream = provider.completion_stream(messages).await?;
                 Ok(Box::pin(stream)
                     as Pin<
-                        Box<dyn Stream<Item = Result<CompletionResponse, String>> + Send>,
+                        Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>,
                     >)
             }
         }

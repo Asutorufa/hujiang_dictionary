@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::{Completion, CompletionResponse, Message};
+use crate::{Completion, CompletionResponse, Error, Message};
 use futures_util::Stream;
 use serde::{Deserialize, Serialize};
 
@@ -58,7 +58,7 @@ impl OpenAI {
     pub async fn create_completion_stream(
         self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error> {
         let req = CompletionRequest {
             model: self.model.clone(),
             messages,
@@ -71,8 +71,7 @@ impl OpenAI {
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&req)
             .send()
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         let stream = resp.bytes_stream();
 
@@ -106,7 +105,9 @@ impl OpenAI {
                                             }
                                         }
                                     }
-                                    Err(e) => return Some((Err(e.to_string()), (stream, buffer))),
+                                    Err(e) => {
+                                        return Some((Err(Error::from(e)), (stream, buffer)));
+                                    }
                                 }
                             }
                         }
@@ -117,7 +118,7 @@ impl OpenAI {
                         Some(Ok(chunk)) => {
                             buffer.push_str(&String::from_utf8_lossy(&chunk));
                         }
-                        Some(Err(e)) => return Some((Err(e.to_string()), (stream, buffer))),
+                        Some(Err(e)) => return Some((Err(Error::from(e)), (stream, buffer))),
                         None => {
                             if !buffer.is_empty() {
                                 let message = buffer.clone();
@@ -149,7 +150,7 @@ impl OpenAI {
                                             }
                                             Err(e) => {
                                                 return Some((
-                                                    Err(e.to_string()),
+                                                    Err(Error::from(e)),
                                                     (stream, buffer),
                                                 ));
                                             }
@@ -167,7 +168,7 @@ impl OpenAI {
 }
 
 impl Completion for OpenAI {
-    async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, String> {
+    async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, Error> {
         let req = CompletionRequest {
             model: self.model.clone(),
             messages,
@@ -180,10 +181,9 @@ impl Completion for OpenAI {
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&req)
             .send()
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
-        let resp_json: APICompletionResponse = resp.json().await.map_err(|e| e.to_string())?;
+        let resp_json: APICompletionResponse = resp.json().await?;
 
         if let Some(choice) = resp_json.choices.first() {
             Ok(CompletionResponse {
@@ -191,14 +191,14 @@ impl Completion for OpenAI {
                 thinking: choice.message.reasoning_content.clone(),
             })
         } else {
-            Err("No choices found".to_string())
+            Err(Error::Api("No choices found".to_string()))
         }
     }
 
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error> {
         self.clone().create_completion_stream(messages).await
     }
 }

@@ -1,7 +1,7 @@
 use futures_util::Stream;
 use gemini::{Client, Content, GenerateContentRequest, Part};
 
-use crate::{Completion, CompletionResponse, Message};
+use crate::{Completion, CompletionResponse, Error, Message};
 
 #[derive(Clone, Default)]
 pub struct Gemini {
@@ -13,7 +13,7 @@ impl Gemini {
     pub async fn create_completion_stream(
         self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error> {
         let client = Client::new(self.api_key.clone(), self.model.clone());
 
         let contents = messages
@@ -45,7 +45,7 @@ impl Gemini {
         let stream = client
             .stream_generate_content_owned(req)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| Error::Api(e.to_string()))?;
 
         Ok(futures_util::stream::unfold(
             stream,
@@ -74,11 +74,8 @@ impl Gemini {
                         }
 
                         if !content.is_empty() || thinking.is_some() {
-                             return Some((
-                                Ok(CompletionResponse {
-                                    content,
-                                    thinking,
-                                }),
+                            return Some((
+                                Ok(CompletionResponse { content, thinking }),
                                 stream,
                             ));
                         }
@@ -91,7 +88,7 @@ impl Gemini {
                             stream,
                         ))
                     }
-                    Some(Err(e)) => Some((Err(e.to_string()), stream)),
+                    Some(Err(e)) => Some((Err(Error::Api(e.to_string())), stream)),
                     None => None,
                 }
             },
@@ -100,7 +97,7 @@ impl Gemini {
 }
 
 impl Completion for Gemini {
-    async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, String> {
+    async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, Error> {
         let client = Client::new(self.api_key.clone(), self.model.clone());
 
         let contents = messages
@@ -130,7 +127,7 @@ impl Completion for Gemini {
         let resp = client
             .generate_content(&req)
             .await
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| Error::Api(e.to_string()))?;
 
         if let Some(candidate) = resp.candidates.first() {
             let mut content = String::new();
@@ -151,19 +148,16 @@ impl Completion for Gemini {
                 }
             }
 
-            return Ok(CompletionResponse {
-                content,
-                thinking,
-            });
+            return Ok(CompletionResponse { content, thinking });
         }
 
-        Err("No content found".to_string())
+        Err(Error::Api("No content found".to_string()))
     }
 
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error> {
         self.clone().create_completion_stream(messages).await
     }
 }

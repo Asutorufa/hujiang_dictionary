@@ -1,4 +1,4 @@
-use crate::{Completion, CompletionResponse, Message};
+use crate::{Completion, CompletionResponse, Error, Message};
 use futures_util::Stream;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -39,7 +39,7 @@ struct ResponsesContent {
 }
 
 impl Completion for OpenAIResponses {
-    async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, String> {
+    async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, Error> {
         let req = ResponsesRequest {
             model: self.model.clone(),
             input: messages,
@@ -52,10 +52,9 @@ impl Completion for OpenAIResponses {
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&req)
             .send()
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
-        let resp_json: ResponsesResponse = resp.json().await.map_err(|e| e.to_string())?;
+        let resp_json: ResponsesResponse = resp.json().await?;
 
         let mut content = String::new();
         let mut thinking = None;
@@ -75,14 +74,14 @@ impl Completion for OpenAIResponses {
             }
             Ok(CompletionResponse { content, thinking })
         } else {
-            Err("No output found".to_string())
+            Err(Error::Api("No output found".to_string()))
         }
     }
 
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error> {
         let req = ResponsesRequest {
             model: self.model.clone(),
             input: messages,
@@ -95,8 +94,7 @@ impl Completion for OpenAIResponses {
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&req)
             .send()
-            .await
-            .map_err(|e| e.to_string())?;
+            .await?;
 
         let stream = resp.bytes_stream();
 
@@ -137,16 +135,15 @@ impl Completion for OpenAIResponses {
 
                                             if !content.is_empty() || thinking.is_some() {
                                                 return Some((
-                                                    Ok(CompletionResponse {
-                                                        content,
-                                                        thinking,
-                                                    }),
+                                                    Ok(CompletionResponse { content, thinking }),
                                                     (stream, buffer),
                                                 ));
                                             }
                                         }
                                     }
-                                    Err(e) => return Some((Err(e.to_string()), (stream, buffer))),
+                                    Err(e) => {
+                                        return Some((Err(Error::from(e)), (stream, buffer)));
+                                    }
                                 }
                             }
                         }
@@ -157,7 +154,7 @@ impl Completion for OpenAIResponses {
                         Some(Ok(chunk)) => {
                             buffer.push_str(&String::from_utf8_lossy(&chunk));
                         }
-                        Some(Err(e)) => return Some((Err(e.to_string()), (stream, buffer))),
+                        Some(Err(e)) => return Some((Err(Error::from(e)), (stream, buffer))),
                         None => {
                             if !buffer.is_empty() {
                                 let message = buffer.clone();
@@ -197,7 +194,7 @@ impl Completion for OpenAIResponses {
                                             }
                                             Err(e) => {
                                                 return Some((
-                                                    Err(e.to_string()),
+                                                    Err(Error::from(e)),
                                                     (stream, buffer),
                                                 ));
                                             }

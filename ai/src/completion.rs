@@ -2,6 +2,8 @@ use futures_util::Stream;
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 
+use crate::Error;
+
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
     pub role: String,
@@ -19,12 +21,12 @@ pub trait Completion {
     fn completion(
         &self,
         messages: Vec<Message>,
-    ) -> impl Future<Output = Result<CompletionResponse, String>> + Send;
+    ) -> impl Future<Output = Result<CompletionResponse, Error>> + Send;
 
     fn completion_stream(
         &self,
         messages: Vec<Message>,
     ) -> impl Future<
-        Output = Result<impl Stream<Item = Result<CompletionResponse, String>> + Send, String>,
+        Output = Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error>,
     > + Send;
 }
