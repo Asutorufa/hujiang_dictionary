@@ -118,7 +118,10 @@ where
                     self.buffer.push_str(&String::from_utf8_lossy(&chunk));
                     continue;
                 }
-                Poll::Ready(Some(Err(e))) => return Poll::Ready(Some(Err(Error::Http(e)))),
+                Poll::Ready(Some(Err(e))) => {
+                    log::error!("HTTP error in SSE stream: {}", e);
+                    return Poll::Ready(Some(Err(Error::Http(e))));
+                }
                 Poll::Ready(None) => {
                     if !self.buffer.is_empty() {
                         let message = self.buffer.clone();
