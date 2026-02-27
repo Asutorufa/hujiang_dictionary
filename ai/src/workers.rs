@@ -5,16 +5,11 @@ use std::sync::Arc;
 
 use crate::{Completion, CompletionResponse, Error, Message};
 
-#[cfg(not(feature = "worker"))]
-use crate::openai;
-
 #[cfg(feature = "worker")]
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Default)]
 pub struct WorkersAI {
-    pub account_id: String,
-    pub api_token: String,
     pub model: String,
     #[cfg(feature = "worker")]
     pub binding: Option<Arc<worker::Ai>>,
@@ -40,11 +35,11 @@ struct StreamResponse {
 }
 
 impl Completion for WorkersAI {
-    async fn completion(&self, messages: Vec<Message>) -> Result<CompletionResponse, Error> {
+    async fn completion(&self, _messages: Vec<Message>) -> Result<CompletionResponse, Error> {
         #[cfg(feature = "worker")]
         if let Some(ai) = &self.binding {
             let req = AiRequest {
-                messages,
+                messages: _messages,
                 stream: false,
             };
             let res: AiResponse = ai
@@ -58,23 +53,7 @@ impl Completion for WorkersAI {
             });
         }
 
-        #[cfg(not(feature = "worker"))]
-        {
-            let client = openai::OpenAI {
-                base_url: format!(
-                    "https://api.cloudflare.com/client/v4/accounts/{}/ai/v1",
-                    self.account_id
-                ),
-                api_key: self.api_token.clone(),
-                model: self.model.clone(),
-                ..Default::default()
-            };
-
-            return client.completion(messages).await;
-        }
-
-        #[cfg(feature = "worker")]
-        Err(Error::Internal("No binding available and REST fallback disabled for worker feature".to_string()))
+        Err(Error::Internal("WorkersAI only supported with worker feature and binding".to_string()))
     }
 
     async fn completion_stream(
@@ -95,36 +74,22 @@ impl Completion for WorkersAI {
 
             let byte_stream = stream_result.stream();
 
-            // Map worker::Error to something parse_stream accepts (or update parse_stream to be generic)
-            // Updated parse_stream to be generic over Error.
             use futures_util::StreamExt;
             let mapped_stream = byte_stream.map(|item| {
                 item.map(bytes::Bytes::from)
             });
 
-            // Ensure Unpin. worker::Stream's stream likely is Unpin or we box/pin it.
-            // map returns Map which is Unpin if inner is Unpin.
-            // If compilation fails on Unpin, we box it.
-
             return Ok(crate::sse::parse_stream(Box::pin(mapped_stream)));
         }
 
+        #[cfg(feature = "worker")]
+        return Err(Error::Internal("WorkersAI only supported with worker feature and binding".to_string()));
+
         #[cfg(not(feature = "worker"))]
         {
-            let client = openai::OpenAI {
-                base_url: format!(
-                    "https://api.cloudflare.com/client/v4/accounts/{}/ai/v1",
-                    self.account_id
-                ),
-                api_key: self.api_token.clone(),
-                model: self.model.clone(),
-                ..Default::default()
-            };
-
-            return client.create_completion_stream(messages).await;
+            // Dummy usage to suppress unused variable warning if messages is used only in feature
+            let _ = messages;
+            Err::<futures_util::stream::Empty<_>, _>(Error::Internal("WorkersAI only supported with worker feature and binding".to_string()))
         }
-
-        #[cfg(feature = "worker")]
-        Err(Error::Internal("No binding available and REST fallback disabled for worker feature".to_string()))
     }
 }
