@@ -18,6 +18,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ai"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "env_logger",
+ "futures-util",
+ "gemini",
+ "log",
+ "reqwest 0.13.1",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

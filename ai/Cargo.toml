@@ -1,0 +1,17 @@
+[package]
+name = "ai"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+base64 = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true, features = ["stream"] }
+log = { workspace = true }
+futures-util = "0.3"
+gemini = { path = "../gemini" }
+
+[dev-dependencies]
+tokio = { workspace = true }
+env_logger = { workspace = true }
