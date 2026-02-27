@@ -168,13 +168,13 @@ jobs:
 
           - os-name: Windows-x86_64
             runs-on: ubuntu-latest
-            target: x86_64-pc-windows-msvc
-            use-cross: false
+            target: x86_64-pc-windows-gnu
+            use-cross: true
 
           - os-name: Windows-aarch64
             runs-on: ubuntu-latest
-            target: aarch64-pc-windows-msvc
-            use-cross: false
+            target: aarch64-pc-windows-gnullvm
+            use-cross: true
 
           - os-name: macOS-x86_64
             runs-on: macOS-latest
@@ -240,16 +240,6 @@ jobs:
         if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross && contains(matrix.platform.target, 'linux')
         run: cargo install cargo-zigbuild
 
-      - name: Install cargo-xwin
-        if: contains(matrix.platform.target, 'windows')
-        run: cargo install cargo-xwin
-
-      - name: Install LLVM (for cargo-xwin)
-        if: contains(matrix.platform.target, 'windows')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y llvm lld
-
       - name: Cache Web
         id: cache-web
         uses: actions/cache@v5
@@ -258,19 +248,8 @@ jobs:
           key: cache-web-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Build binary (Zigbuild)
-        if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross && contains(matrix.platform.target, 'linux')
+        if: contains(matrix.platform.runs-on, 'ubuntu') && !matrix.platform.use-cross
         run: cargo zigbuild --target ${{ matrix.platform.target }} --locked --release
-
-      - name: Build binary (Windows/Xwin)
-        if: contains(matrix.platform.target, 'windows')
-        env:
-          AR_aarch64_pc_windows_msvc: llvm-lib
-          CC_aarch64_pc_windows_msvc: clang-cl
-          CXX_aarch64_pc_windows_msvc: clang-cl
-          AR_x86_64_pc_windows_msvc: llvm-lib
-          CC_x86_64_pc_windows_msvc: clang-cl
-          CXX_x86_64_pc_windows_msvc: clang-cl
-        run: cargo xwin build --target ${{ matrix.platform.target }} --locked --release
 
       - name: Build binary (Cross)
         if: contains(matrix.platform.runs-on, 'ubuntu') && matrix.platform.use-cross
