@@ -31,11 +31,13 @@ mod tests {
             }
         }"#;
 
-        let mock = server.mock("POST", "/chat/completions")
+        let mock = server
+            .mock("POST", "/chat/completions")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(mock_response)
-            .create_async().await;
+            .create_async()
+            .await;
 
         let openai = openai::OpenAI {
             name: "test".to_string(),
@@ -68,11 +70,13 @@ mod tests {
                              data: {\"choices\":[{\"delta\":{\"content\":\" there\"}}]}\n\n\
                              data: [DONE]\n\n";
 
-        let mock = server.mock("POST", "/chat/completions")
+        let mock = server
+            .mock("POST", "/chat/completions")
             .with_status(200)
             .with_header("content-type", "text/event-stream")
             .with_body(mock_response)
-            .create_async().await;
+            .create_async()
+            .await;
 
         let openai = openai::OpenAI {
             name: "test".to_string(),
@@ -111,11 +115,13 @@ mod tests {
     async fn test_openai_completion_error() {
         let mut server = Server::new_async().await;
 
-        let mock = server.mock("POST", "/chat/completions")
+        let mock = server
+            .mock("POST", "/chat/completions")
             .with_status(401)
             .with_header("content-type", "application/json")
             .with_body(r#"{"error": {"message": "Invalid API key"}}"#)
-            .create_async().await;
+            .create_async()
+            .await;
 
         let openai = openai::OpenAI {
             name: "test".to_string(),
@@ -135,7 +141,7 @@ mod tests {
         assert!(response.is_err());
 
         match response {
-            Err(crate::Error::Http(_)) => {}, // Expected
+            Err(crate::Error::Http(_)) => {} // Expected
             _ => panic!("Expected HTTP error"),
         }
 
