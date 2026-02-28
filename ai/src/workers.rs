@@ -61,12 +61,12 @@ impl Completion for WorkersAI {
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + 'static, Error> {
         #[cfg(feature = "worker")]
         {
             let _ = messages;
             return Err::<futures_util::stream::Empty<_>, _>(Error::Internal(
-                "completion_stream is not supported on wasm due to Send bounds issues".to_string(),
+                "completion_stream is not supported on wasm".to_string(),
             ));
         }
 

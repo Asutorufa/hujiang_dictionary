@@ -74,7 +74,7 @@ impl OpenAI {
     pub async fn create_completion_stream(
         self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + 'static, Error> {
         let req = CompletionRequest {
             model: self.model.clone(),
             messages,
@@ -214,7 +214,7 @@ impl Completion for OpenAI {
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + 'static, Error> {
         self.clone().create_completion_stream(messages).await
     }
 }

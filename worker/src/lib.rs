@@ -128,7 +128,7 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
                 hjcommon::route::UnifiedBody::Bytes(b) => Response::from_bytes(b)?,
                 hjcommon::route::UnifiedBody::Stream(s) => {
                     use futures_util::StreamExt;
-                    let stream = s.map(|res: Result<bytes::Bytes, Box<dyn std::error::Error + Send + Sync>>| {
+                    let stream = s.map(|res: Result<bytes::Bytes, Box<dyn std::error::Error>>| {
                         res.map(|b| b.to_vec()).map_err(|e| worker::Error::RustError(e.to_string()))
                     });
                     Response::from_stream(stream)?

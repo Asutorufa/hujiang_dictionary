@@ -18,7 +18,7 @@ impl Gemini {
     pub async fn create_completion_stream(
         self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + 'static, Error> {
         let contents = messages
             .into_iter()
             .map(|m| Content {
@@ -158,7 +158,7 @@ impl Completion for Gemini {
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + 'static, Error> {
         self.clone().create_completion_stream(messages).await
     }
 }

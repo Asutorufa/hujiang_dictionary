@@ -223,7 +223,7 @@ pub async fn explain_stream<'a>(
     provider: &hj_ai::provider::Provider,
     google_search_flag: bool,
     req: TranslateRequest<'a>,
-) -> Result<std::pin::Pin<Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error + Send + Sync>>> + Send>>, Error> {
+) -> Result<std::pin::Pin<Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>, Error> {
     if google_search_flag {
         info!("google search enabled, model: {}", req.model);
         google_search_req_stream(provider, req).await
@@ -235,7 +235,7 @@ pub async fn explain_stream<'a>(
 pub async fn translate_stream<'a>(
     provider: &hj_ai::provider::Provider,
     req: TranslateRequest<'a>,
-) -> Result<std::pin::Pin<Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error + Send + Sync>>> + Send>>, Error> {
+) -> Result<std::pin::Pin<Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>, Error> {
     let instruction = match req.instruction {
         Some(i) if !i.is_empty() => Some(i.to_string()),
         _ => req
@@ -269,7 +269,7 @@ pub async fn translate_stream<'a>(
     let mapped_stream = stream.map(|res| {
         match res {
             Ok(v) => Ok(bytes::Bytes::from(format!("data: {}\n\n", serde_json::to_string(&v).unwrap_or_default()))),
-            Err(e) => Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>),
+            Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
         }
     });
 
@@ -279,7 +279,7 @@ pub async fn translate_stream<'a>(
 pub async fn google_search_req_stream<'a>(
     provider: &hj_ai::provider::Provider,
     req: TranslateRequest<'a>,
-) -> Result<std::pin::Pin<Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error + Send + Sync>>> + Send>>, Error> {
+) -> Result<std::pin::Pin<Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>, Error> {
     let mut instruction = google_search(req.query).await?;
 
     if let Some(dst) = req.dst_lang {
@@ -306,7 +306,7 @@ pub async fn google_search_req_stream<'a>(
     let mapped_stream = stream.map(|res| {
         match res {
             Ok(v) => Ok(bytes::Bytes::from(format!("data: {}\n\n", serde_json::to_string(&v).unwrap_or_default()))),
-            Err(e) => Err(Box::new(e) as Box<dyn std::error::Error + Send + Sync>),
+            Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
         }
     });
 

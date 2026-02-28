@@ -96,7 +96,7 @@ impl Completion for OpenAIResponses {
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + 'static, Error> {
         let req = ResponsesRequest {
             model: self.model.clone(),
             input: messages,

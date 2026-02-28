@@ -623,11 +623,11 @@ use futures_util::Stream;
 
 pub enum UnifiedBody {
     Bytes(Vec<u8>),
-    Stream(Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error + Send + Sync>>> + Send>>),
+    Stream(Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>),
 }
 
 impl UnifiedResponse {
-    pub fn stream(stream: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error + Send + Sync>>> + Send>>) -> Self {
+    pub fn stream(stream: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>) -> Self {
         Self {
             status: 200,
             body: UnifiedBody::Stream(stream),

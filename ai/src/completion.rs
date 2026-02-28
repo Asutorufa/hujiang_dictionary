@@ -21,15 +21,15 @@ pub trait Completion {
     fn completion(
         &self,
         messages: Vec<Message>,
-    ) -> impl Future<Output = Result<CompletionResponse, Error>> + Send;
+    ) -> impl Future<Output = Result<CompletionResponse, Error>>;
 
     fn completion_stream(
         &self,
         messages: Vec<Message>,
     ) -> impl Future<
         Output = Result<
-            impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static,
+            impl Stream<Item = Result<CompletionResponse, Error>> + 'static,
             Error,
         >,
-    > + Send;
+    >;
 }
