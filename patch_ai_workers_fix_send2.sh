@@ -1,3 +1,5 @@
+#!/bin/bash
+cat << 'INNER_EOF' > ai/src/workers.rs
 use futures_util::Stream;
 
 #[cfg(feature = "worker")]
@@ -79,3 +81,4 @@ impl Completion for WorkersAI {
         }
     }
 }
+INNER_EOF

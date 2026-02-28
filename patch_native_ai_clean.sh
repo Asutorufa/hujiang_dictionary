@@ -1,3 +1,5 @@
+#!/bin/bash
+cat << 'INNER_EOF' > native/src/ai.rs
 use std::sync::Arc;
 
 use cloudflare::endpoints::ai::execute_model::{TranslationParams, TranslationResult};
@@ -76,3 +78,4 @@ impl Translator for Workers {
         Ok(r.result.translated_text)
     }
 }
+INNER_EOF

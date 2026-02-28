@@ -129,10 +129,17 @@ impl LambdaHandler {
                     headers.insert(k, v);
                 }
 
+                let body_str = match resp.body {
+                    hjcommon::route::UnifiedBody::Bytes(b) => String::from_utf8_lossy(&b).to_string(),
+                    hjcommon::route::UnifiedBody::Stream(_) => {
+                        return Err(lambda_runtime::Error::from("Streaming is not supported in this Lambda integration"));
+                    }
+                };
+
                 Ok(LocalLambdaFunctionUrlResponse {
                     status_code: resp.status as i64,
                     headers,
-                    body: Some(String::from_utf8_lossy(&resp.body).to_string()),
+                    body: Some(body_str),
                     is_base64_encoded: false,
                     cookies: vec![],
                 })

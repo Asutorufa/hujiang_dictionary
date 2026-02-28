@@ -22,3 +22,6 @@ hjdict = { path = "../dict" }
 tokio = { workspace = true }
 env_logger = { workspace = true }
 d1-orm = "0.1.1"
+futures-util = "0.3"
+bytes = "1.0"
+hj_ai = { path = "../ai" }

@@ -1,3 +1,7 @@
+#!/bin/bash
+sed -i 's/hjcommon::route::UnifiedBody::Bytes(b)/hjcommon::route::UnifiedBody::Bytes(b)/g' worker/src/lib.rs # dummy trigger
+git restore worker/src/lib.rs
+cat << 'INNER_EOF' > worker/src/lib.rs
 pub mod ai;
 pub mod consolelog;
 
@@ -157,3 +161,4 @@ async fn cron(_: ScheduledEvent, env: Env, _ctx: ScheduleContext) {
         error!("Error: {}", e);
     }
 }
+INNER_EOF

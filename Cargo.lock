@@ -18,24 +18,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ai"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "bytes",
- "env_logger",
- "futures-util",
- "gemini",
- "log",
- "mockito",
- "reqwest 0.13.1",
- "serde",
- "serde_json",
- "tokio",
- "worker",
-]
-
-[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -998,14 +980,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "hj_ai"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "env_logger",
+ "futures-util",
+ "gemini",
+ "log",
+ "mockito",
+ "reqwest 0.13.1",
+ "serde",
+ "serde_json",
+ "tokio",
+ "worker",
+]
+
+[[package]]
 name = "hjcommon"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "bytes",
  "chrono",
  "d1-orm",
  "env_logger",
  "frankenstein",
+ "futures-util",
+ "hj_ai",
  "hjdict",
  "jsonwebtoken",
  "log",
@@ -1042,6 +1045,7 @@ dependencies = [
  "cloudflare",
  "d1-orm",
  "frankenstein",
+ "hj_ai",
  "hjcommon",
  "hjdict",
  "log",
@@ -1064,11 +1068,14 @@ name = "hjworker"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "bytes",
  "cloudflare",
  "console_error_panic_hook",
  "d1-orm",
  "frankenstein",
+ "futures-util",
  "getrandom 0.2.17",
+ "hj_ai",
  "hjcommon",
  "js-sys",
  "log",

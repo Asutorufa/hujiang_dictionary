@@ -1,6 +1,6 @@
 use crate::ai::Models;
 use crate::d1::Queries;
-use crate::{ai::WorkersAI, opts::RunOpt};
+use crate::{ai::Translator, opts::RunOpt};
 use core::fmt;
 use d1_orm::DatabaseExecutor;
 use frankenstein::AsyncTelegramApi;
@@ -179,7 +179,7 @@ pub fn vec_string_markdown_escape(v: &Vec<String>) -> String {
     s
 }
 
-pub async fn handle<T: DatabaseExecutor, T2: WorkersAI>(
+pub async fn handle<T: DatabaseExecutor, T2: Translator>(
     opt: Arc<RunOpt<T, T2>>,
     update: frankenstein::updates::Update,
 ) -> Result<(), Error> {
@@ -272,18 +272,24 @@ pub fn parse_callback_query_command(
     }
 }
 
-pub async fn llm_answer<T: DatabaseExecutor, T2: WorkersAI>(
+pub async fn llm_answer<T: DatabaseExecutor, T2: Translator>(
     opt: Arc<RunOpt<T, T2>>,
     model: Models,
     v: String,
 ) -> (String, String) {
-    match opt
-        .workers_ai
-        .translate(model, true, v.as_ref(), None)
-        .await
-    {
-        Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
-        Ok(x) => (v, markdown_escape(x.to_string().as_str())),
+    if let Some(ai) = opt.workers_ai.as_ref() {
+        let req = crate::ai::TranslateRequest {
+            model: model.as_str(),
+            query: &v,
+            chars_limit: true,
+            ..Default::default()
+        };
+        match crate::ai::translate(ai, req).await {
+            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Ok(x) => (v, markdown_escape(x.content.as_str())),
+        }
+    } else {
+        (v, "workers_ai not available".to_string())
     }
 }
 
@@ -342,7 +348,7 @@ pub fn parse_command(
     }
 }
 
-pub async fn answer<T: DatabaseExecutor, T2: WorkersAI>(
+pub async fn answer<T: DatabaseExecutor, T2: Translator>(
     opt: Arc<RunOpt<T, T2>>,
     msg: Box<frankenstein::types::Message>,
     cmd: Command,
@@ -429,7 +435,7 @@ pub async fn answer<T: DatabaseExecutor, T2: WorkersAI>(
             }
         }
         Command::CFAI(from, to, text) => {
-            match opt.workers_ai.m2m100_1_2b(text.as_ref(), from, to).await {
+            match opt.translator.m2m100_1_2b(text.as_ref(), from, to).await {
                 Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
                 Ok(v) => (text, markdown_escape(v.as_str())),
             }
@@ -527,7 +533,7 @@ pub async fn answer<T: DatabaseExecutor, T2: WorkersAI>(
     Ok(())
 }
 
-pub async fn callback_query<T: DatabaseExecutor, T2: WorkersAI>(
+pub async fn callback_query<T: DatabaseExecutor, T2: Translator>(
     opt: Arc<RunOpt<T, T2>>,
     call_query: Box<frankenstein::types::CallbackQuery>,
     command: CallbackQueryCommand,
@@ -632,7 +638,7 @@ pub async fn callback_query<T: DatabaseExecutor, T2: WorkersAI>(
     Ok(())
 }
 
-pub async fn send_random_word<T: DatabaseExecutor, T2: WorkersAI>(
+pub async fn send_random_word<T: DatabaseExecutor, T2: Translator>(
     opt: Arc<RunOpt<T, T2>>,
 ) -> Result<(), frankenstein::Error> {
     let reply = match crate::d1::random_word(&opt.d1).await {

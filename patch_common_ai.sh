@@ -1,3 +1,5 @@
+#!/bin/bash
+cat << 'INNER_EOF' > common/src/ai.rs
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
 
@@ -379,3 +381,4 @@ pub fn providers_from_base64_string(env: String) -> HashMap<String, hj_ai::provi
     }
     llms
 }
+INNER_EOF
