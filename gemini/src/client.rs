@@ -79,6 +79,31 @@ impl Client {
             buffer: String::new(),
         })
     }
+
+    // Updated to take ownership of self and request
+    pub async fn stream_generate_content_owned(
+        self,
+        request: GenerateContentRequest,
+    ) -> Result<impl Stream<Item = Result<GenerateContentResponse, Error>>, Error> {
+        let mut url = Url::parse(&self.url("streamGenerateContent"))
+            .map_err(|e| Error::Api(e.to_string()))?;
+        url.query_pairs_mut()
+            .append_pair("key", &self.api_key)
+            .append_pair("alt", "sse");
+
+        let resp = self.http.post(url).json(&request).send().await?;
+
+        if !resp.status().is_success() {
+            let error_text = resp.text().await?;
+            return Err(Error::Api(error_text));
+        }
+
+        let stream = resp.bytes_stream();
+        Ok(SseStream {
+            inner: stream,
+            buffer: String::new(),
+        })
+    }
 }
 
 pub struct SseStream<S> {
