@@ -10,7 +10,7 @@ use std::sync::Arc;
 use subtle::ConstantTimeEq;
 
 use crate::{
-    ai::{self, Models, Translator},
+    ai::{self, Translator},
     d1::{Count, Error as D1Error, Queries, Word, list_word_query},
     opts::RunOpt,
 };
@@ -168,7 +168,6 @@ impl From<ai::Error> for Error {
         Self::Internal(value.to_string())
     }
 }
-
 
 pub struct UnifiedResponse {
     pub status: u16,
@@ -467,10 +466,10 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
     pub async fn custom_llms(&self) -> Result<Vec<u8>, Error> {
         let mut models = vec![];
 
-        if self.workers_ai.is_some() {
+        if let Some(workers_ai) = &self.workers_ai {
             models.push(CustomLLMResponse {
                 name: "workers-ai".to_string(),
-                models: self.workers_ai.as_ref().unwrap().models(),
+                models: workers_ai.models(),
             });
         }
 
@@ -504,9 +503,9 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                 query: &req.word,
                                 instruction: req.instruction().as_deref(),
                                 dst_lang: req.dst_lang.as_deref(),
-                                ..Default::default()
-                            }
-                        ).await?
+                            },
+                        )
+                        .await?,
                     ),
                     _ => Some(
                         crate::ai::explain(
@@ -520,9 +519,9 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                 query: &req.word,
                                 instruction: req.instruction().as_deref(),
                                 dst_lang: req.dst_lang.as_deref(),
-                                ..Default::default()
                             },
-                        ).await?
+                        )
+                        .await?,
                     ),
                 }
             }
@@ -582,7 +581,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                     .m2m100_1_2b(
                         &req.word,
                         req.src_lang,
-                        req.dst_lang.unwrap_or("en".to_string()),
+                        req.dst_lang.unwrap_or_else(|| "en".to_string()),
                     )
                     .await?
             }
@@ -618,16 +617,19 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
     }
 }
 
-use std::pin::Pin;
 use futures_util::Stream;
+use std::pin::Pin;
+
+pub type BoxedStream =
+    Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>;
 
 pub enum UnifiedBody {
     Bytes(Vec<u8>),
-    Stream(Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>),
+    Stream(BoxedStream),
 }
 
 impl UnifiedResponse {
-    pub fn stream(stream: Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>) -> Self {
+    pub fn stream(stream: BoxedStream) -> Self {
         Self {
             status: 200,
             body: UnifiedBody::Stream(stream),

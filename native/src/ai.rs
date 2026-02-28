@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use cloudflare::endpoints::ai::execute_model::{TranslationParams, TranslationResult};
 use hjcommon::ai::{Error, Translator};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};

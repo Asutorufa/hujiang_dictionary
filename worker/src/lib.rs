@@ -82,7 +82,16 @@ async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
         allow_users: config.allow_users.clone(),
         d1: env.d1("DB").expect("D1 binding not found"),
         translator: WasmAI::new(&env, "AI"),
-        workers_ai: if env.ai("AI").is_ok() { Some(hj_ai::provider::Provider::WorkersAI(hj_ai::workers::WorkersAI { model: "".to_string(), binding: Some(Arc::new(env.ai("AI").unwrap())) })) } else { None },
+        workers_ai: if env.ai("AI").is_ok() {
+            Some(hj_ai::provider::Provider::WorkersAI(
+                hj_ai::workers::WorkersAI {
+                    model: "".to_string(),
+                    binding: Some(Arc::new(env.ai("AI").unwrap())),
+                },
+            ))
+        } else {
+            None
+        },
         matainer: config.maintainer_id,
         bot: config.bot.clone(),
         custom_llms: CUSTOM_LLMS.get_or_init(providers_from_assets).clone(),
@@ -129,7 +138,8 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
                 hjcommon::route::UnifiedBody::Stream(s) => {
                     use futures_util::StreamExt;
                     let stream = s.map(|res: Result<bytes::Bytes, Box<dyn std::error::Error>>| {
-                        res.map(|b| b.to_vec()).map_err(|e| worker::Error::RustError(e.to_string()))
+                        res.map(|b| b.to_vec())
+                            .map_err(|e| worker::Error::RustError(e.to_string()))
                     });
                     Response::from_stream(stream)?
                 }

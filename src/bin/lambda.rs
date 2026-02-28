@@ -130,9 +130,13 @@ impl LambdaHandler {
                 }
 
                 let body_str = match resp.body {
-                    hjcommon::route::UnifiedBody::Bytes(b) => String::from_utf8_lossy(&b).to_string(),
+                    hjcommon::route::UnifiedBody::Bytes(b) => {
+                        String::from_utf8_lossy(&b).to_string()
+                    }
                     hjcommon::route::UnifiedBody::Stream(_) => {
-                        return Err(lambda_runtime::Error::from("Streaming is not supported in this Lambda integration"));
+                        return Err(lambda_runtime::Error::from(
+                            "Streaming is not supported in this Lambda integration",
+                        ));
                     }
                 };
 

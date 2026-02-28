@@ -95,8 +95,8 @@ where
 mod tests {
     use super::*;
     use bytes::Bytes;
-    use futures_util::stream;
     use futures_util::StreamExt;
+    use futures_util::stream;
 
     #[tokio::test]
     async fn test_parse_stream() {
@@ -141,9 +141,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_stream_error() {
-        let chunks = vec![
-            Ok::<_, std::io::Error>(Bytes::from("data: invalid_json\n\n")),
-        ];
+        let chunks = vec![Ok::<_, std::io::Error>(Bytes::from(
+            "data: invalid_json\n\n",
+        ))];
 
         let mock_stream = stream::iter(chunks);
         let parsed_stream = parse_stream(mock_stream);

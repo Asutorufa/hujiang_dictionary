@@ -55,7 +55,21 @@ pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error
         matainer: maintainer_id,
         d1,
         translator: workers.clone(),
-        workers_ai: if workers.account_id.is_empty() || workers.api_key.is_empty() { None } else { Some(hj_ai::provider::Provider::OpenAI(hj_ai::openai::OpenAI { name: "workers-ai".to_string(), base_url: format!("https://api.cloudflare.com/client/v4/accounts/{}/ai/v1", workers.account_id), api_key: workers.api_key.clone(), model: "".to_string(), models: std::collections::HashSet::new(), ..Default::default() })) },
+        workers_ai: if workers.account_id.is_empty() || workers.api_key.is_empty() {
+            None
+        } else {
+            Some(hj_ai::provider::Provider::OpenAI(hj_ai::openai::OpenAI {
+                name: "workers-ai".to_string(),
+                base_url: format!(
+                    "https://api.cloudflare.com/client/v4/accounts/{}/ai/v1",
+                    workers.account_id
+                ),
+                api_key: workers.api_key.clone(),
+                model: "".to_string(),
+                models: std::collections::HashSet::new(),
+                ..Default::default()
+            }))
+        },
         bot: client_reqwest::Bot::new(&telegram_bot_token),
         custom_llms: HashMap::new(),
         auth_secret,

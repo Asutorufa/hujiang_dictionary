@@ -45,7 +45,7 @@ pub trait Translator {
 async fn google_search(query: &str) -> Result<String, Error> {
     let mut q = query.to_string();
 
-    match hjdict::duckduckgo_search::get(&query).await {
+    match hjdict::duckduckgo_search::get(query).await {
         Ok(v) => {
             q.push_str("\n\n### DuckDuckGo Search Results:\n");
             for i in v {
@@ -75,6 +75,12 @@ pub enum Models {
     GPTOss20B,
 }
 
+impl std::fmt::Display for Models {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
 impl Models {
     pub fn as_str(&self) -> &str {
         match self {
@@ -85,15 +91,13 @@ impl Models {
         }
     }
 
-    pub fn to_string(&self) -> String {
-        self.as_str().to_string()
-    }
-
     pub fn from_model_name(model_name: &str) -> Option<Self> {
         match model_name {
             "@cf/google/gemma-3-12b-it" => Some(Models::Gemma3_12bIt),
             "@cf/meta/llama-3.1-8b-instruct" => Some(Models::Llama4Scout17B16EInstruct),
-            "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b" => Some(Models::DeepSeekR1DistillQwen32b),
+            "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b" => {
+                Some(Models::DeepSeekR1DistillQwen32b)
+            }
             "gpt-oss-20b" => Some(Models::GPTOss20B),
             _ => None,
         }
@@ -179,7 +183,10 @@ pub async fn translate<'a>(
     ];
 
     use hj_ai::Completion;
-    let res = provider.completion(messages).await.map_err(|e| Error(e.to_string()))?;
+    let res = provider
+        .completion(messages)
+        .await
+        .map_err(|e| Error(e.to_string()))?;
 
     Ok(Response {
         content: res.content,
@@ -211,7 +218,10 @@ pub async fn google_search_req<'a>(
     ];
 
     use hj_ai::Completion;
-    let res = provider.completion(messages).await.map_err(|e| Error(e.to_string()))?;
+    let res = provider
+        .completion(messages)
+        .await
+        .map_err(|e| Error(e.to_string()))?;
 
     Ok(Response {
         content: res.content,
@@ -223,7 +233,12 @@ pub async fn explain_stream<'a>(
     provider: &hj_ai::provider::Provider,
     google_search_flag: bool,
     req: TranslateRequest<'a>,
-) -> Result<std::pin::Pin<Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>, Error> {
+) -> Result<
+    std::pin::Pin<
+        Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>,
+    >,
+    Error,
+> {
     if google_search_flag {
         info!("google search enabled, model: {}", req.model);
         google_search_req_stream(provider, req).await
@@ -235,7 +250,12 @@ pub async fn explain_stream<'a>(
 pub async fn translate_stream<'a>(
     provider: &hj_ai::provider::Provider,
     req: TranslateRequest<'a>,
-) -> Result<std::pin::Pin<Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>, Error> {
+) -> Result<
+    std::pin::Pin<
+        Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>,
+    >,
+    Error,
+> {
     let instruction = match req.instruction {
         Some(i) if !i.is_empty() => Some(i.to_string()),
         _ => req
@@ -263,14 +283,18 @@ pub async fn translate_stream<'a>(
     ];
 
     use hj_ai::Completion;
-    let stream = provider.completion_stream(messages).await.map_err(|e| Error(e.to_string()))?;
+    let stream = provider
+        .completion_stream(messages)
+        .await
+        .map_err(|e| Error(e.to_string()))?;
 
     use futures_util::StreamExt;
-    let mapped_stream = stream.map(|res| {
-        match res {
-            Ok(v) => Ok(bytes::Bytes::from(format!("data: {}\n\n", serde_json::to_string(&v).unwrap_or_default()))),
-            Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
-        }
+    let mapped_stream = stream.map(|res| match res {
+        Ok(v) => Ok(bytes::Bytes::from(format!(
+            "data: {}\n\n",
+            serde_json::to_string(&v).unwrap_or_default()
+        ))),
+        Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
     });
 
     Ok(Box::pin(mapped_stream))
@@ -279,7 +303,12 @@ pub async fn translate_stream<'a>(
 pub async fn google_search_req_stream<'a>(
     provider: &hj_ai::provider::Provider,
     req: TranslateRequest<'a>,
-) -> Result<std::pin::Pin<Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>, Error> {
+) -> Result<
+    std::pin::Pin<
+        Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>,
+    >,
+    Error,
+> {
     let mut instruction = google_search(req.query).await?;
 
     if let Some(dst) = req.dst_lang {
@@ -300,14 +329,18 @@ pub async fn google_search_req_stream<'a>(
     ];
 
     use hj_ai::Completion;
-    let stream = provider.completion_stream(messages).await.map_err(|e| Error(e.to_string()))?;
+    let stream = provider
+        .completion_stream(messages)
+        .await
+        .map_err(|e| Error(e.to_string()))?;
 
     use futures_util::StreamExt;
-    let mapped_stream = stream.map(|res| {
-        match res {
-            Ok(v) => Ok(bytes::Bytes::from(format!("data: {}\n\n", serde_json::to_string(&v).unwrap_or_default()))),
-            Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
-        }
+    let mapped_stream = stream.map(|res| match res {
+        Ok(v) => Ok(bytes::Bytes::from(format!(
+            "data: {}\n\n",
+            serde_json::to_string(&v).unwrap_or_default()
+        ))),
+        Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
     });
 
     Ok(Box::pin(mapped_stream))
