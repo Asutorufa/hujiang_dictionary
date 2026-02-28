@@ -61,7 +61,7 @@ impl Completion for WorkersAI {
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
         #[cfg(feature = "worker")]
         if let Some(ai) = &self.binding {
             let req = AiRequest {

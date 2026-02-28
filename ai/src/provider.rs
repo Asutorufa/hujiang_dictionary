@@ -13,9 +13,7 @@ pub enum Provider {
     OpenAIResponses(openai_responses::OpenAIResponses),
 }
 
-fn box_stream<S>(
-    stream: S,
-) -> Pin<Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>>
+fn box_stream<S>(stream: S) -> Pin<Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>>
 where
     S: Stream<Item = Result<CompletionResponse, Error>> + Send + 'static,
 {
@@ -35,7 +33,7 @@ impl Completion for Provider {
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
         match self {
             Provider::OpenAI(provider) => {
                 Ok(box_stream(provider.completion_stream(messages).await?))

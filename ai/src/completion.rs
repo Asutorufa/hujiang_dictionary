@@ -27,6 +27,9 @@ pub trait Completion {
         &self,
         messages: Vec<Message>,
     ) -> impl Future<
-        Output = Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send, Error>,
+        Output = Result<
+            impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static,
+            Error,
+        >,
     > + Send;
 }
