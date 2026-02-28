@@ -880,6 +880,7 @@ dependencies = [
  "futures-util",
  "log",
  "mockall",
+ "mockito",
  "reqwest 0.13.1",
  "serde",
  "serde_json",

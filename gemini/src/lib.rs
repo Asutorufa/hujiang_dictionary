@@ -16,6 +16,7 @@ mod tests {
                 parts: vec![Part {
                     text: Some("hello".to_string()),
                     inline_data: None,
+                    thought: Some(false),
                 }],
             }],
             tools: None,

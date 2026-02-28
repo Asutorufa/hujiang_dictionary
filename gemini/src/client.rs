@@ -5,8 +5,6 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 use thiserror::Error;
 
-const BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta";
-
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("HTTP error: {0}")]
@@ -22,6 +20,7 @@ pub struct Client {
     http: HttpClient,
     api_key: String,
     model: String,
+    base_url: String,
 }
 
 impl Client {
@@ -30,11 +29,17 @@ impl Client {
             http: HttpClient::new(),
             api_key: api_key.into(),
             model: model.into(),
+            base_url: "https://generativelanguage.googleapis.com/v1beta".to_string(),
         }
     }
 
+    pub fn with_base_url(mut self, base_url: impl Into<String>) -> Self {
+        self.base_url = base_url.into();
+        self
+    }
+
     fn url(&self, action: &str) -> String {
-        format!("{}/models/{}:{}", BASE_URL, self.model, action)
+        format!("{}/models/{}:{}", self.base_url, self.model, action)
     }
 
     pub async fn generate_content(
@@ -174,18 +179,118 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use futures_util::stream::{self, StreamExt};
+    use futures_util::stream::StreamExt;
+    use mockito::Server;
 
-    // Test SSE parsing logic by mocking the inner stream indirectly
-    // Since SseStream takes any Stream<Item = Result<Bytes, reqwest::Error>>, we can mock it
-    // if we can create reqwest::Error. But reqwest::Error fields are private.
-    // However, we can test the buffer parsing logic if we extract it or just test the happy path.
-    //
-    // A better way without mocking reqwest::Error is to expose a generic error type or just test serialization
-    // and assume the stream logic is correct if it compiles, given the simplicity.
-    // But let's try to test the `poll_next` logic with a mock stream if possible.
+    #[tokio::test]
+    async fn test_generate_content() {
+        let mut server = Server::new_async().await;
+        
+        let response_body = r#"{
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": "Hello world"
+                            }
+                        ],
+                        "role": "model"
+                    },
+                    "finishReason": "STOP",
+                    "index": 0,
+                    "safetyRatings": []
+                }
+            ],
+            "promptFeedback": {
+                "safetyRatings": []
+            }
+        }"#;
 
-    // Since we cannot instantiate `reqwest::Error` easily, we will skip unit testing `SseStream`
-    // with `reqwest::Error` in this environment without a full mock.
-    // Instead, we rely on the `lib.rs` serialization tests which verify the data model.
+        let mock = server.mock("POST", "/models/gemini-1.5-flash:generateContent?key=test_key")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(response_body)
+            .create_async()
+            .await;
+
+        let client = Client::new("test_key", "gemini-1.5-flash").with_base_url(server.url());
+        
+        let request = GenerateContentRequest {
+            contents: vec![Content {
+                role: "user".to_string(),
+                parts: vec![Part {
+                    text: Some("Say hello".to_string()),
+                    inline_data: None,
+                    thought: None,
+                }],
+            }],
+            tools: None,
+            safety_settings: None,
+            system_instruction: None,
+            generation_config: None,
+        };
+
+        let response = client.generate_content(&request).await.expect("Failed to generate content");
+        
+        mock.assert_async().await;
+        
+        assert_eq!(response.candidates.len(), 1);
+        assert_eq!(
+            response.candidates[0].content.parts[0].text.as_deref(),
+            Some("Hello world")
+        );
+    }
+
+    #[tokio::test]
+    async fn test_stream_generate_content() {
+        let mut server = Server::new_async().await;
+        
+        let sse_body = "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}],\"role\":\"model\"}}]}\n\n\
+                        data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" world\"}],\"role\":\"model\"}}]}\n\n\
+                        data: [DONE]\n\n";
+
+        let mock = server.mock("POST", "/models/gemini-1.5-flash:streamGenerateContent?key=test_key&alt=sse")
+            .with_status(200)
+            .with_header("content-type", "text/event-stream")
+            .with_body(sse_body)
+            .create_async()
+            .await;
+
+        let client = Client::new("test_key", "gemini-1.5-flash").with_base_url(server.url());
+        
+        let request = GenerateContentRequest {
+            contents: vec![Content {
+                role: "user".to_string(),
+                parts: vec![Part {
+                    text: Some("Say hello".to_string()),
+                    inline_data: None,
+                    thought: None,
+                }],
+            }],
+            tools: None,
+            safety_settings: None,
+            system_instruction: None,
+            generation_config: None,
+        };
+
+        let stream = client.stream_generate_content(&request).await.expect("Failed to create stream");
+        
+        let results: Vec<_> = stream.collect().await;
+        mock.assert_async().await;
+
+        assert_eq!(results.len(), 2);
+        
+        let first = results[0].as_ref().unwrap();
+        assert_eq!(
+            first.candidates[0].content.parts[0].text.as_deref(),
+            Some("Hello")
+        );
+
+        let second = results[1].as_ref().unwrap();
+        assert_eq!(
+            second.candidates[0].content.parts[0].text.as_deref(),
+            Some(" world")
+        );
+    }
 }

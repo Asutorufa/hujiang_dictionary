@@ -90,3 +90,67 @@ where
         },
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bytes::Bytes;
+    use futures_util::stream;
+    use futures_util::StreamExt;
+
+    #[tokio::test]
+    async fn test_parse_stream() {
+        let chunks = vec![
+            Ok::<_, std::io::Error>(Bytes::from("data: {\"response\": \"Hello\"}\n\n")),
+            Ok::<_, std::io::Error>(Bytes::from("data: {\"response\": \" World\"}\n\n")),
+            Ok::<_, std::io::Error>(Bytes::from("data: [DONE]\n\n")),
+        ];
+
+        let mock_stream = stream::iter(chunks);
+        let parsed_stream = parse_stream(mock_stream);
+
+        let results: Vec<_> = parsed_stream.collect().await;
+
+        assert_eq!(results.len(), 2);
+
+        let first = results[0].as_ref().unwrap();
+        assert_eq!(first.content, "Hello");
+
+        let second = results[1].as_ref().unwrap();
+        assert_eq!(second.content, " World");
+    }
+
+    #[tokio::test]
+    async fn test_parse_stream_fragmented() {
+        let chunks = vec![
+            Ok::<_, std::io::Error>(Bytes::from("data: {\"response\": ")),
+            Ok::<_, std::io::Error>(Bytes::from("\"Hello\"}\n\n")),
+            Ok::<_, std::io::Error>(Bytes::from("data: [DONE]\n\n")),
+        ];
+
+        let mock_stream = stream::iter(chunks);
+        let parsed_stream = parse_stream(mock_stream);
+
+        let results: Vec<_> = parsed_stream.collect().await;
+
+        assert_eq!(results.len(), 1);
+
+        let first = results[0].as_ref().unwrap();
+        assert_eq!(first.content, "Hello");
+    }
+
+    #[tokio::test]
+    async fn test_parse_stream_error() {
+        let chunks = vec![
+            Ok::<_, std::io::Error>(Bytes::from("data: invalid_json\n\n")),
+        ];
+
+        let mock_stream = stream::iter(chunks);
+        let parsed_stream = parse_stream(mock_stream);
+
+        let results: Vec<_> = parsed_stream.collect().await;
+
+        assert_eq!(results.len(), 1);
+        assert!(results[0].is_err());
+    }
+}
