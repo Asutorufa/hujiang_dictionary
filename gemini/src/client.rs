@@ -185,7 +185,7 @@ mod tests {
     #[tokio::test]
     async fn test_generate_content() {
         let mut server = Server::new_async().await;
-        
+
         let response_body = r#"{
             "candidates": [
                 {
@@ -207,7 +207,11 @@ mod tests {
             }
         }"#;
 
-        let mock = server.mock("POST", "/models/gemini-1.5-flash:generateContent?key=test_key")
+        let mock = server
+            .mock(
+                "POST",
+                "/models/gemini-1.5-flash:generateContent?key=test_key",
+            )
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(response_body)
@@ -215,7 +219,7 @@ mod tests {
             .await;
 
         let client = Client::new("test_key", "gemini-1.5-flash").with_base_url(server.url());
-        
+
         let request = GenerateContentRequest {
             contents: vec![Content {
                 role: "user".to_string(),
@@ -231,10 +235,13 @@ mod tests {
             generation_config: None,
         };
 
-        let response = client.generate_content(&request).await.expect("Failed to generate content");
-        
+        let response = client
+            .generate_content(&request)
+            .await
+            .expect("Failed to generate content");
+
         mock.assert_async().await;
-        
+
         assert_eq!(response.candidates.len(), 1);
         assert_eq!(
             response.candidates[0].content.parts[0].text.as_deref(),
@@ -245,12 +252,16 @@ mod tests {
     #[tokio::test]
     async fn test_stream_generate_content() {
         let mut server = Server::new_async().await;
-        
+
         let sse_body = "data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello\"}],\"role\":\"model\"}}]}\n\n\
                         data: {\"candidates\":[{\"content\":{\"parts\":[{\"text\":\" world\"}],\"role\":\"model\"}}]}\n\n\
                         data: [DONE]\n\n";
 
-        let mock = server.mock("POST", "/models/gemini-1.5-flash:streamGenerateContent?key=test_key&alt=sse")
+        let mock = server
+            .mock(
+                "POST",
+                "/models/gemini-1.5-flash:streamGenerateContent?key=test_key&alt=sse",
+            )
             .with_status(200)
             .with_header("content-type", "text/event-stream")
             .with_body(sse_body)
@@ -258,7 +269,7 @@ mod tests {
             .await;
 
         let client = Client::new("test_key", "gemini-1.5-flash").with_base_url(server.url());
-        
+
         let request = GenerateContentRequest {
             contents: vec![Content {
                 role: "user".to_string(),
@@ -274,13 +285,16 @@ mod tests {
             generation_config: None,
         };
 
-        let stream = client.stream_generate_content(&request).await.expect("Failed to create stream");
-        
+        let stream = client
+            .stream_generate_content(&request)
+            .await
+            .expect("Failed to create stream");
+
         let results: Vec<_> = stream.collect().await;
         mock.assert_async().await;
 
         assert_eq!(results.len(), 2);
-        
+
         let first = results[0].as_ref().unwrap();
         assert_eq!(
             first.candidates[0].content.parts[0].text.as_deref(),
