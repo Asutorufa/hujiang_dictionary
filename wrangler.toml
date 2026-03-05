@@ -10,8 +10,8 @@ cwd = "worker"
 TELEGRAM_TOKEN = ""
 ALLOW_USERS = ""
 MAINTAINER_ID = ""          # send random word to the chat id when cron job run
-AUTH_USERNAME = "admin"
-AUTH_PASSWORD = "password"
+AUTH_USERNAME = ""
+AUTH_PASSWORD = ""
 AUTH_TOKEN_EXPIRATION = "1" # in days
 
 [ai]

@@ -19,7 +19,7 @@ define_model!(
         priority: u64,
         #[serde(rename(serialize = "type"))]
         word_type: i64,
-        rand_key: i64,
+        rand_key: f64,
     }
 );
 

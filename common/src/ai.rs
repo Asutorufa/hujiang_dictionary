@@ -351,6 +351,7 @@ struct ConfigProvider {
     name: String,
     base_url: String,
     api_key: String,
+    provider:Option<String>,
     models: Vec<String>,
 }
 
