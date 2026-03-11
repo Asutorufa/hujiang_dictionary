@@ -203,11 +203,9 @@ where
                 split_pos = Some(pos);
                 drain_len = 2;
             }
-            if let Some(pos) = self.buffer.find("\r\n\r\n") {
-                if split_pos.map_or(true, |p| pos < p) {
-                    split_pos = Some(pos);
-                    drain_len = 4;
-                }
+            if let Some(pos) = self.buffer.find("\r\n\r\n").filter(|&pos| split_pos.is_none_or(|p| pos < p)) {
+                split_pos = Some(pos);
+                drain_len = 4;
             }
 
             if let Some(pos) = split_pos {
