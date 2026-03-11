@@ -423,7 +423,7 @@ fn parse_config(data: &[u8]) -> HashMap<String, hj_ai::provider::Provider> {
 pub fn providers_from_assets() -> HashMap<String, hj_ai::provider::Provider> {
     let mut llms = HashMap::new();
     let mut example_llms = HashMap::new();
-    
+
     for v in Assets::iter() {
         if !v.ends_with(".json") {
             continue;
@@ -437,12 +437,12 @@ pub fn providers_from_assets() -> HashMap<String, hj_ai::provider::Provider> {
             }
         }
     }
-    
+
     // Prioritize actual config over example config
     for (k, v) in example_llms {
         llms.entry(k).or_insert(v);
     }
-    
+
     llms
 }
 
