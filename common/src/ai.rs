@@ -1,263 +1,16 @@
-use crate::assets::Assets;
-use base64::Engine;
-use hjdict::{duckduckgo_search, google_search::Body};
-use log::info;
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::collections::{HashMap, HashSet};
+use std::future::Future;
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Response {
-    pub content: String,
-    pub reasoning: Option<String>,
-}
+use base64::Engine;
+use log::info;
+use rust_embed::RustEmbed;
+use serde::{Deserialize, Serialize};
 
-impl std::fmt::Display for Response {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(reasoning) = &self.reasoning {
-            write!(f, "reasoning:\n{}\ncontent:\n{}", reasoning, self.content)
-        } else {
-            write!(f, "{}", self.content)
-        }
-    }
-}
+#[derive(RustEmbed)]
+#[folder = "config/"]
+pub struct Assets;
 
-pub trait WorkersAI {
-    fn m2m100_1_2b(
-        &self,
-        text: &str,
-        source_lang: Option<String>,
-        target_lang: String,
-    ) -> impl Future<Output = Result<String, Error>>;
-
-    fn enabled(&self) -> bool;
-
-    fn completion(
-        &self,
-        req: CompletionRequest,
-    ) -> impl Future<Output = Result<CompletionResponse, Error>>;
-
-    fn responses(
-        &self,
-        req: ResponsesRequest,
-    ) -> impl Future<Output = Result<ResponseResponse, Error>>;
-
-    fn models(&self) -> Vec<String> {
-        if !self.enabled() {
-            vec![]
-        } else {
-            Models::llms()
-        }
-    }
-
-    fn explain(
-        &self,
-        google_search: bool,
-        model: Models,
-        chars_limit: bool,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> impl Future<Output = Result<Response, Error>> {
-        async move {
-            if google_search {
-                info!("google search enabled, model: {}", model.as_str());
-
-                self.google_search(model, chars_limit, prompt).await
-            } else {
-                self.translate(model, chars_limit, prompt, instruction)
-                    .await
-            }
-        }
-    }
-
-    fn translate(
-        &self,
-        model: Models,
-        chars_limit: bool,
-        prompt: &str,
-        instruction: Option<&str>,
-    ) -> impl Future<Output = Result<Response, Error>> {
-        async move {
-            let req = TranslateRequest {
-                query: prompt,
-                instruction,
-                model: model.as_str(),
-                dst_lang: None,
-                chars_limit,
-            };
-
-            match model {
-                Models::Gemma3_12bIt | Models::Llama4Scout17B16EInstruct => {
-                    let result = self.completion(req.completion_request()).await?;
-
-                    if let Some(r) = result.choices.first() {
-                        Ok(r.message.to_response())
-                    } else {
-                        Err(Error("no choice".to_string()))
-                    }
-                }
-
-                Models::GPTOss20B => {
-                    let result = self.responses(req.responses_request()).await?.content();
-                    Ok(result)
-                }
-                _ => Err(Error("model not supported".to_string())),
-            }
-        }
-    }
-
-    fn google_search(
-        &self,
-        model: Models,
-        chars_limit: bool,
-        query: &str,
-    ) -> impl Future<Output = Result<Response, Error>> {
-        async move {
-            let instruction = google_search(query).await?;
-
-            let req = TranslateRequest {
-                model: model.as_str(),
-                query,
-                chars_limit,
-                instruction: Some(&instruction),
-                dst_lang: None,
-            };
-
-            info!("google search instruct: {}", instruction);
-
-            match model {
-                Models::Gemma3_12bIt | Models::Llama4Scout17B16EInstruct => {
-                    let result = self.completion(req.completion_request()).await?;
-
-                    if let Some(r) = result.choices.first() {
-                        Ok(r.message.to_response())
-                    } else {
-                        Err(Error("no choice".to_string()))
-                    }
-                }
-
-                _ => {
-                    let result = self.responses(req.responses_request()).await?.content();
-
-                    Ok(result)
-                }
-            }
-        }
-    }
-}
-
-async fn google_search(query: &str) -> Result<String, Error> {
-    let result = match duckduckgo_search::get(query).await {
-        Ok(v) => v,
-        Err(e) => return Err(Error::from(e.to_string())),
-    };
-
-    let mut instruct = "<search_result>\n".to_string();
-
-    let mut length = if result.len() > 5 { 5 } else { result.len() };
-
-    for v in &result {
-        match v {
-            Body::Content(s) => {
-                instruct.push_str(&format!("<content>{}</content>\n", s));
-            }
-            Body::Link(v) => {
-                if length == 0 {
-                    continue;
-                }
-
-                length -= 1;
-                let (title, content) = v.get_raw_page().await?;
-                instruct.push_str(&format!("\n<content title='{}' link='{}'>\n", title, v.url));
-                instruct.push_str(&content);
-                instruct.push_str("</content>\n");
-            }
-        }
-    }
-
-    instruct.push_str("\n</search_result>\n");
-
-    instruct.push_str("\n**please use above search result to explain.**\n");
-
-    Ok(instruct)
-}
-
-pub static SYSTEM_MSG: &str = r#"You are a professional translator.  
-
-**Note**:  
-
-- Translate or explain the input text according to the instructions.  
-- If target language is not specified, return the result in the user’s original language.  
-- **Don't use the index of search result**.  
-
-**Translate Rules**:  
-
-- Please present content in a clear and easy-to-understand way.  
-- Explain concepts alongside examples whenever possible.  
-- For long or complex content, use tables or other formats for clarity.  
-- If you have a better way to present the information, feel free to use it.  
-"#;
-
-pub static SYSTEM_MSG_LIMIT: &str = r#"You are a professional translator.
-
-**Note**:  
-
-- Translate or explain the input text according to the instructions.  
-- If target language is not specified, return the result in the user’s original language.  
-- **Don't use the index of search result**.  
-
-**Translate Rules**:  
-
-- Please present content in a clear and easy-to-understand way.  
-- Explain concepts alongside examples whenever possible.  
-- If you have a better way to present the information, feel free to use it.  
-- If the translated content is approaching the limit, prioritize preserving core meaning and compress the expression when necessary. Paraphrase or summarize if required.
-- Output in plain text format. **Do not output in Markdown format!**
-- The total output must not exceed 4096 characters, including spaces and line breaks.
-- Strictly follow the character limit to prevent truncation.
-"#;
-
-pub fn system_msg(limit: bool) -> &'static str {
-    if limit { SYSTEM_MSG_LIMIT } else { SYSTEM_MSG }
-}
-
-#[derive(Debug, Clone)]
-pub enum Models {
-    Gemma3_12bIt,
-    Llama4Scout17B16EInstruct,
-    M2M100_1_2B,
-    GPTOss20B,
-}
-
-impl Models {
-    pub fn llms() -> Vec<String> {
-        vec![
-            Models::Gemma3_12bIt.as_str().to_string(),
-            Models::Llama4Scout17B16EInstruct.as_str().to_string(),
-            Models::GPTOss20B.as_str().to_string(),
-        ]
-    }
-
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Models::Gemma3_12bIt => "@cf/google/gemma-3-12b-it",
-            Models::Llama4Scout17B16EInstruct => "@cf/meta/llama-4-scout-17b-16e-instruct",
-            Models::M2M100_1_2B => "@cf/meta/m2m100-1.2b",
-            Models::GPTOss20B => "@cf/openai/gpt-oss-20b",
-        }
-    }
-
-    pub fn from_model_name(s: &str) -> Option<Models> {
-        match s {
-            "@cf/google/gemma-3-12b-it" => Some(Models::Gemma3_12bIt),
-            "@cf/meta/llama-4-scout-17b-16e-instruct" => Some(Models::Llama4Scout17B16EInstruct),
-            "@cf/meta/m2m100-1.2b" => Some(Models::M2M100_1_2B),
-            "@cf/openai/gpt-oss-20b" => Some(Models::GPTOss20B),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Error(pub String);
 
 impl std::fmt::Display for Error {
@@ -266,204 +19,115 @@ impl std::fmt::Display for Error {
     }
 }
 
+impl std::error::Error for Error {}
+
 impl From<reqwest::Error> for Error {
     fn from(value: reqwest::Error) -> Self {
-        Self(value.to_string())
+        Error(value.to_string())
     }
 }
 
 impl From<serde_json::Error> for Error {
     fn from(value: serde_json::Error) -> Self {
-        Self(value.to_string())
+        Error(value.to_string())
     }
 }
 
-impl From<String> for Error {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
+pub trait Translator {
+    fn m2m100_1_2b(
+        &self,
+        text: &str,
+        source_lang: Option<String>,
+        target_lang: String,
+    ) -> impl Future<Output = Result<String, Error>>;
 }
 
-impl From<hjdict::google_search::SearchError> for Error {
-    fn from(value: hjdict::google_search::SearchError) -> Self {
-        Self(value.to_string())
-    }
-}
+async fn google_search(query: &str) -> Result<String, Error> {
+    let mut q = query.to_string();
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResponsesRequest {
-    pub instructions: String,
-    pub model: String,
-    pub input: Vec<Message>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reasoning: Option<Reasoning>,
-}
-
-impl ResponsesRequest {
-    pub fn new_translate_request<'a>(req: TranslateRequest<'a>) -> Self {
-        let msgs = vec![Message {
-            role: "user".to_string(),
-            content: format!("{}\n{}", req.instruction.unwrap_or_default(), req.query),
-            reasoning: None,
-        }];
-
-        Self {
-            instructions: system_msg(req.chars_limit).to_string(),
-            model: req.model.to_string(),
-            input: msgs,
-            reasoning: Some(Reasoning {
-                effort: Some("low".to_string()),
-                summary: Some("concise".to_string()),
-                ..Default::default()
-            }),
+    match hjdict::duckduckgo_search::get(query).await {
+        Ok(v) => {
+            q.push_str("\n\n### DuckDuckGo Search Results:\n");
+            for i in v {
+                match i {
+                    hjdict::google_search::Body::Content(c) => {
+                        q.push_str(&format!("{}\n\n", c));
+                    }
+                    hjdict::google_search::Body::Link(l) => {
+                        q.push_str(&format!("#### [{}]({})\n\n", l.title, l.url));
+                    }
+                }
+            }
+            Ok(q)
+        }
+        Err(e) => {
+            info!("google search error: {}", e);
+            Ok(query.to_string())
         }
     }
 }
 
-#[derive(Default, Debug, Serialize, Deserialize, Clone)]
-pub struct Reasoning {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub effort: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub summary: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_tokens: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub exclude: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub enabled: Option<bool>,
+#[derive(Clone, Copy, Debug)]
+pub enum Models {
+    Gemma3_12bIt,
+    Llama4Scout17B16EInstruct,
+    DeepSeekR1DistillQwen32b,
+    GPTOss20B,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResponseResponse {
-    pub output: Vec<ResponsesOutput>,
+impl std::fmt::Display for Models {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
 }
 
-impl ResponseResponse {
-    pub fn content(&self) -> Response {
-        let reasoning = self
-            .output
-            .iter()
-            .filter(|o| o.r#type == "reasoning")
-            .map(|o| o.content())
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        let content = self
-            .output
-            .iter()
-            .filter(|o| o.r#type == "message")
-            .map(|o| o.content())
-            .collect::<Vec<String>>()
-            .join("\n");
-
-        Response {
-            content,
-            reasoning: if reasoning.is_empty() {
-                None
-            } else {
-                Some(reasoning)
-            },
+impl Models {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Models::Gemma3_12bIt => "@cf/google/gemma-3-12b-it",
+            Models::Llama4Scout17B16EInstruct => "@cf/meta/llama-3.1-8b-instruct", // mapping placeholder
+            Models::DeepSeekR1DistillQwen32b => "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+            Models::GPTOss20B => "gpt-oss-20b",
         }
     }
-}
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResponsesOutput {
-    pub r#type: String,
-    pub content: Vec<ResponsesContent>,
-}
+    pub fn from_model_name(model_name: &str) -> Option<Self> {
+        match model_name {
+            "@cf/google/gemma-3-12b-it" => Some(Models::Gemma3_12bIt),
+            "@cf/meta/llama-3.1-8b-instruct" => Some(Models::Llama4Scout17B16EInstruct),
+            "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b" => {
+                Some(Models::DeepSeekR1DistillQwen32b)
+            }
+            "gpt-oss-20b" => Some(Models::GPTOss20B),
+            _ => None,
+        }
+    }
 
-impl ResponsesOutput {
-    fn content(&self) -> String {
-        self.content
-            .iter()
-            .map(|c| c.text.as_ref())
-            .collect::<Vec<&str>>()
-            .join("\n")
+    pub fn llms() -> Vec<String> {
+        vec![
+            Models::Gemma3_12bIt.to_string(),
+            Models::Llama4Scout17B16EInstruct.to_string(),
+            Models::DeepSeekR1DistillQwen32b.to_string(),
+            Models::GPTOss20B.to_string(),
+        ]
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResponsesContent {
-    pub r#type: String,
-    pub text: String,
+fn system_msg(chars_limit: bool) -> &'static str {
+    if chars_limit {
+        r#"You are a professional, authentic translation engine, only returns translations.
+- For words, phrases, or short sentences, provide the translation directly. Include essential explanations only if the context is ambiguous or the user explicitly requests it.
+- If the translated content is approaching the limit, prioritize preserving core meaning and compress the expression when necessary. Paraphrase or summarize if required.
+"#
+    } else {
+        r#"You are a professional, authentic translation engine, only returns translations."#
+    }
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
-pub struct CompletionRequest {
-    pub model: String,
-    pub messages: Vec<Message>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reasoning: Option<Reasoning>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub provider: Option<Provider>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Provider {
-    pub sort: Option<String>,
-    pub order: Option<Vec<String>>,
-}
-
-impl CompletionRequest {
-    pub fn new_translate_request(req: TranslateRequest) -> Self {
-        let mut msgs = vec![Message {
-            role: "system".to_string(),
-            content: system_msg(req.chars_limit).to_string(),
-            ..Default::default()
-        }];
-
-        msgs.push(Message {
-            role: "user".to_string(),
-            content: format!("{}\n{}", req.instruction.unwrap_or_default(), req.query),
-            ..Default::default()
-        });
-
-        Self {
-            model: req.model.to_string(),
-            messages: msgs,
-            ..Default::default()
-        }
-    }
-}
-
-#[derive(Default, Debug, Serialize, Deserialize, Clone)]
-pub struct Message {
-    pub role: String,
+pub struct Response {
     pub content: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning: Option<String>,
-}
-
-impl Message {
-    fn to_response(&self) -> Response {
-        Response {
-            content: self.content.clone(),
-            reasoning: self.reasoning.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CompletionResponse {
-    pub choices: Vec<Choice>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Choice {
-    pub message: Message,
-}
-
-#[derive(serde::Deserialize, Clone, Default)]
-pub struct OpenAI {
-    pub name: String,
-    pub base_url: String,
-    pub api_key: String,
-    pub reasoning: Option<Reasoning>,
-    pub provider: Option<Vec<String>>,
-    pub models: HashSet<String>,
-    pub allow_all_models: Option<bool>,
 }
 
 #[derive(Debug, Default)]
@@ -475,248 +139,399 @@ pub struct TranslateRequest<'a> {
     pub dst_lang: Option<&'a str>,
 }
 
-impl TranslateRequest<'_> {
-    pub fn completion_request(self) -> CompletionRequest {
-        CompletionRequest::new_translate_request(self)
-    }
-
-    pub fn responses_request(self) -> ResponsesRequest {
-        ResponsesRequest::new_translate_request(self)
+pub async fn explain<'a>(
+    provider: &hj_ai::provider::Provider,
+    google_search_flag: bool,
+    req: TranslateRequest<'a>,
+) -> Result<Response, Error> {
+    if google_search_flag {
+        info!("google search enabled, model: {}", req.model);
+        google_search_req(provider, req).await
+    } else {
+        translate(provider, req).await
     }
 }
 
-impl OpenAI {
-    pub fn from_base64_string(env: String) -> HashMap<String, OpenAI> {
-        let env = match base64::engine::general_purpose::STANDARD.decode(env) {
-            Ok(v) => v,
-            Err(_) => return HashMap::new(),
-        };
+pub async fn translate<'a>(
+    provider: &hj_ai::provider::Provider,
+    req: TranslateRequest<'a>,
+) -> Result<Response, Error> {
+    let instruction = match req.instruction {
+        Some(i) if !i.is_empty() => Some(i.to_string()),
+        _ => req
+            .dst_lang
+            .map(|dst| format!("\nTarget Language: {}", dst)),
+    };
 
-        serde_json::from_slice(&env).unwrap_or_default()
+    let req2 = TranslateRequest {
+        model: req.model,
+        query: req.query,
+        chars_limit: req.chars_limit,
+        instruction: instruction.as_deref(),
+        dst_lang: req.dst_lang,
+    };
+
+    let messages = vec![
+        hj_ai::Message {
+            role: "system".to_string(),
+            content: system_msg(req2.chars_limit).to_string(),
+        },
+        hj_ai::Message {
+            role: "user".to_string(),
+            content: format!("{}\n{}", req2.instruction.unwrap_or_default(), req2.query),
+        },
+    ];
+
+    use hj_ai::Completion;
+    let res = provider
+        .completion(messages)
+        .await
+        .map_err(|e| Error(e.to_string()))?;
+
+    Ok(Response {
+        content: res.content,
+        reasoning: res.thinking,
+    })
+}
+
+pub async fn google_search_req<'a>(
+    provider: &hj_ai::provider::Provider,
+    req: TranslateRequest<'a>,
+) -> Result<Response, Error> {
+    let mut instruction = google_search(req.query).await?;
+
+    if let Some(dst) = req.dst_lang {
+        instruction.push_str(&format!("\nTarget Language: {}", dst));
     }
 
-    pub fn from_assets() -> HashMap<String, OpenAI> {
-        let mut llms = HashMap::new();
-        for v in Assets::iter() {
-            if !v.ends_with(".json") {
-                continue;
+    info!("google search instruct: {}", instruction);
+
+    let messages = vec![
+        hj_ai::Message {
+            role: "system".to_string(),
+            content: system_msg(req.chars_limit).to_string(),
+        },
+        hj_ai::Message {
+            role: "user".to_string(),
+            content: format!("{}\n{}", instruction, req.query),
+        },
+    ];
+
+    use hj_ai::Completion;
+    let res = provider
+        .completion(messages)
+        .await
+        .map_err(|e| Error(e.to_string()))?;
+
+    Ok(Response {
+        content: res.content,
+        reasoning: res.thinking,
+    })
+}
+
+pub async fn explain_stream<'a>(
+    provider: &hj_ai::provider::Provider,
+    google_search_flag: bool,
+    req: TranslateRequest<'a>,
+) -> Result<
+    std::pin::Pin<
+        Box<
+            dyn futures_util::Stream<
+                    Item = Result<hj_ai::CompletionResponse, Box<dyn std::error::Error>>,
+                >,
+        >,
+    >,
+    Error,
+> {
+    if google_search_flag {
+        info!("google search enabled, model: {}", req.model);
+        google_search_req_stream(provider, req).await
+    } else {
+        translate_stream(provider, req).await
+    }
+}
+
+pub async fn translate_stream<'a>(
+    provider: &hj_ai::provider::Provider,
+    req: TranslateRequest<'a>,
+) -> Result<
+    std::pin::Pin<
+        Box<
+            dyn futures_util::Stream<
+                    Item = Result<hj_ai::CompletionResponse, Box<dyn std::error::Error>>,
+                >,
+        >,
+    >,
+    Error,
+> {
+    let instruction = match req.instruction {
+        Some(i) if !i.is_empty() => Some(i.to_string()),
+        _ => req
+            .dst_lang
+            .map(|dst| format!("\nTarget Language: {}", dst)),
+    };
+
+    let req2 = TranslateRequest {
+        model: req.model,
+        query: req.query,
+        chars_limit: req.chars_limit,
+        instruction: instruction.as_deref(),
+        dst_lang: req.dst_lang,
+    };
+
+    let messages = vec![
+        hj_ai::Message {
+            role: "system".to_string(),
+            content: system_msg(req2.chars_limit).to_string(),
+        },
+        hj_ai::Message {
+            role: "user".to_string(),
+            content: format!("{}\n{}", req2.instruction.unwrap_or_default(), req2.query),
+        },
+    ];
+
+    use hj_ai::Completion;
+    let stream = provider
+        .completion_stream(messages)
+        .await
+        .map_err(|e| Error(e.to_string()))?;
+
+    use futures_util::StreamExt;
+    let mapped_stream = stream.map(|res| match res {
+        Ok(v) => Ok(v),
+        Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
+    });
+
+    Ok(Box::pin(mapped_stream))
+}
+
+pub async fn google_search_req_stream<'a>(
+    provider: &hj_ai::provider::Provider,
+    req: TranslateRequest<'a>,
+) -> Result<
+    std::pin::Pin<
+        Box<
+            dyn futures_util::Stream<
+                    Item = Result<hj_ai::CompletionResponse, Box<dyn std::error::Error>>,
+                >,
+        >,
+    >,
+    Error,
+> {
+    let mut instruction = google_search(req.query).await?;
+
+    if let Some(dst) = req.dst_lang {
+        instruction.push_str(&format!("\nTarget Language: {}", dst));
+    }
+
+    info!("google search instruct: {}", instruction);
+
+    let messages = vec![
+        hj_ai::Message {
+            role: "system".to_string(),
+            content: system_msg(req.chars_limit).to_string(),
+        },
+        hj_ai::Message {
+            role: "user".to_string(),
+            content: format!("{}\n{}", instruction, req.query),
+        },
+    ];
+
+    use hj_ai::Completion;
+    let stream = provider
+        .completion_stream(messages)
+        .await
+        .map_err(|e| Error(e.to_string()))?;
+
+    use futures_util::StreamExt;
+    let mapped_stream = stream.map(|res| match res {
+        Ok(v) => Ok(v),
+        Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
+    });
+
+    Ok(Box::pin(mapped_stream))
+}
+
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+enum ProviderType {
+    #[default]
+    OpenAI,
+    Gemini,
+    VertexAI,
+    WorkersAI,
+}
+
+#[derive(serde::Deserialize)]
+struct ConfigProvider {
+    name: String,
+    base_url: Option<String>,
+    api_key: Option<String>,
+    provider: Option<ProviderType>,
+    models: Vec<String>,
+    project_id: Option<String>,
+    location: Option<String>,
+}
+
+impl From<ConfigProvider> for hj_ai::provider::Provider {
+    fn from(v: ConfigProvider) -> Self {
+        match v.provider.unwrap_or_default() {
+            ProviderType::OpenAI => hj_ai::provider::Provider::OpenAI(hj_ai::openai::OpenAI {
+                name: v.name,
+                base_url: v.base_url.unwrap_or_default(),
+                api_key: v.api_key.unwrap_or_default(),
+                model: v.models.first().cloned().unwrap_or_default(),
+                models: HashSet::from_iter(v.models),
+                ..Default::default()
+            }),
+            ProviderType::Gemini => hj_ai::provider::Provider::Gemini(hj_ai::gemini::Gemini::new(
+                v.api_key.unwrap_or_default(),
+                v.models.first().cloned().unwrap_or_default(),
+                v.models,
+            )),
+            ProviderType::VertexAI => {
+                hj_ai::provider::Provider::Gemini(hj_ai::gemini::Gemini::new_vertex_ai(
+                    v.project_id.unwrap_or_default(),
+                    v.location.unwrap_or_else(|| "us-central1".to_string()),
+                    v.models.first().cloned().unwrap_or_default(),
+                    v.api_key.unwrap_or_default(),
+                    v.models,
+                ))
             }
-
-            let f = match Assets::get(&v) {
-                Some(v) => v,
-                None => continue,
-            };
-
-            match serde_json::from_slice::<HashMap<String, OpenAI>>(&f.data) {
-                Ok(v) => llms.extend(v),
-                Err(_) => continue,
-            };
-        }
-        llms
-    }
-
-    pub fn new(name: &str, base_url: &str, api_key: &str, models: Vec<String>) -> Self {
-        Self {
-            name: name.to_string(),
-            base_url: base_url.to_string(),
-            api_key: api_key.to_string(),
-            models: HashSet::from_iter(models),
-            ..Default::default()
+            ProviderType::WorkersAI =>
+            {
+                #[allow(clippy::needless_update)]
+                hj_ai::provider::Provider::WorkersAI(hj_ai::workers::WorkersAI {
+                    model: v.models.first().cloned().unwrap_or_default(),
+                    models: v.models,
+                    ..Default::default()
+                })
+            }
         }
     }
+}
 
-    pub fn set_allow_all_models(&mut self, allow_all_models: bool) -> Self {
-        self.allow_all_models = Some(allow_all_models);
-        self.clone()
-    }
+fn parse_config(data: &[u8]) -> HashMap<String, hj_ai::provider::Provider> {
+    serde_json::from_slice::<HashMap<String, ConfigProvider>>(data)
+        .map(|config| {
+            config
+                .into_iter()
+                .map(|(k, v)| (k, hj_ai::provider::Provider::from(v)))
+                .collect()
+        })
+        .unwrap_or_default()
+}
 
-    pub fn enabled(&self) -> bool {
-        !self.base_url.is_empty() && !self.models.is_empty()
-    }
+pub fn providers_from_assets() -> HashMap<String, hj_ai::provider::Provider> {
+    let mut llms = HashMap::new();
+    let mut example_llms = HashMap::new();
 
-    pub fn models(&self) -> Vec<String> {
-        self.models.iter().cloned().collect()
-    }
-
-    pub fn authorization_header(&self) -> String {
-        format!("Bearer {}", self.api_key)
-    }
-
-    pub async fn exec<I: Serialize, O: DeserializeOwned>(
-        &self,
-        path: &str,
-        input: I,
-    ) -> Result<O, Error> {
-        let body = serde_json::to_string(&input)?;
-
-        let r = reqwest::Client::builder()
-            .build()?
-            .post(format!("{}{}", self.base_url, path))
-            .header("Authorization", self.authorization_header())
-            .header(
-                "HTTP-Referer",
-                "https://github.com/Asutorufa/hujiang_dictionary",
-            )
-            .header("X-Title", "hj-dict")
-            .body(body)
-            .send()
-            .await?;
-
-        let status = r.status();
-        let text = r.text().await?;
-
-        info!("openai raw result: {}, status: {}", text, status);
-
-        if !status.is_success() {
-            return Err(Error(text));
+    for v in Assets::iter() {
+        if !v.ends_with(".json") {
+            continue;
         }
 
-        Ok(serde_json::from_str(&text)?)
-    }
-
-    fn allow_model(&self, model: &str) -> Result<(), Error> {
-        if !self.allow_all_models.unwrap_or(false) && !self.models.contains(model) {
-            Err(Error("model not supported".to_string()))
-        } else {
-            Ok(())
+        if let Some(f) = Assets::get(&v) {
+            if v == "example.json" {
+                example_llms.extend(parse_config(&f.data));
+            } else {
+                llms.extend(parse_config(&f.data));
+            }
         }
     }
 
-    pub async fn completion(
-        &self,
-        mut req: CompletionRequest,
-    ) -> Result<CompletionResponse, Error> {
-        self.allow_model(&req.model.to_string())?;
-
-        if self.provider.is_some() {
-            req.provider = Some(Provider {
-                sort: None,
-                order: self.provider.clone(),
-            });
-        }
-
-        if self.reasoning.is_some() {
-            req.reasoning = self.reasoning.clone();
-        }
-
-        let r: CompletionResponse = self.exec("/chat/completions", req).await?;
-        Ok(r)
+    // Prioritize actual config over example config
+    for (k, v) in example_llms {
+        llms.entry(k).or_insert(v);
     }
 
-    pub async fn responses(&self, mut req: ResponsesRequest) -> Result<ResponseResponse, Error> {
-        self.allow_model(&req.model.to_string())?;
+    llms
+}
 
-        if self.reasoning.is_some() {
-            req.reasoning = self.reasoning.clone();
-        }
-
-        self.exec("/responses", req).await
-    }
-
-    pub async fn explain<'a>(
-        &self,
-        google_search: bool,
-        req: TranslateRequest<'a>,
-    ) -> Result<Response, Error> {
-        if google_search {
-            info!("google search enabled, model: {}", req.model);
-            self.google_search(req).await
-        } else {
-            self.translate(req).await
-        }
-    }
-
-    pub async fn translate<'a>(&self, req: TranslateRequest<'a>) -> Result<Response, Error> {
-        let instruction = match req.instruction {
-            Some(i) if !i.is_empty() => Some(i.to_string()),
-            _ => req
-                .dst_lang
-                .map(|dst| format!("\nTarget Language: {}", dst)),
-        };
-
-        let req = TranslateRequest {
-            model: req.model,
-            query: req.query,
-            chars_limit: req.chars_limit,
-            instruction: instruction.as_deref(),
-            dst_lang: req.dst_lang,
-        };
-
-        let result = self.completion(req.completion_request()).await?;
-
-        if let Some(r) = result.choices.first() {
-            Ok(r.message.to_response())
-        } else {
-            Err(Error("no choice".to_string()))
-        }
-    }
-
-    pub async fn google_search<'a>(&self, req: TranslateRequest<'a>) -> Result<Response, Error> {
-        let mut instruction = google_search(req.query).await?;
-
-        if let Some(dst) = req.dst_lang {
-            instruction.push_str(&format!("\nTarget Language: {}", dst));
-        }
-
-        info!("google search instruct: {}", instruction);
-
-        let req = TranslateRequest {
-            model: req.model,
-            query: req.query,
-            chars_limit: req.chars_limit,
-            instruction: Some(&instruction),
-            dst_lang: req.dst_lang,
-        };
-
-        let result = self.completion(req.completion_request()).await?;
-
-        if let Some(r) = result.choices.first() {
-            Ok(r.message.to_response())
-        } else {
-            Err(Error("no choice".to_string()))
-        }
-    }
+pub fn providers_from_base64_string(env: String) -> HashMap<String, hj_ai::provider::Provider> {
+    base64::engine::general_purpose::STANDARD
+        .decode(env)
+        .map(|bytes| parse_config(&bytes))
+        .unwrap_or_default()
 }
 
 #[cfg(test)]
-mod test {
-    use std::fs;
-
-    use crate::ai::OpenAI;
-
-    fn init() {
-        env_logger::builder()
-            .filter_level(log::LevelFilter::Info)
-            .format_line_number(true)
-            .init();
-    }
-
+mod tests {
+    use super::*;
+    use futures_util::StreamExt;
     #[tokio::test]
-    async fn test() {
-        init();
+    #[ignore]
+    async fn test_providers() {
+        let path = format!("{}/src/.api.gemini.json", env!("CARGO_MANIFEST_DIR"));
+        let content = std::fs::read_to_string(&path).unwrap_or_else(|_| {
+            std::fs::read_to_string(".api.gemini.json").expect(
+                "Failed to read .api.gemini.json from crate root, workspace root, or src directory",
+            )
+        });
+        let providers = parse_config(content.as_bytes());
 
-        let auth_json = fs::read_to_string("src/.api.json").unwrap();
-        let oa = serde_json::from_str::<OpenAI>(&auth_json).unwrap();
+        println!("Found {} providers", providers.len());
 
-        println!("{:?}", oa.models());
+        for (name, provider) in providers {
+            println!("Testing provider: {}", name);
 
-        println!(
-            "{:?}",
-            oa.google_search(crate::ai::TranslateRequest {
-                model: oa.models.iter().next().unwrap(),
-                query: "日をおかずに 意味",
-                dst_lang: Some("ja"),
-                ..Default::default()
-            })
+            // Test non-stream
+            match translate(
+                &provider,
+                TranslateRequest {
+                    model: "",
+                    query: "Hello",
+                    dst_lang: Some("Chinese"),
+                    ..Default::default()
+                },
+            )
             .await
-        );
-    }
+            {
+                Ok(res) => println!("Non-stream response: {:?}", res),
+                Err(e) => println!("Non-stream error: {:?}", e),
+            }
 
-    #[tokio::test]
-    async fn from_assets() {
-        let llms = crate::ai::OpenAI::from_assets();
-        for (k, _) in llms.iter() {
-            println!("{}", k);
+            // Test stream
+            match translate_stream(
+                &provider,
+                TranslateRequest {
+                    model: "",
+                    query: "The Gemini API allows developers to build generative AI applications using Gemini models. Gemini is our most capable model, built from the ground up to be multimodal. It can generalize and seamlessly understand, operate across, and combine different types of information including language, images, audio, video, and code. You can use the Gemini API for use cases like reasoning across text and images, content generation, dialogue agents, summarization and classification systems, and more.",
+                    dst_lang: Some("Chinese"),
+                    ..Default::default()
+                },
+            )
+            .await
+            {
+                Ok(mut stream) => {
+                    print!("Stream response: ");
+                    use std::io::Write;
+                    std::io::stdout().flush().unwrap();
+
+                    let mut has_content = false;
+                    while let Some(chunk) = stream.next().await {
+                        match chunk {
+                            Ok(v) => {
+                                has_content = true;
+                                if let Some(thinking) = v.thinking {
+                                    print!("thinking: {}", thinking);
+                                }
+                                print!("{}", v.content);
+                                std::io::stdout().flush().unwrap();
+                            }
+                            Err(e) => {
+                                println!("\nStream error: {:?}", e);
+                                break;
+                            }
+                        }
+                    }
+                    if !has_content {
+                        println!("\n[Warning] Stream returned no chunks!");
+                    }
+                    println!();
+                }
+                Err(e) => println!("Stream initiation error: {:?}", e),
+            }
         }
     }
 }

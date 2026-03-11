@@ -52,7 +52,7 @@ console_error_panic_hook = "^0.1"
 wasm-bindgen = "^0.2"
 web-sys = { version = "^0.3", features = ["console"] }
 url = "2.5.8"
-jsonwebtoken = "10"
+jsonwebtoken = { version = "10", default-features = false, features = ["rust_crypto"] }
 chrono = { version = "0.4", features = ["serde"] }
 
 [profile.release]

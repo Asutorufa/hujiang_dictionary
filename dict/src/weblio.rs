@@ -117,7 +117,7 @@ mod test {
 
     #[tokio::test]
     async fn get_test() {
-        let test = fs::read_to_string("assets/test_data/weblio.html.txt").unwrap();
+        let test = fs::read_to_string("../assets/test_data/weblio.html.txt").unwrap();
 
         for v in parse(&test) {
             println!("{}", v);

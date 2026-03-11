@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Default)]
 pub struct WorkersAI {
     pub model: String,
+    pub models: Vec<String>,
     #[cfg(feature = "worker")]
     pub binding: Option<Arc<worker::Ai>>,
 }
@@ -26,12 +27,6 @@ struct AiRequest {
 #[derive(Deserialize)]
 struct AiResponse {
     response: String,
-}
-
-#[cfg(feature = "worker")]
-#[derive(Deserialize)]
-struct StreamResponse {
-    response: Option<String>,
 }
 
 impl Completion for WorkersAI {
@@ -61,35 +56,17 @@ impl Completion for WorkersAI {
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + 'static, Error> {
         #[cfg(feature = "worker")]
-        if let Some(ai) = &self.binding {
-            let req = AiRequest {
-                messages,
-                stream: true,
-            };
-
-            let stream_result: worker::Stream = ai
-                .run(&self.model, req)
-                .await
-                .map_err(|e| Error::Internal(e.to_string()))?;
-
-            let byte_stream = stream_result.stream();
-
-            use futures_util::StreamExt;
-            let mapped_stream = byte_stream.map(|item| item.map(bytes::Bytes::from));
-
-            return Ok(crate::sse::parse_stream(Box::pin(mapped_stream)));
+        {
+            let _ = messages;
+            return Err::<futures_util::stream::Empty<_>, _>(Error::Internal(
+                "completion_stream is not supported on wasm".to_string(),
+            ));
         }
-
-        #[cfg(feature = "worker")]
-        return Err(Error::Internal(
-            "WorkersAI only supported with worker feature and binding".to_string(),
-        ));
 
         #[cfg(not(feature = "worker"))]
         {
-            // Dummy usage to suppress unused variable warning if messages is used only in feature
             let _ = messages;
             Err::<futures_util::stream::Empty<_>, _>(Error::Internal(
                 "WorkersAI only supported with worker feature and binding".to_string(),

@@ -13,9 +13,9 @@ pub enum Provider {
     OpenAIResponses(openai_responses::OpenAIResponses),
 }
 
-fn box_stream<S>(stream: S) -> Pin<Box<dyn Stream<Item = Result<CompletionResponse, Error>> + Send>>
+fn box_stream<S>(stream: S) -> Pin<Box<dyn Stream<Item = Result<CompletionResponse, Error>>>>
 where
-    S: Stream<Item = Result<CompletionResponse, Error>> + Send + 'static,
+    S: Stream<Item = Result<CompletionResponse, Error>> + 'static,
 {
     Box::pin(stream)
 }
@@ -33,7 +33,7 @@ impl Completion for Provider {
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + 'static, Error> {
         match self {
             Provider::OpenAI(provider) => {
                 Ok(box_stream(provider.completion_stream(messages).await?))
@@ -47,6 +47,17 @@ impl Completion for Provider {
             Provider::OpenAIResponses(provider) => {
                 Ok(box_stream(provider.completion_stream(messages).await?))
             }
+        }
+    }
+}
+
+impl Provider {
+    pub fn models(&self) -> Vec<String> {
+        match self {
+            Provider::OpenAI(provider) => provider.models.iter().cloned().collect(),
+            Provider::WorkersAI(provider) => provider.models.clone(),
+            Provider::Gemini(provider) => provider.models.clone(),
+            Provider::OpenAIResponses(_) => vec![],
         }
     }
 }

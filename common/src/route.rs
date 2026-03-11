@@ -10,7 +10,7 @@ use std::sync::Arc;
 use subtle::ConstantTimeEq;
 
 use crate::{
-    ai::{self, Models, WorkersAI},
+    ai::{self, Translator},
     d1::{Count, Error as D1Error, Queries, Word, list_word_query},
     opts::RunOpt,
 };
@@ -169,10 +169,9 @@ impl From<ai::Error> for Error {
     }
 }
 
-#[derive(Debug, Clone)]
 pub struct UnifiedResponse {
     pub status: u16,
-    pub body: Vec<u8>,
+    pub body: UnifiedBody,
     pub headers: Vec<(String, String)>,
 }
 
@@ -180,7 +179,7 @@ impl UnifiedResponse {
     pub fn ok(body: Vec<u8>) -> Self {
         Self {
             status: 200,
-            body,
+            body: UnifiedBody::Bytes(body),
             headers: vec![],
         }
     }
@@ -188,7 +187,7 @@ impl UnifiedResponse {
     pub fn json(body: Vec<u8>) -> Self {
         Self {
             status: 200,
-            body,
+            body: UnifiedBody::Bytes(body),
             headers: vec![("Content-Type".to_string(), "application/json".to_string())],
         }
     }
@@ -196,13 +195,13 @@ impl UnifiedResponse {
     pub fn error(status: u16, msg: String) -> Self {
         Self {
             status,
-            body: msg.into_bytes(),
+            body: UnifiedBody::Bytes(msg.into_bytes()),
             headers: vec![],
         }
     }
 }
 
-impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
+impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
     pub fn create_token(&self) -> Result<String, String> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::days(self.auth_token_expiration))
@@ -334,6 +333,9 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                 if path.starts_with("/word/") {
                     if let Err(e) = self.check_auth(auth_header) {
                         return Ok(UnifiedResponse::error(401, e));
+                    }
+                    if path == "/word/query_stream" {
+                        return self.word_query_stream(body).await;
                     }
                     let resp = self.route(path, body).await?;
                     Ok(UnifiedResponse::json(resp))
@@ -467,10 +469,10 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
     pub async fn custom_llms(&self) -> Result<Vec<u8>, Error> {
         let mut models = vec![];
 
-        if self.workers_ai.enabled() {
+        if let Some(workers_ai) = &self.workers_ai {
             models.push(CustomLLMResponse {
                 name: "workers-ai".to_string(),
-                models: self.workers_ai.models(),
+                models: workers_ai.models(),
             });
         }
 
@@ -495,32 +497,34 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
 
                 match name.as_str() {
                     "workers-ai" => Some(
-                        self.workers_ai
-                            .explain(
-                                req.google_search.unwrap_or(false),
-                                Models::from_model_name(model)
-                                    .ok_or(Error::Internal("model not supported".to_string()))?,
-                                false,
-                                &req.word,
-                                req.instruction().as_deref(),
-                            )
-                            .await?,
+                        crate::ai::explain(
+                            self.workers_ai.as_ref().unwrap(),
+                            req.google_search.unwrap_or(false),
+                            crate::ai::TranslateRequest {
+                                model,
+                                chars_limit: false,
+                                query: &req.word,
+                                instruction: req.instruction().as_deref(),
+                                dst_lang: req.dst_lang.as_deref(),
+                            },
+                        )
+                        .await?,
                     ),
                     _ => Some(
-                        self.custom_llms
-                            .get(name)
-                            .ok_or(Error::Internal("custom llm not found".to_string()))?
-                            .explain(
-                                req.google_search.unwrap_or(false),
-                                ai::TranslateRequest {
-                                    model,
-                                    chars_limit: false,
-                                    query: &req.word,
-                                    dst_lang: req.dst_lang.as_deref(),
-                                    ..Default::default()
-                                },
-                            )
-                            .await?,
+                        crate::ai::explain(
+                            self.custom_llms
+                                .get(name)
+                                .ok_or(Error::Internal("custom llm not found".to_string()))?,
+                            req.google_search.unwrap_or(false),
+                            crate::ai::TranslateRequest {
+                                model,
+                                chars_limit: false,
+                                query: &req.word,
+                                instruction: req.instruction().as_deref(),
+                                dst_lang: req.dst_lang.as_deref(),
+                            },
+                        )
+                        .await?,
                     ),
                 }
             }
@@ -576,11 +580,11 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
                 Err(e) => return Err(Error::Internal(e.to_string())),
             },
             "m2m100_1_2b" => {
-                self.workers_ai
+                self.translator
                     .m2m100_1_2b(
                         &req.word,
                         req.src_lang,
-                        req.dst_lang.unwrap_or("en".to_string()),
+                        req.dst_lang.unwrap_or_else(|| "en".to_string()),
                     )
                     .await?
             }
@@ -613,5 +617,92 @@ impl<T1: DatabaseExecutor, T2: WorkersAI> RunOpt<T1, T2> {
             result,
             reasoning: None,
         })?)
+    }
+
+    pub async fn word_query_stream(&self, body: Vec<u8>) -> Result<UnifiedResponse, Error> {
+        let req = serde_json::from_slice::<WordQueryRequest>(&body)?;
+
+        let stream = match req.method.as_str() {
+            "custom_llm" => {
+                let (name, model) = match req.custom_llm.as_ref() {
+                    Some(llm) => (&llm.name, &llm.model),
+                    None => return Err(Error::Internal("custom llm is empty".to_string())),
+                };
+
+                match name.as_str() {
+                    "workers-ai" => {
+                        crate::ai::explain_stream(
+                            self.workers_ai.as_ref().unwrap(),
+                            req.google_search.unwrap_or(false),
+                            crate::ai::TranslateRequest {
+                                model,
+                                chars_limit: false,
+                                query: &req.word,
+                                instruction: req.instruction().as_deref(),
+                                dst_lang: req.dst_lang.as_deref(),
+                            },
+                        )
+                        .await?
+                    }
+                    _ => {
+                        crate::ai::explain_stream(
+                            self.custom_llms
+                                .get(name)
+                                .ok_or(Error::Internal("custom llm not found".to_string()))?,
+                            req.google_search.unwrap_or(false),
+                            crate::ai::TranslateRequest {
+                                model,
+                                chars_limit: false,
+                                query: &req.word,
+                                instruction: req.instruction().as_deref(),
+                                dst_lang: req.dst_lang.as_deref(),
+                            },
+                        )
+                        .await?
+                    }
+                }
+            }
+            _ => return Err(Error::Internal("method not support stream".to_string())),
+        };
+
+        use futures_util::StreamExt;
+        let s = stream.map(|res| match res {
+            Ok(v) => {
+                let resp = WordQueryResponse {
+                    result: v.content,
+                    reasoning: v.thinking,
+                };
+                let json = serde_json::to_string(&resp).unwrap_or_default();
+                Ok(bytes::Bytes::from(format!("data: {}\n\n", json)))
+            }
+            Err(e) => Err(e),
+        });
+
+        Ok(UnifiedResponse::stream(Box::pin(s)))
+    }
+}
+
+use futures_util::Stream;
+use std::pin::Pin;
+
+pub type BoxedStream =
+    Pin<Box<dyn Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>>;
+
+pub enum UnifiedBody {
+    Bytes(Vec<u8>),
+    Stream(BoxedStream),
+}
+
+impl UnifiedResponse {
+    pub fn stream(stream: BoxedStream) -> Self {
+        Self {
+            status: 200,
+            body: UnifiedBody::Stream(stream),
+            headers: vec![
+                ("Content-Type".to_string(), "text/event-stream".to_string()),
+                ("Cache-Control".to_string(), "no-cache".to_string()),
+                ("Connection".to_string(), "keep-alive".to_string()),
+            ],
+        }
     }
 }

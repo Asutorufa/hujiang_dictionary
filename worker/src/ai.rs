@@ -1,54 +1,12 @@
 use std::sync::Arc;
 
-use cloudflare::endpoints::ai::execute_model::{
-    Message, MessageRole, MessagesParams, ResponseAndToolCallsResult, TranslationParams,
-    TranslationResult,
-};
-use hjcommon::ai::{
-    Choice, CompletionRequest, CompletionResponse, Error, Message as CommonMessage, Models,
-    ResponseResponse, ResponsesRequest, WorkersAI,
-};
+use cloudflare::endpoints::ai::execute_model::{TranslationParams, TranslationResult};
+use hjcommon::ai::{Error, Translator};
 use serde::{Serialize, de::DeserializeOwned};
 use worker::{Ai, Env};
 
 pub struct WasmAI {
-    ai: Option<Arc<Ai>>,
-}
-
-fn completion_request_to_messages_params(msg: &CompletionRequest) -> MessagesParams {
-    let mut messages = vec![];
-
-    for m in msg.messages.iter() {
-        messages.push(Message {
-            role: match m.role.as_str() {
-                "user" => MessageRole::User,
-                "system" => MessageRole::System,
-                "assistant" => MessageRole::Assistant,
-                _ => MessageRole::User,
-            },
-            content: m.content.clone(),
-        });
-    }
-
-    MessagesParams {
-        messages,
-        stream: Some(false),
-        ..Default::default()
-    }
-}
-
-fn response_and_tool_calls_result_to_completion_response(
-    result: ResponseAndToolCallsResult,
-) -> CompletionResponse {
-    CompletionResponse {
-        choices: vec![Choice {
-            message: CommonMessage {
-                role: "assistant".to_string(),
-                content: result.response,
-                reasoning: None,
-            },
-        }],
-    }
+    pub ai: Option<Arc<Ai>>,
 }
 
 impl WasmAI {
@@ -90,25 +48,7 @@ impl Clone for WasmAI {
     }
 }
 
-impl WorkersAI for WasmAI {
-    async fn completion(&self, req: CompletionRequest) -> Result<CompletionResponse, Error> {
-        let result: ResponseAndToolCallsResult = self
-            .exec(&req.model, completion_request_to_messages_params(&req))
-            .await?;
-
-        Ok(response_and_tool_calls_result_to_completion_response(
-            result,
-        ))
-    }
-
-    async fn responses(&self, req: ResponsesRequest) -> Result<ResponseResponse, Error> {
-        self.exec(&req.model.clone(), req).await
-    }
-
-    fn enabled(&self) -> bool {
-        self.ai.is_some()
-    }
-
+impl Translator for WasmAI {
     async fn m2m100_1_2b(
         &self,
         text: &str,
@@ -120,7 +60,7 @@ impl WorkersAI for WasmAI {
             text: text.to_string(),
             source_lang,
         };
-        let result: TranslationResult = self.exec(Models::M2M100_1_2B.as_str(), msg).await?;
+        let result: TranslationResult = self.exec("@cf/meta/m2m100-1.2b", msg).await?;
         Ok(result.translated_text)
     }
 }

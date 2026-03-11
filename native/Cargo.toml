@@ -17,3 +17,4 @@ hjcommon = { path = "../common" }
 hjdict = { path = "../dict" }
 d1-orm = "0.1.1"
 async-trait = "0.1.89"
+hj_ai = { path = "../ai" }

@@ -74,7 +74,7 @@ impl OpenAI {
     pub async fn create_completion_stream(
         self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + 'static, Error> {
         let req = CompletionRequest {
             model: self.model.clone(),
             messages,
@@ -85,9 +85,16 @@ impl OpenAI {
             .client
             .post(format!("{}/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Accept", "text/event-stream")
             .json(&req)
             .send()
             .await?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let err_msg = resp.text().await.unwrap_or_default();
+            return Err(Error::Api(format!("HTTP error {}: {}", status, err_msg)));
+        }
 
         let stream = resp.bytes_stream();
 
@@ -97,33 +104,29 @@ impl OpenAI {
                 loop {
                     use futures_util::StreamExt;
 
-                    if let Some(pos) = buffer.find("\n\n") {
-                        let message = buffer[..pos].to_string();
-                        buffer.drain(..pos + 2);
+                    if let Some(pos) = buffer.find('\n') {
+                        let line = buffer.drain(..pos + 1).collect::<String>();
+                        let line = line.trim();
 
-                        if let Some(data) = message.strip_prefix("data: ") {
+                        if let Some(data) = line.strip_prefix("data:") {
                             let data = data.trim();
                             if data == "[DONE]" {
                                 return None;
                             }
-                            if !data.is_empty() {
-                                match serde_json::from_str::<StreamCompletionResponse>(data) {
-                                    Ok(response) => {
-                                        if let Some(choice) = response.choices.first() {
-                                            let content =
-                                                choice.delta.content.clone().unwrap_or_default();
-                                            let thinking = choice.delta.reasoning_content.clone();
-                                            if !content.is_empty() || thinking.is_some() {
-                                                return Some((
-                                                    Ok(CompletionResponse { content, thinking }),
-                                                    (stream, buffer),
-                                                ));
-                                            }
-                                        }
-                                    }
-                                    Err(e) => {
-                                        return Some((Err(Error::from(e)), (stream, buffer)));
-                                    }
+                            if let Some(choice) = Some(data)
+                                .filter(|d| !d.is_empty())
+                                .and_then(|d| {
+                                    serde_json::from_str::<StreamCompletionResponse>(d).ok()
+                                })
+                                .and_then(|r| r.choices.into_iter().next())
+                            {
+                                let content = choice.delta.content.clone().unwrap_or_default();
+                                let thinking = choice.delta.reasoning_content.clone();
+                                if !content.is_empty() || thinking.is_some() {
+                                    return Some((
+                                        Ok(CompletionResponse { content, thinking }),
+                                        (stream, buffer),
+                                    ));
                                 }
                             }
                         }
@@ -137,39 +140,25 @@ impl OpenAI {
                         Some(Err(e)) => return Some((Err(Error::from(e)), (stream, buffer))),
                         None => {
                             if !buffer.is_empty() {
-                                let message = buffer.clone();
+                                let line = buffer.clone();
                                 buffer.clear();
-                                if let Some(data) = message.strip_prefix("data: ") {
+                                if let Some(data) = line.strip_prefix("data:") {
                                     let data = data.trim();
-                                    if !data.is_empty() && data != "[DONE]" {
-                                        match serde_json::from_str::<StreamCompletionResponse>(data)
-                                        {
-                                            Ok(response) => {
-                                                if let Some(choice) = response.choices.first() {
-                                                    let content = choice
-                                                        .delta
-                                                        .content
-                                                        .clone()
-                                                        .unwrap_or_default();
-                                                    let thinking =
-                                                        choice.delta.reasoning_content.clone();
-                                                    if !content.is_empty() || thinking.is_some() {
-                                                        return Some((
-                                                            Ok(CompletionResponse {
-                                                                content,
-                                                                thinking,
-                                                            }),
-                                                            (stream, buffer),
-                                                        ));
-                                                    }
-                                                }
-                                            }
-                                            Err(e) => {
-                                                return Some((
-                                                    Err(Error::from(e)),
-                                                    (stream, buffer),
-                                                ));
-                                            }
+                                    if let Some(choice) = Some(data)
+                                        .filter(|d| !d.is_empty() && *d != "[DONE]")
+                                        .and_then(|d| {
+                                            serde_json::from_str::<StreamCompletionResponse>(d).ok()
+                                        })
+                                        .and_then(|r| r.choices.into_iter().next())
+                                    {
+                                        let content =
+                                            choice.delta.content.clone().unwrap_or_default();
+                                        let thinking = choice.delta.reasoning_content.clone();
+                                        if !content.is_empty() || thinking.is_some() {
+                                            return Some((
+                                                Ok(CompletionResponse { content, thinking }),
+                                                (stream, buffer),
+                                            ));
                                         }
                                     }
                                 }
@@ -214,7 +203,7 @@ impl Completion for OpenAI {
     async fn completion_stream(
         &self,
         messages: Vec<Message>,
-    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + Send + 'static, Error> {
+    ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + 'static, Error> {
         self.clone().create_completion_stream(messages).await
     }
 }

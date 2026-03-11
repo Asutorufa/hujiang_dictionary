@@ -3,7 +3,7 @@ pub mod consolelog;
 
 use crate::ai::WasmAI;
 use frankenstein::client_reqwest;
-use hjcommon::ai::OpenAI;
+use hjcommon::ai::providers_from_assets;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::send_random_word;
 use log::error;
@@ -13,7 +13,7 @@ use worker::*;
 
 static INIT: Once = Once::new();
 static ENV_CONFIG: OnceLock<EnvConfig> = OnceLock::new();
-static CUSTOM_LLMS: OnceLock<HashMap<String, OpenAI>> = OnceLock::new();
+static CUSTOM_LLMS: OnceLock<HashMap<String, hj_ai::provider::Provider>> = OnceLock::new();
 
 struct EnvConfig {
     allow_users: Arc<HashSet<i64>>,
@@ -37,23 +37,17 @@ impl EnvConfig {
         let mut set = HashSet::from([maintainer_id]);
         set.extend(
             get_string_from_env(env, "ALLOW_USERS")
-                .split(',')
-                .filter(|s| !s.is_empty())
-                .filter_map(|s| s.parse::<i64>().ok()),
+                .split(",")
+                .map(|v| v.parse::<i64>().unwrap_or(0)),
         );
-        let allow_users = Arc::new(set);
 
-        let auth_secret = {
-            let s = get_string_from_env(env, "AUTH_SECRET");
-            if s.is_empty() {
-                "default_secret".to_string()
-            } else {
-                s
-            }
+        let auth_secret = match get_string_from_env(env, "AUTH_SECRET") {
+            s if s.is_empty() => "default_secret".to_string(),
+            s => s,
         };
 
-        EnvConfig {
-            allow_users,
+        Self {
+            allow_users: Arc::new(set),
             maintainer_id,
             bot,
             auth_secret,
@@ -68,11 +62,8 @@ impl EnvConfig {
 
 fn get_string_from_env(env: &Env, key: &str) -> String {
     match env.var(key) {
-        Ok(v) => match v.as_ref().as_string() {
-            Some(v) => v,
-            None => "".to_string(),
-        },
-        _ => "".to_string(),
+        Ok(v) => v.to_string(),
+        Err(_) => "".to_string(),
     }
 }
 
@@ -90,10 +81,21 @@ async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
     Arc::new(RunOpt {
         allow_users: config.allow_users.clone(),
         d1: env.d1("DB").expect("D1 binding not found"),
-        workers_ai: WasmAI::new(&env, "AI"),
+        translator: WasmAI::new(&env, "AI"),
+        workers_ai: if env.ai("AI").is_ok() {
+            Some(hj_ai::provider::Provider::WorkersAI(
+                hj_ai::workers::WorkersAI {
+                    model: "".to_string(),
+                    models: vec![],
+                    binding: Some(Arc::new(env.ai("AI").unwrap())),
+                },
+            ))
+        } else {
+            None
+        },
         matainer: config.maintainer_id,
         bot: config.bot.clone(),
-        custom_llms: CUSTOM_LLMS.get_or_init(OpenAI::from_assets).clone(),
+        custom_llms: CUSTOM_LLMS.get_or_init(providers_from_assets).clone(),
         auth_secret: config.auth_secret.clone(),
         auth_username: config.auth_username.clone(),
         auth_password: config.auth_password.clone(),
@@ -132,7 +134,17 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
         .await
     {
         Ok(resp) => {
-            let mut r = Response::from_bytes(resp.body)?;
+            let mut r = match resp.body {
+                hjcommon::route::UnifiedBody::Bytes(b) => Response::from_bytes(b)?,
+                hjcommon::route::UnifiedBody::Stream(s) => {
+                    use futures_util::StreamExt;
+                    let stream = s.map(|res: Result<bytes::Bytes, Box<dyn std::error::Error>>| {
+                        res.map(|b| b.to_vec())
+                            .map_err(|e| worker::Error::RustError(e.to_string()))
+                    });
+                    Response::from_stream(stream)?
+                }
+            };
             r = r.with_status(resp.status);
             for (k, v) in resp.headers {
                 r.headers_mut().set(&k, &v)?;
@@ -149,189 +161,10 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
 }
 
 #[event(scheduled)]
-pub async fn scheduled(_: ScheduledEvent, env: Env, _: ScheduleContext) {
+async fn cron(_: ScheduledEvent, env: Env, _ctx: ScheduleContext) {
     let opt = get_opt(env).await;
 
     if let Err(e) = send_random_word(opt).await {
         error!("Error: {}", e);
-    }
-}
-
-/*
-pub async fn static_file(req: Request) -> worker::Result<Response> {
-    let mut path = req.path().clone();
-    if path.ends_with("/") {
-        path = path.strip_suffix("/").unwrap().to_string();
-    }
-
-    if path.starts_with("/") {
-        path = path.strip_prefix("/").unwrap().to_string();
-    }
-
-    let mut paths = vec![
-        path.clone(),
-        format!(
-            "{}{}",
-            path,
-            if path.is_empty() {
-                "index.html"
-            } else {
-                "/index.html"
-            }
-        ),
-    ];
-
-    if !path.is_empty() {
-        paths.push(format!("{}.html", path));
-    }
-
-    let (path, file) = get_file(paths)?;
-
-    let ext = if let Some((_, ext)) = path.rsplit_once(".") {
-        ext
-    } else {
-        ""
-    };
-
-    let ct = match ext {
-        "html" => "text/html",
-        "css" => "text/css",
-        "js" => "text/javascript",
-        "json" => "application/json",
-        "png" => "image/png",
-        "jpg" => "image/jpeg",
-        "jpeg" => "image/jpeg",
-        "ico" => "image/x-icon",
-        "wasm" => "application/wasm",
-        _ => "",
-    };
-
-    let mut resp = ResponseBuilder::new();
-
-    if !ct.is_empty() {
-        resp = resp.with_header("content-type", ct)?;
-    }
-
-    Ok(resp.fixed(file.data.to_vec()))
-}
-
-fn get_file(paths: Vec<String>) -> Result<(String, EmbeddedFile)> {
-    for p in paths {
-        match Assets::get(p.as_str()) {
-            Some(file) => return Ok((p, file)),
-            None => {}
-        };
-    }
-
-    Err(worker::Error::from("file not found"))
-}
-*/
-
-#[cfg(test)]
-mod tests {
-    use std::collections::HashSet;
-    use std::sync::Arc;
-    use std::time::Instant;
-
-    #[test]
-    fn benchmark_env_parsing_vs_cached_config() {
-        // Simulate env vars
-        let ids: Vec<String> = (0..1000).map(|i| i.to_string()).collect();
-        let allow_users_str = ids.join(",");
-        let maintainer_id_str = "12345";
-        let token_str = "some_long_token_string";
-        let auth_secret_str = "some_secret";
-        let auth_username_str = "user";
-        let auth_password_str = "pass";
-        let auth_expiration_str = "3600";
-
-        let iterations = 1000;
-
-        // Baseline: Parse everything every time
-        let start = Instant::now();
-        for _ in 0..iterations {
-            // Simulate maintainer_id parsing
-            let maintainer_id = maintainer_id_str.parse::<i64>().unwrap_or(0);
-
-            // Simulate ALLOW_USERS parsing
-            let mut set = HashSet::from([maintainer_id]);
-            set.extend(
-                allow_users_str
-                    .split(',')
-                    .filter(|s| !s.is_empty())
-                    .filter_map(|v| v.parse::<i64>().ok()),
-            );
-            let allow_users = Arc::new(set);
-
-            // Simulate other env vars retrieval (allocation)
-            let token = token_str.to_string();
-            let auth_secret = auth_secret_str.to_string();
-            let auth_username = auth_username_str.to_string();
-            let auth_password = auth_password_str.to_string();
-            let auth_expiration = auth_expiration_str.parse::<i64>().unwrap_or(1);
-
-            // Prevent optimization
-            let _ = (
-                allow_users,
-                maintainer_id,
-                token,
-                auth_secret,
-                auth_username,
-                auth_password,
-                auth_expiration,
-            );
-        }
-        let duration_parse = start.elapsed();
-
-        // Optimization: Clone cached struct
-        #[allow(dead_code)]
-        struct CachedConfig {
-            allow_users: Arc<HashSet<i64>>,
-            maintainer_id: i64,
-            token: String,
-            auth_secret: String,
-            auth_username: String,
-            auth_password: String,
-            auth_expiration: i64,
-        }
-
-        // Setup cache once
-        let maintainer_id = maintainer_id_str.parse::<i64>().unwrap_or(0);
-        let mut set = HashSet::from([maintainer_id]);
-        set.extend(
-            allow_users_str
-                .split(',')
-                .filter(|s| !s.is_empty())
-                .filter_map(|v| v.parse::<i64>().ok()),
-        );
-        let cached = Arc::new(CachedConfig {
-            allow_users: Arc::new(set),
-            maintainer_id,
-            token: token_str.to_string(),
-            auth_secret: auth_secret_str.to_string(),
-            auth_username: auth_username_str.to_string(),
-            auth_password: auth_password_str.to_string(),
-            auth_expiration: auth_expiration_str.parse::<i64>().unwrap_or(1),
-        });
-
-        let start_clone = Instant::now();
-        for _ in 0..iterations {
-            let _ = cached.clone();
-        }
-        let duration_clone = start_clone.elapsed();
-
-        println!(
-            "Parsing full config {} times took: {:?}",
-            iterations, duration_parse
-        );
-        println!(
-            "Cloning cached config {} times took: {:?}",
-            iterations, duration_clone
-        );
-
-        assert!(
-            duration_clone < duration_parse,
-            "Optimization should be significantly faster"
-        );
     }
 }
