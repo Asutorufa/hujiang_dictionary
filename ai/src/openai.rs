@@ -113,24 +113,20 @@ impl OpenAI {
                             if data == "[DONE]" {
                                 return None;
                             }
-                            if !data.is_empty() {
-                                match serde_json::from_str::<StreamCompletionResponse>(data) {
-                                    Ok(response) => {
-                                        if let Some(choice) = response.choices.first() {
-                                            let content =
-                                                choice.delta.content.clone().unwrap_or_default();
-                                            let thinking = choice.delta.reasoning_content.clone();
-                                            if !content.is_empty() || thinking.is_some() {
-                                                return Some((
-                                                    Ok(CompletionResponse { content, thinking }),
-                                                    (stream, buffer),
-                                                ));
-                                            }
-                                        }
-                                    }
-                                    Err(_) => {
-                                        // Ignore JSON errors in individual lines for robustness
-                                    }
+                            if let Some(choice) = Some(data)
+                                .filter(|d| !d.is_empty())
+                                .and_then(|d| {
+                                    serde_json::from_str::<StreamCompletionResponse>(d).ok()
+                                })
+                                .and_then(|r| r.choices.into_iter().next())
+                            {
+                                let content = choice.delta.content.clone().unwrap_or_default();
+                                let thinking = choice.delta.reasoning_content.clone();
+                                if !content.is_empty() || thinking.is_some() {
+                                    return Some((
+                                        Ok(CompletionResponse { content, thinking }),
+                                        (stream, buffer),
+                                    ));
                                 }
                             }
                         }
@@ -148,28 +144,21 @@ impl OpenAI {
                                 buffer.clear();
                                 if let Some(data) = line.strip_prefix("data:") {
                                     let data = data.trim();
-                                    if !data.is_empty() && data != "[DONE]" {
-                                        if let Ok(response) =
-                                            serde_json::from_str::<StreamCompletionResponse>(data)
-                                        {
-                                            if let Some(choice) = response.choices.first() {
-                                                let content = choice
-                                                    .delta
-                                                    .content
-                                                    .clone()
-                                                    .unwrap_or_default();
-                                                let thinking =
-                                                    choice.delta.reasoning_content.clone();
-                                                if !content.is_empty() || thinking.is_some() {
-                                                    return Some((
-                                                        Ok(CompletionResponse {
-                                                            content,
-                                                            thinking,
-                                                        }),
-                                                        (stream, buffer),
-                                                    ));
-                                                }
-                                            }
+                                    if let Some(choice) = Some(data)
+                                        .filter(|d| !d.is_empty() && *d != "[DONE]")
+                                        .and_then(|d| {
+                                            serde_json::from_str::<StreamCompletionResponse>(d).ok()
+                                        })
+                                        .and_then(|r| r.choices.into_iter().next())
+                                    {
+                                        let content =
+                                            choice.delta.content.clone().unwrap_or_default();
+                                        let thinking = choice.delta.reasoning_content.clone();
+                                        if !content.is_empty() || thinking.is_some() {
+                                            return Some((
+                                                Ok(CompletionResponse { content, thinking }),
+                                                (stream, buffer),
+                                            ));
                                         }
                                     }
                                 }

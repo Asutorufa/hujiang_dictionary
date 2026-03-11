@@ -398,7 +398,9 @@ impl From<ConfigProvider> for hj_ai::provider::Provider {
                     v.models,
                 ))
             }
-            ProviderType::WorkersAI => {
+            ProviderType::WorkersAI =>
+            {
+                #[allow(clippy::needless_update)]
                 hj_ai::provider::Provider::WorkersAI(hj_ai::workers::WorkersAI {
                     model: v.models.first().cloned().unwrap_or_default(),
                     models: v.models,
