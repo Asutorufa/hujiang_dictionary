@@ -1,6 +1,6 @@
 ---
-name: rust_linting
-description: Always run cargo fmt and cargo clippy together to ensure code quality and consistent style.
+name: rust-linting
+description: Always run cargo fmt and cargo clippy together to ensure code quality and consistent style. When user asks to check or lint, use this combined command.
 ---
 
 # Rust Linting and Formatting
