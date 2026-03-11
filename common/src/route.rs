@@ -334,6 +334,9 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                     if let Err(e) = self.check_auth(auth_header) {
                         return Ok(UnifiedResponse::error(401, e));
                     }
+                    if path == "/word/query_stream" {
+                        return self.word_query_stream(body).await;
+                    }
                     let resp = self.route(path, body).await?;
                     Ok(UnifiedResponse::json(resp))
                 } else {
@@ -614,6 +617,68 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
             result,
             reasoning: None,
         })?)
+    }
+
+    pub async fn word_query_stream(&self, body: Vec<u8>) -> Result<UnifiedResponse, Error> {
+        let req = serde_json::from_slice::<WordQueryRequest>(&body)?;
+
+        let stream = match req.method.as_str() {
+            "custom_llm" => {
+                let (name, model) = match req.custom_llm.as_ref() {
+                    Some(llm) => (&llm.name, &llm.model),
+                    None => return Err(Error::Internal("custom llm is empty".to_string())),
+                };
+
+                match name.as_str() {
+                    "workers-ai" => {
+                        crate::ai::explain_stream(
+                            self.workers_ai.as_ref().unwrap(),
+                            req.google_search.unwrap_or(false),
+                            crate::ai::TranslateRequest {
+                                model,
+                                chars_limit: false,
+                                query: &req.word,
+                                instruction: req.instruction().as_deref(),
+                                dst_lang: req.dst_lang.as_deref(),
+                            },
+                        )
+                        .await?
+                    }
+                    _ => {
+                        crate::ai::explain_stream(
+                            self.custom_llms
+                                .get(name)
+                                .ok_or(Error::Internal("custom llm not found".to_string()))?,
+                            req.google_search.unwrap_or(false),
+                            crate::ai::TranslateRequest {
+                                model,
+                                chars_limit: false,
+                                query: &req.word,
+                                instruction: req.instruction().as_deref(),
+                                dst_lang: req.dst_lang.as_deref(),
+                            },
+                        )
+                        .await?
+                    }
+                }
+            }
+            _ => return Err(Error::Internal("method not support stream".to_string())),
+        };
+
+        use futures_util::StreamExt;
+        let s = stream.map(|res| match res {
+            Ok(v) => {
+                let resp = WordQueryResponse {
+                    result: v.content,
+                    reasoning: v.thinking,
+                };
+                let json = serde_json::to_string(&resp).unwrap_or_default();
+                Ok(bytes::Bytes::from(format!("data: {}\n\n", json)))
+            }
+            Err(e) => Err(e),
+        });
+
+        Ok(UnifiedResponse::stream(Box::pin(s)))
     }
 }
 

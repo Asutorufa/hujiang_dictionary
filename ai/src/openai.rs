@@ -85,9 +85,16 @@ impl OpenAI {
             .client
             .post(format!("{}/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Accept", "text/event-stream")
             .json(&req)
             .send()
             .await?;
+
+        let status = resp.status();
+        if !status.is_success() {
+            let err_msg = resp.text().await.unwrap_or_default();
+            return Err(Error::Api(format!("HTTP error {}: {}", status, err_msg)));
+        }
 
         let stream = resp.bytes_stream();
 
@@ -97,11 +104,11 @@ impl OpenAI {
                 loop {
                     use futures_util::StreamExt;
 
-                    if let Some(pos) = buffer.find("\n\n") {
-                        let message = buffer[..pos].to_string();
-                        buffer.drain(..pos + 2);
+                    if let Some(pos) = buffer.find('\n') {
+                        let line = buffer.drain(..pos + 1).collect::<String>();
+                        let line = line.trim();
 
-                        if let Some(data) = message.strip_prefix("data: ") {
+                        if let Some(data) = line.strip_prefix("data:") {
                             let data = data.trim();
                             if data == "[DONE]" {
                                 return None;
@@ -121,8 +128,8 @@ impl OpenAI {
                                             }
                                         }
                                     }
-                                    Err(e) => {
-                                        return Some((Err(Error::from(e)), (stream, buffer)));
+                                    Err(_) => {
+                                        // Ignore JSON errors in individual lines for robustness
                                     }
                                 }
                             }
@@ -137,38 +144,31 @@ impl OpenAI {
                         Some(Err(e)) => return Some((Err(Error::from(e)), (stream, buffer))),
                         None => {
                             if !buffer.is_empty() {
-                                let message = buffer.clone();
+                                let line = buffer.clone();
                                 buffer.clear();
-                                if let Some(data) = message.strip_prefix("data: ") {
+                                if let Some(data) = line.strip_prefix("data:") {
                                     let data = data.trim();
                                     if !data.is_empty() && data != "[DONE]" {
-                                        match serde_json::from_str::<StreamCompletionResponse>(data)
+                                        if let Ok(response) =
+                                            serde_json::from_str::<StreamCompletionResponse>(data)
                                         {
-                                            Ok(response) => {
-                                                if let Some(choice) = response.choices.first() {
-                                                    let content = choice
-                                                        .delta
-                                                        .content
-                                                        .clone()
-                                                        .unwrap_or_default();
-                                                    let thinking =
-                                                        choice.delta.reasoning_content.clone();
-                                                    if !content.is_empty() || thinking.is_some() {
-                                                        return Some((
-                                                            Ok(CompletionResponse {
-                                                                content,
-                                                                thinking,
-                                                            }),
-                                                            (stream, buffer),
-                                                        ));
-                                                    }
+                                            if let Some(choice) = response.choices.first() {
+                                                let content = choice
+                                                    .delta
+                                                    .content
+                                                    .clone()
+                                                    .unwrap_or_default();
+                                                let thinking =
+                                                    choice.delta.reasoning_content.clone();
+                                                if !content.is_empty() || thinking.is_some() {
+                                                    return Some((
+                                                        Ok(CompletionResponse {
+                                                            content,
+                                                            thinking,
+                                                        }),
+                                                        (stream, buffer),
+                                                    ));
                                                 }
-                                            }
-                                            Err(e) => {
-                                                return Some((
-                                                    Err(Error::from(e)),
-                                                    (stream, buffer),
-                                                ));
                                             }
                                         }
                                     }

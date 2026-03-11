@@ -1,0 +1,9 @@
+{
+    "workers": {
+        "name": "workers",
+        "provider": "workersai",
+        "models": [
+            "@cf/openai/gpt-oss-20b"
+        ]
+    }
+}

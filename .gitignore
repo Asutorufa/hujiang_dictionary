@@ -12,3 +12,7 @@ wrangler.deploy.toml
 /dist
 /web/out
 common/config/llm.json
+common/src/.api.*.json
+common/config/.api.*.json
+common/config/api.*.json
+common/config/api.json

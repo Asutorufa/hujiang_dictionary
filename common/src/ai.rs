@@ -235,7 +235,11 @@ pub async fn explain_stream<'a>(
     req: TranslateRequest<'a>,
 ) -> Result<
     std::pin::Pin<
-        Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>,
+        Box<
+            dyn futures_util::Stream<
+                    Item = Result<hj_ai::CompletionResponse, Box<dyn std::error::Error>>,
+                >,
+        >,
     >,
     Error,
 > {
@@ -252,7 +256,11 @@ pub async fn translate_stream<'a>(
     req: TranslateRequest<'a>,
 ) -> Result<
     std::pin::Pin<
-        Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>,
+        Box<
+            dyn futures_util::Stream<
+                    Item = Result<hj_ai::CompletionResponse, Box<dyn std::error::Error>>,
+                >,
+        >,
     >,
     Error,
 > {
@@ -290,10 +298,7 @@ pub async fn translate_stream<'a>(
 
     use futures_util::StreamExt;
     let mapped_stream = stream.map(|res| match res {
-        Ok(v) => Ok(bytes::Bytes::from(format!(
-            "data: {}\n\n",
-            serde_json::to_string(&v).unwrap_or_default()
-        ))),
+        Ok(v) => Ok(v),
         Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
     });
 
@@ -305,7 +310,11 @@ pub async fn google_search_req_stream<'a>(
     req: TranslateRequest<'a>,
 ) -> Result<
     std::pin::Pin<
-        Box<dyn futures_util::Stream<Item = Result<bytes::Bytes, Box<dyn std::error::Error>>>>,
+        Box<
+            dyn futures_util::Stream<
+                    Item = Result<hj_ai::CompletionResponse, Box<dyn std::error::Error>>,
+                >,
+        >,
     >,
     Error,
 > {
@@ -336,81 +345,191 @@ pub async fn google_search_req_stream<'a>(
 
     use futures_util::StreamExt;
     let mapped_stream = stream.map(|res| match res {
-        Ok(v) => Ok(bytes::Bytes::from(format!(
-            "data: {}\n\n",
-            serde_json::to_string(&v).unwrap_or_default()
-        ))),
+        Ok(v) => Ok(v),
         Err(e) => Err(Box::new(e) as Box<dyn std::error::Error>),
     });
 
     Ok(Box::pin(mapped_stream))
 }
 
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+enum ProviderType {
+    #[default]
+    OpenAI,
+    Gemini,
+    VertexAI,
+    WorkersAI,
+}
+
 #[derive(serde::Deserialize)]
 struct ConfigProvider {
     name: String,
-    base_url: String,
-    api_key: String,
-    #[allow(dead_code)]
-    provider: Option<String>,
+    base_url: Option<String>,
+    api_key: Option<String>,
+    provider: Option<ProviderType>,
     models: Vec<String>,
+    project_id: Option<String>,
+    location: Option<String>,
+}
+
+impl From<ConfigProvider> for hj_ai::provider::Provider {
+    fn from(v: ConfigProvider) -> Self {
+        match v.provider.unwrap_or_default() {
+            ProviderType::OpenAI => hj_ai::provider::Provider::OpenAI(hj_ai::openai::OpenAI {
+                name: v.name,
+                base_url: v.base_url.unwrap_or_default(),
+                api_key: v.api_key.unwrap_or_default(),
+                model: v.models.first().cloned().unwrap_or_default(),
+                models: HashSet::from_iter(v.models),
+                ..Default::default()
+            }),
+            ProviderType::Gemini => hj_ai::provider::Provider::Gemini(hj_ai::gemini::Gemini::new(
+                v.api_key.unwrap_or_default(),
+                v.models.first().cloned().unwrap_or_default(),
+                v.models,
+            )),
+            ProviderType::VertexAI => {
+                hj_ai::provider::Provider::Gemini(hj_ai::gemini::Gemini::new_vertex_ai(
+                    v.project_id.unwrap_or_default(),
+                    v.location.unwrap_or_else(|| "us-central1".to_string()),
+                    v.models.first().cloned().unwrap_or_default(),
+                    v.api_key.unwrap_or_default(),
+                    v.models,
+                ))
+            }
+            ProviderType::WorkersAI => {
+                hj_ai::provider::Provider::WorkersAI(hj_ai::workers::WorkersAI {
+                    model: v.models.first().cloned().unwrap_or_default(),
+                    models: v.models,
+                    ..Default::default()
+                })
+            }
+        }
+    }
+}
+
+fn parse_config(data: &[u8]) -> HashMap<String, hj_ai::provider::Provider> {
+    serde_json::from_slice::<HashMap<String, ConfigProvider>>(data)
+        .map(|config| {
+            config
+                .into_iter()
+                .map(|(k, v)| (k, hj_ai::provider::Provider::from(v)))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 pub fn providers_from_assets() -> HashMap<String, hj_ai::provider::Provider> {
     let mut llms = HashMap::new();
+    let mut example_llms = HashMap::new();
+    
     for v in Assets::iter() {
         if !v.ends_with(".json") {
             continue;
         }
 
-        let f = match Assets::get(&v) {
-            Some(v) => v,
-            None => continue,
-        };
-
-        if let Ok(config) = serde_json::from_slice::<HashMap<String, ConfigProvider>>(&f.data) {
-            for (k, v) in config {
-                llms.insert(
-                    k,
-                    hj_ai::provider::Provider::OpenAI(hj_ai::openai::OpenAI {
-                        name: v.name,
-                        base_url: v.base_url,
-                        api_key: v.api_key,
-                        model: v.models.first().cloned().unwrap_or_default(),
-                        models: HashSet::from_iter(v.models),
-                        ..Default::default()
-                    }),
-                );
+        if let Some(f) = Assets::get(&v) {
+            if v == "example.json" {
+                example_llms.extend(parse_config(&f.data));
+            } else {
+                llms.extend(parse_config(&f.data));
             }
         }
     }
+    
+    // Prioritize actual config over example config
+    for (k, v) in example_llms {
+        llms.entry(k).or_insert(v);
+    }
+    
     llms
 }
 
 pub fn providers_from_base64_string(env: String) -> HashMap<String, hj_ai::provider::Provider> {
-    let env_bytes = match base64::engine::general_purpose::STANDARD.decode(env) {
-        Ok(v) => v,
-        Err(_) => return HashMap::new(),
-    };
+    base64::engine::general_purpose::STANDARD
+        .decode(env)
+        .map(|bytes| parse_config(&bytes))
+        .unwrap_or_default()
+}
 
-    let config: HashMap<String, ConfigProvider> = match serde_json::from_slice(&env_bytes) {
-        Ok(v) => v,
-        Err(_) => return HashMap::new(),
-    };
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use futures_util::StreamExt;
+    #[tokio::test]
+    #[ignore]
+    async fn test_providers() {
+        let path = format!("{}/src/.api.gemini.json", env!("CARGO_MANIFEST_DIR"));
+        let content = std::fs::read_to_string(&path).unwrap_or_else(|_| {
+            std::fs::read_to_string(".api.gemini.json").expect(
+                "Failed to read .api.gemini.json from crate root, workspace root, or src directory",
+            )
+        });
+        let providers = parse_config(content.as_bytes());
 
-    let mut llms = HashMap::new();
-    for (k, v) in config {
-        llms.insert(
-            k,
-            hj_ai::provider::Provider::OpenAI(hj_ai::openai::OpenAI {
-                name: v.name,
-                base_url: v.base_url,
-                api_key: v.api_key,
-                model: v.models.first().cloned().unwrap_or_default(),
-                models: HashSet::from_iter(v.models),
-                ..Default::default()
-            }),
-        );
+        println!("Found {} providers", providers.len());
+
+        for (name, provider) in providers {
+            println!("Testing provider: {}", name);
+
+            // Test non-stream
+            match translate(
+                &provider,
+                TranslateRequest {
+                    model: "",
+                    query: "Hello",
+                    dst_lang: Some("Chinese"),
+                    ..Default::default()
+                },
+            )
+            .await
+            {
+                Ok(res) => println!("Non-stream response: {:?}", res),
+                Err(e) => println!("Non-stream error: {:?}", e),
+            }
+
+            // Test stream
+            match translate_stream(
+                &provider,
+                TranslateRequest {
+                    model: "",
+                    query: "The Gemini API allows developers to build generative AI applications using Gemini models. Gemini is our most capable model, built from the ground up to be multimodal. It can generalize and seamlessly understand, operate across, and combine different types of information including language, images, audio, video, and code. You can use the Gemini API for use cases like reasoning across text and images, content generation, dialogue agents, summarization and classification systems, and more.",
+                    dst_lang: Some("Chinese"),
+                    ..Default::default()
+                },
+            )
+            .await
+            {
+                Ok(mut stream) => {
+                    print!("Stream response: ");
+                    use std::io::Write;
+                    std::io::stdout().flush().unwrap();
+
+                    let mut has_content = false;
+                    while let Some(chunk) = stream.next().await {
+                        match chunk {
+                            Ok(v) => {
+                                has_content = true;
+                                if let Some(thinking) = v.thinking {
+                                    print!("thinking: {}", thinking);
+                                }
+                                print!("{}", v.content);
+                                std::io::stdout().flush().unwrap();
+                            }
+                            Err(e) => {
+                                println!("\nStream error: {:?}", e);
+                                break;
+                            }
+                        }
+                    }
+                    if !has_content {
+                        println!("\n[Warning] Stream returned no chunks!");
+                    }
+                    println!();
+                }
+                Err(e) => println!("Stream initiation error: {:?}", e),
+            }
+        }
     }
-    llms
 }

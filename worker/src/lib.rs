@@ -86,6 +86,7 @@ async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
             Some(hj_ai::provider::Provider::WorkersAI(
                 hj_ai::workers::WorkersAI {
                     model: "".to_string(),
+                    models: vec![],
                     binding: Some(Arc::new(env.ai("AI").unwrap())),
                 },
             ))

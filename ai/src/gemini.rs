@@ -6,12 +6,27 @@ use crate::{Completion, CompletionResponse, Error, Message};
 #[derive(Clone)]
 pub struct Gemini {
     client: Client,
+    pub models: Vec<String>,
 }
 
 impl Gemini {
-    pub fn new(api_key: String, model: String) -> Self {
+    pub fn new(api_key: String, model: String, models: Vec<String>) -> Self {
         Self {
             client: Client::new(api_key, model),
+            models,
+        }
+    }
+
+    pub fn new_vertex_ai(
+        project_id: String,
+        location: String,
+        model: String,
+        token: String,
+        models: Vec<String>,
+    ) -> Self {
+        Self {
+            client: Client::new_vertex_ai(project_id, location, model, token),
+            models,
         }
     }
 
@@ -40,7 +55,19 @@ impl Gemini {
             tools: None,
             safety_settings: None,
             system_instruction: None,
-            generation_config: None,
+            generation_config: Some(gemini::GenerationConfig {
+                stop_sequences: None,
+                response_mime_type: None,
+                candidate_count: None,
+                max_output_tokens: None,
+                temperature: None,
+                top_p: None,
+                top_k: None,
+                thinking_config: Some(gemini::ThinkingConfig {
+                    include_thoughts: Some(true),
+                    thinking_level: None,
+                }),
+            }),
         };
 
         // Use owned version or standard version if client handles it.
@@ -121,7 +148,19 @@ impl Completion for Gemini {
             tools: None,
             safety_settings: None,
             system_instruction: None,
-            generation_config: None,
+            generation_config: Some(gemini::GenerationConfig {
+                stop_sequences: None,
+                response_mime_type: None,
+                candidate_count: None,
+                max_output_tokens: None,
+                temperature: None,
+                top_p: None,
+                top_k: None,
+                thinking_config: Some(gemini::ThinkingConfig {
+                    include_thoughts: Some(true),
+                    thinking_level: None,
+                }),
+            }),
         };
 
         let resp = self

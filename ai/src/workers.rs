@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Default)]
 pub struct WorkersAI {
     pub model: String,
+    pub models: Vec<String>,
     #[cfg(feature = "worker")]
     pub binding: Option<Arc<worker::Ai>>,
 }
@@ -26,12 +27,6 @@ struct AiRequest {
 #[derive(Deserialize)]
 struct AiResponse {
     response: String,
-}
-
-#[cfg(feature = "worker")]
-#[derive(Deserialize)]
-struct StreamResponse {
-    response: Option<String>,
 }
 
 impl Completion for WorkersAI {

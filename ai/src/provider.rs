@@ -55,8 +55,8 @@ impl Provider {
     pub fn models(&self) -> Vec<String> {
         match self {
             Provider::OpenAI(provider) => provider.models.iter().cloned().collect(),
-            Provider::WorkersAI(_) => vec![],
-            Provider::Gemini(_) => vec![],
+            Provider::WorkersAI(provider) => provider.models.clone(),
+            Provider::Gemini(provider) => provider.models.clone(),
             Provider::OpenAIResponses(_) => vec![],
         }
     }

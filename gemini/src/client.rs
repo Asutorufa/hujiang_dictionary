@@ -18,18 +18,42 @@ pub enum Error {
 #[derive(Clone)]
 pub struct Client {
     http: HttpClient,
-    api_key: String,
+    api_key: Option<String>,
+    token: Option<String>,
     model: String,
     base_url: String,
+    project_id: Option<String>,
+    location: Option<String>,
 }
 
 impl Client {
     pub fn new(api_key: impl Into<String>, model: impl Into<String>) -> Self {
         Self {
             http: HttpClient::new(),
-            api_key: api_key.into(),
+            api_key: Some(api_key.into()),
+            token: None,
             model: model.into(),
             base_url: "https://generativelanguage.googleapis.com/v1beta".to_string(),
+            project_id: None,
+            location: None,
+        }
+    }
+
+    pub fn new_vertex_ai(
+        project_id: impl Into<String>,
+        location: impl Into<String>,
+        model: impl Into<String>,
+        token: impl Into<String>,
+    ) -> Self {
+        let location = location.into();
+        Self {
+            http: HttpClient::new(),
+            api_key: None,
+            token: Some(token.into()),
+            model: model.into(),
+            base_url: format!("https://{}-aiplatform.googleapis.com/v1", location),
+            project_id: Some(project_id.into()),
+            location: Some(location),
         }
     }
 
@@ -39,18 +63,35 @@ impl Client {
     }
 
     fn url(&self, action: &str) -> String {
-        format!("{}/models/{}:{}", self.base_url, self.model, action)
+        if let Some(project_id) = &self.project_id {
+            let location = self.location.as_deref().unwrap_or("us-central1");
+            format!(
+                "{}/projects/{}/locations/{}/publishers/google/models/{}:{}",
+                self.base_url, project_id, location, self.model, action
+            )
+        } else {
+            format!("{}/models/{}:{}", self.base_url, self.model, action)
+        }
     }
 
     pub async fn generate_content(
         &self,
         request: &GenerateContentRequest,
     ) -> Result<GenerateContentResponse, Error> {
-        let mut url =
+        let url =
             Url::parse(&self.url("generateContent")).map_err(|e| Error::Api(e.to_string()))?;
-        url.query_pairs_mut().append_pair("key", &self.api_key);
 
-        let resp = self.http.post(url).json(request).send().await?;
+        let mut req_builder = self.http.post(url);
+
+        if let Some(api_key) = &self.api_key {
+            req_builder = req_builder.query(&[("key", api_key)]);
+        }
+
+        if let Some(token) = &self.token {
+            req_builder = req_builder.bearer_auth(token);
+        }
+
+        let resp = req_builder.json(request).send().await?;
 
         if !resp.status().is_success() {
             let error_text = resp.text().await?;
@@ -65,13 +106,24 @@ impl Client {
         &self,
         request: &GenerateContentRequest,
     ) -> Result<impl Stream<Item = Result<GenerateContentResponse, Error>>, Error> {
-        let mut url = Url::parse(&self.url("streamGenerateContent"))
+        let url = Url::parse(&self.url("streamGenerateContent"))
             .map_err(|e| Error::Api(e.to_string()))?;
-        url.query_pairs_mut()
-            .append_pair("key", &self.api_key)
-            .append_pair("alt", "sse");
 
-        let resp = self.http.post(url).json(request).send().await?;
+        let mut req_builder = self.http.post(url);
+
+        if let Some(api_key) = &self.api_key {
+            req_builder = req_builder.query(&[("key", api_key)]);
+        }
+
+        if let Some(token) = &self.token {
+            req_builder = req_builder.bearer_auth(token);
+        }
+
+        let resp = req_builder
+            .query(&[("alt", "sse")])
+            .json(request)
+            .send()
+            .await?;
 
         if !resp.status().is_success() {
             let error_text = resp.text().await?;
@@ -82,6 +134,7 @@ impl Client {
         Ok(SseStream {
             inner: stream,
             buffer: String::new(),
+            queue: VecDeque::new(),
         })
     }
 
@@ -90,13 +143,24 @@ impl Client {
         self,
         request: GenerateContentRequest,
     ) -> Result<impl Stream<Item = Result<GenerateContentResponse, Error>>, Error> {
-        let mut url = Url::parse(&self.url("streamGenerateContent"))
+        let url = Url::parse(&self.url("streamGenerateContent"))
             .map_err(|e| Error::Api(e.to_string()))?;
-        url.query_pairs_mut()
-            .append_pair("key", &self.api_key)
-            .append_pair("alt", "sse");
 
-        let resp = self.http.post(url).json(&request).send().await?;
+        let mut req_builder = self.http.post(url);
+
+        if let Some(api_key) = &self.api_key {
+            req_builder = req_builder.query(&[("key", api_key)]);
+        }
+
+        if let Some(token) = &self.token {
+            req_builder = req_builder.bearer_auth(token);
+        }
+
+        let resp = req_builder
+            .query(&[("alt", "sse")])
+            .json(&request)
+            .send()
+            .await?;
 
         if !resp.status().is_success() {
             let error_text = resp.text().await?;
@@ -107,13 +171,17 @@ impl Client {
         Ok(SseStream {
             inner: stream,
             buffer: String::new(),
+            queue: VecDeque::new(),
         })
     }
 }
 
+use std::collections::VecDeque;
+
 pub struct SseStream<S> {
     inner: S,
     buffer: String,
+    queue: VecDeque<GenerateContentResponse>,
 }
 
 impl<S> Stream for SseStream<S>
@@ -124,21 +192,62 @@ where
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         loop {
-            if let Some(pos) = self.buffer.find("\n\n") {
-                let message = self.buffer[..pos].to_string();
-                self.buffer.drain(..pos + 2);
+            if let Some(response) = self.queue.pop_front() {
+                return Poll::Ready(Some(Ok(response)));
+            }
 
-                if let Some(data) = message.strip_prefix("data: ") {
-                    let data = data.trim();
-                    if data == "[DONE]" {
-                        return Poll::Ready(None);
-                    }
-                    if !data.is_empty() {
-                        match serde_json::from_str::<GenerateContentResponse>(data) {
-                            Ok(response) => return Poll::Ready(Some(Ok(response))),
-                            Err(e) => return Poll::Ready(Some(Err(Error::Serialization(e)))),
+            let mut split_pos = None;
+            let mut drain_len = 0;
+
+            if let Some(pos) = self.buffer.find("\n\n") {
+                split_pos = Some(pos);
+                drain_len = 2;
+            }
+            if let Some(pos) = self.buffer.find("\r\n\r\n") {
+                if split_pos.map_or(true, |p| pos < p) {
+                    split_pos = Some(pos);
+                    drain_len = 4;
+                }
+            }
+
+            if let Some(pos) = split_pos {
+                let message = self.buffer[..pos].to_string();
+                self.buffer.drain(..pos + drain_len);
+
+                let mut combined_json = String::new();
+                for line in message.lines() {
+                    let line = line.trim();
+                    if let Some(data) = line.strip_prefix("data:") {
+                        let data = data.trim();
+                        if data == "[DONE]" {
+                            return Poll::Ready(None);
+                        }
+                        if !data.is_empty() {
+                            combined_json.push_str(data);
+                            combined_json.push('\n');
                         }
                     }
+                }
+
+                if !combined_json.is_empty() {
+                    let deserializer = serde_json::Deserializer::from_str(&combined_json);
+                    let iter = deserializer.into_iter::<GenerateContentResponse>();
+
+                    for result in iter {
+                        match result {
+                            Ok(response) => self.queue.push_back(response),
+                            Err(e) => {
+                                if self.queue.is_empty() {
+                                    return Poll::Ready(Some(Err(Error::Serialization(e))));
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if let Some(response) = self.queue.pop_front() {
+                    return Poll::Ready(Some(Ok(response)));
                 }
                 continue;
             }
@@ -156,16 +265,40 @@ where
                     if !self.buffer.is_empty() {
                         let message = self.buffer.clone();
                         self.buffer.clear();
-                        if let Some(data) = message.strip_prefix("data: ") {
-                            let data = data.trim();
-                            if !data.is_empty() && data != "[DONE]" {
-                                match serde_json::from_str::<GenerateContentResponse>(data) {
-                                    Ok(response) => return Poll::Ready(Some(Ok(response))),
+
+                        let mut combined_json = String::new();
+                        for line in message.lines() {
+                            let line = line.trim();
+                            if let Some(data) = line.strip_prefix("data:") {
+                                let data = data.trim();
+                                if data == "[DONE]" {
+                                    return Poll::Ready(None);
+                                }
+                                if !data.is_empty() {
+                                    combined_json.push_str(data);
+                                    combined_json.push('\n');
+                                }
+                            }
+                        }
+
+                        if !combined_json.is_empty() {
+                            let deserializer = serde_json::Deserializer::from_str(&combined_json);
+                            let iter = deserializer.into_iter::<GenerateContentResponse>();
+                            for result in iter {
+                                match result {
+                                    Ok(response) => self.queue.push_back(response),
                                     Err(e) => {
-                                        return Poll::Ready(Some(Err(Error::Serialization(e))));
+                                        if self.queue.is_empty() {
+                                            return Poll::Ready(Some(Err(Error::Serialization(e))));
+                                        }
+                                        break;
                                     }
                                 }
                             }
+                        }
+
+                        if let Some(response) = self.queue.pop_front() {
+                            return Poll::Ready(Some(Ok(response)));
                         }
                     }
                     return Poll::Ready(None);
@@ -305,6 +438,74 @@ mod tests {
         assert_eq!(
             second.candidates[0].content.parts[0].text.as_deref(),
             Some(" world")
+        );
+    }
+
+    #[tokio::test]
+    async fn test_vertex_ai_generate_content() {
+        let mut server = Server::new_async().await;
+
+        let response_body = r#"{
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "text": "Hello from Vertex AI"
+                            }
+                        ],
+                        "role": "model"
+                    }
+                }
+            ]
+        }"#;
+
+        let project_id = "test-project";
+        let location = "us-central1";
+        let model = "gemini-1.5-flash";
+        let path = format!(
+            "/projects/{}/locations/{}/publishers/google/models/{}:generateContent",
+            project_id, location, model
+        );
+
+        let mock = server
+            .mock("POST", path.as_str())
+            .match_header("authorization", "Bearer test_token")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(response_body)
+            .create_async()
+            .await;
+
+        let client = Client::new_vertex_ai(project_id, location, model, "test_token")
+            .with_base_url(server.url());
+
+        let request = GenerateContentRequest {
+            contents: vec![Content {
+                role: "user".to_string(),
+                parts: vec![Part {
+                    text: Some("Say hello".to_string()),
+                    inline_data: None,
+                    thought: None,
+                }],
+            }],
+            tools: None,
+            safety_settings: None,
+            system_instruction: None,
+            generation_config: None,
+        };
+
+        let response = client
+            .generate_content(&request)
+            .await
+            .expect("Failed to generate content");
+
+        mock.assert_async().await;
+
+        assert_eq!(response.candidates.len(), 1);
+        assert_eq!(
+            response.candidates[0].content.parts[0].text.as_deref(),
+            Some("Hello from Vertex AI")
         );
     }
 }
