@@ -7,15 +7,35 @@ on:
   pull_request:
     branches: [ "rust" ]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   lint:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies and lint frontend
+        run: |
+          cd web
+          npm ci
+          npm run lint
+
+      - name: Lint fix frontend
+        if: failure() && github.event_name == 'push' && github.ref_name == 'rust'
+        run: |
+          cd web
+          npm run lint:fix
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -54,6 +74,7 @@ jobs:
           title: "chore: fix linting issues"
           body: |
             Automated fix for linting issues.
+            - frontend lint fix
             - cargo fmt
             - cargo clippy --fix
           branch: lint-fix
@@ -66,50 +87,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: get run id
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "GITHUB_RUN_ID=$(gh run list -b react -w React -L 1 -s success --json databaseId -q .[0].databaseId)" >> $GITHUB_ENV
-
-      - uses: actions/download-artifact@v7
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
         with:
-          name: statics
-          path: web/out
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ env.GITHUB_RUN_ID }}
+          node-version: 22.x
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
 
-      - run: |
-          ls -lh web/out
+      - name: Build frontend
+        run: |
+          cd web
+          npm ci
+          npm run build
 
       - name: Cache Web
         id: cache-web
         uses: actions/cache@v5
         with:
           path: web/out
-          key: cache-web-${{ github.run_id }}-${{ github.run_attempt }}
+          key: cache-web-${{ github.sha }}
 
   worker:
+    needs: web
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - name: Restore Web Cache
+        uses: actions/cache@v5
+        with:
+          path: web/out
+          key: cache-web-${{ github.sha }}
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
-
-      - name: get run id
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "GITHUB_RUN_ID=$(gh run list -b react -w React -L 1 -s success --json databaseId -q .[0].databaseId)" >> $GITHUB_ENV
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: statics
-          path: web/out
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ env.GITHUB_RUN_ID }}
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -142,6 +156,7 @@ jobs:
         run: npx wrangler build
 
   build:
+    needs: web
     name: Build - ${{ matrix.platform.os-name }}
     strategy:
       matrix:
@@ -191,12 +206,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Cache Web
-        id: cache-web
+      - name: Restore Web Cache
         uses: actions/cache@v5
         with:
           path: web/out
-          key: cache-web-${{ github.run_id }}-${{ github.run_attempt }}
+          key: cache-web-${{ github.sha }}
 
       - name: Build binary
         uses: houseabsolute/actions-rust-cross@v1

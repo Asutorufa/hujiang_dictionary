@@ -3,5 +3,8 @@ name = "hjweb"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+path = "src-rust/lib.rs"
+
 [dependencies]
 rust-embed = { workspace = true }
