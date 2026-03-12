@@ -1,4 +1,4 @@
-import { ROUTE_LOGIN, TOKEN_KEY } from "./constants";
+import { TOKEN_KEY } from "./constants";
 
 export async function authorizedRequest(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const token = localStorage.getItem(TOKEN_KEY);
@@ -18,7 +18,7 @@ export async function authorizedRequest(input: RequestInfo | URL, init?: Request
 
   if (response.status === 401) {
     localStorage.removeItem(TOKEN_KEY);
-    window.location.hash = ROUTE_LOGIN;
+    window.dispatchEvent(new CustomEvent("unauthorized"));
   }
 
   return response;

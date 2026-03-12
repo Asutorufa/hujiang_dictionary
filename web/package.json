@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build && rm -f out/mockServiceWorker.js",
+    "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint",
     "lint:fix": "eslint --fix"

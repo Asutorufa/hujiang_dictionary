@@ -1,5 +1,5 @@
 import { HeroUIProvider, Tab, Tabs, ToastProvider } from "@heroui/react";
-import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Route, Router, Switch, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import "@/globals.css";
@@ -9,16 +9,27 @@ import Words from "./pages/Words";
 import Flashcard from "./pages/Flashcard";
 import Login from "./pages/Login";
 import { ROUTE_FLASHCARD, ROUTE_HOME, ROUTE_LOGIN, ROUTE_WORDS } from "./lib/constants";
+import { useEffect } from "react";
 
 function Main() {
   const [location, setLocation] = useLocation();
   const scrollDirection = useScrollDirection();
-  const { systemTheme } = useTheme();
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setLocation(ROUTE_LOGIN);
+    };
+
+    window.addEventListener("unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("unauthorized", handleUnauthorized);
+    };
+  }, [setLocation]);
 
   return (
     <HeroUIProvider navigate={setLocation}>
       <ToastProvider />
-      <NextThemesProvider attribute="class" defaultTheme={systemTheme}>
+      <NextThemesProvider attribute="class" defaultTheme="system">
         {location !== ROUTE_LOGIN &&
           <div className={`fixed bottom-15 left-1/2 -translate-x-1/2 z-50 transition-transform duration-300 ${scrollDirection === 'down' ? 'translate-y-32' : 'translate-y-0'}`}>
             <Tabs

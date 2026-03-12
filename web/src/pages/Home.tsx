@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { DiskIcon, listModel as listModels, Markdown, PlayIcon, SaveWordModal } from "../components";
 
-async function queryWord(opts: {
+async function fetchTranslation(opts: {
   selected: string,
   query: string,
   instruction: string,
@@ -17,6 +17,7 @@ async function queryWord(opts: {
   const resp = await authorizedRequest("/word/query", {
     method: "POST",
     headers: {
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       method: opts.selected,
@@ -62,7 +63,7 @@ const languages = [
 
 const languageMap = Object.fromEntries(
   languages.map(({ key, name, icon }) => [key, { name, icon }])
-) as Record<typeof translationSources[number]["key"], { name: string, icon: string }>;
+) as Record<typeof languages[number]["key"], { name: string, icon: string }>;
 
 
 type TranslationSource = {
@@ -100,25 +101,20 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [customModels, setCustomModels] =
-    useLocalStorage<{ [key: string]: { name: string, model: string } }[]>("custom_llms_cache", []);
+    useLocalStorage<Record<string, { name: string, model: string }>>("custom_llms_cache", {});
 
   useEffect(() => {
     listModels((models, error) => {
       if (error) {
         console.log(error);
       } else if (models) {
-        const customModels: { [key: string]: { name: string, model: string } }[] = [];
+        const customModelsMap: Record<string, { name: string, model: string }> = {};
         for (const llm of models) {
-          const cm: { [key: string]: { name: string, model: string } } = {};
-
           for (const model of llm.models) {
-            cm[`custom-${llm.name}-${model}`] = { name: llm.name, model: model };
+            customModelsMap[`custom-${llm.name}-${model}`] = { name: llm.name, model: model };
           }
-
-          customModels.push(cm);
         }
-
-        setCustomModels(customModels);
+        setCustomModels(customModelsMap);
       }
     });
   }, [setCustomModels]);
@@ -129,12 +125,12 @@ export default function Home() {
     let modelName = selected;
     let customLLM: { name: string, model: string } | undefined;
     if (modelName.startsWith("custom-")) {
-      customLLM = customModels.find((cm) => Object.keys(cm).includes(modelName))?.[modelName];
+      customLLM = customModels?.[modelName];
       modelName = "custom_llm";
     }
 
     setLoading(true);
-    await queryWord({
+    await fetchTranslation({
       query: query,
       srcLang: srcLang,
       dstLang: dstLang,
@@ -196,7 +192,7 @@ export default function Home() {
                   className="shadow-md backdrop-blur-sm capitalize"
                 >
                   <Tooltip content="Translate Method">
-                    {translationMap[selected] || customModels.find((cm) => Object.keys(cm).includes(selected))?.[selected].model || "Select"}
+                    {translationMap[selected] || customModels?.[selected]?.model || "Select"}
                   </Tooltip>
                 </Button>
               </DropdownTrigger>
@@ -213,24 +209,22 @@ export default function Home() {
                       ))
                     }
                   </DropdownSection>
-                  <DropdownSection showDivider={customModels.length > 0}>
+                  <DropdownSection showDivider={Object.keys(customModels || {}).length > 0}>
                     {
                       dictSources.map((source) => (
                         <DropdownItem shortcut={source.tag} key={source.key}>{source.name}</DropdownItem>
                       ))
                     }
                   </DropdownSection>
-                  {
-                    customModels.map((cm, i) => (
-                      <DropdownSection key={i} showDivider={i !== customModels.length - 1}>
-                        {
-                          Object.keys(cm).map((key) => (
-                            <DropdownItem shortcut={cm[key].name} key={key}>{cm[key].model}</DropdownItem>
-                          ))
-                        }
-                      </DropdownSection>
-                    ))
-                  }
+                  {Object.keys(customModels || {}).length > 0 && (
+                    <DropdownSection>
+                      {
+                        Object.keys(customModels || {}).map((key) => (
+                          <DropdownItem shortcut={customModels[key].name} key={key}>{customModels[key].model}</DropdownItem>
+                        ))
+                      }
+                    </DropdownSection>
+                  )}
                 </>
               </DropdownMenu>
             </Dropdown>

@@ -124,24 +124,31 @@ export type ListWordResponse = {
 }
 
 export async function wordRequest<T>(path: string, body: string, callback: (data?: T, error?: string) => void) {
-    await authorizedRequest(path, {
-        method: "POST",
-        headers: {},
-        body: body,
-    })
-        .then((res) => res.json() as Promise<T>)
-        .then((data) => {
-            callback(data, undefined);
-        })
-        .catch((error: Error) => {
-            callback(undefined, error.message);
-            addToast({
-                title: `Words Request Error(${path})`,
-                description: error.message,
-                color: "danger",
-                timeout: 0
-            });
+    try {
+        const res = await authorizedRequest(path, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: body,
         });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Request failed with status ${res.status}: ${errorText}`);
+        }
+
+        const data = await res.json() as T;
+        callback(data, undefined);
+    } catch (error: any) {
+        callback(undefined, error.message);
+        addToast({
+            title: `Words Request Error(${path})`,
+            description: error.message,
+            color: "danger",
+            timeout: 0
+        });
+    }
 }
 
 export async function queryWord(page: number, size: number, order_by: string, grammar: boolean, callback: (data?: ListWordResponse[], error?: string) => void) {

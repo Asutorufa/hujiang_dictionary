@@ -15,7 +15,7 @@ export const Markdown: FC<{ children: string | null | undefined, className?: str
             rehypePlugins={[rehypeRaw]}
             plugins={{ cjk: cjk }}
             components={{
-                audio: AudioPlayer as any // Cast to any to avoid potential strict type mismatches with hast nodes
+                audio: AudioPlayer
             }}
         >
             {children}

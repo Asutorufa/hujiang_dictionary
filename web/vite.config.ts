@@ -25,6 +25,9 @@ export default defineConfig({
   build: {
     outDir: 'out',
     rollupOptions: {
+      external: [
+        'mockServiceWorker.js'
+      ],
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
