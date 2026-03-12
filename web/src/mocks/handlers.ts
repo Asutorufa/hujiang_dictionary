@@ -79,13 +79,13 @@ export const handlers = [
   }),
 
   http.post('/word/count', async ({ request }) => {
-    const { type } = await request.json() as any
+    const { type } = await request.json() as { type: number }
     const count = words.filter(w => w.type === type).length
     return HttpResponse.json({ size: count })
   }),
 
   http.post('/word/save', async ({ request }) => {
-    const { origin, word, explain, example, type } = await request.json() as any
+    const { origin, word, explain, example, type } = await request.json() as { origin?: string; word: string; explain: string; example: string; type: number }
     const now = Date.now() / 1000
 
     if (origin) {
@@ -112,20 +112,20 @@ export const handlers = [
   }),
 
   http.post('/word/delete', async ({ request }) => {
-    const { word } = await request.json() as any
+    const { word } = await request.json() as { word: string }
     words = words.filter(w => w.word !== word)
     return HttpResponse.json({})
   }),
 
   http.post('/word/remind_count_increment', async ({ request }) => {
-    const { word } = await request.json() as any
+    const { word } = await request.json() as { word: string }
     const w = words.find(w => w.word === word)
     if (w) w.anki_count++
     return HttpResponse.json({})
   }),
 
   http.post('/word/priority', async ({ request }) => {
-    const { word, priority } = await request.json() as any
+    const { word, priority } = await request.json() as { word: string; priority: number }
     const w = words.find(w => w.word === word)
     if (w) w.priority = priority
     return HttpResponse.json({})
@@ -138,7 +138,7 @@ export const handlers = [
   }),
 
   http.post('/word/query', async ({ request }) => {
-     const { word } = await request.json() as any
+     const { word } = await request.json() as { word: string }
      // Simulate delay
      await new Promise(resolve => setTimeout(resolve, 500));
      return HttpResponse.json({
