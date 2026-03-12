@@ -3,6 +3,8 @@ import { addToast, Button, Card, CardBody, CardHeader, Input } from "@heroui/rea
 import { useState } from "react";
 import { useLocation } from "wouter";
 
+type LoginResponse = { token: string };
+
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +24,7 @@ export default function Login() {
       });
 
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json() as LoginResponse;
         if (data && typeof data === 'object' && 'token' in data && typeof data.token === 'string') {
           localStorage.setItem(TOKEN_KEY, data.token);
           setLocation(ROUTE_HOME);
@@ -41,11 +43,12 @@ export default function Login() {
             color: "danger"
         });
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
+      const errorMessage = e instanceof Error ? e.message : String(e);
       addToast({
           title: "Login Error",
-          description: e.message,
+          description: errorMessage,
           color: "danger"
       });
     } finally {

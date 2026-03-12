@@ -140,11 +140,12 @@ export async function wordRequest<T>(path: string, body: string, callback: (data
 
         const data = await res.json() as T;
         callback(data, undefined);
-    } catch (error: any) {
-        callback(undefined, error.message);
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        callback(undefined, errorMessage);
         addToast({
             title: `Words Request Error(${path})`,
-            description: error.message,
+            description: errorMessage,
             color: "danger",
             timeout: 0
         });

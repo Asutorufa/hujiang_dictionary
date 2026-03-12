@@ -79,13 +79,15 @@ export const handlers = [
   }),
 
   http.post('/word/count', async ({ request }) => {
-    const { type } = await request.json() as any
+    type WordCountPayload = { type: number };
+    const { type } = await request.json() as WordCountPayload;
     const count = words.filter(w => w.type === type).length
     return HttpResponse.json({ size: count })
   }),
 
   http.post('/word/save', async ({ request }) => {
-    const { origin, word, explain, example, type } = await request.json() as any
+    type WordSavePayload = { origin?: string; word: string; explain: string; example: string; type: number };
+    const { origin, word, explain, example, type } = await request.json() as WordSavePayload;
     const now = Date.now() / 1000
 
     if (origin) {
@@ -112,20 +114,23 @@ export const handlers = [
   }),
 
   http.post('/word/delete', async ({ request }) => {
-    const { word } = await request.json() as any
+    type WordPayload = { word: string };
+    const { word } = await request.json() as WordPayload;
     words = words.filter(w => w.word !== word)
     return HttpResponse.json({})
   }),
 
   http.post('/word/remind_count_increment', async ({ request }) => {
-    const { word } = await request.json() as any
+    type WordPayload = { word: string };
+    const { word } = await request.json() as WordPayload;
     const w = words.find(w => w.word === word)
     if (w) w.anki_count++
     return HttpResponse.json({})
   }),
 
   http.post('/word/priority', async ({ request }) => {
-    const { word, priority } = await request.json() as any
+    type WordPriorityPayload = { word: string; priority: number };
+    const { word, priority } = await request.json() as WordPriorityPayload;
     const w = words.find(w => w.word === word)
     if (w) w.priority = priority
     return HttpResponse.json({})
@@ -138,7 +143,8 @@ export const handlers = [
   }),
 
   http.post('/word/query', async ({ request }) => {
-     const { word } = await request.json() as any
+     type WordPayload = { word: string };
+     const { word } = await request.json() as WordPayload;
      // Simulate delay
      await new Promise(resolve => setTimeout(resolve, 500));
      return HttpResponse.json({
