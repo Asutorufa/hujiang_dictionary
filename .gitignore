@@ -1,8 +1,25 @@
+/target
+.api.json
+/.vscode
+/test.sh
+/worker/dist
+/worker/.wrangler
 node_modules
+.DS_Store
+wrangler.deploy.toml
+.env
+.wrangler
+/dist
+/web/out
+common/config/llm.json
+common/src/.api.*.json
+common/config/.api.*.json
+common/config/api.*.json
+common/config/api.json
+
+# React Frontend
 .next
 out
-.DS_Store
-dist
 dist-ssr
 *.local
 *.log
