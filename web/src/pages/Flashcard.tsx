@@ -129,7 +129,7 @@ export default function Flashcard() {
         setPage(p => Math.min(p + 1, total));
     }, [controls, currentWord, setPage, total]);
 
-    const handleDragEnd = async (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const handleDragEnd = async (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
         const threshold = 100;
         if (info.offset.x > threshold) {
             await handleSwipe('know');
