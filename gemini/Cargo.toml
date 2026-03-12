@@ -18,5 +18,5 @@ bytes = "1.0"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full"] }
-mockall = "0.13"
+mockall = "0.14"
 mockito = "1.7.2"

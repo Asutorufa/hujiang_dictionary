@@ -51,7 +51,8 @@ const formatTime = (time: number) => {
     return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 };
 
-export const AudioPlayer = (props: React.AudioHTMLAttributes<HTMLAudioElement>) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const AudioPlayer = (props: any) => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -114,12 +115,13 @@ export const AudioPlayer = (props: React.AudioHTMLAttributes<HTMLAudioElement>) 
     }, []);
 
     // Remove controls from props to avoid default player
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unused-vars
     const { controls, className, style, ...restProps } = props;
 
     return (
         <div
             className={`flex items-center gap-3 bg-default-100 dark:bg-default-50 rounded-xl p-3 w-full max-w-md border border-default-200 shadow-sm my-2 ${className || ""}`}
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             style={style}
         >
             <audio ref={audioRef} {...restProps} className="hidden" />
