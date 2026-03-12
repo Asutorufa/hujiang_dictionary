@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies and lint frontend
         run: |
           cd web
-          npm ci
+          npm ci --legacy-peer-deps
           npm run lint
 
       - name: Lint fix frontend
@@ -97,7 +97,7 @@ jobs:
       - name: Build frontend
         run: |
           cd web
-          npm ci
+          npm ci --legacy-peer-deps
           npm run build
 
       - name: Cache Web
