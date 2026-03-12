@@ -10,7 +10,7 @@ serde_json = { workspace = true }
 log = { workspace = true }
 tokio = { workspace = true }
 scraper = { workspace = true }
-ego-tree = { workspace = true }
+ego-tree = "0.10"
 html2text = { workspace = true }
 dom_smoothie = { workspace = true }
 url = { workspace = true }

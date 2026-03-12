@@ -21,7 +21,7 @@ console_error_panic_hook = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
 js-sys = "^0.3"
-getrandom = { version = "0.2", features = ["js"] }
+getrandom = { version = "0.4" }
 
 hjcommon = { path = "../common" }
 d1-orm = { version = "0.1.1", features = ["d1"] }

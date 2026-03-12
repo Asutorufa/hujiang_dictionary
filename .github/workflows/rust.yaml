@@ -18,10 +18,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+      - name: Use Node.js 24.x
+        uses: actions/setup-node@v6
         with:
-          node-version: 22.x
+          node-version: 24.x
           cache: "npm"
           cache-dependency-path: web/package-lock.json
 
@@ -46,7 +46,7 @@ jobs:
         run: mkdir -p web/out && touch web/out/index.html
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
@@ -67,7 +67,7 @@ jobs:
 
       - name: Create Pull Request
         if: failure() && github.event_name == 'push' && github.ref_name == 'rust'
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore: fix linting issues"
@@ -87,10 +87,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+      - name: Use Node.js 24.x
+        uses: actions/setup-node@v6
         with:
-          node-version: 22.x
+          node-version: 24.x
           cache: "npm"
           cache-dependency-path: web/package-lock.json
 
@@ -126,7 +126,7 @@ jobs:
           targets: wasm32-unknown-unknown
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cargo/registry
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
@@ -134,7 +134,7 @@ jobs:
             ${{ runner.os }}-cargo-registry-
 
       - name: Cache cargo index
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
@@ -142,7 +142,7 @@ jobs:
             ${{ runner.os }}-cargo-index-
 
       - name: Cache cargo build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
@@ -228,17 +228,17 @@ jobs:
          cp target/${{ matrix.platform.target }}/release/hj${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }} hj-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
 
       - name: lambda-${{ matrix.platform.target }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: lambda-${{ matrix.platform.target }}
           path: lambda-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
       - name: tg-${{ matrix.platform.target }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: tg-${{ matrix.platform.target }}
           path: tg-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
       - name: hj-${{ matrix.platform.target }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: hj-${{ matrix.platform.target }}
           path: hj-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
@@ -262,7 +262,7 @@ jobs:
 
       - name: download_artifacts
         id: download-artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
