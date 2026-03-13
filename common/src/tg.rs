@@ -135,6 +135,104 @@ mod tests {
         let chunks = split_message(text, 2);
         assert_eq!(chunks, vec!["嗨"]);
     }
+
+    #[test]
+    fn test_parse_command() {
+        // Test empty command
+        assert!(parse_command("", "", "").is_err());
+        assert!(parse_command("/", "", "").is_err());
+        assert!(parse_command("/@bot", "", "").is_err());
+
+        // Test normal commands
+        let (cmd, _) = parse_command("/en", "hello", "").unwrap();
+        match cmd {
+            Command::EN(s) => assert_eq!(s, "hello"),
+            _ => panic!("Expected Command::EN"),
+        }
+
+        // Test bot suffix
+        let (cmd, _) = parse_command("/en@my_bot", "hello", "").unwrap();
+        match cmd {
+            Command::EN(s) => assert_eq!(s, "hello"),
+            _ => panic!("Expected Command::EN"),
+        }
+
+        // Test quote and argument
+        let (cmd, _) = parse_command("/en", "", "quote").unwrap();
+        match cmd {
+            Command::EN(s) => assert_eq!(s, "quote"),
+            _ => panic!("Expected Command::EN"),
+        }
+
+        // Test GG command
+        let (cmd, _) = parse_command("/gg", "en_ja hello", "").unwrap();
+        match cmd {
+            Command::GG(src, target, text) => {
+                assert_eq!(src, Some("en".to_string()));
+                assert_eq!(target, "ja");
+                assert_eq!(text, "hello");
+            }
+            _ => panic!("Expected Command::GG"),
+        }
+
+        let (cmd, _) = parse_command("/gg", "ja hello", "quote").unwrap();
+        match cmd {
+            Command::GG(src, target, text) => {
+                assert_eq!(src, None);
+                assert_eq!(target, "ja");
+                assert_eq!(text, "hello");
+            }
+            _ => panic!("Expected Command::GG"),
+        }
+
+        // Test GG with quote
+        let (cmd, _) = parse_command("/gg", "ja", "quote").unwrap();
+        match cmd {
+            Command::GG(src, target, text) => {
+                assert_eq!(src, None);
+                assert_eq!(target, "ja");
+                assert_eq!(text, "quote");
+            }
+            _ => panic!("Expected Command::GG"),
+        }
+
+        // Test LLM commands
+        let (cmd, _) = parse_command("/gemma", "arg", "quote").unwrap();
+        match cmd {
+            Command::Gemma(s) => assert_eq!(s, "quote\narg"),
+            _ => panic!("Expected Command::Gemma"),
+        }
+
+        // Test save command
+        let (cmd, _) = parse_command("/save", "arg", "quote").unwrap();
+        match cmd {
+            Command::Save(arg, quote) => {
+                assert_eq!(arg, "arg");
+                assert_eq!(quote, "quote");
+            }
+            _ => panic!("Expected Command::Save"),
+        }
+
+        // Test unknown command
+        assert!(parse_command("/unknown", "", "").is_err());
+    }
+
+    #[test]
+    fn test_parse_callback_query_command() {
+        let (cmd, _) = parse_callback_query_command("delete", "").unwrap();
+        match cmd {
+            CallbackQueryCommand::Delete => (),
+            _ => panic!("Expected CallbackQueryCommand::Delete"),
+        }
+
+        let (cmd, _) = parse_callback_query_command("/save", "word").unwrap();
+        match cmd {
+            CallbackQueryCommand::Save(s) => assert_eq!(s, "word"),
+            _ => panic!("Expected CallbackQueryCommand::Save"),
+        }
+
+        assert!(parse_callback_query_command("unknown", "").is_err());
+    }
 }
 
 #[derive(Debug)]
