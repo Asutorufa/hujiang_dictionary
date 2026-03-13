@@ -7,7 +7,9 @@ struct StreamCompletionResponse {
     response: Option<String>,
 }
 
-pub fn parse_stream<S, E>(stream: S) -> impl Stream<Item = Result<CompletionResponse, Error>> + 'static
+pub fn parse_stream<S, E>(
+    stream: S,
+) -> impl Stream<Item = Result<CompletionResponse, Error>> + 'static
 where
     S: Stream<Item = Result<bytes::Bytes, E>> + 'static + Unpin,
     E: std::error::Error + Send + Sync + 'static,
