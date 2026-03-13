@@ -25,7 +25,6 @@ if [[ "$TARGET" == *"-apple-darwin" ]]; then
     curl -L https://github.com/joseluisq/macosx-sdks/releases/download/11.3/MacOSX11.3.sdk.tar.xz | tar xJ
   fi
   export SDKROOT="$SDK_DIR"
-  ZIGBUILD_ARGS="$ZIGBUILD_ARGS --sysroot $SDK_DIR"
 fi
 
 # Check if target is Windows
@@ -46,13 +45,19 @@ fi
 # Check if target is Android
 if [[ "$TARGET" == *"-android"* ]]; then
   echo "Android target detected. Using Android NDK for C dependencies if available..."
-  # Tell cmake/cc-rs to use the Android NDK for C dependencies like aws-lc-sys if needed
+  # Tell cmake/cc-rs/zig-cc to use the Android NDK for C dependencies like aws-lc-sys and ring if needed
   if [ -n "$ANDROID_NDK_LATEST_HOME" ]; then
     export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
   fi
   if [ -n "$ANDROID_NDK_HOME" ]; then
-    export CFLAGS="$CFLAGS --sysroot=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
-    export CXXFLAGS="$CXXFLAGS --sysroot=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+    if [[ "$TARGET" == "aarch64"* ]]; then
+      NDK_TARGET="aarch64-linux-android"
+    elif [[ "$TARGET" == "x86_64"* ]]; then
+      NDK_TARGET="x86_64-linux-android"
+    fi
+    SYSROOT="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+    export CFLAGS="$CFLAGS --sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/$NDK_TARGET"
+    export CXXFLAGS="$CXXFLAGS --sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/$NDK_TARGET"
   fi
 fi
 
