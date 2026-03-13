@@ -257,7 +257,9 @@ fn parse(text: &str) -> Vec<Word> {
         };
 
         if let Some(pronounce) = element.select(sel!(".pronounces")).next() {
-            w.audio_url = pronounce.select(sel!(".word-audio")).attr_or_empty("data-src");
+            w.audio_url = pronounce
+                .select(sel!(".word-audio"))
+                .attr_or_empty("data-src");
             w.katakana = pronounce
                 .select(sel!("span"))
                 .map(|x| x.trim_text())

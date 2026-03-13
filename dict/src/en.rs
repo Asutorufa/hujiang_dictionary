@@ -292,12 +292,15 @@ pub fn parse(text: &str) -> Vec<Word> {
                     pronounces
                         .select(sel!(".pronounce-value-us"))
                         .string_or_empty(),
-                    pronounces.select(sel!(".word-audio")).attr_or_empty("data-src")
+                    pronounces
+                        .select(sel!(".word-audio"))
+                        .attr_or_empty("data-src")
                 );
             } else {
                 word.pronounce.pronounce = pronounces.select(sel!("span")).string_or_empty();
-                word.pronounce.audio_us_url =
-                    pronounces.select(sel!(".word-audio")).attr_or_empty("data-src")
+                word.pronounce.audio_us_url = pronounces
+                    .select(sel!(".word-audio"))
+                    .attr_or_empty("data-src")
             }
         }
 
