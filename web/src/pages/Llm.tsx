@@ -59,7 +59,9 @@ export default function Llm() {
   }, []);
 
   const handleDelete = async (name: string) => {
-    if (!window.confirm(`Are you sure you want to delete provider "${name}"?`)) {
+    if (
+      !window.confirm(`Are you sure you want to delete provider "${name}"?`)
+    ) {
       return;
     }
     try {
@@ -91,7 +93,9 @@ export default function Llm() {
       fetchProviders();
     } catch (err) {
       console.error(err);
-      alert(`Failed to save provider: ${err instanceof Error ? err.message : String(err)}`);
+      alert(
+        `Failed to save provider: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   };
 
