@@ -17,8 +17,15 @@ impl Clone for Output {
 }
 
 pub fn merge_output(outputs: Vec<Output>) -> (String, String) {
-    let mut merged_source = String::new();
-    let mut merged_translation = String::new();
+    let mut source_len = 0;
+    let mut translation_len = 0;
+    for output in &outputs {
+        source_len += output.source.len();
+        translation_len += output.translation.len();
+    }
+
+    let mut merged_source = String::with_capacity(source_len);
+    let mut merged_translation = String::with_capacity(translation_len);
 
     for output in outputs {
         merged_source.push_str(&output.source);
@@ -29,7 +36,8 @@ pub fn merge_output(outputs: Vec<Output>) -> (String, String) {
 }
 
 pub fn merge_source(outputs: Vec<Output>) -> String {
-    let mut merged_source = String::new();
+    let source_len = outputs.iter().map(|o| o.source.len()).sum();
+    let mut merged_source = String::with_capacity(source_len);
 
     for output in outputs {
         merged_source.push_str(&output.source);
@@ -39,7 +47,8 @@ pub fn merge_source(outputs: Vec<Output>) -> String {
 }
 
 pub fn merge_translation(outputs: Vec<Output>) -> String {
-    let mut merged_translation = String::new();
+    let translation_len = outputs.iter().map(|o| o.translation.len()).sum();
+    let mut merged_translation = String::with_capacity(translation_len);
 
     for output in outputs {
         merged_translation.push_str(&output.translation);
