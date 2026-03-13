@@ -16,7 +16,7 @@ dom_smoothie = { workspace = true }
 url = { workspace = true }
 
 [dev-dependencies]
-criterion = "0.8.2"
+criterion = "0.5"
 
 [[bench]]
 name = "google_bench"
