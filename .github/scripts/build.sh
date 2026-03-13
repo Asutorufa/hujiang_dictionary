@@ -8,9 +8,15 @@ if [ -z "$TARGET" ]; then
   exit 1
 fi
 
-echo "Installing cargo-zigbuild..."
+echo "Installing cargo-zigbuild and pinning zig to a stable release..."
 # Use pipx to install cargo-zigbuild quickly on CI avoiding PEP 668 errors on Ubuntu 24.04
-pipx install cargo-zigbuild || pip3 install cargo-zigbuild
+if command -v pipx &> /dev/null; then
+  pipx install cargo-zigbuild
+  # Force downgrade of ziglang to a stable version to prevent nightly zig from breaking macOS linker
+  pipx runpip cargo-zigbuild install "ziglang~=0.13.0"
+else
+  pip3 install "cargo-zigbuild" "ziglang~=0.13.0" || true
+fi
 
 echo "Adding rust target $TARGET..."
 rustup target add $TARGET
@@ -39,7 +45,7 @@ fi
 if ! command -v zig &> /dev/null; then
   echo "Installing zig via npm..."
   if [ "$CI" = "true" ]; then
-    npm install -g @ziglang/cli
+    npm install -g @ziglang/cli@0.13.0
   else
     echo "Please install zig manually for local testing."
   fi
