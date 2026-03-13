@@ -41,16 +41,6 @@ if [[ "$TARGET" == *"-pc-windows-gnu"* ]]; then
   echo "Windows target detected..."
 fi
 
-# Install zig if not present
-if ! command -v zig &> /dev/null; then
-  echo "Installing zig via npm..."
-  if [ "$CI" = "true" ]; then
-    npm install -g @ziglang/cli@0.13.0
-  else
-    echo "Please install zig manually for local testing."
-  fi
-fi
-
 # Check if target is Android
 if [[ "$TARGET" == *"-android"* ]]; then
   echo "Android target detected. Overriding zig cc with Android NDK..."
