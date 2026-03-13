@@ -9,13 +9,16 @@ if [ -z "$TARGET" ]; then
 fi
 
 echo "Installing cargo-zigbuild..."
-# Use pip to install cargo-zigbuild quickly on CI
-pip3 install cargo-zigbuild
+# Use pipx to install cargo-zigbuild quickly on CI avoiding PEP 668 errors on Ubuntu 24.04
+pipx install cargo-zigbuild || pip3 install cargo-zigbuild
 
 echo "Adding rust target $TARGET..."
 rustup target add $TARGET
 
 ZIGBUILD_ARGS="--locked --release --target $TARGET"
+
+# Determine the build command to use
+BUILD_CMD="cargo zigbuild"
 
 # Check if target is macOS
 if [[ "$TARGET" == *"-apple-darwin" ]]; then
@@ -25,8 +28,6 @@ if [[ "$TARGET" == *"-apple-darwin" ]]; then
     curl -L https://github.com/joseluisq/macosx-sdks/releases/download/11.3/MacOSX11.3.sdk.tar.xz | tar xJ
   fi
   export SDKROOT="$SDK_DIR"
-  # cargo-zigbuild's zig cc uses the SDK correctly if passed as a link arg
-  export RUSTFLAGS="-C link-arg=--sysroot=$SDK_DIR"
 fi
 
 # Check if target is Windows
@@ -46,8 +47,7 @@ fi
 
 # Check if target is Android
 if [[ "$TARGET" == *"-android"* ]]; then
-  echo "Android target detected. Using Android NDK for C dependencies if available..."
-  # Tell cmake/cc-rs/zig-cc to use the Android NDK for C dependencies like aws-lc-sys and ring if needed
+  echo "Android target detected. Overriding zig cc with Android NDK..."
   if [ -n "$ANDROID_NDK_LATEST_HOME" ]; then
     export ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME"
   fi
@@ -57,25 +57,28 @@ if [[ "$TARGET" == *"-android"* ]]; then
     elif [[ "$TARGET" == "x86_64"* ]]; then
       NDK_TARGET="x86_64-linux-android"
     fi
-    SYSROOT="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
-    TARGET_VAR=$(echo $TARGET | tr '-' '_')
-    # cc-rs uses CFLAGS_<target> and CXXFLAGS_<target>
-    export CFLAGS_${TARGET_VAR}="--sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/$NDK_TARGET"
-    export CXXFLAGS_${TARGET_VAR}="--sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/$NDK_TARGET"
-    export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/$NDK_TARGET"
-    export RUSTFLAGS="-C link-arg=--sysroot=$SYSROOT -C link-arg=-L$SYSROOT/usr/lib/$NDK_TARGET/33 -C link-arg=-L$SYSROOT/usr/lib/$NDK_TARGET"
+    # Use the official NDK toolchain wrappers to cleanly compile ring and aws-lc-sys
+    # bypassing zig cc which struggles with Android NDK sysroot headers natively.
+    export TARGET_CC="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${NDK_TARGET}24-clang"
+    export TARGET_CXX="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/${NDK_TARGET}24-clang++"
+    export TARGET_AR="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"
+
+    # Override the linker configured by cargo so rustc links against the correct NDK sysroot
+    TARGET_ENV_VAR=$(echo $TARGET | tr '-' '_' | tr '[:lower:]' '[:upper:]')
+    export CARGO_TARGET_${TARGET_ENV_VAR}_LINKER="$TARGET_CC"
+
+    # Use standard cargo build for Android to prevent cargo-zigbuild from overwriting CC and LINKER variables
+    BUILD_CMD="cargo build"
   fi
 fi
 
-echo "Building with cargo-zigbuild for target $TARGET..."
-cargo zigbuild $ZIGBUILD_ARGS
+echo "Running $BUILD_CMD for target $TARGET..."
+$BUILD_CMD $ZIGBUILD_ARGS
 
 # Strip binaries to match original action behavior
 echo "Stripping binaries..."
 if command -v llvm-strip &> /dev/null; then
-  STRIP_CMD="llvm-strip"
+  find "target/$TARGET/release/" -maxdepth 1 -type f -executable -exec llvm-strip {} + || true
 else
-  STRIP_CMD="strip"
+  echo "llvm-strip not found, skipping strip to prevent format errors on cross-compiled binaries."
 fi
-
-find "target/$TARGET/release/" -maxdepth 1 -type f -executable -exec $STRIP_CMD {} + || true
