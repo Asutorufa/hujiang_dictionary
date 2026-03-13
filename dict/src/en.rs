@@ -1,6 +1,14 @@
 use crate::error::Error;
 use scraper::Selector;
 use std::fmt::Write;
+use std::sync::OnceLock;
+
+macro_rules! sel {
+    ($selector:expr) => {{
+        static SELECTOR: OnceLock<Selector> = OnceLock::new();
+        SELECTOR.get_or_init(|| Selector::parse($selector).unwrap())
+    }};
+}
 
 #[derive(Debug)]
 pub struct Example {
@@ -251,9 +259,7 @@ pub fn parse(text: &str) -> Vec<Word> {
 
     let q = scraper::Html::parse_document(text);
 
-    let word_details_pane_selector = scraper::Selector::parse(".word-details-pane").unwrap();
-
-    for w in q.select(&word_details_pane_selector) {
+    for w in q.select(sel!(".word-details-pane")) {
         let mut word = Word {
             word: "".to_string(),
             pronounce: Pronounce {
@@ -270,107 +276,85 @@ pub fn parse(text: &str) -> Vec<Word> {
             english_explain: vec![],
         };
 
-        word.word = w
-            .select(&scraper::Selector::parse(".word-text h2").unwrap())
-            .string_or_empty();
+        word.word = w.select(sel!(".word-text h2")).string_or_empty();
 
-        if let Some(pronounces) = w
-            .select(&scraper::Selector::parse(".pronounces").unwrap())
-            .next()
-        {
-            if let Some(en) = pronounces
-                .select(&scraper::Selector::parse(".pronounce-value-en").unwrap())
-                .next()
-            {
+        if let Some(pronounces) = w.select(sel!(".pronounces")).next() {
+            if let Some(en) = pronounces.select(sel!(".pronounce-value-en")).next() {
                 word.pronounce.audio_en_url = format!(
                     "{} {}",
                     en.text().collect::<Vec<_>>().join("").trim(),
                     pronounces
-                        .select(&scraper::Selector::parse(".word-audio-en").unwrap())
+                        .select(sel!(".word-audio-en"))
                         .attr_or_empty("data-src")
                 );
                 word.pronounce.audio_us_url = format!(
                     "{} {}",
                     pronounces
-                        .select(&scraper::Selector::parse(".pronounce-value-us").unwrap())
+                        .select(sel!(".pronounce-value-us"))
                         .string_or_empty(),
-                    pronounces
-                        .select(&scraper::Selector::parse(".word-audio").unwrap())
-                        .attr_or_empty("data-src")
+                    pronounces.select(sel!(".word-audio")).attr_or_empty("data-src")
                 );
             } else {
-                word.pronounce.pronounce = pronounces
-                    .select(&Selector::parse("span").unwrap())
-                    .string_or_empty();
-                word.pronounce.audio_us_url = pronounces
-                    .select(&Selector::parse(".word-audio").unwrap())
-                    .attr_or_empty("data-src")
+                word.pronounce.pronounce = pronounces.select(sel!("span")).string_or_empty();
+                word.pronounce.audio_us_url =
+                    pronounces.select(sel!(".word-audio")).attr_or_empty("data-src")
             }
         }
 
-        for s in w.select(&Selector::parse(".simple p").unwrap()) {
+        for s in w.select(sel!(".simple p")) {
             word.simple.push(s.trim_text());
 
-            for s in s.select(&Selector::parse(".simple-definition a").unwrap()) {
+            for s in s.select(sel!(".simple-definition a")) {
                 word.simple.push(s.trim_text());
             }
         }
 
-        if let Some(word_detail_item) = w
-            .select(&Selector::parse(".word-details-item-content").unwrap())
-            .next()
-        {
-            for s in word_detail_item.select(&Selector::parse(".phrase-items li").unwrap()) {
+        if let Some(word_detail_item) = w.select(sel!(".word-details-item-content")).next() {
+            for s in word_detail_item.select(sel!(".phrase-items li")) {
                 word.phrase.push(s.trim_text());
             }
 
-            for s in word_detail_item.select(&Selector::parse(".inflections-items li").unwrap()) {
+            for s in word_detail_item.select(sel!(".inflections-items li")) {
                 word.inflections.push(s.trim_text());
             }
 
-            for s in word_detail_item.select(&Selector::parse(".syn table tbody tr td a").unwrap())
-            {
+            for s in word_detail_item.select(sel!(".syn table tbody tr td a")) {
                 word.synonym.push(s.trim_text());
             }
 
-            for s in word_detail_item.select(&Selector::parse(".ant table tbody tr td a").unwrap())
-            {
+            for s in word_detail_item.select(sel!(".ant table tbody tr td a")) {
                 word.antonym.push(s.trim_text());
             }
 
-            for ed in word_detail_item.select(&Selector::parse(".enen-groups dl").unwrap()) {
+            for ed in word_detail_item.select(sel!(".enen-groups dl")) {
                 let mut explain = EnglishExplain {
-                    attribute: ed.select(&Selector::parse("dt").unwrap()).string_or_empty(),
+                    attribute: ed.select(sel!("dt")).string_or_empty(),
                     explains: vec![],
                 };
 
-                for e in ed.select(&Selector::parse("dd").unwrap()) {
+                for e in ed.select(sel!("dd")) {
                     explain.explains.push(e.trim_text());
                 }
 
                 word.english_explain.push(explain);
             }
 
-            for dl in word_detail_item.select(&Selector::parse(".detail-groups dl").unwrap()) {
+            for dl in word_detail_item.select(sel!(".detail-groups dl")) {
                 let mut detail = Detail {
-                    attribute: dl.select(&Selector::parse("dt").unwrap()).string_or_empty(),
+                    attribute: dl.select(sel!("dt")).string_or_empty(),
                     explains: vec![],
                 };
 
-                for dd in dl.select(&Selector::parse("dd").unwrap()) {
+                for dd in dl.select(sel!("dd")) {
                     let mut explain = ExplainsAndExample {
-                        explain: dd.select(&Selector::parse("h3").unwrap()).string_or_empty(),
+                        explain: dd.select(sel!("h3")).string_or_empty(),
                         examples: vec![],
                     };
 
-                    for li in dd.select(&Selector::parse("ul li").unwrap()) {
+                    for li in dd.select(sel!("ul li")) {
                         explain.examples.push(Example {
-                            original: li
-                                .select(&Selector::parse(".def-sentence-from").unwrap())
-                                .string_or_empty(),
-                            translate: li
-                                .select(&Selector::parse(".def-sentence-to").unwrap())
-                                .string_or_empty(),
+                            original: li.select(sel!(".def-sentence-from")).string_or_empty(),
+                            translate: li.select(sel!(".def-sentence-to")).string_or_empty(),
                         });
                     }
 

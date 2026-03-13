@@ -5,6 +5,14 @@ use crate::{
 use log::info;
 use scraper::{Html, Selector};
 use std::fmt::Write;
+use std::sync::OnceLock;
+
+macro_rules! sel {
+    ($selector:expr) => {{
+        static SELECTOR: OnceLock<Selector> = OnceLock::new();
+        SELECTOR.get_or_init(|| Selector::parse($selector).unwrap())
+    }};
+}
 use url::form_urlencoded;
 
 #[derive(Debug, Default)]
@@ -127,45 +135,35 @@ pub async fn get(word: &str) -> Result<Vec<Word>, Error> {
 fn parse(html: &str) -> Vec<Word> {
     let document = Html::parse_document(html);
 
-    let pane_sel = Selector::parse(".word-details-pane").unwrap();
-    let word_sel = Selector::parse(".word-text h2").unwrap();
-    let pronounce_sel = Selector::parse(".pronounces").unwrap();
-    let span_sel = Selector::parse("span").unwrap();
-    let audio_sel = Selector::parse(".word-audio").unwrap();
-    let simple_sel = Selector::parse(".simple").unwrap();
-    let h2_sel = Selector::parse("h2").unwrap();
-    let ul_sel = Selector::parse("ul").unwrap();
-    let li_sel = Selector::parse("li").unwrap();
-
     let mut words = Vec::new();
 
-    for pane in document.select(&pane_sel) {
+    for pane in document.select(sel!(".word-details-pane")) {
         let mut word = Word {
             word: pane
-                .select(&word_sel)
+                .select(sel!(".word-text h2"))
                 .next()
                 .map(|n| n.text().collect::<String>())
                 .unwrap_or_default(),
             ..Default::default()
         };
 
-        if let Some(p) = pane.select(&pronounce_sel).next() {
+        if let Some(p) = pane.select(sel!(".pronounces")).next() {
             word.katakana = p
-                .select(&span_sel)
+                .select(sel!("span"))
                 .next()
                 .map(|n| n.text().collect())
                 .unwrap_or_default();
 
             word.audio_url = p
-                .select(&audio_sel)
+                .select(sel!(".word-audio"))
                 .next()
                 .and_then(|n| n.value().attr("data-src"))
                 .unwrap_or("")
                 .to_string();
         }
 
-        for simple in pane.select(&simple_sel) {
-            let attrs: Vec<_> = simple.select(&h2_sel).collect();
+        for simple in pane.select(sel!(".simple")) {
+            let attrs: Vec<_> = simple.select(sel!("h2")).collect();
 
             if attrs.is_empty() {
                 let text = re_sum(&simple.text().collect::<String>());
@@ -178,7 +176,7 @@ fn parse(html: &str) -> Vec<Word> {
                 continue;
             }
 
-            let lists: Vec<_> = simple.select(&ul_sel).collect();
+            let lists: Vec<_> = simple.select(sel!("ul")).collect();
 
             for (i, attr) in attrs.iter().enumerate() {
                 let mut se = SimpleExplain {
@@ -187,7 +185,7 @@ fn parse(html: &str) -> Vec<Word> {
                 };
 
                 if let Some(ul) = lists.get(i) {
-                    for li in ul.select(&li_sel) {
+                    for li in ul.select(sel!("li")) {
                         se.explains.push(li.text().collect());
                     }
                 }
@@ -205,20 +203,16 @@ fn parse(html: &str) -> Vec<Word> {
 }
 
 fn get_details(pane: &scraper::ElementRef) -> Vec<Detail> {
-    let item_sel = Selector::parse(".word-details-pane-content .word-details-item").unwrap();
-    let source_sel = Selector::parse(".detail-source").unwrap();
-    let dl_sel = Selector::parse(".detail-groups dl").unwrap();
-
     let mut details = Vec::new();
 
-    for item in pane.select(&item_sel) {
+    for item in pane.select(sel!(".word-details-pane-content .word-details-item")) {
         let source: String = item
-            .select(&source_sel)
+            .select(sel!(".detail-source"))
             .next()
             .map(|n| n.text().collect())
             .unwrap_or_default();
 
-        for dl in item.select(&dl_sel) {
+        for dl in item.select(sel!(".detail-groups dl")) {
             let mut detail = get_detail(&dl);
             if detail.explains_and_example.is_empty() {
                 continue;
@@ -232,25 +226,18 @@ fn get_details(pane: &scraper::ElementRef) -> Vec<Detail> {
 }
 
 fn get_detail(dl: &scraper::ElementRef) -> Detail {
-    let dt_sel = Selector::parse("dt").unwrap();
-    let dd_sel = Selector::parse("dd").unwrap();
-    let h3_sel = Selector::parse("h3").unwrap();
-    let li_sel = Selector::parse("ul li").unwrap();
-    let from_sel = Selector::parse(".def-sentence-from").unwrap();
-    let to_sel = Selector::parse(".def-sentence-to").unwrap();
-
     let mut detail = Detail {
         attribute: dl
-            .select(&dt_sel)
+            .select(sel!("dt"))
             .next()
             .map(|n| re_sum(&n.text().collect::<String>()))
             .unwrap_or_default(),
         ..Default::default()
     };
 
-    for dd in dl.select(&dd_sel) {
+    for dd in dl.select(sel!("dd")) {
         let mut explain = String::new();
-        for h3 in dd.select(&h3_sel) {
+        for h3 in dd.select(sel!("h3")) {
             explain.push_str(&re_sum(&h3.text().collect::<String>()));
         }
 
@@ -259,15 +246,15 @@ fn get_detail(dl: &scraper::ElementRef) -> Detail {
             example: Vec::new(),
         };
 
-        for li in dd.select(&li_sel) {
+        for li in dd.select(sel!("ul li")) {
             let from = li
-                .select(&from_sel)
+                .select(sel!(".def-sentence-from"))
                 .next()
                 .map(|n| re_sum(&n.text().collect::<String>()))
                 .unwrap_or_default();
 
             let to = li
-                .select(&to_sel)
+                .select(sel!(".def-sentence-to"))
                 .next()
                 .map(|n| re_sum(&n.text().collect::<String>()))
                 .unwrap_or_default();
