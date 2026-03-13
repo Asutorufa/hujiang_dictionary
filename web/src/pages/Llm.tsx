@@ -44,7 +44,7 @@ export default function Llm() {
         }
         return;
       }
-      const data = await res.json();
+      const data = (await res.json()) as LlmProvider[];
       setProviders(data);
     } catch (e) {
       console.error(e);
@@ -53,6 +53,7 @@ export default function Llm() {
 
   useEffect(() => {
     fetchProviders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleDelete = async (name: string) => {
@@ -71,7 +72,7 @@ export default function Llm() {
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries());
+    const data = Object.fromEntries(formData.entries()) as unknown as LlmProvider;
 
     try {
       await authorizedRequest("/llm/save", {
@@ -148,10 +149,10 @@ export default function Llm() {
                 label="Provider Type"
                 defaultSelectedKeys={editingProvider ? [editingProvider.provider] : ["openai"]}
               >
-                <SelectItem key="openai" value="openai">OpenAI</SelectItem>
-                <SelectItem key="gemini" value="gemini">Gemini</SelectItem>
-                <SelectItem key="vertexai" value="vertexai">VertexAI</SelectItem>
-                <SelectItem key="workersai" value="workersai">Workers AI</SelectItem>
+                <SelectItem key="openai">OpenAI</SelectItem>
+                <SelectItem key="gemini">Gemini</SelectItem>
+                <SelectItem key="vertexai">VertexAI</SelectItem>
+                <SelectItem key="workersai">Workers AI</SelectItem>
               </Select>
               <Input
                 name="base_url"
