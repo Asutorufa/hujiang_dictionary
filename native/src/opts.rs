@@ -2,7 +2,7 @@ use crate::ai::Workers;
 use crate::d1::{D1, Database};
 use frankenstein::client_reqwest;
 use hjcommon::opts::RunOpt;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error>> {
@@ -71,7 +71,6 @@ pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error
             }))
         },
         bot: client_reqwest::Bot::new(&telegram_bot_token),
-        custom_llms: HashMap::new(),
         auth_secret,
         auth_username,
         auth_password,

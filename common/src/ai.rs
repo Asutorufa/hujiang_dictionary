@@ -354,7 +354,7 @@ pub async fn google_search_req_stream<'a>(
 
 #[derive(serde::Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
-enum ProviderType {
+pub enum ProviderType {
     #[default]
     OpenAI,
     Gemini,
@@ -363,14 +363,14 @@ enum ProviderType {
 }
 
 #[derive(serde::Deserialize)]
-struct ConfigProvider {
-    name: String,
-    base_url: Option<String>,
-    api_key: Option<String>,
-    provider: Option<ProviderType>,
-    models: Vec<String>,
-    project_id: Option<String>,
-    location: Option<String>,
+pub struct ConfigProvider {
+    pub name: String,
+    pub base_url: Option<String>,
+    pub api_key: Option<String>,
+    pub provider: Option<ProviderType>,
+    pub models: Vec<String>,
+    pub project_id: Option<String>,
+    pub location: Option<String>,
 }
 
 impl From<ConfigProvider> for hj_ai::provider::Provider {

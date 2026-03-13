@@ -330,7 +330,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                 }
             }
             _ => {
-                if path.starts_with("/word/") {
+                if path.starts_with("/word/") || path.starts_with("/llm/") {
                     if let Err(e) = self.check_auth(auth_header) {
                         return Ok(UnifiedResponse::error(401, e));
                     }
@@ -356,6 +356,9 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
             "/word/remind_count_increment" => self.increment_remind_count(body).await,
             "/word/priority" => self.change_priority(body).await,
             "/word/ai_custom" => self.custom_llms().await,
+            "/llm/list" => self.list_llm_providers().await,
+            "/llm/save" => self.save_llm_provider(body).await,
+            "/llm/delete" => self.delete_llm_provider(body).await,
             _ => Err(Error::NotFound),
         }
     }
@@ -466,6 +469,58 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
         Ok([b'{', b'}'].to_vec())
     }
 
+    pub async fn list_llm_providers(&self) -> Result<Vec<u8>, Error> {
+        let providers: Vec<crate::d1::LlmProvider> = self.d1.query_all(crate::d1::Queries::ListLlmProviders).await?;
+        Ok(serde_json::to_vec(&providers)?)
+    }
+
+    pub async fn save_llm_provider(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        let req = serde_json::from_slice::<crate::d1::LlmProvider>(&body)?;
+        self.d1.execute(crate::d1::Queries::SaveLlmProvider {
+            name: &req.name,
+            base_url: &req.base_url,
+            api_key: &req.api_key,
+            provider: &req.provider,
+            models: &req.models,
+            project_id: &req.project_id,
+            location: &req.location,
+        }).await?;
+        Ok([b'{', b'}'].to_vec())
+    }
+
+    pub async fn delete_llm_provider(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        #[derive(Deserialize)]
+        struct DeleteReq {
+            name: String,
+        }
+        let req = serde_json::from_slice::<DeleteReq>(&body)?;
+        self.d1.execute(crate::d1::Queries::DeleteLlmProvider { name: &req.name }).await?;
+        Ok([b'{', b'}'].to_vec())
+    }
+
+    pub async fn get_custom_llm_providers(&self) -> Result<std::collections::HashMap<String, hj_ai::provider::Provider>, Error> {
+        let providers: Vec<crate::d1::LlmProvider> = self.d1.query_all(crate::d1::Queries::ListLlmProviders).await?;
+        let mut custom_llms = std::collections::HashMap::new();
+        for p in providers {
+            let config = crate::ai::ConfigProvider {
+                name: p.name.clone(),
+                base_url: if p.base_url.is_empty() { None } else { Some(p.base_url) },
+                api_key: if p.api_key.is_empty() { None } else { Some(p.api_key) },
+                provider: match p.provider.as_str() {
+                    "gemini" => Some(crate::ai::ProviderType::Gemini),
+                    "vertexai" => Some(crate::ai::ProviderType::VertexAI),
+                    "workersai" => Some(crate::ai::ProviderType::WorkersAI),
+                    _ => Some(crate::ai::ProviderType::OpenAI),
+                },
+                models: p.models.split(',').filter(|s| !s.trim().is_empty()).map(|s| s.trim().to_string()).collect(),
+                project_id: if p.project_id.is_empty() { None } else { Some(p.project_id) },
+                location: if p.location.is_empty() { None } else { Some(p.location) },
+            };
+            custom_llms.insert(p.name, hj_ai::provider::Provider::from(config));
+        }
+        Ok(custom_llms)
+    }
+
     pub async fn custom_llms(&self) -> Result<Vec<u8>, Error> {
         let mut models = vec![];
 
@@ -476,7 +531,9 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
             });
         }
 
-        for (name, l) in self.custom_llms.iter() {
+        let custom_llms = self.get_custom_llm_providers().await?;
+
+        for (name, l) in custom_llms.iter() {
             models.push(CustomLLMResponse {
                 name: name.clone(),
                 models: l.models(),
@@ -510,22 +567,25 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                         )
                         .await?,
                     ),
-                    _ => Some(
-                        crate::ai::explain(
-                            self.custom_llms
-                                .get(name)
-                                .ok_or(Error::Internal("custom llm not found".to_string()))?,
-                            req.google_search.unwrap_or(false),
-                            crate::ai::TranslateRequest {
-                                model,
-                                chars_limit: false,
-                                query: &req.word,
-                                instruction: req.instruction().as_deref(),
-                                dst_lang: req.dst_lang.as_deref(),
-                            },
+                    _ => {
+                        let custom_llms = self.get_custom_llm_providers().await?;
+                        Some(
+                            crate::ai::explain(
+                                custom_llms
+                                    .get(name)
+                                    .ok_or(Error::Internal("custom llm not found".to_string()))?,
+                                req.google_search.unwrap_or(false),
+                                crate::ai::TranslateRequest {
+                                    model,
+                                    chars_limit: false,
+                                    query: &req.word,
+                                    instruction: req.instruction().as_deref(),
+                                    dst_lang: req.dst_lang.as_deref(),
+                                },
+                            )
+                            .await?,
                         )
-                        .await?,
-                    ),
+                    }
                 }
             }
             _ => None,
@@ -645,8 +705,9 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                         .await?
                     }
                     _ => {
+                        let custom_llms = self.get_custom_llm_providers().await?;
                         crate::ai::explain_stream(
-                            self.custom_llms
+                            custom_llms
                                 .get(name)
                                 .ok_or(Error::Internal("custom llm not found".to_string()))?,
                             req.google_search.unwrap_or(false),

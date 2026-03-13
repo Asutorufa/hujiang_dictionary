@@ -7,10 +7,12 @@ import { useScrollDirection } from "@/hooks/useScrollDirection";
 import Home from "./pages/Home";
 import Words from "./pages/Words";
 import Flashcard from "./pages/Flashcard";
+import Llm from "./pages/Llm";
 import Login from "./pages/Login";
 import {
   ROUTE_FLASHCARD,
   ROUTE_HOME,
+  ROUTE_LLM,
   ROUTE_LOGIN,
   ROUTE_WORDS,
 } from "./lib/constants";
@@ -54,6 +56,7 @@ function Main() {
                 href={ROUTE_FLASHCARD}
                 key={ROUTE_FLASHCARD}
               />
+              <Tab title="LLM" href={ROUTE_LLM} key={ROUTE_LLM} />
             </Tabs>
           </div>
         )}
@@ -63,6 +66,7 @@ function Main() {
           <Route path={ROUTE_LOGIN} component={Login} />
           <Route path={ROUTE_WORDS} component={Words} />
           <Route path={ROUTE_FLASHCARD} component={Flashcard} />
+          <Route path={ROUTE_LLM} component={Llm} />
         </Switch>
       </NextThemesProvider>
     </HeroUIProvider>

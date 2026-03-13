@@ -3,17 +3,18 @@ pub mod consolelog;
 
 use crate::ai::WasmAI;
 use frankenstein::client_reqwest;
-use hjcommon::ai::providers_from_assets;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::send_random_word;
 use log::error;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Once, OnceLock};
-use std::{collections::HashMap, collections::HashSet, sync::Arc};
+use std::{collections::HashSet, sync::Arc};
 use worker::*;
+use hjcommon::d1::migrations;
 
 static INIT: Once = Once::new();
 static ENV_CONFIG: OnceLock<EnvConfig> = OnceLock::new();
-static CUSTOM_LLMS: OnceLock<HashMap<String, hj_ai::provider::Provider>> = OnceLock::new();
+static MIGRATION_DONE: AtomicBool = AtomicBool::new(false);
 
 struct EnvConfig {
     allow_users: Arc<HashSet<i64>>,
@@ -95,7 +96,6 @@ async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
         },
         matainer: config.maintainer_id,
         bot: config.bot.clone(),
-        custom_llms: CUSTOM_LLMS.get_or_init(providers_from_assets).clone(),
         auth_secret: config.auth_secret.clone(),
         auth_username: config.auth_username.clone(),
         auth_password: config.auth_password.clone(),
@@ -112,6 +112,14 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
     ctx.pass_through_on_exception();
 
     let opt = get_opt(env.clone()).await;
+
+    if MIGRATION_DONE
+        .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+        .is_ok()
+        && let Err(e) = d1_orm::migrate(&opt.d1, migrations(), None, Some(|s: &str| console_log!("{}", s))).await
+    {
+        error!("Migration failed: {}", e);
+    }
 
     let req_clone = req.clone()?;
 
