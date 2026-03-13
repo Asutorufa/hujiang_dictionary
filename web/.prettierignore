@@ -1,0 +1,4 @@
+node_modules
+dist
+out
+public/mockServiceWorker.js
