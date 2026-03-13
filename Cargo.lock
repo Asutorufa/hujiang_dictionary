@@ -1243,6 +1243,7 @@ dependencies = [
  "cloudflare",
  "d1-orm",
  "frankenstein",
+ "futures",
  "hj_ai",
  "hjcommon",
  "hjdict",

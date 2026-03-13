@@ -265,8 +265,10 @@ impl DatabaseExecutor for D1 {
     where
         Q: Query,
     {
-        for q in queries {
-            self.execute(q).await?;
+        let futures = queries.into_iter().map(|q| self.execute(q));
+        let results = futures::future::join_all(futures).await;
+        for result in results {
+            result?;
         }
         Ok(())
     }
