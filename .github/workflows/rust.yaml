@@ -181,19 +181,19 @@ jobs:
             target: riscv64gc-unknown-linux-gnu
 
           - os-name: Windows-x86_64
-            runs-on: windows-latest
-            target: x86_64-pc-windows-msvc
+            runs-on: ubuntu-latest
+            target: x86_64-pc-windows-gnu
 
           - os-name: Windows-aarch64
-            runs-on: windows-latest
-            target: aarch64-pc-windows-msvc
+            runs-on: ubuntu-latest
+            target: aarch64-pc-windows-gnu
 
           - os-name: macOS-x86_64
-            runs-on: macOS-latest
+            runs-on: ubuntu-latest
             target: x86_64-apple-darwin
 
           - os-name: macOS-aarch64
-            runs-on: macOS-latest
+            runs-on: ubuntu-latest
             target: aarch64-apple-darwin
 
           - os-name: android-x86_64
@@ -216,13 +216,7 @@ jobs:
           key: cache-web-${{ github.sha }}
 
       - name: Build binary
-        uses: houseabsolute/actions-rust-cross@v1
-        with:
-          command: build
-          target: ${{ matrix.platform.target }}
-          args: "--locked --release"
-          strip: true
-          cross-version: "e281947ca900da425e4ecea7483cfde646c8a1ea"
+        run: bash .github/scripts/build.sh ${{ matrix.platform.target }}
     
       - id: rename-binary-name
         run: |
