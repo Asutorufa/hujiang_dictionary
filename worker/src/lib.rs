@@ -79,6 +79,10 @@ async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
 
     let config = ENV_CONFIG.get_or_init(|| EnvConfig::from_env(&env));
 
+    if let Ok(ai) = env.ai("AI") {
+        hj_ai::workers::set_global_ai(ai);
+    }
+
     Arc::new(RunOpt {
         allow_users: config.allow_users.clone(),
         d1: env.d1("DB").expect("D1 binding not found"),
@@ -89,6 +93,7 @@ async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
                     model: "".to_string(),
                     models: vec![],
                     binding: Some(Arc::new(env.ai("AI").unwrap())),
+                    ..Default::default()
                 },
             ))
         } else {

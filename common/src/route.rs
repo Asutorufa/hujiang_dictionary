@@ -602,22 +602,29 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                 };
 
                 match name.as_str() {
-                    "workers-ai" => Some(
-                        crate::ai::explain(
-                            self.workers_ai.as_ref().unwrap(),
-                            req.google_search.unwrap_or(false),
-                            crate::ai::TranslateRequest {
-                                model,
-                                chars_limit: false,
-                                query: &req.word,
-                                instruction: req.instruction().as_deref(),
-                                dst_lang: req.dst_lang.as_deref(),
-                            },
+                    "workers-ai" => {
+                        let mut provider = self.workers_ai.as_ref().unwrap().clone();
+                        if let hj_ai::provider::Provider::WorkersAI(ref mut w) = provider {
+                            w.model = model.to_string();
+                        }
+                        Some(
+                            crate::ai::explain(
+                                &provider,
+                                req.google_search.unwrap_or(false),
+                                crate::ai::TranslateRequest {
+                                    model,
+                                    chars_limit: false,
+                                    query: &req.word,
+                                    instruction: req.instruction().as_deref(),
+                                    dst_lang: req.dst_lang.as_deref(),
+                                },
+                            )
+                            .await?,
                         )
-                        .await?,
-                    ),
+                    }
                     _ => {
-                        let provider = self.get_llm_provider_by_name(name).await?;
+                        let mut provider = self.get_llm_provider_by_name(name).await?;
+                        provider.set_model(model);
                         Some(
                             crate::ai::explain(
                                 &provider,
@@ -738,8 +745,12 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
 
                 match name.as_str() {
                     "workers-ai" => {
+                        let mut provider = self.workers_ai.as_ref().unwrap().clone();
+                        if let hj_ai::provider::Provider::WorkersAI(ref mut w) = provider {
+                            w.model = model.to_string();
+                        }
                         crate::ai::explain_stream(
-                            self.workers_ai.as_ref().unwrap(),
+                            &provider,
                             req.google_search.unwrap_or(false),
                             crate::ai::TranslateRequest {
                                 model,
@@ -752,7 +763,8 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                         .await?
                     }
                     _ => {
-                        let provider = self.get_llm_provider_by_name(name).await?;
+                        let mut provider = self.get_llm_provider_by_name(name).await?;
+                        provider.set_model(model);
                         crate::ai::explain_stream(
                             &provider,
                             req.google_search.unwrap_or(false),

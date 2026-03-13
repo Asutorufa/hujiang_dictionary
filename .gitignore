@@ -11,11 +11,7 @@ wrangler.deploy.toml
 .wrangler
 /dist
 /web/out
-common/config/llm.json
-common/src/.api.*.json
-common/config/.api.*.json
-common/config/api.*.json
-common/config/api.json
+common/src/*.json
 
 # React Frontend
 .next

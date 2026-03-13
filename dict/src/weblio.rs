@@ -52,7 +52,7 @@ pub fn parse(text: &str) -> Vec<String> {
             ids.append(&mut node_ids);
         };
 
-        for (selector, parent) in vec![
+        for (selector, parent) in [
             (".footNote", false),
             (".footNoteB", false),
             (".reflist", false),

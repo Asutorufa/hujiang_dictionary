@@ -62,6 +62,10 @@ impl Client {
         self
     }
 
+    pub fn set_model(&mut self, model: impl Into<String>) {
+        self.model = model.into();
+    }
+
     fn url(&self, action: &str) -> String {
         if let Some(project_id) = &self.project_id {
             let location = self.location.as_deref().unwrap_or("us-central1");

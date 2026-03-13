@@ -90,10 +90,9 @@ cargo lambda build --release --bin lambda
 cargo lambda deploy --binary-name lambda hj-telegram-bot
 ```
 
-init d1 table and register webhook
+register webhook
 
 ```shell
-curl https://<lambda-url>/d1/create_table
 curl https://<lambda-url>/tgbot/register
 ```
 
@@ -120,41 +119,9 @@ WORKER_NAME="hj-dict" # cloudflare workers name
 SCHEDULE="*/20 0-15 * * *" # cron schedule
 ```
 
-custom openai api modal in `common/config/*.json`, which will auto merge all files
-
-```json
-{
-    "openrouter": {
-        "name": "openrouter",
-        "base_url": "https://openrouter.ai/api/v1",
-        "api_key": "sk-or-vx-************************",
-        "reasoning": {
-            "enabled": true
-        },
-        "models": [
-            "openai/gpt-oss-20b:free",
-            "deepseek/deepseek-chat-v3.1:free"
-        ]
-    },
-    "gemini": {
-        "name": "gemini",
-        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
-        "api_key": "****************",
-        "models": [
-            "gemini-2.5-pro",
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-lite",
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-lite"
-        ]
-    }
-}
-```
-
-init d1 table and register webhook
+register webhook
 
 ```shell
-curl https://<workers-url>/d1/create_table
 curl https://<workers-url>/tgbot/register
 ```
 

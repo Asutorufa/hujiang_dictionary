@@ -30,6 +30,10 @@ impl Gemini {
         }
     }
 
+    pub fn set_model(&mut self, model: &str) {
+        self.client.set_model(model);
+    }
+
     pub async fn create_completion_stream(
         self,
         messages: Vec<Message>,

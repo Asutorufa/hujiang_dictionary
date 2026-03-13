@@ -60,4 +60,13 @@ impl Provider {
             Provider::OpenAIResponses(_) => vec![],
         }
     }
+
+    pub fn set_model(&mut self, model: &str) {
+        match self {
+            Provider::OpenAI(provider) => provider.model = model.to_string(),
+            Provider::WorkersAI(provider) => provider.model = model.to_string(),
+            Provider::Gemini(provider) => provider.set_model(model),
+            Provider::OpenAIResponses(provider) => provider.model = model.to_string(),
+        }
+    }
 }

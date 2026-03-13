@@ -5,6 +5,18 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 struct StreamCompletionResponse {
     response: Option<String>,
+    choices: Option<Vec<Choice>>,
+}
+
+#[derive(Deserialize)]
+struct Choice {
+    delta: Delta,
+}
+
+#[derive(Deserialize)]
+struct Delta {
+    content: Option<String>,
+    reasoning_content: Option<String>,
 }
 
 pub fn parse_stream<S, E>(
@@ -15,78 +27,85 @@ where
     E: std::error::Error + Send + Sync + 'static,
 {
     futures_util::stream::unfold(
-        (stream, String::new()),
-        |(mut stream, mut buffer)| async move {
+        (stream, String::new(), String::new()),
+        |(mut stream, mut buffer, mut event_data)| async move {
             loop {
                 use futures_util::StreamExt;
+
+                if let Some(pos) = buffer.find('\n') {
+                    let line = buffer[..pos].to_string();
+                    buffer.drain(..pos + 1);
+                    let line = line.trim_end_matches('\r');
+
+                    if line.is_empty() {
+                        if !event_data.is_empty() {
+                            let data = event_data.clone();
+                            event_data.clear();
+                            if data == "[DONE]" {
+                                return None;
+                            }
+                            match serde_json::from_str::<StreamCompletionResponse>(&data) {
+                                Ok(response) => {
+                                    let mut content = response.response.unwrap_or_default();
+                                    let mut thinking = None;
+
+                                    if let Some(choice) =
+                                        response.choices.and_then(|c| c.into_iter().next())
+                                    {
+                                        if let Some(c) = choice.delta.content {
+                                            content.push_str(&c);
+                                        }
+                                        if let Some(t) = choice.delta.reasoning_content {
+                                            thinking = Some(t);
+                                        }
+                                    }
+
+                                    if !content.is_empty() || thinking.is_some() {
+                                        return Some((
+                                            Ok(CompletionResponse { content, thinking }),
+                                            (stream, buffer, event_data),
+                                        ));
+                                    }
+                                }
+                                Err(e) => {
+                                    return Some((
+                                        Err(Error::from(e)),
+                                        (stream, buffer, event_data),
+                                    ));
+                                }
+                            }
+                        }
+                    } else if let Some(data) = line.strip_prefix("data: ") {
+                        let data = data.trim();
+                        if data == "[DONE]" {
+                            if !event_data.is_empty() {
+                                // If we have pending data, we try to parse it first
+                                // But [DONE] usually comes after a blank line.
+                                // If it doesn't, we just end here for now.
+                            }
+                            return None;
+                        }
+                        if !event_data.is_empty() {
+                            event_data.push('\n');
+                        }
+                        event_data.push_str(data);
+                    }
+                    continue;
+                }
 
                 match stream.next().await {
                     Some(Ok(chunk)) => {
                         buffer.push_str(&String::from_utf8_lossy(&chunk));
                     }
                     Some(Err(e)) => {
-                        return Some((Err(Error::Internal(e.to_string())), (stream, buffer)));
+                        return Some((
+                            Err(Error::Internal(e.to_string())),
+                            (stream, buffer, event_data),
+                        ));
                     }
                     None => {
-                        if !buffer.is_empty() {
-                            let message = buffer.clone();
-                            buffer.clear();
-                            if let Some(data) = message.strip_prefix("data: ") {
-                                let data = data.trim();
-                                if !data.is_empty() && data != "[DONE]" {
-                                    match serde_json::from_str::<StreamCompletionResponse>(data) {
-                                        Ok(response) => {
-                                            if let Some(content) = response.response {
-                                                return Some((
-                                                    Ok(CompletionResponse {
-                                                        content,
-                                                        thinking: None,
-                                                    }),
-                                                    (stream, buffer),
-                                                ));
-                                            }
-                                        }
-                                        Err(e) => {
-                                            return Some((Err(Error::from(e)), (stream, buffer)));
-                                        }
-                                    }
-                                }
-                            }
-                        }
                         return None;
                     }
-                }
-
-                if let Some(pos) = buffer.find("\n\n") {
-                    let message = buffer[..pos].to_string();
-                    buffer.drain(..pos + 2);
-
-                    if let Some(data) = message.strip_prefix("data: ") {
-                        let data = data.trim();
-                        if data == "[DONE]" {
-                            return None;
-                        }
-                        if !data.is_empty() {
-                            match serde_json::from_str::<StreamCompletionResponse>(data) {
-                                Ok(response) => {
-                                    if let Some(content) = response.response {
-                                        return Some((
-                                            Ok(CompletionResponse {
-                                                content,
-                                                thinking: None,
-                                            }),
-                                            (stream, buffer),
-                                        ));
-                                    }
-                                }
-                                Err(e) => {
-                                    return Some((Err(Error::from(e)), (stream, buffer)));
-                                }
-                            }
-                        }
-                    }
-                    // Loop to process next message or fetch next chunk if incomplete
-                    continue;
                 }
             }
         },
@@ -154,5 +173,61 @@ mod tests {
 
         assert_eq!(results.len(), 1);
         assert!(results[0].is_err());
+    }
+
+    #[tokio::test]
+    async fn test_parse_stream_rn() {
+        let chunks = vec![
+            Ok::<_, std::io::Error>(Bytes::from("data: {\"response\": \"Hello\"}\r\n\r\n")),
+            Ok::<_, std::io::Error>(Bytes::from("data: {\"response\": \" World\"}\r\n\r\n")),
+        ];
+
+        let mock_stream = stream::iter(chunks);
+        let parsed_stream = parse_stream(mock_stream);
+
+        let results: Vec<_> = parsed_stream.collect().await;
+
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].as_ref().unwrap().content, "Hello");
+        assert_eq!(results[1].as_ref().unwrap().content, " World");
+    }
+
+    #[tokio::test]
+    async fn test_parse_stream_multiline_data() {
+        let chunks = vec![Ok::<_, std::io::Error>(Bytes::from(
+            "data: {\"response\":\ndata: \"Hello\"}\n\n",
+        ))];
+
+        let mock_stream = stream::iter(chunks);
+        let parsed_stream = parse_stream(mock_stream);
+
+        let results: Vec<_> = parsed_stream.collect().await;
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].as_ref().unwrap().content, "Hello");
+    }
+
+    #[tokio::test]
+    async fn test_parse_stream_openai_format() {
+        let chunks = vec![
+            Ok::<_, std::io::Error>(Bytes::from(
+                "data: {\"choices\": [{\"delta\": {\"content\": \"Hello\"}}]}\n\n",
+            )),
+            Ok::<_, std::io::Error>(Bytes::from(
+                "data: {\"choices\": [{\"delta\": {\"reasoning_content\": \"Thinking...\"}}]}\n\n",
+            )),
+        ];
+
+        let mock_stream = stream::iter(chunks);
+        let parsed_stream = parse_stream(mock_stream);
+
+        let results: Vec<_> = parsed_stream.collect().await;
+
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].as_ref().unwrap().content, "Hello");
+        assert_eq!(
+            results[1].as_ref().unwrap().thinking,
+            Some("Thinking...".to_string())
+        );
     }
 }

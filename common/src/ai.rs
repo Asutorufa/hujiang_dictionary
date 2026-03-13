@@ -1,14 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::future::Future;
 
-use base64::Engine;
 use log::info;
-use rust_embed::RustEmbed;
 use serde::{Deserialize, Serialize};
-
-#[derive(RustEmbed)]
-#[folder = "config/"]
-pub struct Assets;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Error(pub String);
@@ -411,54 +405,23 @@ impl From<ConfigProvider> for hj_ai::provider::Provider {
     }
 }
 
-fn parse_config(data: &[u8]) -> HashMap<String, hj_ai::provider::Provider> {
-    serde_json::from_slice::<HashMap<String, ConfigProvider>>(data)
-        .map(|config| {
-            config
-                .into_iter()
-                .map(|(k, v)| (k, hj_ai::provider::Provider::from(v)))
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
-pub fn providers_from_assets() -> HashMap<String, hj_ai::provider::Provider> {
-    let mut llms = HashMap::new();
-    let mut example_llms = HashMap::new();
-
-    for v in Assets::iter() {
-        if !v.ends_with(".json") {
-            continue;
-        }
-
-        if let Some(f) = Assets::get(&v) {
-            if v == "example.json" {
-                example_llms.extend(parse_config(&f.data));
-            } else {
-                llms.extend(parse_config(&f.data));
-            }
-        }
-    }
-
-    // Prioritize actual config over example config
-    for (k, v) in example_llms {
-        llms.entry(k).or_insert(v);
-    }
-
-    llms
-}
-
-pub fn providers_from_base64_string(env: String) -> HashMap<String, hj_ai::provider::Provider> {
-    base64::engine::general_purpose::STANDARD
-        .decode(env)
-        .map(|bytes| parse_config(&bytes))
-        .unwrap_or_default()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use futures_util::StreamExt;
+    use std::collections::HashMap;
+
+    fn parse_config(data: &[u8]) -> HashMap<String, hj_ai::provider::Provider> {
+        serde_json::from_slice::<HashMap<String, ConfigProvider>>(data)
+            .map(|config| {
+                config
+                    .into_iter()
+                    .map(|(k, v)| (k, hj_ai::provider::Provider::from(v)))
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
     #[tokio::test]
     #[ignore]
     async fn test_providers() {

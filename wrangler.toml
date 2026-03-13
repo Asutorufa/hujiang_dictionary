@@ -23,7 +23,7 @@ enabled = true
 [[d1_databases]]
 binding = "DB"
 database_name = "words"
-database_id = ""
+database_id = "e157547e-8649-496c-8abb-bd3c07835cf6"
 
 [triggers]
 crons = ["*/20 0-15 * * *"] # UTC timezone
@@ -34,3 +34,33 @@ mode = "smart"
 [assets]
 directory = "./web/out"
 binding = "ASSETS"
+
+[env.dev]
+[env.dev.build]
+command = "worker-build --release"
+cwd = "worker"
+
+[env.dev.vars]
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "words"
+database_id = "e157547e-8649-496c-8abb-bd3c07835cf6"
+
+[env.production]
+[env.production.build]
+command = """
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
+. $HOME/.cargo/env && \
+rustup target add wasm32-unknown-unknown && \
+npm install --prefix web && \
+npm run build --prefix web && \
+cargo install -q worker-build && \
+cd worker && worker-build --release"""
+
+[env.production.vars]
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "words"
+database_id = "e157547e-8649-496c-8abb-bd3c07835cf6"
