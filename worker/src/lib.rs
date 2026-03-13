@@ -27,7 +27,7 @@ struct EnvConfig {
 }
 
 impl EnvConfig {
-    fn from_env(env: &Env) -> Self {
+    fn from_env(env: &Env) -> Result<Self> {
         let token = get_string_from_env(env, "TELEGRAM_TOKEN");
         let bot = client_reqwest::Bot::new(&token);
 
@@ -42,12 +42,12 @@ impl EnvConfig {
                 .map(|v| v.parse::<i64>().unwrap_or(0)),
         );
 
-        let auth_secret = match get_string_from_env(env, "AUTH_SECRET") {
-            s if s.is_empty() => "default_secret".to_string(),
-            s => s,
-        };
+        let auth_secret = get_string_from_env(env, "AUTH_SECRET");
+        if auth_secret.is_empty() {
+            return Err(worker::Error::from("AUTH_SECRET is required"));
+        }
 
-        Self {
+        Ok(Self {
             allow_users: Arc::new(set),
             maintainer_id,
             bot,
@@ -57,7 +57,7 @@ impl EnvConfig {
             auth_token_expiration: get_string_from_env(env, "AUTH_TOKEN_EXPIRATION")
                 .parse::<i64>()
                 .unwrap_or(1),
-        }
+        })
     }
 }
 
@@ -68,7 +68,7 @@ fn get_string_from_env(env: &Env, key: &str) -> String {
     }
 }
 
-async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
+async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
     console_error_panic_hook::set_once();
     INIT.call_once(|| {
         match consolelog::init_with_level(log::Level::Info) {
@@ -77,13 +77,20 @@ async fn get_opt(env: Env) -> Arc<RunOpt<worker::D1Database, WasmAI>> {
         };
     });
 
-    let config = ENV_CONFIG.get_or_init(|| EnvConfig::from_env(&env));
+    let config = match ENV_CONFIG.get() {
+        Some(c) => c,
+        None => {
+            let c = EnvConfig::from_env(&env)?;
+            let _ = ENV_CONFIG.set(c);
+            ENV_CONFIG.get().unwrap()
+        }
+    };
 
     if let Ok(ai) = env.ai("AI") {
         hj_ai::workers::set_global_ai(ai);
     }
 
-    Arc::new(RunOpt {
+    Ok(Arc::new(RunOpt {
         allow_users: config.allow_users.clone(),
         d1: env.d1("DB").expect("D1 binding not found"),
         translator: WasmAI::new(&env, "AI"),
@@ -116,7 +123,7 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
 
     ctx.pass_through_on_exception();
 
-    let opt = get_opt(env.clone()).await;
+    let opt = get_opt(env.clone()).await?;
 
     if MIGRATION_DONE
         .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
@@ -181,7 +188,13 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
 
 #[event(scheduled)]
 async fn cron(_: ScheduledEvent, env: Env, _ctx: ScheduleContext) {
-    let opt = get_opt(env).await;
+    let opt = match get_opt(env).await {
+        Ok(opt) => opt,
+        Err(e) => {
+            error!("Failed to get opt: {}", e);
+            return;
+        }
+    };
 
     if let Err(e) = send_random_word(opt).await {
         error!("Error: {}", e);
