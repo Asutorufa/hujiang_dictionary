@@ -1,16 +1,16 @@
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse } from "msw";
 
 type Word = {
-    word: string
-    explain: string
-    example: string
-    add_time: number
-    update_time: number
-    reminder_time: number
-    anki_count: number
-    priority: number
-    type: number
-}
+  word: string;
+  explain: string;
+  example: string;
+  add_time: number;
+  update_time: number;
+  reminder_time: number;
+  anki_count: number;
+  priority: number;
+  type: number;
+};
 
 let words: Word[] = [
   {
@@ -22,18 +22,19 @@ let words: Word[] = [
     reminder_time: Date.now() / 1000,
     anki_count: 0,
     priority: 0,
-    type: 0
+    type: 0,
   },
-   {
+  {
     word: "world",
-    explain: "The earth, together with all of its countries, peoples, and natural features.",
+    explain:
+      "The earth, together with all of its countries, peoples, and natural features.",
     example: "He wants to see the world.",
     add_time: Date.now() / 1000,
     update_time: Date.now() / 1000,
     reminder_time: Date.now() / 1000,
     anki_count: 0,
     priority: 1,
-    type: 0
+    type: 0,
   },
   {
     word: "事柄",
@@ -57,106 +58,131 @@ let words: Word[] = [
     reminder_time: Date.now() / 1000,
     anki_count: 0,
     priority: 1,
-    type: 0
-  }
-]
+    type: 0,
+  },
+];
 
 export const handlers = [
-  http.post('/word/list', async ({ request }) => {
-    const { page_size, page_number, order_by, type } = await request.json() as { page_size: number; page_number: number; order_by: string; type: number; }
+  http.post("/word/list", async ({ request }) => {
+    const { page_size, page_number, order_by, type } =
+      (await request.json()) as {
+        page_size: number;
+        page_number: number;
+        order_by: string;
+        type: number;
+      };
     // Simple filter
-    const filtered = words.filter(w => w.type === type)
+    const filtered = words.filter((w) => w.type === type);
 
     // Simple sort (mocking basic sorting)
-    if (order_by === 'word') filtered.sort((a, b) => a.word.localeCompare(b.word))
-    else if (order_by === 'word desc') filtered.sort((a, b) => b.word.localeCompare(a.word))
-    else if (order_by === 'priority') filtered.sort((a, b) => a.priority - b.priority)
-    else if (order_by === 'priority desc') filtered.sort((a, b) => b.priority - a.priority)
+    if (order_by === "word")
+      filtered.sort((a, b) => a.word.localeCompare(b.word));
+    else if (order_by === "word desc")
+      filtered.sort((a, b) => b.word.localeCompare(a.word));
+    else if (order_by === "priority")
+      filtered.sort((a, b) => a.priority - b.priority);
+    else if (order_by === "priority desc")
+      filtered.sort((a, b) => b.priority - a.priority);
 
-    const start = (page_number - 1) * page_size
-    const end = start + page_size
-    return HttpResponse.json(filtered.slice(start, end))
+    const start = (page_number - 1) * page_size;
+    const end = start + page_size;
+    return HttpResponse.json(filtered.slice(start, end));
   }),
 
-  http.post('/word/count', async ({ request }) => {
+  http.post("/word/count", async ({ request }) => {
     type WordCountPayload = { type: number };
-    const { type } = await request.json() as WordCountPayload;
-    const count = words.filter(w => w.type === type).length
-    return HttpResponse.json({ size: count })
+    const { type } = (await request.json()) as WordCountPayload;
+    const count = words.filter((w) => w.type === type).length;
+    return HttpResponse.json({ size: count });
   }),
 
-  http.post('/word/save', async ({ request }) => {
-    type WordSavePayload = { origin?: string; word: string; explain: string; example: string; type: number };
-    const { origin, word, explain, example, type } = await request.json() as WordSavePayload;
-    const now = Date.now() / 1000
+  http.post("/word/save", async ({ request }) => {
+    type WordSavePayload = {
+      origin?: string;
+      word: string;
+      explain: string;
+      example: string;
+      type: number;
+    };
+    const { origin, word, explain, example, type } =
+      (await request.json()) as WordSavePayload;
+    const now = Date.now() / 1000;
 
     if (origin) {
-        // Edit
-        const idx = words.findIndex(w => w.word === origin)
-        if (idx !== -1) {
-            words[idx] = { ...words[idx], word, explain, example, type, update_time: now }
-        }
+      // Edit
+      const idx = words.findIndex((w) => w.word === origin);
+      if (idx !== -1) {
+        words[idx] = {
+          ...words[idx],
+          word,
+          explain,
+          example,
+          type,
+          update_time: now,
+        };
+      }
     } else {
-        // Add
-        words.unshift({ // Add to top
-            word,
-            explain,
-            example,
-            type,
-            priority: 0,
-            anki_count: 0,
-            add_time: now,
-            update_time: now,
-            reminder_time: now
-        })
+      // Add
+      words.unshift({
+        // Add to top
+        word,
+        explain,
+        example,
+        type,
+        priority: 0,
+        anki_count: 0,
+        add_time: now,
+        update_time: now,
+        reminder_time: now,
+      });
     }
-    return HttpResponse.json({})
+    return HttpResponse.json({});
   }),
 
-  http.post('/word/delete', async ({ request }) => {
+  http.post("/word/delete", async ({ request }) => {
     type WordPayload = { word: string };
-    const { word } = await request.json() as WordPayload;
-    words = words.filter(w => w.word !== word)
-    return HttpResponse.json({})
+    const { word } = (await request.json()) as WordPayload;
+    words = words.filter((w) => w.word !== word);
+    return HttpResponse.json({});
   }),
 
-  http.post('/word/remind_count_increment', async ({ request }) => {
+  http.post("/word/remind_count_increment", async ({ request }) => {
     type WordPayload = { word: string };
-    const { word } = await request.json() as WordPayload;
-    const w = words.find(w => w.word === word)
-    if (w) w.anki_count++
-    return HttpResponse.json({})
+    const { word } = (await request.json()) as WordPayload;
+    const w = words.find((w) => w.word === word);
+    if (w) w.anki_count++;
+    return HttpResponse.json({});
   }),
 
-  http.post('/word/priority', async ({ request }) => {
+  http.post("/word/priority", async ({ request }) => {
     type WordPriorityPayload = { word: string; priority: number };
-    const { word, priority } = await request.json() as WordPriorityPayload;
-    const w = words.find(w => w.word === word)
-    if (w) w.priority = priority
-    return HttpResponse.json({})
+    const { word, priority } = (await request.json()) as WordPriorityPayload;
+    const w = words.find((w) => w.word === word);
+    if (w) w.priority = priority;
+    return HttpResponse.json({});
   }),
 
-  http.post('/word/ai_custom', () => {
+  http.post("/word/ai_custom", () => {
     return HttpResponse.json([
-        { name: "Mock LLM", models: ["gpt-4-mock", "claude-mock"] }
-    ])
+      { name: "Mock LLM", models: ["gpt-4-mock", "claude-mock"] },
+    ]);
   }),
 
-  http.post('/word/query', async ({ request }) => {
-     type WordPayload = { word: string };
-     const { word } = await request.json() as WordPayload;
-     // Simulate delay
-     await new Promise(resolve => setTimeout(resolve, 500));
-     return HttpResponse.json({
-         result: `Mock translation for: ${word}\n\nThis is a mock response from the MSW handler.`,
-         reasoning: `Mock reasoning for: ${word}`
-     })
-  }),
-
-  http.post('/login', async () => {
-    await new Promise(resolve => setTimeout(resolve, 500));
+  http.post("/word/query", async ({ request }) => {
+    type WordPayload = { word: string };
+    const { word } = (await request.json()) as WordPayload;
+    // Simulate delay
+    await new Promise((resolve) => setTimeout(resolve, 500));
     return HttpResponse.json({
-        token: "mock_jwt_token_example"
-    })
-  })
-]
+      result: `Mock translation for: ${word}\n\nThis is a mock response from the MSW handler.`,
+      reasoning: `Mock reasoning for: ${word}`,
+    });
+  }),
+
+  http.post("/login", async () => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return HttpResponse.json({
+      token: "mock_jwt_token_example",
+    });
+  }),
+];

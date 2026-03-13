@@ -1,6 +1,9 @@
 import { TOKEN_KEY } from "./constants";
 
-export async function authorizedRequest(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+export async function authorizedRequest(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
   const token = localStorage.getItem(TOKEN_KEY);
 
   const headers = new Headers(init?.headers);
@@ -25,7 +28,7 @@ export async function authorizedRequest(input: RequestInfo | URL, init?: Request
 }
 export async function streamRequest<T>(
   response: Response,
-  onData: (data: T) => void
+  onData: (data: T) => void,
 ) {
   const reader = response.body?.getReader();
   if (!reader) {

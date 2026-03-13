@@ -1,19 +1,43 @@
 import { authorizedRequest, streamRequest } from "@/lib/api";
-import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownSection, DropdownTrigger, Switch, Textarea, Tooltip } from "@heroui/react";
+import {
+  Avatar,
+  Button,
+  Card,
+  CardBody,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownSection,
+  DropdownTrigger,
+  Switch,
+  Textarea,
+  Tooltip,
+} from "@heroui/react";
 import { useCallback, useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
-import { DiskIcon, listModel as listModels, Markdown, PlayIcon, SaveWordModal } from "../components";
+import {
+  DiskIcon,
+  listModel as listModels,
+  Markdown,
+  PlayIcon,
+  SaveWordModal,
+} from "../components";
 
-async function fetchTranslation(opts: {
-  selected: string,
-  query: string,
-  instruction: string,
-  google_search: boolean,
-  srcLang: string,
-  dstLang: string,
-  custom_llm?: { name: string, model: string }
-},
-  callback: (data?: { result: string, reasoning?: string }, error?: string) => void) {
+async function fetchTranslation(
+  opts: {
+    selected: string;
+    query: string;
+    instruction: string;
+    google_search: boolean;
+    srcLang: string;
+    dstLang: string;
+    custom_llm?: { name: string; model: string };
+  },
+  callback: (
+    data?: { result: string; reasoning?: string },
+    error?: string,
+  ) => void,
+) {
   const resp = await authorizedRequest("/word/query", {
     method: "POST",
     headers: {
@@ -26,12 +50,15 @@ async function fetchTranslation(opts: {
       google_search: opts.google_search,
       src_lang: opts.srcLang ? opts.srcLang : undefined,
       dst_lang: opts.dstLang ? opts.dstLang : undefined,
-      custom_llm: opts.custom_llm
+      custom_llm: opts.custom_llm,
     }),
   });
 
   if (resp.ok) {
-    callback((await resp.json() as { result: string, reasoning?: string }), undefined);
+    callback(
+      (await resp.json()) as { result: string; reasoning?: string },
+      undefined,
+    );
   } else {
     callback(undefined, `(${resp.status}) ${await resp.text()}`);
   }
@@ -58,13 +85,11 @@ const languages = [
   { key: "zh", name: "Chinese", icon: "cn" },
   { key: "en", name: "English", icon: "us" },
   { key: "ko", name: "Korean", icon: "kr" },
-]
-
+];
 
 const languageMap = Object.fromEntries(
-  languages.map(({ key, name, icon }) => [key, { name, icon }])
-) as Record<typeof languages[number]["key"], { name: string, icon: string }>;
-
+  languages.map(({ key, name, icon }) => [key, { name, icon }]),
+) as Record<(typeof languages)[number]["key"], { name: string; icon: string }>;
 
 type TranslationSource = {
   key: string;
@@ -87,32 +112,43 @@ const dictSources = [
 ];
 
 const translationMap = Object.fromEntries(
-  [...translationSources, ...dictSources].map(({ key, name }) => [key, name])
-) as Record<typeof translationSources[number]["key"], string>;
+  [...translationSources, ...dictSources].map(({ key, name }) => [key, name]),
+) as Record<(typeof translationSources)[number]["key"], string>;
 
 export default function Home() {
   const [selected, setSelected] = useLocalStorage("translate_type", "ktbk");
   const [query, setQuery] = useLocalStorage("query", "");
   const [instruction, setInstruction] = useLocalStorage("instruction", "");
-  const [googleSearch, setGoogleSearch] = useLocalStorage("google_search", false);
-  const [result, setResult] = useLocalStorage<{ result: string, reasoning?: string }>("result_v2", { result: "" });
+  const [googleSearch, setGoogleSearch] = useLocalStorage(
+    "google_search",
+    false,
+  );
+  const [result, setResult] = useLocalStorage<{
+    result: string;
+    reasoning?: string;
+  }>("result_v2", { result: "" });
   const [srcLang, setSrcLang] = useLocalStorage("src_lang", "");
   const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
   const [loading, setLoading] = useState(false);
   const [stream, setStream] = useLocalStorage("stream", true);
   const [open, setOpen] = useState(false);
-  const [customModels, setCustomModels] =
-    useLocalStorage<Record<string, { name: string, model: string }>>("custom_llms_cache", {});
+  const [customModels, setCustomModels] = useLocalStorage<
+    Record<string, { name: string; model: string }>
+  >("custom_llms_cache", {});
 
   useEffect(() => {
     listModels((models, error) => {
       if (error) {
         console.log(error);
       } else if (models) {
-        const customModelsMap: Record<string, { name: string, model: string }> = {};
+        const customModelsMap: Record<string, { name: string; model: string }> =
+          {};
         for (const llm of models) {
           for (const model of llm.models) {
-            customModelsMap[`custom-${llm.name}-${model}`] = { name: llm.name, model: model };
+            customModelsMap[`custom-${llm.name}-${model}`] = {
+              name: llm.name,
+              model: model,
+            };
           }
         }
         setCustomModels(customModelsMap);
@@ -120,11 +156,10 @@ export default function Home() {
     });
   }, [setCustomModels]);
 
-
   const doQueryWord = useCallback(async () => {
     if (!query) return;
     let modelName = selected;
-    let customLLM: { name: string, model: string } | undefined;
+    let customLLM: { name: string; model: string } | undefined;
     if (modelName.startsWith("custom-")) {
       customLLM = customModels?.[modelName];
       modelName = "custom_llm";
@@ -147,7 +182,7 @@ export default function Home() {
             google_search: googleSearch,
             src_lang: srcLang ? srcLang : undefined,
             dst_lang: dstLang ? dstLang : undefined,
-            custom_llm: customLLM
+            custom_llm: customLLM,
           }),
         });
 
@@ -157,40 +192,56 @@ export default function Home() {
           return;
         }
 
-        await streamRequest<{ result: string, reasoning?: string }>(resp, (data) => {
-          setResult(prev => ({
-            result: prev.result + (data.result || ""),
-            reasoning: (prev.reasoning || "") + (data.reasoning || "")
-          }));
-        });
+        await streamRequest<{ result: string; reasoning?: string }>(
+          resp,
+          (data) => {
+            setResult((prev) => ({
+              result: prev.result + (data.result || ""),
+              reasoning: (prev.reasoning || "") + (data.reasoning || ""),
+            }));
+          },
+        );
       } catch (error) {
         setResult({ result: String(error) });
       } finally {
         setLoading(false);
       }
     } else {
-      await fetchTranslation({
-        query: query,
-        srcLang: srcLang,
-        dstLang: dstLang,
-        google_search: googleSearch,
-        instruction: instruction,
-        selected: modelName,
-        custom_llm: customLLM,
-      },
+      await fetchTranslation(
+        {
+          query: query,
+          srcLang: srcLang,
+          dstLang: dstLang,
+          google_search: googleSearch,
+          instruction: instruction,
+          selected: modelName,
+          custom_llm: customLLM,
+        },
         (data, error) => {
           console.log(data);
           if (error) {
-            setResult({ result: error })
+            setResult({ result: error });
           } else if (data) {
-            setResult(data)
+            setResult(data);
           } else {
-            setResult({ result: "NOT FOUND" })
+            setResult({ result: "NOT FOUND" });
           }
           setLoading(false);
-        })
+        },
+      );
     }
-  }, [query, srcLang, dstLang, googleSearch, instruction, selected, customModels, setResult, setLoading, stream]);
+  }, [
+    query,
+    srcLang,
+    dstLang,
+    googleSearch,
+    instruction,
+    selected,
+    customModels,
+    setResult,
+    setLoading,
+    stream,
+  ]);
 
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
@@ -219,11 +270,15 @@ export default function Home() {
 
   return (
     <>
-      <SaveWordModal open={open} onChange={(p) => setOpen(p)} word={query} explain={result.result} type={0} />
+      <SaveWordModal
+        open={open}
+        onChange={(p) => setOpen(p)}
+        word={query}
+        explain={result.result}
+        type={0}
+      />
       <div className="p-2">
-
         <div className="sticky flex flex-wrap justify-center top-1 z-50 gap-1">
-
           <div className="flex gap-1">
             <Dropdown>
               <DropdownTrigger>
@@ -232,44 +287,53 @@ export default function Home() {
                   className="shadow-md backdrop-blur-sm capitalize"
                 >
                   <Tooltip content="Translate Method">
-                    {translationMap[selected] || customModels?.[selected]?.model || "Select"}
+                    {translationMap[selected] ||
+                      customModels?.[selected]?.model ||
+                      "Select"}
                   </Tooltip>
                 </Button>
               </DropdownTrigger>
               <DropdownMenu
                 selectionMode="single"
                 selectedKeys={[selected]}
-                onSelectionChange={(e) => e.currentKey && setSelected(e.currentKey)}
+                onSelectionChange={(e) =>
+                  e.currentKey && setSelected(e.currentKey)
+                }
               >
                 <>
                   <DropdownSection showDivider>
-                    {
-                      translationSources.map((source) => (
-                        <DropdownItem key={source.key}>{source.name}</DropdownItem>
-                      ))
-                    }
+                    {translationSources.map((source) => (
+                      <DropdownItem key={source.key}>
+                        {source.name}
+                      </DropdownItem>
+                    ))}
                   </DropdownSection>
-                  <DropdownSection showDivider={Object.keys(customModels || {}).length > 0}>
-                    {
-                      dictSources.map((source) => (
-                        <DropdownItem shortcut={source.tag} key={source.key}>{source.name}</DropdownItem>
-                      ))
-                    }
+                  <DropdownSection
+                    showDivider={Object.keys(customModels || {}).length > 0}
+                  >
+                    {dictSources.map((source) => (
+                      <DropdownItem shortcut={source.tag} key={source.key}>
+                        {source.name}
+                      </DropdownItem>
+                    ))}
                   </DropdownSection>
                   {Object.keys(customModels || {}).length > 0 && (
                     <DropdownSection>
-                      {
-                        Object.keys(customModels || {}).map((key) => (
-                          <DropdownItem shortcut={customModels[key].name} key={key}>{customModels[key].model}</DropdownItem>
-                        ))
-                      }
+                      {Object.keys(customModels || {}).map((key) => (
+                        <DropdownItem
+                          shortcut={customModels[key].name}
+                          key={key}
+                        >
+                          {customModels[key].model}
+                        </DropdownItem>
+                      ))}
                     </DropdownSection>
                   )}
                 </>
               </DropdownMenu>
             </Dropdown>
 
-            {showSelectLang(selected) &&
+            {showSelectLang(selected) && (
               <>
                 <Dropdown>
                   <DropdownTrigger>
@@ -279,7 +343,11 @@ export default function Home() {
                       className="shadow-md backdrop-blur-sm capitalize"
                     >
                       <Tooltip content="Source Language">
-                        <Avatar alt={languageMap[srcLang].name} className="w-6 h-6" src={`https://flagcdn.com/${languageMap[srcLang].icon}.svg`} />
+                        <Avatar
+                          alt={languageMap[srcLang].name}
+                          className="w-6 h-6"
+                          src={`https://flagcdn.com/${languageMap[srcLang].icon}.svg`}
+                        />
                         {/* {languageMap[srcLang].name || "Auto"} */}
                       </Tooltip>
                     </Button>
@@ -287,18 +355,28 @@ export default function Home() {
                   <DropdownMenu
                     selectionMode="single"
                     selectedKeys={[srcLang]}
-                    onSelectionChange={(e) => e.currentKey !== undefined && e.currentKey !== null && setSrcLang(e.currentKey)}
-                  >
-                    {
-                      languages.map((lang) => (
-                        <DropdownItem
-                          key={lang.key}
-                          startContent={lang.icon ? <Avatar alt={lang.name} className="w-6 h-6" src={`https://flagcdn.com/${lang.icon}.svg`} /> : undefined}
-                        >
-                          {lang.name}
-                        </DropdownItem>
-                      ))
+                    onSelectionChange={(e) =>
+                      e.currentKey !== undefined &&
+                      e.currentKey !== null &&
+                      setSrcLang(e.currentKey)
                     }
+                  >
+                    {languages.map((lang) => (
+                      <DropdownItem
+                        key={lang.key}
+                        startContent={
+                          lang.icon ? (
+                            <Avatar
+                              alt={lang.name}
+                              className="w-6 h-6"
+                              src={`https://flagcdn.com/${lang.icon}.svg`}
+                            />
+                          ) : undefined
+                        }
+                      >
+                        {lang.name}
+                      </DropdownItem>
+                    ))}
                   </DropdownMenu>
                 </Dropdown>
 
@@ -310,7 +388,11 @@ export default function Home() {
                       className="shadow-md backdrop-blur-sm capitalize"
                     >
                       <Tooltip content="Target Language">
-                        <Avatar alt={languageMap[dstLang].name} className="w-6 h-6" src={`https://flagcdn.com/${languageMap[dstLang].icon}.svg`} />
+                        <Avatar
+                          alt={languageMap[dstLang].name}
+                          className="w-6 h-6"
+                          src={`https://flagcdn.com/${languageMap[dstLang].icon}.svg`}
+                        />
                         {/* {languageMap[dstLang].name || "Auto"} */}
                       </Tooltip>
                     </Button>
@@ -318,22 +400,34 @@ export default function Home() {
                   <DropdownMenu
                     selectionMode="single"
                     selectedKeys={[dstLang]}
-                    onSelectionChange={(e) => e.currentKey !== undefined && e.currentKey !== null && setDstLang(e.currentKey)}
+                    onSelectionChange={(e) =>
+                      e.currentKey !== undefined &&
+                      e.currentKey !== null &&
+                      setDstLang(e.currentKey)
+                    }
                   >
-                    {
-                      languages.filter((lang) => lang.key !== "").map((lang) => (
+                    {languages
+                      .filter((lang) => lang.key !== "")
+                      .map((lang) => (
                         <DropdownItem
                           key={lang.key}
-                          startContent={lang.icon ? <Avatar alt={lang.name} className="w-6 h-6" src={`https://flagcdn.com/${lang.icon}.svg`} /> : undefined}
+                          startContent={
+                            lang.icon ? (
+                              <Avatar
+                                alt={lang.name}
+                                className="w-6 h-6"
+                                src={`https://flagcdn.com/${lang.icon}.svg`}
+                              />
+                            ) : undefined
+                          }
                         >
                           {lang.name}
                         </DropdownItem>
-                      ))
-                    }
+                      ))}
                   </DropdownMenu>
                 </Dropdown>
               </>
-            }
+            )}
           </div>
 
           <div className="flex justify-center gap-1">
@@ -375,20 +469,27 @@ export default function Home() {
           onChange={(e) => setQuery(e.target.value)}
         />
 
-
-        {(selected.startsWith("custom-")) &&
+        {selected.startsWith("custom-") && (
           <div className="flex flex-col gap-2">
             <div className="flex gap-4">
-              <Switch className="mt-2" isSelected={googleSearch} onValueChange={(e) => setGoogleSearch(e)}>
+              <Switch
+                className="mt-2"
+                isSelected={googleSearch}
+                onValueChange={(e) => setGoogleSearch(e)}
+              >
                 Google Search
               </Switch>
 
-              <Switch className="mt-2" isSelected={stream} onValueChange={(e) => setStream(e)}>
+              <Switch
+                className="mt-2"
+                isSelected={stream}
+                onValueChange={(e) => setStream(e)}
+              >
                 Stream
               </Switch>
             </div>
 
-            {!googleSearch &&
+            {!googleSearch && (
               <Textarea
                 className="mt-2"
                 label="Instruction"
@@ -400,12 +501,11 @@ export default function Home() {
                 }}
                 onChange={(e) => setInstruction(e.target.value)}
               />
-            }
+            )}
           </div>
-        }
+        )}
 
-
-        {result.reasoning &&
+        {result.reasoning && (
           <div className="mt-2">
             <Card>
               <CardBody>
@@ -415,26 +515,26 @@ export default function Home() {
               </CardBody>
             </Card>
           </div>
-        }
+        )}
 
         <div className="mt-2">
           <Card>
             <CardBody>
-              {result.result ?
+              {result.result ? (
                 <div className="flex-1 max-w-none">
                   <Markdown>{result.result}</Markdown>
                 </div>
-                :
+              ) : (
                 <>
                   <div className="h-50 flex items-center justify-center">
                     Please input translate text and click translate button.
                   </div>
                 </>
-              }
+              )}
             </CardBody>
           </Card>
         </div>
-      </div >
+      </div>
     </>
   );
 }

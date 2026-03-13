@@ -30,12 +30,15 @@ jobs:
           cd web
           npm ci --legacy-peer-deps
           npm run lint
+          npx tsc --noEmit
+          npx prettier --check .
 
       - name: Lint fix frontend
         if: failure() && github.event_name == 'push' && github.ref_name == 'rust'
         run: |
           cd web
           npm run lint:fix
+          npx prettier --write .
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -74,7 +77,7 @@ jobs:
           title: "chore: fix linting issues"
           body: |
             Automated fix for linting issues.
-            - frontend lint fix
+            - frontend lint fix & prettier
             - cargo fmt
             - cargo clippy --fix
           branch: lint-fix

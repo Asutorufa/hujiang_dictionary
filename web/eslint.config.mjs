@@ -18,7 +18,10 @@ export default tseslint.config(
     ],
   },
   {
-    extends: [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
+    extends: [
+      js.configs.recommended,
+      ...tseslint.configs.recommendedTypeChecked,
+    ],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: 2020,
@@ -55,5 +58,5 @@ export default tseslint.config(
       "react-hooks/exhaustive-deps": "warn",
       "react-hooks/set-state-in-effect": "off",
     },
-  }
+  },
 );

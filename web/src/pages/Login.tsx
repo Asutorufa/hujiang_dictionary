@@ -1,5 +1,12 @@
 import { ROUTE_HOME, TOKEN_KEY } from "@/lib/constants";
-import { addToast, Button, Card, CardBody, CardHeader, Input } from "@heroui/react";
+import {
+  addToast,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Input,
+} from "@heroui/react";
 import { useState } from "react";
 import { useLocation } from "wouter";
 
@@ -24,13 +31,18 @@ export default function Login() {
       });
 
       if (res.ok) {
-        const data = await res.json() as LoginResponse;
-        if (data && typeof data === 'object' && 'token' in data && typeof data.token === 'string') {
+        const data = (await res.json()) as LoginResponse;
+        if (
+          data &&
+          typeof data === "object" &&
+          "token" in data &&
+          typeof data.token === "string"
+        ) {
           localStorage.setItem(TOKEN_KEY, data.token);
           setLocation(ROUTE_HOME);
           addToast({
-              title: "Login Successful",
-              color: "success"
+            title: "Login Successful",
+            color: "success",
           });
         } else {
           throw new Error("Invalid response format");
@@ -38,18 +50,18 @@ export default function Login() {
       } else {
         const text = await res.text();
         addToast({
-            title: "Login Failed",
-            description: text,
-            color: "danger"
+          title: "Login Failed",
+          description: text,
+          color: "danger",
         });
       }
     } catch (e) {
       console.error(e);
       const errorMessage = e instanceof Error ? e.message : String(e);
       addToast({
-          title: "Login Error",
-          description: errorMessage,
-          color: "danger"
+        title: "Login Error",
+        description: errorMessage,
+        color: "danger",
       });
     } finally {
       setLoading(false);
@@ -67,14 +79,14 @@ export default function Login() {
             label="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
           />
           <Input
             label="Password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
           />
           <Button color="primary" isLoading={loading} onPress={handleLogin}>
             Login

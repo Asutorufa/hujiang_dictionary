@@ -73,7 +73,7 @@ impl Completion for WorkersAI {
 
             let parsed = crate::sse::parse_stream(stream.map(|res| {
                 res.map(bytes::Bytes::from)
-                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+                    .map_err(|e| std::io::Error::other(e.to_string()))
             }));
 
             return Ok(
