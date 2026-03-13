@@ -31,7 +31,9 @@ export default function Llm() {
   const [, setLocation] = useLocation();
   const [providers, setProviders] = useState<LlmProvider[]>([]);
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [editingProvider, setEditingProvider] = useState<LlmProvider | null>(null);
+  const [editingProvider, setEditingProvider] = useState<LlmProvider | null>(
+    null,
+  );
 
   const fetchProviders = async () => {
     try {
@@ -72,7 +74,9 @@ export default function Llm() {
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(formData.entries()) as unknown as LlmProvider;
+    const data = Object.fromEntries(
+      formData.entries(),
+    ) as unknown as LlmProvider;
 
     try {
       await authorizedRequest("/llm/save", {
@@ -114,13 +118,19 @@ export default function Llm() {
                 <div>
                   <h3 className="text-lg font-semibold">{p.name}</h3>
                   <p className="text-sm text-gray-500">{p.provider}</p>
-                  {p.base_url && <p className="text-xs truncate">{p.base_url}</p>}
+                  {p.base_url && (
+                    <p className="text-xs truncate">{p.base_url}</p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" onPress={() => openEditModal(p)}>
                     Edit
                   </Button>
-                  <Button size="sm" color="danger" onPress={() => handleDelete(p.name)}>
+                  <Button
+                    size="sm"
+                    color="danger"
+                    onPress={() => handleDelete(p.name)}
+                  >
                     Delete
                   </Button>
                 </div>
@@ -147,7 +157,9 @@ export default function Llm() {
               <Select
                 name="provider"
                 label="Provider Type"
-                defaultSelectedKeys={editingProvider ? [editingProvider.provider] : ["openai"]}
+                defaultSelectedKeys={
+                  editingProvider ? [editingProvider.provider] : ["openai"]
+                }
               >
                 <SelectItem key="openai">OpenAI</SelectItem>
                 <SelectItem key="gemini">Gemini</SelectItem>
