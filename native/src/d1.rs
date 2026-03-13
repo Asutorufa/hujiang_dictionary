@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use d1_orm::{DatabaseExecutor, DatabaseValue, Error, Query};
 use log::*;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use futures::stream::{self, StreamExt, TryStreamExt};
 
 // see: https://developers.cloudflare.com/api/resources/d1/subresources/database
 #[derive(Clone)]
@@ -265,11 +266,12 @@ impl DatabaseExecutor for D1 {
     where
         Q: Query,
     {
-        let futures = queries.into_iter().map(|q| self.execute(q));
-        let results = futures::future::join_all(futures).await;
-        for result in results {
-            result?;
-        }
+        stream::iter(queries)
+            .map(Ok)
+            .try_for_each_concurrent(10, |q| async move {
+                self.execute(q).await
+            })
+            .await?;
         Ok(())
     }
 }
