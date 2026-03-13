@@ -107,6 +107,7 @@ define_sql!(
     "#,
 
     DeleteLlmProvider { name: &'a str } => "DELETE FROM llm_providers WHERE name = ?",
+    GetLlmProviderByName { name: &'a str } => "SELECT * FROM llm_providers WHERE name = ?",
 );
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
