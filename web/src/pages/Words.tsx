@@ -147,7 +147,7 @@ export default function Words() {
 
             <div className="container mx-auto p-2 sm:p-4 max-w-7xl">
                 {/* Sticky Header */}
-                <div className="sticky top-2 z-40 bg-background/80 backdrop-blur-md rounded-2xl shadow-medium border border-default-200 p-2 mb-6 flex flex-wrap items-center justify-between gap-2">
+                <div className="sticky top-4 z-40 bg-background/60 backdrop-blur-xl rounded-2xl shadow-lg border border-default-200/50 p-3 mb-8 flex flex-wrap items-center justify-between gap-4 transition-all hover:shadow-xl">
 
                     <Pagination
                         isCompact
@@ -166,39 +166,41 @@ export default function Words() {
                     <div className="flex gap-2 items-center ml-auto">
                         <Dropdown>
                             <DropdownTrigger>
-                                <Button isIconOnly variant="flat" className="bg-default-100">
-                                    <FilterIcon />
+                                <Button
+                                    variant="flat"
+                                    startContent={<FilterIcon />}
+                                    className="bg-default-100 font-medium"
+                                >
+                                    View Options
                                 </Button>
                             </DropdownTrigger>
                             <DropdownMenu
                                 aria-label="View Options"
                                 closeOnSelect={false}
+                                selectionMode="single"
+                                selectedKeys={[orderBy]}
+                                onSelectionChange={(keys) => {
+                                    const selected = Array.from(keys)[0] as string;
+                                    if (selected) setOrderBy(selected);
+                                }}
                             >
                                 <DropdownSection title="Sort By" showDivider>
-                                    <DropdownItem key="sort" isReadOnly className="cursor-default data-[hover=true]:bg-transparent">
-                                         <select
-                                            className="w-full bg-transparent outline-none text-small p-1"
-                                            value={orderBy}
-                                            onChange={(e) => setOrderBy(e.target.value)}
-                                         >
-                                            <option value="word">Word (A-Z)</option>
-                                            <option value="word desc">Word (Z-A)</option>
-                                            <option value="priority">Priority (Low-High)</option>
-                                            <option value="priority desc">Priority (High-Low)</option>
-                                            <option value="add_time">Date Added (Oldest)</option>
-                                            <option value="add_time desc">Date Added (Newest)</option>
-                                            <option value="update_time">Date Updated (Oldest)</option>
-                                            <option value="update_time desc">Date Updated (Newest)</option>
-                                            <option value="anki_count">Count (Low-High)</option>
-                                            <option value="anki_count desc">Count (High-Low)</option>
-                                         </select>
-                                    </DropdownItem>
+                                    <DropdownItem key="word">Word (A-Z)</DropdownItem>
+                                    <DropdownItem key="word desc">Word (Z-A)</DropdownItem>
+                                    <DropdownItem key="priority">Priority (Low-High)</DropdownItem>
+                                    <DropdownItem key="priority desc">Priority (High-Low)</DropdownItem>
+                                    <DropdownItem key="add_time">Date Added (Oldest)</DropdownItem>
+                                    <DropdownItem key="add_time desc">Date Added (Newest)</DropdownItem>
+                                    <DropdownItem key="update_time">Date Updated (Oldest)</DropdownItem>
+                                    <DropdownItem key="update_time desc">Date Updated (Newest)</DropdownItem>
+                                    <DropdownItem key="anki_count">Count (Low-High)</DropdownItem>
+                                    <DropdownItem key="anki_count desc">Count (High-Low)</DropdownItem>
                                 </DropdownSection>
 
                                 <DropdownSection title="Filter">
                                     <DropdownItem
-                                        key="grammar"
-                                        startContent={<BookIcon />}
+                                        key="grammar-toggle"
+                                        startContent={<BookIcon size={18} />}
                                         className={grammar ? "bg-primary-50 text-primary" : ""}
                                         onPress={() => setGrammar(!grammar)}
                                     >
@@ -208,11 +210,13 @@ export default function Words() {
                             </DropdownMenu>
                         </Dropdown>
 
+                        <div className="h-6 w-[1px] bg-default-200 mx-1" />
+
                         <Tooltip content="Add Word">
                             <Button
                                 isIconOnly
                                 color="primary"
-                                variant="flat"
+                                variant="shadow"
                                 onPress={() => {
                                     setNewWord({
                                         new: {
@@ -238,6 +242,7 @@ export default function Words() {
                             <Button
                                 isIconOnly
                                 variant="light"
+                                className="text-default-500"
                                 onPress={() => setRefresh(r => r + 1)}
                             >
                                 <RefreshIcon />

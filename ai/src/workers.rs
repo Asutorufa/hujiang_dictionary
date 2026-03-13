@@ -1,9 +1,12 @@
 use futures_util::Stream;
+#[cfg(feature = "worker")]
+use futures_util::StreamExt;
 
 #[cfg(feature = "worker")]
 use std::sync::Arc;
 
 use crate::{Completion, CompletionResponse, Error, Message};
+use std::pin::Pin;
 
 #[cfg(feature = "worker")]
 use serde::{Deserialize, Serialize};
@@ -58,19 +61,37 @@ impl Completion for WorkersAI {
         messages: Vec<Message>,
     ) -> Result<impl Stream<Item = Result<CompletionResponse, Error>> + 'static, Error> {
         #[cfg(feature = "worker")]
-        {
-            let _ = messages;
-            return Err::<futures_util::stream::Empty<_>, _>(Error::Internal(
-                "completion_stream is not supported on wasm".to_string(),
-            ));
+        if let Some(ai) = &self.binding {
+            let req = AiRequest {
+                messages,
+                stream: true,
+            };
+            let stream = ai
+                .run_bytes(&self.model, req)
+                .await
+                .map_err(|e| Error::Internal(e.to_string()))?;
+
+            let parsed = crate::sse::parse_stream(stream.map(|res| {
+                res.map(bytes::Bytes::from)
+                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            }));
+
+            return Ok(
+                Box::pin(parsed) as Pin<Box<dyn Stream<Item = Result<CompletionResponse, Error>>>>
+            );
         }
 
         #[cfg(not(feature = "worker"))]
-        {
-            let _ = messages;
-            Err::<futures_util::stream::Empty<_>, _>(Error::Internal(
-                "WorkersAI only supported with worker feature and binding".to_string(),
-            ))
+        let _ = messages;
+
+        let err_stream = futures_util::stream::empty();
+        if false {
+            return Ok(Box::pin(err_stream)
+                as Pin<Box<dyn Stream<Item = Result<CompletionResponse, Error>>>>);
         }
+
+        Err(Error::Internal(
+            "WorkersAI only supported with worker feature and binding".to_string(),
+        ))
     }
 }

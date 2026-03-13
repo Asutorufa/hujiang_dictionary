@@ -1,4 +1,4 @@
-import { authorizedRequest } from "@/lib/api";
+import { authorizedRequest, streamRequest } from "@/lib/api";
 import { Avatar, Button, Card, CardBody, Dropdown, DropdownItem, DropdownMenu, DropdownSection, DropdownTrigger, Switch, Textarea, Tooltip } from "@heroui/react";
 import { useCallback, useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
@@ -99,6 +99,7 @@ export default function Home() {
   const [srcLang, setSrcLang] = useLocalStorage("src_lang", "");
   const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
   const [loading, setLoading] = useState(false);
+  const [stream, setStream] = useLocalStorage("stream", true);
   const [open, setOpen] = useState(false);
   const [customModels, setCustomModels] =
     useLocalStorage<Record<string, { name: string, model: string }>>("custom_llms_cache", {});
@@ -130,27 +131,66 @@ export default function Home() {
     }
 
     setLoading(true);
-    await fetchTranslation({
-      query: query,
-      srcLang: srcLang,
-      dstLang: dstLang,
-      google_search: googleSearch,
-      instruction: instruction,
-      selected: modelName,
-      custom_llm: customLLM,
-    },
-      (data, error) => {
-        console.log(data);
-        if (error) {
-          setResult({ result: error })
-        } else if (data) {
-          setResult(data)
-        } else {
-          setResult({ result: "NOT FOUND" })
+
+    if (stream && modelName === "custom_llm") {
+      setResult({ result: "" });
+      try {
+        const resp = await authorizedRequest("/word/query_stream", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            method: modelName,
+            word: query,
+            instruction: instruction.length > 0 ? instruction : undefined,
+            google_search: googleSearch,
+            src_lang: srcLang ? srcLang : undefined,
+            dst_lang: dstLang ? dstLang : undefined,
+            custom_llm: customLLM
+          }),
+        });
+
+        if (!resp.ok) {
+          setResult({ result: `(${resp.status}) ${await resp.text()}` });
+          setLoading(false);
+          return;
         }
+
+        await streamRequest<{ result: string, reasoning?: string }>(resp, (data) => {
+          setResult(prev => ({
+            result: prev.result + (data.result || ""),
+            reasoning: (prev.reasoning || "") + (data.reasoning || "")
+          }));
+        });
+      } catch (error) {
+        setResult({ result: String(error) });
+      } finally {
         setLoading(false);
-      })
-  }, [query, srcLang, dstLang, googleSearch, instruction, selected, customModels, setResult, setLoading]);
+      }
+    } else {
+      await fetchTranslation({
+        query: query,
+        srcLang: srcLang,
+        dstLang: dstLang,
+        google_search: googleSearch,
+        instruction: instruction,
+        selected: modelName,
+        custom_llm: customLLM,
+      },
+        (data, error) => {
+          console.log(data);
+          if (error) {
+            setResult({ result: error })
+          } else if (data) {
+            setResult(data)
+          } else {
+            setResult({ result: "NOT FOUND" })
+          }
+          setLoading(false);
+        })
+    }
+  }, [query, srcLang, dstLang, googleSearch, instruction, selected, customModels, setResult, setLoading, stream]);
 
   useEffect(() => {
     const handleKeyDown = async (e: KeyboardEvent) => {
@@ -337,10 +377,16 @@ export default function Home() {
 
 
         {(selected.startsWith("custom-")) &&
-          <>
-            <Switch className="mt-2" isSelected={googleSearch} onValueChange={(e) => setGoogleSearch(e)}>
-              Google Search
-            </Switch>
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-4">
+              <Switch className="mt-2" isSelected={googleSearch} onValueChange={(e) => setGoogleSearch(e)}>
+                Google Search
+              </Switch>
+
+              <Switch className="mt-2" isSelected={stream} onValueChange={(e) => setStream(e)}>
+                Stream
+              </Switch>
+            </div>
 
             {!googleSearch &&
               <Textarea
@@ -355,7 +401,7 @@ export default function Home() {
                 onChange={(e) => setInstruction(e.target.value)}
               />
             }
-          </>
+          </div>
         }
 
 
