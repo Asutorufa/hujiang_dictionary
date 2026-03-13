@@ -32,6 +32,20 @@ define_model!(
     }
 );
 
+define_model!(
+    LlmProvider,
+    LlmProviderField,
+    LlmProviderUpdate {
+        name: String[pk],
+        base_url: String,
+        api_key: String,
+        provider: String,
+        models: String,
+        project_id: String,
+        location: String,
+    }
+);
+
 define_sql!(
     Queries
 
@@ -69,6 +83,31 @@ define_sql!(
         example: &'a str,
         old_word: &'a str
     } => "UPDATE words SET word = ?1, explain = ?2, update_time = strftime('%s', 'now'), word_type = ?3, example = ?4 WHERE word = ?5",
+
+    ListLlmProviders => "SELECT * FROM llm_providers",
+
+    SaveLlmProvider {
+        name: &'a str,
+        base_url: &'a str,
+        api_key: &'a str,
+        provider: &'a str,
+        models: &'a str,
+        project_id: &'a str,
+        location: &'a str
+    } => r#"
+        INSERT INTO llm_providers (name, base_url, api_key, provider, models, project_id, location)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+        ON CONFLICT(name) DO UPDATE SET
+            base_url = excluded.base_url,
+            api_key = excluded.api_key,
+            provider = excluded.provider,
+            models = excluded.models,
+            project_id = excluded.project_id,
+            location = excluded.location
+    "#,
+
+    DeleteLlmProvider { name: &'a str } => "DELETE FROM llm_providers WHERE name = ?",
+    GetLlmProviderByName { name: &'a str } => "SELECT * FROM llm_providers WHERE name = ?",
 );
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -133,6 +172,24 @@ pub fn migrations() -> Vec<Migration<SqlStatement>> {
             vec![SqlStatement(
                 r#"
             ALTER TABLE words RENAME COLUMN type TO word_type;
+            "#
+                .to_string(),
+            )],
+        ),
+        Migration::new(
+            3,
+            "add_llm_providers",
+            vec![SqlStatement(
+                r#"
+            CREATE TABLE IF NOT EXISTS llm_providers (
+                "name" TEXT PRIMARY KEY,
+                "base_url" TEXT DEFAULT '',
+                "api_key" TEXT DEFAULT '',
+                "provider" TEXT DEFAULT '',
+                "models" TEXT DEFAULT '',
+                "project_id" TEXT DEFAULT '',
+                "location" TEXT DEFAULT ''
+            );
             "#
                 .to_string(),
             )],

@@ -168,6 +168,28 @@ export const handlers = [
     ]);
   }),
 
+  http.post("/llm/list", () => {
+    return HttpResponse.json([
+      {
+        name: "Mock LLM",
+        base_url: "https://api.openai.com",
+        api_key: "sk-...",
+        provider: "openai",
+        models: "gpt-4-mock,claude-mock",
+        project_id: "",
+        location: "",
+      },
+    ]);
+  }),
+
+  http.post("/llm/save", () => {
+    return HttpResponse.json({});
+  }),
+
+  http.post("/llm/delete", () => {
+    return HttpResponse.json({});
+  }),
+
   http.post("/word/query", async ({ request }) => {
     type WordPayload = { word: string };
     const { word } = (await request.json()) as WordPayload;

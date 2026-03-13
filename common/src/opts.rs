@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use frankenstein::client_reqwest;
@@ -13,7 +13,6 @@ pub struct RunOpt<T: DatabaseExecutor, T2: crate::ai::Translator> {
     pub translator: T2,
     pub workers_ai: Option<hj_ai::provider::Provider>,
     pub bot: client_reqwest::Bot,
-    pub custom_llms: HashMap<String, hj_ai::provider::Provider>,
     pub auth_secret: String,
     pub auth_username: String,
     pub auth_password: String,

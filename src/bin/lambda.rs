@@ -11,6 +11,11 @@ use lambda_runtime::LambdaEvent;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use hjcommon::d1::migrations;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+static MIGRATION_DONE: AtomicBool = AtomicBool::new(false);
+
 #[tokio::main]
 async fn main() -> Result<(), lambda_runtime::Error> {
     env_logger::builder()
@@ -18,6 +23,20 @@ async fn main() -> Result<(), lambda_runtime::Error> {
         .init();
 
     let run_opt = run_opts().await.unwrap();
+
+    if MIGRATION_DONE
+        .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+        .is_ok()
+        && let Err(e) = d1_orm::migrate(
+            &run_opt.d1,
+            migrations(),
+            None,
+            Some(|s: &str| log::info!("{}", s)),
+        )
+        .await
+    {
+        log::error!("Migration failed: {}", e);
+    }
 
     let handler = LambdaHandler {
         run_opt: Arc::new(run_opt),
