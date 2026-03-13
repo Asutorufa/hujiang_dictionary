@@ -25,6 +25,8 @@ if [[ "$TARGET" == *"-apple-darwin" ]]; then
     curl -L https://github.com/joseluisq/macosx-sdks/releases/download/11.3/MacOSX11.3.sdk.tar.xz | tar xJ
   fi
   export SDKROOT="$SDK_DIR"
+  # cargo-zigbuild's zig cc uses the SDK correctly if passed as a link arg
+  export RUSTFLAGS="-C link-arg=--sysroot=$SDK_DIR"
 fi
 
 # Check if target is Windows
@@ -56,8 +58,12 @@ if [[ "$TARGET" == *"-android"* ]]; then
       NDK_TARGET="x86_64-linux-android"
     fi
     SYSROOT="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
-    export CFLAGS="$CFLAGS --sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/$NDK_TARGET"
-    export CXXFLAGS="$CXXFLAGS --sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/$NDK_TARGET"
+    TARGET_VAR=$(echo $TARGET | tr '-' '_')
+    # cc-rs uses CFLAGS_<target> and CXXFLAGS_<target>
+    export CFLAGS_${TARGET_VAR}="--sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/$NDK_TARGET"
+    export CXXFLAGS_${TARGET_VAR}="--sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/$NDK_TARGET"
+    export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=$SYSROOT -I$SYSROOT/usr/include -I$SYSROOT/usr/include/$NDK_TARGET"
+    export RUSTFLAGS="-C link-arg=--sysroot=$SYSROOT -C link-arg=-L$SYSROOT/usr/lib/$NDK_TARGET/33 -C link-arg=-L$SYSROOT/usr/lib/$NDK_TARGET"
   fi
 fi
 
