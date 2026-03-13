@@ -11,8 +11,8 @@ use lambda_runtime::LambdaEvent;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use hjcommon::d1::migrations;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 static MIGRATION_DONE: AtomicBool = AtomicBool::new(false);
 
@@ -27,7 +27,13 @@ async fn main() -> Result<(), lambda_runtime::Error> {
     if MIGRATION_DONE
         .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
         .is_ok()
-        && let Err(e) = d1_orm::migrate(&run_opt.d1, migrations(), None, Some(|s: &str| log::info!("{}", s))).await
+        && let Err(e) = d1_orm::migrate(
+            &run_opt.d1,
+            migrations(),
+            None,
+            Some(|s: &str| log::info!("{}", s)),
+        )
+        .await
     {
         log::error!("Migration failed: {}", e);
     }

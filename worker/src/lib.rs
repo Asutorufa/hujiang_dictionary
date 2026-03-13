@@ -3,6 +3,7 @@ pub mod consolelog;
 
 use crate::ai::WasmAI;
 use frankenstein::client_reqwest;
+use hjcommon::d1::migrations;
 use hjcommon::opts::RunOpt;
 use hjcommon::tg::send_random_word;
 use log::error;
@@ -10,7 +11,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Once, OnceLock};
 use std::{collections::HashSet, sync::Arc};
 use worker::*;
-use hjcommon::d1::migrations;
 
 static INIT: Once = Once::new();
 static ENV_CONFIG: OnceLock<EnvConfig> = OnceLock::new();
@@ -116,7 +116,13 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
     if MIGRATION_DONE
         .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
         .is_ok()
-        && let Err(e) = d1_orm::migrate(&opt.d1, migrations(), None, Some(|s: &str| console_log!("{}", s))).await
+        && let Err(e) = d1_orm::migrate(
+            &opt.d1,
+            migrations(),
+            None,
+            Some(|s: &str| console_log!("{}", s)),
+        )
+        .await
     {
         error!("Migration failed: {}", e);
     }

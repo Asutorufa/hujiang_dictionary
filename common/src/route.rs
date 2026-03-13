@@ -470,21 +470,26 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
     }
 
     pub async fn list_llm_providers(&self) -> Result<Vec<u8>, Error> {
-        let providers: Vec<crate::d1::LlmProvider> = self.d1.query_all(crate::d1::Queries::ListLlmProviders).await?;
+        let providers: Vec<crate::d1::LlmProvider> = self
+            .d1
+            .query_all(crate::d1::Queries::ListLlmProviders)
+            .await?;
         Ok(serde_json::to_vec(&providers)?)
     }
 
     pub async fn save_llm_provider(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<crate::d1::LlmProvider>(&body)?;
-        self.d1.execute(crate::d1::Queries::SaveLlmProvider {
-            name: &req.name,
-            base_url: &req.base_url,
-            api_key: &req.api_key,
-            provider: &req.provider,
-            models: &req.models,
-            project_id: &req.project_id,
-            location: &req.location,
-        }).await?;
+        self.d1
+            .execute(crate::d1::Queries::SaveLlmProvider {
+                name: &req.name,
+                base_url: &req.base_url,
+                api_key: &req.api_key,
+                provider: &req.provider,
+                models: &req.models,
+                project_id: &req.project_id,
+                location: &req.location,
+            })
+            .await?;
         Ok([b'{', b'}'].to_vec())
     }
 
@@ -494,27 +499,55 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
             name: String,
         }
         let req = serde_json::from_slice::<DeleteReq>(&body)?;
-        self.d1.execute(crate::d1::Queries::DeleteLlmProvider { name: &req.name }).await?;
+        self.d1
+            .execute(crate::d1::Queries::DeleteLlmProvider { name: &req.name })
+            .await?;
         Ok([b'{', b'}'].to_vec())
     }
 
-    pub async fn get_custom_llm_providers(&self) -> Result<std::collections::HashMap<String, hj_ai::provider::Provider>, Error> {
-        let providers: Vec<crate::d1::LlmProvider> = self.d1.query_all(crate::d1::Queries::ListLlmProviders).await?;
+    pub async fn get_custom_llm_providers(
+        &self,
+    ) -> Result<std::collections::HashMap<String, hj_ai::provider::Provider>, Error> {
+        let providers: Vec<crate::d1::LlmProvider> = self
+            .d1
+            .query_all(crate::d1::Queries::ListLlmProviders)
+            .await?;
         let mut custom_llms = std::collections::HashMap::new();
         for p in providers {
             let config = crate::ai::ConfigProvider {
                 name: p.name.clone(),
-                base_url: if p.base_url.is_empty() { None } else { Some(p.base_url) },
-                api_key: if p.api_key.is_empty() { None } else { Some(p.api_key) },
+                base_url: if p.base_url.is_empty() {
+                    None
+                } else {
+                    Some(p.base_url)
+                },
+                api_key: if p.api_key.is_empty() {
+                    None
+                } else {
+                    Some(p.api_key)
+                },
                 provider: match p.provider.as_str() {
                     "gemini" => Some(crate::ai::ProviderType::Gemini),
                     "vertexai" => Some(crate::ai::ProviderType::VertexAI),
                     "workersai" => Some(crate::ai::ProviderType::WorkersAI),
                     _ => Some(crate::ai::ProviderType::OpenAI),
                 },
-                models: p.models.split(',').filter(|s| !s.trim().is_empty()).map(|s| s.trim().to_string()).collect(),
-                project_id: if p.project_id.is_empty() { None } else { Some(p.project_id) },
-                location: if p.location.is_empty() { None } else { Some(p.location) },
+                models: p
+                    .models
+                    .split(',')
+                    .filter(|s| !s.trim().is_empty())
+                    .map(|s| s.trim().to_string())
+                    .collect(),
+                project_id: if p.project_id.is_empty() {
+                    None
+                } else {
+                    Some(p.project_id)
+                },
+                location: if p.location.is_empty() {
+                    None
+                } else {
+                    Some(p.location)
+                },
             };
             custom_llms.insert(p.name, hj_ai::provider::Provider::from(config));
         }
