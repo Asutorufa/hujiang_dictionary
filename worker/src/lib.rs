@@ -77,14 +77,14 @@ async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
         };
     });
 
-    let config = match ENV_CONFIG.get() {
-        Some(c) => c,
-        None => {
-            let c = EnvConfig::from_env(&env)?;
-            let _ = ENV_CONFIG.set(c);
-            ENV_CONFIG.get().unwrap()
-        }
-    };
+    if ENV_CONFIG.get().is_none() {
+        let c = EnvConfig::from_env(&env)?;
+        // In a race, the first thread to call `set` wins. We can ignore the error.
+        let _ = ENV_CONFIG.set(c);
+    }
+    let config = ENV_CONFIG
+        .get()
+        .expect("ENV_CONFIG is guaranteed to be initialized here");
 
     if let Ok(ai) = env.ai("AI") {
         hj_ai::workers::set_global_ai(ai);
@@ -112,7 +112,7 @@ async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
         auth_username: config.auth_username.clone(),
         auth_password: config.auth_password.clone(),
         auth_token_expiration: config.auth_token_expiration,
-    })
+    }))
 }
 
 #[event(fetch)]
