@@ -1353,6 +1353,7 @@ dependencies = [
 name = "hjcommon"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "base64 0.22.1",
  "bytes",
  "chrono",
@@ -1369,6 +1370,7 @@ dependencies = [
  "serde",
  "serde_json",
  "subtle",
+ "tg-bot-worker",
  "tokio",
  "value2struct",
 ]
@@ -3519,6 +3521,17 @@ name = "termtree"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f50febec83f5ee1df3015341d8bd429f2d1cc62bcba7ea2076759d315084683"
+
+[[package]]
+name = "tg-bot-worker"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "frankenstein",
+ "log",
+ "serde_json",
+ "tokio",
+]
 
 [[package]]
 name = "thiserror"

@@ -1,120 +1,96 @@
 use crate::ai::Models;
 use crate::d1::Queries;
 use crate::{ai::Translator, opts::RunOpt};
+use async_trait::async_trait;
 use core::fmt;
 use d1_orm::DatabaseExecutor;
 use frankenstein::AsyncTelegramApi;
 use frankenstein::client_reqwest::Bot;
 use frankenstein::methods::{SendMessageParams, SetMyCommandsParams, SetWebhookParams};
-use frankenstein::types::{
-    ChatId, LinkPreviewOptions, MaybeInaccessibleMessage, MessageEntityType,
-};
-use frankenstein::updates::UpdateContent;
+use frankenstein::types::{ChatId, LinkPreviewOptions, MaybeInaccessibleMessage};
 use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use log::*;
 use std::sync::Arc;
+use tg_bot_worker::{
+    TelegramBot,
+    utils::{html_escape, markdown_escape, split_message, vec_string_markdown_escape},
+};
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Command {
-    JPCN(String),
-    CNJP(String),
-    KR(String),
-    EN(String),
-    Weblio(String),
-    Ktbk(String),
-    Gemma(String),
-    Llama4(String),
-    GPT(String),
-    UserID,
-    GG(Option<String>, String, String),
-    GG1(Option<String>, String, String),
-    CFAI(Option<String>, String, String),
-    Random,
-    Save(String, String),
-}
-
-pub fn bot_commands() -> Vec<frankenstein::types::BotCommand> {
-    vec![
-        frankenstein::types::BotCommand {
-            command: "jpcn".to_string(),
-            description: "jp -> cn".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "cnjp".to_string(),
-            description: "cn -> jp".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "kr".to_string(),
-            description: "kr <-> cn".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "en".to_string(),
-            description: "en <-> cn".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "weblio".to_string(),
-            description: "weblio".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "ktbk".to_string(),
-            description: "コトバンク".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "gemma".to_string(),
-            description: "gemma3 12b it".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "llama4".to_string(),
-            description: "llama4 scout 17b 16e instruct".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "gpt".to_string(),
-            description: "gpt-oss-20b".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "userid".to_string(),
-            description: "get current user id".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "gg".to_string(),
-            description: "google translate, eg: /gg en_ja hello, /gg ja hello".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "gg1".to_string(),
-            description: "google old translate api, eg: /gg1 en_ja hello, /gg1 ja hello"
-                .to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "cfai".to_string(),
-            description: "google translate, eg: /cfai en_ja hello, /cfai ja hello".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "random".to_string(),
-            description: "get a random word from d1 database".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "save".to_string(),
-            description: "save a message by word".to_string(),
-        },
-    ]
-}
-
-pub fn split_message(text: &str, max_len: usize) -> Vec<String> {
-    let mut chunks = Vec::with_capacity(text.len() / max_len.max(1) + 1);
-    let mut start = 0;
-
-    for (idx, c) in text.char_indices() {
-        if idx - start + c.len_utf8() > max_len && idx > start {
-            chunks.push(text[start..idx].to_string());
-            start = idx;
+macro_rules! llm_parser {
+    ($variant:ident) => {
+        |_, arg: &str, quote: &str| {
+            let full_text = match (quote.is_empty(), arg.is_empty()) {
+                (false, false) => format!("{}\n{}", quote, arg),
+                (false, true) => quote.to_string(),
+                (true, false) => arg.to_string(),
+                (true, true) => "".to_string(),
+            };
+            Ok((Self::$variant(full_text), None))
         }
-    }
+    };
+}
 
-    if start < text.len() {
-        chunks.push(text[start..].to_string());
-    }
+macro_rules! gg_parser {
+    ($variant:ident) => {
+        |_, arg: &str, quote: &str| {
+            let mut parts = arg.splitn(2, ' ');
+            let first = parts.next().unwrap_or("");
+            let rest = parts.next().unwrap_or(quote).to_string();
 
-    chunks
+            let args = first.split("_").collect::<Vec<_>>();
+
+            let (src, target) = match args.len() > 1 {
+                true => (Some(args[0].to_string()), args[1].to_string()),
+                false => (None, first.to_string()),
+            };
+
+            if target.is_empty() {
+                return Err("target language is empty".to_string());
+            }
+
+            if rest.is_empty() {
+                return Err("text to translate is empty".to_string());
+            }
+
+            Ok((Self::$variant(src, target, rest), None))
+        }
+    };
+}
+
+tg_bot_worker::bot_commands! {
+    #[derive(Debug, PartialEq, Eq)]
+    pub enum Command {
+        #[command(name = "jpcn", desc = "jp -> cn")]
+        JPCN(String),
+        #[command(name = "cnjp", desc = "cn -> jp")]
+        CNJP(String),
+        #[command(name = "kr", desc = "kr <-> cn")]
+        KR(String),
+        #[command(name = "en", desc = "en <-> cn")]
+        EN(String),
+        #[command(name = "weblio", desc = "weblio")]
+        Weblio(String),
+        #[command(name = "ktbk", desc = "コトバンク")]
+        Ktbk(String),
+        #[command(name = "gemma", desc = "gemma3 12b it", parser = llm_parser!(Gemma))]
+        Gemma(String),
+        #[command(name = "llama4", desc = "llama4 scout 17b 16e instruct", parser = llm_parser!(Llama4))]
+        Llama4(String),
+        #[command(name = "gpt", desc = "gpt-oss-20b", parser = llm_parser!(GPT))]
+        GPT(String),
+        #[command(name = "userid", desc = "get current user id", unit = true)]
+        UserID,
+        #[command(name = "gg", desc = "google translate, eg: /gg en_ja hello, /gg ja hello", parser = gg_parser!(GG))]
+        GG(Option<String>, String, String),
+        #[command(name = "gg1", desc = "google old translate api, eg: /gg1 en_ja hello, /gg1 ja hello", parser = gg_parser!(GG1))]
+        GG1(Option<String>, String, String),
+        #[command(name = "cfai", desc = "google translate, eg: /cfai en_ja hello, /cfai ja hello", parser = gg_parser!(CFAI))]
+        CFAI(Option<String>, String, String),
+        #[command(name = "random", desc = "get a random word from d1 database", unit = true)]
+        Random,
+        #[command(name = "save", desc = "save a message by word", parser = |_, arg: &str, quote: &str| Ok((Self::Save(arg.to_string(), quote.to_string()), None)))]
+        Save(String, String),
+    }
 }
 
 #[cfg(test)]
@@ -122,79 +98,70 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_split_message() {
-        let text = "hello world";
-        let chunks = split_message(text, 5);
-        assert_eq!(chunks, vec!["hello", " worl", "d"]);
-
-        let text = "你好世界";
-        let chunks = split_message(text, 6);
-        assert_eq!(chunks, vec!["你好", "世界"]);
-
-        let text = "嗨";
-        let chunks = split_message(text, 2);
-        assert_eq!(chunks, vec!["嗨"]);
-    }
-
-    #[test]
     fn test_parse_command() {
         // Test empty command
         assert_eq!(
-            parse_command("", "", ""),
-            Err(Error("command is empty".to_string()))
+            Command::parse("", "", ""),
+            Err("command is empty".to_string())
         );
         assert_eq!(
-            parse_command("/", "", ""),
-            Err(Error("command is empty".to_string()))
+            Command::parse("/", "", ""),
+            Err("command is empty".to_string())
         );
         assert_eq!(
-            parse_command("/@bot", "", ""),
-            Err(Error("command is empty".to_string()))
+            Command::parse("/@bot", "", ""),
+            Err("command is empty".to_string())
         );
 
         // Test normal commands
         assert_eq!(
-            parse_command("/en", "hello", "").unwrap().0,
+            Command::parse("/en", "hello", "").unwrap().0,
             Command::EN("hello".to_string())
         );
         assert_eq!(
-            parse_command("/jpcn", "hello", "").unwrap().0,
+            Command::parse("/jpcn", "hello", "").unwrap().0,
             Command::JPCN("hello".to_string())
         );
         assert_eq!(
-            parse_command("/cnjp", "hello", "").unwrap().0,
+            Command::parse("/cnjp", "hello", "").unwrap().0,
             Command::CNJP("hello".to_string())
         );
         assert_eq!(
-            parse_command("/kr", "hello", "").unwrap().0,
+            Command::parse("/kr", "hello", "").unwrap().0,
             Command::KR("hello".to_string())
         );
         assert_eq!(
-            parse_command("/weblio", "hello", "").unwrap().0,
+            Command::parse("/weblio", "hello", "").unwrap().0,
             Command::Weblio("hello".to_string())
         );
         assert_eq!(
-            parse_command("/ktbk", "hello", "").unwrap().0,
+            Command::parse("/ktbk", "hello", "").unwrap().0,
             Command::Ktbk("hello".to_string())
         );
-        assert_eq!(parse_command("/random", "", "").unwrap().0, Command::Random);
-        assert_eq!(parse_command("/userid", "", "").unwrap().0, Command::UserID);
+        assert_eq!(
+            Command::parse("/random", "", "").unwrap().0,
+            Command::Random
+        );
+        assert_eq!(
+            Command::parse("/userid", "", "").unwrap().0,
+            Command::UserID
+        );
 
         // Test bot suffix
         assert_eq!(
-            parse_command("/en@my_bot", "hello", "").unwrap().0,
+            Command::parse("/en@my_bot", "hello", "").unwrap().0,
             Command::EN("hello".to_string())
         );
 
         // Test quote and argument
         assert_eq!(
-            parse_command("/en", "", "quote").unwrap().0,
+            Command::parse("/en", "", "quote").unwrap().0,
             Command::EN("quote".to_string())
         );
 
         // Test GG command
         assert_eq!(
-            parse_command("/gg", "en_ja hello", "").unwrap().0,
+            Command::parse("/gg", "en_ja hello", "").unwrap().0,
             Command::GG(
                 Some("en".to_string()),
                 "ja".to_string(),
@@ -203,52 +170,52 @@ mod tests {
         );
 
         assert_eq!(
-            parse_command("/gg", "ja hello", "quote").unwrap().0,
+            Command::parse("/gg", "ja hello", "quote").unwrap().0,
             Command::GG(None, "ja".to_string(), "hello".to_string())
         );
 
         // Test GG with quote
         assert_eq!(
-            parse_command("/gg", "ja", "quote").unwrap().0,
+            Command::parse("/gg", "ja", "quote").unwrap().0,
             Command::GG(None, "ja".to_string(), "quote".to_string())
         );
 
         // Test GG validation
-        assert!(parse_command("/gg", "", "").is_err());
-        assert!(parse_command("/gg", "ja", "").is_err());
+        assert!(Command::parse("/gg", "", "").is_err());
+        assert!(Command::parse("/gg", "ja", "").is_err());
 
         // Test LLM commands
         assert_eq!(
-            parse_command("/gemma", "arg", "quote").unwrap().0,
+            Command::parse("/gemma", "arg", "quote").unwrap().0,
             Command::Gemma("quote\narg".to_string())
         );
         assert_eq!(
-            parse_command("/gemma", "arg", "").unwrap().0,
+            Command::parse("/gemma", "arg", "").unwrap().0,
             Command::Gemma("arg".to_string())
         );
         assert_eq!(
-            parse_command("/gemma", "", "quote").unwrap().0,
+            Command::parse("/gemma", "", "quote").unwrap().0,
             Command::Gemma("quote".to_string())
         );
         assert_eq!(
-            parse_command("/llama4", "arg", "quote").unwrap().0,
+            Command::parse("/llama4", "arg", "quote").unwrap().0,
             Command::Llama4("quote\narg".to_string())
         );
         assert_eq!(
-            parse_command("/gpt", "arg", "quote").unwrap().0,
+            Command::parse("/gpt", "arg", "quote").unwrap().0,
             Command::GPT("quote\narg".to_string())
         );
 
         // Test save command
         assert_eq!(
-            parse_command("/save", "arg", "quote").unwrap().0,
+            Command::parse("/save", "arg", "quote").unwrap().0,
             Command::Save("arg".to_string(), "quote".to_string())
         );
 
         // Test unknown command
         assert_eq!(
-            parse_command("/unknown", "", ""),
-            Err(Error("not implemented".to_string()))
+            Command::parse("/unknown", "", ""),
+            Err("not implemented".to_string())
         );
     }
 
@@ -271,16 +238,6 @@ mod tests {
             Err(Error("not implemented".to_string()))
         );
     }
-
-    #[test]
-    fn test_escape() {
-        assert_eq!(markdown_escape("hello_world"), "hello\\_world");
-        assert_eq!(html_escape("<p>&</p>"), "&lt;p&gt;&amp;&lt;/p&gt;");
-        assert_eq!(
-            vec_string_markdown_escape(&vec!["a_b".to_string(), "c*d".to_string()]),
-            "a\\_b\nc\\*d\n"
-        );
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -290,102 +247,50 @@ pub enum CallbackQueryCommand {
     Remove(String),
 }
 
-pub(super) const MARKDOWN_ESCAPE_CHARS: [char; 19] = [
-    '\\', '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!',
-];
-
-pub fn markdown_escape(s: &str) -> String {
-    s.chars().fold(String::with_capacity(s.len()), |mut s, c| {
-        if MARKDOWN_ESCAPE_CHARS.contains(&c) {
-            s.push('\\');
-        }
-        s.push(c);
-        s
-    })
+pub struct BotHandler<T: DatabaseExecutor, T2: Translator> {
+    pub opt: Arc<RunOpt<T, T2>>,
 }
 
-pub fn html_escape(s: &str) -> String {
-    s.chars().fold(String::with_capacity(s.len()), |mut s, c| {
-        match c {
-            '&' => s.push_str("&amp;"),
-            '<' => s.push_str("&lt;"),
-            '>' => s.push_str("&gt;"),
-            c => s.push(c),
-        }
-        s
-    })
-}
+#[async_trait(?Send)]
+impl<T: DatabaseExecutor, T2: Translator> TelegramBot for BotHandler<T, T2> {
+    type Error = Error;
 
-pub fn vec_string_markdown_escape(v: &Vec<String>) -> String {
-    let mut s = String::new();
-    for i in v {
-        s.push_str(markdown_escape(i.as_str()).as_str());
-        s.push('\n');
+    async fn handle_command(
+        &self,
+        msg: Box<frankenstein::types::Message>,
+        command: &str,
+        argument: &str,
+        quote: &str,
+    ) -> Result<(), Self::Error> {
+        let (cmd, text) = Command::parse(command, argument, quote).map_err(Error)?;
+
+        info!("message command: {:?}, argument: {:?}", cmd, text);
+
+        answer(self.opt.clone(), msg, cmd).await?;
+        Ok(())
     }
-    s
+
+    async fn handle_callback(
+        &self,
+        call_query: Box<frankenstein::types::CallbackQuery>,
+        command: &str,
+        argument: &str,
+    ) -> Result<(), Self::Error> {
+        let (cmd, text) = parse_callback_query_command(command, argument)?;
+
+        info!("callback query command: {:?}, argument: {:?}", cmd, text);
+
+        callback_query(self.opt.clone(), call_query, cmd).await?;
+        Ok(())
+    }
 }
 
 pub async fn handle<T: DatabaseExecutor, T2: Translator>(
     opt: Arc<RunOpt<T, T2>>,
     update: frankenstein::updates::Update,
 ) -> Result<(), Error> {
-    match update.content {
-        UpdateContent::Message(msg) | UpdateContent::EditedMessage(msg) => {
-            let entity = match msg.entities.as_ref() {
-                Some(v) if !v.is_empty() && v[0].type_field == MessageEntityType::BotCommand => {
-                    &v[0]
-                }
-                _ => return Err(Error("no command entity".to_string())),
-            };
-
-            let txt = match msg.text.as_ref() {
-                Some(v) => v,
-                None => return Err(Error("no text".to_string())),
-            };
-
-            let quote_or_reply_message = match msg.quote.as_ref() {
-                None => match msg.reply_to_message.as_ref() {
-                    None => "",
-                    Some(v) => match v.text.as_ref() {
-                        Some(v) => v,
-                        None => "",
-                    },
-                },
-                Some(v) => v.text.as_ref(),
-            };
-
-            let command =
-                &txt[entity.offset as usize..entity.offset as usize + entity.length as usize];
-
-            let argument = txt[entity.offset as usize + entity.length as usize..].trim();
-
-            let (cmd, text) = parse_command(command, argument, quote_or_reply_message)?;
-
-            info!("message command: {:?}, argument: {:?}", cmd, text);
-
-            answer(opt, msg, cmd).await?;
-        }
-        UpdateContent::CallbackQuery(msg) => {
-            let (command, argument) = match msg.data.as_ref() {
-                Some(v) => {
-                    let mut data = v.splitn(2, ' ');
-                    let command = data.next().unwrap_or("");
-                    let argument = data.next().unwrap_or("");
-                    (command.to_string(), argument.to_string())
-                }
-                None => return Err(Error("no data".to_string())),
-            };
-
-            let (cmd, text) = parse_callback_query_command(command.as_str(), argument.as_str())?;
-
-            info!("callback query command: {:?}, argument: {:?}", cmd, text);
-
-            callback_query(opt, msg, cmd).await?;
-        }
-        _ => return Err(Error("not message".to_string())),
-    };
-
-    Ok(())
+    let handler = BotHandler { opt };
+    handler.handle_update(update).await
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -431,84 +336,14 @@ pub async fn llm_answer<T: DatabaseExecutor, T2: Translator>(
             ..Default::default()
         };
         match crate::ai::translate(ai, req).await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
-            Ok(x) => (v, markdown_escape(x.content.as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
+            Ok(x) => (v, markdown_escape(x.content.as_str()).to_string()),
         }
     } else {
         (v, "workers_ai not available".to_string())
-    }
-}
-
-pub fn parse_command(
-    command: &str,
-    argument: &str,
-    quote: &str,
-) -> Result<(Command, Option<String>), Error> {
-    let command = command
-        .trim_start_matches("/")
-        .split('@')
-        .next()
-        .unwrap_or("");
-
-    if command.is_empty() {
-        return Err(Error("command is empty".to_string()));
-    }
-
-    let quote_or_argument = if argument.is_empty() { quote } else { argument }.to_string();
-
-    match command {
-        "cnjp" => Ok((Command::CNJP(quote_or_argument), None)),
-        "jpcn" => Ok((Command::JPCN(quote_or_argument), None)),
-        "kr" => Ok((Command::KR(quote_or_argument), None)),
-        "en" => Ok((Command::EN(quote_or_argument), None)),
-        "weblio" => Ok((Command::Weblio(quote_or_argument), None)),
-        "ktbk" => Ok((Command::Ktbk(quote_or_argument), None)),
-        "random" => Ok((Command::Random, None)),
-        "gemma" | "llama4" | "gpt" => {
-            let full_text = match (quote.is_empty(), argument.is_empty()) {
-                (false, false) => format!("{}\n{}", quote, argument),
-                (false, true) => quote.to_string(),
-                (true, false) => argument.to_string(),
-                (true, true) => "".to_string(),
-            };
-            match command {
-                "gemma" => Ok((Command::Gemma(full_text), None)),
-                "llama4" => Ok((Command::Llama4(full_text), None)),
-                _ => Ok((Command::GPT(full_text), None)),
-            }
-        }
-        "save" => Ok((Command::Save(argument.to_string(), quote.to_string()), None)),
-        "gg" | "cfai" | "gg1" => {
-            let mut parts = argument.splitn(2, ' ');
-            let first = parts.next().unwrap_or("");
-            let rest = parts.next().unwrap_or(quote).to_string();
-
-            let args = first.split("_").collect::<Vec<_>>();
-
-            let (src, target) = match args.len() > 1 {
-                true => (Some(args[0].to_string()), args[1].to_string()),
-                false => (None, first.to_string()),
-            };
-
-            if target.is_empty() {
-                return Err(Error("target language is empty".to_string()));
-            }
-
-            if rest.is_empty() {
-                return Err(Error("text to translate is empty".to_string()));
-            }
-
-            if command == "cfai" {
-                Ok((Command::CFAI(src, target, rest), None))
-            } else if command == "gg1" {
-                Ok((Command::GG1(src, target, rest), None))
-            } else {
-                Ok((Command::GG(src, target, rest), None))
-            }
-        }
-        "userid" => Ok((Command::UserID, None)),
-
-        _ => Err(Error("not implemented".to_string())),
     }
 }
 
@@ -533,50 +368,76 @@ pub async fn answer<T: DatabaseExecutor, T2: Translator>(
 
     let (word, reply) = match cmd {
         Command::CNJP(word) => match jp::get(word.as_str(), "cj").await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => (
                 word,
-                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
+                vec_string_markdown_escape(
+                    &v.iter().map(|x| x.markdown()).collect::<Vec<String>>(),
+                ),
             ),
         },
         Command::EN(word) => match en::get(word.as_str()).await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => (
                 word,
-                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
+                vec_string_markdown_escape(
+                    &v.iter().map(|x| x.markdown()).collect::<Vec<String>>(),
+                ),
             ),
         },
         Command::JPCN(word) => match jp::get(word.as_str(), "jc").await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => (
                 word,
-                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
+                vec_string_markdown_escape(
+                    &v.iter().map(|x| x.markdown()).collect::<Vec<String>>(),
+                ),
             ),
         },
         Command::KR(word) => match kr::get(word.as_str()).await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => (
                 word,
-                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
+                vec_string_markdown_escape(
+                    &v.iter().map(|x| x.markdown()).collect::<Vec<String>>(),
+                ),
             ),
         },
         Command::Ktbk(word) => match kotobanku::get(word.as_str()).await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => {
                 let reply = vec_string_markdown_escape(&v);
                 if reply.len() > 4096 {
-                    (word, markdown_escape(&v[0]))
+                    (word, markdown_escape(&v[0]).to_string())
                 } else {
                     (word, reply)
                 }
             }
         },
         Command::Weblio(word) => match weblio::get(word.as_str()).await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => {
                 let reply = vec_string_markdown_escape(&v);
                 if reply.len() > 4096 {
-                    (word, markdown_escape(&v[0]))
+                    (word, markdown_escape(&v[0]).to_string())
                 } else {
                     (word, reply)
                 }
@@ -588,20 +449,35 @@ pub async fn answer<T: DatabaseExecutor, T2: Translator>(
         ),
         Command::GG(from, to, text) => {
             match google::translatev2(text.as_ref(), from, to.as_ref()).await {
-                Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
-                Ok(v) => (text, markdown_escape(google::merge_translation(v).as_str())),
+                Err(e) => (
+                    "".to_string(),
+                    markdown_escape(e.to_string().as_str()).to_string(),
+                ),
+                Ok(v) => (
+                    text,
+                    markdown_escape(google::merge_translation(v).as_str()).to_string(),
+                ),
             }
         }
         Command::GG1(from, to, text) => {
             match google::translate(text.as_ref(), from, to.as_ref()).await {
-                Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
-                Ok(v) => (text, markdown_escape(google::merge_translation(v).as_str())),
+                Err(e) => (
+                    "".to_string(),
+                    markdown_escape(e.to_string().as_str()).to_string(),
+                ),
+                Ok(v) => (
+                    text,
+                    markdown_escape(google::merge_translation(v).as_str()).to_string(),
+                ),
             }
         }
         Command::CFAI(from, to, text) => {
             match opt.translator.m2m100_1_2b(text.as_ref(), from, to).await {
-                Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
-                Ok(v) => (text, markdown_escape(v.as_str())),
+                Err(e) => (
+                    "".to_string(),
+                    markdown_escape(e.to_string().as_str()).to_string(),
+                ),
+                Ok(v) => (text, markdown_escape(v.as_str()).to_string()),
             }
         }
         Command::Gemma(v) => llm_answer(opt.clone(), Models::Gemma3_12bIt, v).await,
@@ -835,7 +711,7 @@ pub async fn set_webhook(bot: &Bot, url: &str, matainer: i64) -> Result<(), Erro
 
     bot.set_my_commands(
         &SetMyCommandsParams::builder()
-            .commands(bot_commands())
+            .commands(Command::bot_commands())
             .build(),
     )
     .await?;

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [workspace]
-members = ["native", "common", "dict", "worker", "web", "gemini", "ai"]
+members = ["native", "common", "dict", "worker", "web", "gemini", "ai", "tg-bot-worker"]
 
 [dependencies]
 base64 = { workspace = true }
