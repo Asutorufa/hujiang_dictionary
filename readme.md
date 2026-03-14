@@ -1,4 +1,4 @@
-#
+# Hujiang Dictionary
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Asutorufa/hujiang_dictionary)
 
@@ -15,6 +15,8 @@ cargo build --release
 ## web
 
 see [telegram bot](#telegram-bot)
+
+https://github.com/user-attachments/assets/19575332-0906-4654-a173-b8c390e0baf4
 
 ![screenshot](https://raw.githubusercontent.com/Asutorufa/hujiang_dictionary/refs/heads/rust/assets/images/web.png)
 
