@@ -56,6 +56,15 @@ if ! command -v zig &> /dev/null; then
     ZIG_URL="https://ziglang.org/download/0.13.0/zig-${OS_NAME}-${ARCH_NAME}-0.13.0.tar.xz"
     curl -L "$ZIG_URL" | tar -xJ -C /tmp/
     export PATH="/tmp/zig-${OS_NAME}-${ARCH_NAME}-0.13.0:$PATH"
+
+    # Fix for missing RISC-V 64 hard-float stubs in Zig's glibc headers
+    if [[ "$TARGET" == "riscv64gc-unknown-linux-gnu" ]]; then
+        STUBS_DIR="/tmp/zig-${OS_NAME}-${ARCH_NAME}-0.13.0/lib/libc/include/riscv64-linux-gnu/gnu"
+        if [ -d "$STUBS_DIR" ]; then
+            echo "Creating dummy stubs-lp64d.h for RISC-V 64 support..."
+            touch "$STUBS_DIR/stubs-lp64d.h"
+        fi
+    fi
   else
     echo "Please install zig 0.13.0 manually for local testing."
   fi
