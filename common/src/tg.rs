@@ -366,7 +366,10 @@ pub async fn answer<T: DatabaseExecutor, T2: Translator>(
         return Ok(());
     }
 
-    let bot = config.bot.as_ref().ok_or(Error("telegram bot token not configured".to_string()))?;
+    let bot = config
+        .bot
+        .as_ref()
+        .ok_or(Error("telegram bot token not configured".to_string()))?;
 
     let mut parse_mode = frankenstein::ParseMode::MarkdownV2;
 
@@ -593,7 +596,10 @@ pub async fn callback_query<T: DatabaseExecutor, T2: Translator>(
         return Ok(());
     }
 
-    let bot = config.bot.as_ref().ok_or(Error("telegram bot token not configured".to_string()))?;
+    let bot = config
+        .bot
+        .as_ref()
+        .ok_or(Error("telegram bot token not configured".to_string()))?;
 
     let (chat_id, msg_id, text) = match call_query.message {
         None => return Ok(()),

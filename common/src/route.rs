@@ -289,7 +289,10 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                     return Ok(UnifiedResponse::error(401, e));
                 }
                 let url = format!("https://{}/tgbot", domain);
-                let config = self.get_config().await.map_err(|e| Error::Internal(e.to_string()))?;
+                let config = self
+                    .get_config()
+                    .await
+                    .map_err(|e| Error::Internal(e.to_string()))?;
                 if let Some(bot) = &config.bot {
                     crate::tg::set_webhook(bot, url.as_ref(), config.maintainer_id)
                         .await
@@ -298,7 +301,10 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                         format!("register telegram bot to {} successful", url).into_bytes(),
                     ))
                 } else {
-                    Ok(UnifiedResponse::error(500, "telegram bot token not configured".to_string()))
+                    Ok(UnifiedResponse::error(
+                        500,
+                        "telegram bot token not configured".to_string(),
+                    ))
                 }
             }
             "/d1/create_table" => {
@@ -335,7 +341,10 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                 }
             }
             _ => {
-                if path.starts_with("/word/") || path.starts_with("/llm/") || path.starts_with("/config/") {
+                if path.starts_with("/word/")
+                    || path.starts_with("/llm/")
+                    || path.starts_with("/config/")
+                {
                     if let Err(e) = self.check_auth(auth_header) {
                         return Ok(UnifiedResponse::error(401, e));
                     }

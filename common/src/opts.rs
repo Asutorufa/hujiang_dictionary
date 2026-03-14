@@ -41,7 +41,10 @@ impl<T: DatabaseExecutor, T2: crate::ai::Translator> RunOpt<T, T2> {
         }
 
         // Fetch from database
-        let configurations: Vec<crate::d1::Configuration> = self.d1.query_all(crate::d1::Queries::ListConfigurations).await?;
+        let configurations: Vec<crate::d1::Configuration> = self
+            .d1
+            .query_all(crate::d1::Queries::ListConfigurations)
+            .await?;
 
         let mut allow_users_str = "".to_string();
         let mut maintainer_id = 0;

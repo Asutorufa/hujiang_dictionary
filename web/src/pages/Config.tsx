@@ -40,8 +40,14 @@ export default function Config() {
     null,
   );
 
-  const { isOpen: isConfigOpen, onOpen: onConfigOpen, onClose: onConfigClose } = useDisclosure();
-  const [editingConfig, setEditingConfig] = useState<Configuration | null>(null);
+  const {
+    isOpen: isConfigOpen,
+    onOpen: onConfigOpen,
+    onClose: onConfigClose,
+  } = useDisclosure();
+  const [editingConfig, setEditingConfig] = useState<Configuration | null>(
+    null,
+  );
 
   const fetchProviders = async () => {
     try {

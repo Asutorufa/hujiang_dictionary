@@ -38,13 +38,14 @@ async fn main() {
                 Err(e) => {
                     let config = opt.get_config().await.unwrap();
                     if let Some(bot) = config.bot {
-                        let _ = bot.send_message(
-                            &SendMessageParams::builder()
-                                .chat_id(ChatId::Integer(config.maintainer_id as i64))
-                                .text(format!("create_table [words] error: {}", e))
-                                .build(),
-                        )
-                        .await;
+                        let _ = bot
+                            .send_message(
+                                &SendMessageParams::builder()
+                                    .chat_id(ChatId::Integer(config.maintainer_id as i64))
+                                    .text(format!("create_table [words] error: {}", e))
+                                    .build(),
+                            )
+                            .await;
                     }
                 }
             }

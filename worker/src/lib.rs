@@ -6,10 +6,10 @@ use hjcommon::d1::migrations;
 use hjcommon::opts::{ConfigCache, RunOpt};
 use hjcommon::tg::send_random_word;
 use log::error;
+use std::sync::RwLock;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Once, OnceLock};
 use std::{collections::HashSet, sync::Arc};
-use std::sync::RwLock;
 use worker::*;
 
 static INIT: Once = Once::new();
