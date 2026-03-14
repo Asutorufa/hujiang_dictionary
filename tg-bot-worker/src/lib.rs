@@ -3,6 +3,7 @@ use frankenstein::types::{CallbackQuery, Message, MessageEntityType};
 use frankenstein::updates::{Update, UpdateContent};
 use log::{error, warn};
 
+pub mod macros;
 pub mod utils;
 
 #[async_trait(?Send)]

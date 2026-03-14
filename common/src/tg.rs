@@ -16,89 +16,81 @@ use tg_bot_worker::{
     utils::{html_escape, markdown_escape, split_message, vec_string_markdown_escape},
 };
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum Command {
-    JPCN(String),
-    CNJP(String),
-    KR(String),
-    EN(String),
-    Weblio(String),
-    Ktbk(String),
-    Gemma(String),
-    Llama4(String),
-    GPT(String),
-    UserID,
-    GG(Option<String>, String, String),
-    GG1(Option<String>, String, String),
-    CFAI(Option<String>, String, String),
-    Random,
-    Save(String, String),
+macro_rules! llm_parser {
+    ($variant:ident) => {
+        |_, arg: &str, quote: &str| {
+            let full_text = match (quote.is_empty(), arg.is_empty()) {
+                (false, false) => format!("{}\n{}", quote, arg),
+                (false, true) => quote.to_string(),
+                (true, false) => arg.to_string(),
+                (true, true) => "".to_string(),
+            };
+            Ok((Self::$variant(full_text), None))
+        }
+    };
 }
 
-pub fn bot_commands() -> Vec<frankenstein::types::BotCommand> {
-    vec![
-        frankenstein::types::BotCommand {
-            command: "jpcn".to_string(),
-            description: "jp -> cn".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "cnjp".to_string(),
-            description: "cn -> jp".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "kr".to_string(),
-            description: "kr <-> cn".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "en".to_string(),
-            description: "en <-> cn".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "weblio".to_string(),
-            description: "weblio".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "ktbk".to_string(),
-            description: "コトバンク".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "gemma".to_string(),
-            description: "gemma3 12b it".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "llama4".to_string(),
-            description: "llama4 scout 17b 16e instruct".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "gpt".to_string(),
-            description: "gpt-oss-20b".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "userid".to_string(),
-            description: "get current user id".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "gg".to_string(),
-            description: "google translate, eg: /gg en_ja hello, /gg ja hello".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "gg1".to_string(),
-            description: "google old translate api, eg: /gg1 en_ja hello, /gg1 ja hello"
-                .to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "cfai".to_string(),
-            description: "google translate, eg: /cfai en_ja hello, /cfai ja hello".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "random".to_string(),
-            description: "get a random word from d1 database".to_string(),
-        },
-        frankenstein::types::BotCommand {
-            command: "save".to_string(),
-            description: "save a message by word".to_string(),
-        },
-    ]
+macro_rules! gg_parser {
+    ($variant:ident) => {
+        |_, arg: &str, quote: &str| {
+            let mut parts = arg.splitn(2, ' ');
+            let first = parts.next().unwrap_or("");
+            let rest = parts.next().unwrap_or(quote).to_string();
+
+            let args = first.split("_").collect::<Vec<_>>();
+
+            let (src, target) = match args.len() > 1 {
+                true => (Some(args[0].to_string()), args[1].to_string()),
+                false => (None, first.to_string()),
+            };
+
+            if target.is_empty() {
+                return Err("target language is empty".to_string());
+            }
+
+            if rest.is_empty() {
+                return Err("text to translate is empty".to_string());
+            }
+
+            Ok((Self::$variant(src, target, rest), None))
+        }
+    };
+}
+
+tg_bot_worker::bot_commands! {
+    #[derive(Debug, PartialEq, Eq)]
+    pub enum Command {
+        #[command(name = "jpcn", desc = "jp -> cn")]
+        JPCN(String),
+        #[command(name = "cnjp", desc = "cn -> jp")]
+        CNJP(String),
+        #[command(name = "kr", desc = "kr <-> cn")]
+        KR(String),
+        #[command(name = "en", desc = "en <-> cn")]
+        EN(String),
+        #[command(name = "weblio", desc = "weblio")]
+        Weblio(String),
+        #[command(name = "ktbk", desc = "コトバンク")]
+        Ktbk(String),
+        #[command(name = "gemma", desc = "gemma3 12b it", parser = llm_parser!(Gemma))]
+        Gemma(String),
+        #[command(name = "llama4", desc = "llama4 scout 17b 16e instruct", parser = llm_parser!(Llama4))]
+        Llama4(String),
+        #[command(name = "gpt", desc = "gpt-oss-20b", parser = llm_parser!(GPT))]
+        GPT(String),
+        #[command(name = "userid", desc = "get current user id", unit = true)]
+        UserID,
+        #[command(name = "gg", desc = "google translate, eg: /gg en_ja hello, /gg ja hello", parser = gg_parser!(GG))]
+        GG(Option<String>, String, String),
+        #[command(name = "gg1", desc = "google old translate api, eg: /gg1 en_ja hello, /gg1 ja hello", parser = gg_parser!(GG1))]
+        GG1(Option<String>, String, String),
+        #[command(name = "cfai", desc = "google translate, eg: /cfai en_ja hello, /cfai ja hello", parser = gg_parser!(CFAI))]
+        CFAI(Option<String>, String, String),
+        #[command(name = "random", desc = "get a random word from d1 database", unit = true)]
+        Random,
+        #[command(name = "save", desc = "save a message by word", parser = |_, arg: &str, quote: &str| Ok((Self::Save(arg.to_string(), quote.to_string()), None)))]
+        Save(String, String),
+    }
 }
 
 #[cfg(test)]
@@ -109,61 +101,67 @@ mod tests {
     fn test_parse_command() {
         // Test empty command
         assert_eq!(
-            parse_command("", "", ""),
-            Err(Error("command is empty".to_string()))
+            Command::parse("", "", ""),
+            Err("command is empty".to_string())
         );
         assert_eq!(
-            parse_command("/", "", ""),
-            Err(Error("command is empty".to_string()))
+            Command::parse("/", "", ""),
+            Err("command is empty".to_string())
         );
         assert_eq!(
-            parse_command("/@bot", "", ""),
-            Err(Error("command is empty".to_string()))
+            Command::parse("/@bot", "", ""),
+            Err("command is empty".to_string())
         );
 
         // Test normal commands
         assert_eq!(
-            parse_command("/en", "hello", "").unwrap().0,
+            Command::parse("/en", "hello", "").unwrap().0,
             Command::EN("hello".to_string())
         );
         assert_eq!(
-            parse_command("/jpcn", "hello", "").unwrap().0,
+            Command::parse("/jpcn", "hello", "").unwrap().0,
             Command::JPCN("hello".to_string())
         );
         assert_eq!(
-            parse_command("/cnjp", "hello", "").unwrap().0,
+            Command::parse("/cnjp", "hello", "").unwrap().0,
             Command::CNJP("hello".to_string())
         );
         assert_eq!(
-            parse_command("/kr", "hello", "").unwrap().0,
+            Command::parse("/kr", "hello", "").unwrap().0,
             Command::KR("hello".to_string())
         );
         assert_eq!(
-            parse_command("/weblio", "hello", "").unwrap().0,
+            Command::parse("/weblio", "hello", "").unwrap().0,
             Command::Weblio("hello".to_string())
         );
         assert_eq!(
-            parse_command("/ktbk", "hello", "").unwrap().0,
+            Command::parse("/ktbk", "hello", "").unwrap().0,
             Command::Ktbk("hello".to_string())
         );
-        assert_eq!(parse_command("/random", "", "").unwrap().0, Command::Random);
-        assert_eq!(parse_command("/userid", "", "").unwrap().0, Command::UserID);
+        assert_eq!(
+            Command::parse("/random", "", "").unwrap().0,
+            Command::Random
+        );
+        assert_eq!(
+            Command::parse("/userid", "", "").unwrap().0,
+            Command::UserID
+        );
 
         // Test bot suffix
         assert_eq!(
-            parse_command("/en@my_bot", "hello", "").unwrap().0,
+            Command::parse("/en@my_bot", "hello", "").unwrap().0,
             Command::EN("hello".to_string())
         );
 
         // Test quote and argument
         assert_eq!(
-            parse_command("/en", "", "quote").unwrap().0,
+            Command::parse("/en", "", "quote").unwrap().0,
             Command::EN("quote".to_string())
         );
 
         // Test GG command
         assert_eq!(
-            parse_command("/gg", "en_ja hello", "").unwrap().0,
+            Command::parse("/gg", "en_ja hello", "").unwrap().0,
             Command::GG(
                 Some("en".to_string()),
                 "ja".to_string(),
@@ -172,52 +170,52 @@ mod tests {
         );
 
         assert_eq!(
-            parse_command("/gg", "ja hello", "quote").unwrap().0,
+            Command::parse("/gg", "ja hello", "quote").unwrap().0,
             Command::GG(None, "ja".to_string(), "hello".to_string())
         );
 
         // Test GG with quote
         assert_eq!(
-            parse_command("/gg", "ja", "quote").unwrap().0,
+            Command::parse("/gg", "ja", "quote").unwrap().0,
             Command::GG(None, "ja".to_string(), "quote".to_string())
         );
 
         // Test GG validation
-        assert!(parse_command("/gg", "", "").is_err());
-        assert!(parse_command("/gg", "ja", "").is_err());
+        assert!(Command::parse("/gg", "", "").is_err());
+        assert!(Command::parse("/gg", "ja", "").is_err());
 
         // Test LLM commands
         assert_eq!(
-            parse_command("/gemma", "arg", "quote").unwrap().0,
+            Command::parse("/gemma", "arg", "quote").unwrap().0,
             Command::Gemma("quote\narg".to_string())
         );
         assert_eq!(
-            parse_command("/gemma", "arg", "").unwrap().0,
+            Command::parse("/gemma", "arg", "").unwrap().0,
             Command::Gemma("arg".to_string())
         );
         assert_eq!(
-            parse_command("/gemma", "", "quote").unwrap().0,
+            Command::parse("/gemma", "", "quote").unwrap().0,
             Command::Gemma("quote".to_string())
         );
         assert_eq!(
-            parse_command("/llama4", "arg", "quote").unwrap().0,
+            Command::parse("/llama4", "arg", "quote").unwrap().0,
             Command::Llama4("quote\narg".to_string())
         );
         assert_eq!(
-            parse_command("/gpt", "arg", "quote").unwrap().0,
+            Command::parse("/gpt", "arg", "quote").unwrap().0,
             Command::GPT("quote\narg".to_string())
         );
 
         // Test save command
         assert_eq!(
-            parse_command("/save", "arg", "quote").unwrap().0,
+            Command::parse("/save", "arg", "quote").unwrap().0,
             Command::Save("arg".to_string(), "quote".to_string())
         );
 
         // Test unknown command
         assert_eq!(
-            parse_command("/unknown", "", ""),
-            Err(Error("not implemented".to_string()))
+            Command::parse("/unknown", "", ""),
+            Err("not implemented".to_string())
         );
     }
 
@@ -264,7 +262,7 @@ impl<T: DatabaseExecutor, T2: Translator> TelegramBot for BotHandler<T, T2> {
         argument: &str,
         quote: &str,
     ) -> Result<(), Self::Error> {
-        let (cmd, text) = parse_command(command, argument, quote)?;
+        let (cmd, text) = Command::parse(command, argument, quote).map_err(|e| Error(e))?;
 
         info!("message command: {:?}, argument: {:?}", cmd, text);
 
@@ -346,79 +344,6 @@ pub async fn llm_answer<T: DatabaseExecutor, T2: Translator>(
         }
     } else {
         (v, "workers_ai not available".to_string())
-    }
-}
-
-pub fn parse_command(
-    command: &str,
-    argument: &str,
-    quote: &str,
-) -> Result<(Command, Option<String>), Error> {
-    let command = command
-        .trim_start_matches("/")
-        .split('@')
-        .next()
-        .unwrap_or("");
-
-    if command.is_empty() {
-        return Err(Error("command is empty".to_string()));
-    }
-
-    let quote_or_argument = if argument.is_empty() { quote } else { argument }.to_string();
-
-    match command {
-        "cnjp" => Ok((Command::CNJP(quote_or_argument), None)),
-        "jpcn" => Ok((Command::JPCN(quote_or_argument), None)),
-        "kr" => Ok((Command::KR(quote_or_argument), None)),
-        "en" => Ok((Command::EN(quote_or_argument), None)),
-        "weblio" => Ok((Command::Weblio(quote_or_argument), None)),
-        "ktbk" => Ok((Command::Ktbk(quote_or_argument), None)),
-        "random" => Ok((Command::Random, None)),
-        "gemma" | "llama4" | "gpt" => {
-            let full_text = match (quote.is_empty(), argument.is_empty()) {
-                (false, false) => format!("{}\n{}", quote, argument),
-                (false, true) => quote.to_string(),
-                (true, false) => argument.to_string(),
-                (true, true) => "".to_string(),
-            };
-            match command {
-                "gemma" => Ok((Command::Gemma(full_text), None)),
-                "llama4" => Ok((Command::Llama4(full_text), None)),
-                _ => Ok((Command::GPT(full_text), None)),
-            }
-        }
-        "save" => Ok((Command::Save(argument.to_string(), quote.to_string()), None)),
-        "gg" | "cfai" | "gg1" => {
-            let mut parts = argument.splitn(2, ' ');
-            let first = parts.next().unwrap_or("");
-            let rest = parts.next().unwrap_or(quote).to_string();
-
-            let args = first.split("_").collect::<Vec<_>>();
-
-            let (src, target) = match args.len() > 1 {
-                true => (Some(args[0].to_string()), args[1].to_string()),
-                false => (None, first.to_string()),
-            };
-
-            if target.is_empty() {
-                return Err(Error("target language is empty".to_string()));
-            }
-
-            if rest.is_empty() {
-                return Err(Error("text to translate is empty".to_string()));
-            }
-
-            if command == "cfai" {
-                Ok((Command::CFAI(src, target, rest), None))
-            } else if command == "gg1" {
-                Ok((Command::GG1(src, target, rest), None))
-            } else {
-                Ok((Command::GG(src, target, rest), None))
-            }
-        }
-        "userid" => Ok((Command::UserID, None)),
-
-        _ => Err(Error("not implemented".to_string())),
     }
 }
 
@@ -786,7 +711,7 @@ pub async fn set_webhook(bot: &Bot, url: &str, matainer: i64) -> Result<(), Erro
 
     bot.set_my_commands(
         &SetMyCommandsParams::builder()
-            .commands(bot_commands())
+            .commands(Command::bot_commands())
             .build(),
     )
     .await?;
