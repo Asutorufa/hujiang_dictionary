@@ -37,8 +37,36 @@ if [[ "$TARGET" == *"-apple-darwin" ]]; then
 fi
 
 # Check if target is Windows
-if [[ "$TARGET" == *"-pc-windows-gnu"* ]]; then
-  echo "Windows target detected..."
+if [[ "$TARGET" == *"-windows-gnu"* ]] || [[ "$TARGET" == *"-windows-gnullvm"* ]]; then
+  echo "Windows target detected. Using native MinGW toolchain for robust C-dependency compilation..."
+  sudo apt-get update && sudo apt-get install -y gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 mingw-w64-tools
+
+  # For x86_64, use the mature gcc-mingw-w64 toolchain from Ubuntu repo
+  if [[ "$TARGET" == "x86_64-pc-windows-gnu" ]]; then
+      export TARGET_CC="x86_64-w64-mingw32-gcc"
+      export TARGET_CXX="x86_64-w64-mingw32-g++"
+      export TARGET_AR="x86_64-w64-mingw32-ar"
+      export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER="x86_64-w64-mingw32-gcc"
+  fi
+  # For aarch64, llvm-mingw is ideal, but zig cc has incomplete MinGW headers (missing sched.h).
+  # We provide a workaround dummy header to satisfy aws-lc-sys which doesn't actually need POSIX sched on Windows
+  if [[ "$TARGET" == "aarch64-pc-windows-gnu" ]] || [[ "$TARGET" == "aarch64-pc-windows-gnullvm" ]]; then
+      mkdir -p /tmp/mingw-workaround
+      touch /tmp/mingw-workaround/sched.h
+      export CFLAGS="$CFLAGS -I/tmp/mingw-workaround"
+  fi
+
+  # Bypass zigbuild for Windows targets to avoid zig cc linker limitations and missing sysroot bugs
+  BUILD_CMD="cargo build"
+fi
+
+# Check if target is FreeBSD
+if [[ "$TARGET" == *"-freebsd"* ]]; then
+  echo "FreeBSD target detected. Adding workaround for missing sys/types.h in zig cc..."
+  # Zig 0.13.0 does not include complete FreeBSD headers (removed in latest releases)
+  mkdir -p /tmp/freebsd-workaround/sys
+  echo "#include <stdint.h>" > /tmp/freebsd-workaround/sys/types.h
+  export CFLAGS="$CFLAGS -I/tmp/freebsd-workaround"
 fi
 
 # Install zig if not present in PATH
