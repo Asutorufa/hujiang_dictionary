@@ -41,6 +41,26 @@ if [[ "$TARGET" == *"-pc-windows-gnu"* ]]; then
   echo "Windows target detected..."
 fi
 
+# Install zig if not present in PATH
+if ! command -v zig &> /dev/null; then
+  echo "Downloading and installing zig 0.13.0 manually..."
+  if [ "$CI" = "true" ]; then
+    OS_NAME=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH_NAME=$(uname -m)
+    if [ "$ARCH_NAME" = "arm64" ]; then
+        ARCH_NAME="aarch64"
+    fi
+    if [ "$ARCH_NAME" = "amd64" ]; then
+        ARCH_NAME="x86_64"
+    fi
+    ZIG_URL="https://ziglang.org/download/0.13.0/zig-${OS_NAME}-${ARCH_NAME}-0.13.0.tar.xz"
+    curl -L "$ZIG_URL" | tar -xJ -C /tmp/
+    export PATH="/tmp/zig-${OS_NAME}-${ARCH_NAME}-0.13.0:$PATH"
+  else
+    echo "Please install zig 0.13.0 manually for local testing."
+  fi
+fi
+
 # Check if target is Android
 if [[ "$TARGET" == *"-android"* ]]; then
   echo "Android target detected. Overriding zig cc with Android NDK..."
