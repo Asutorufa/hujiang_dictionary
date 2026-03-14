@@ -1,18 +1,53 @@
 import { authorizedRequest } from "@/lib/api";
 import {
-  addToast,
   Button,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
+  Dialog,
   Switch,
-  Textarea,
-  useDisclosure,
-  useDraggable,
-} from "@heroui/react";
-import { FC, ReactNode, useEffect, useRef, useState } from "react";
+  TextArea,
+  Flex,
+  Text,
+  Box,
+} from "@radix-ui/themes";
+import { FC, ReactNode, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
+
+export function useDisclosure(initialState = false) {
+  const [isOpen, setIsOpen] = useState(initialState);
+  const onOpen = () => setIsOpen(true);
+  const onClose = () => setIsOpen(false);
+  const onOpenChange = (open?: boolean) => {
+    setIsOpen(open !== undefined ? open : !isOpen);
+  };
+  return { isOpen, onOpen, onClose, onOpenChange };
+}
+
+export const addToast = ({
+  title,
+  description,
+  color,
+  timeout,
+}: {
+  title: string;
+  description?: string;
+  color?: "success" | "danger" | "warning" | "default";
+  timeout?: number;
+}) => {
+  const options: Record<string, unknown> = { description };
+  if (timeout !== undefined) {
+    options.duration = timeout === 0 ? Infinity : timeout;
+  }
+
+  if (color === "danger") {
+    toast.error(title, options);
+  } else if (color === "success") {
+    toast.success(title, options);
+  } else if (color === "warning") {
+    toast.warning(title, options);
+  } else {
+    toast(title, options);
+  }
+};
 
 export const SaveWordModal: FC<{
   open: boolean;
@@ -25,15 +60,11 @@ export const SaveWordModal: FC<{
   onSaved?: () => void;
 }> = ({ open, onChange, origin, word, explain, type, onSaved, example }) => {
   const [saving, setSaving] = useState(false);
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const targetRef = useRef<HTMLElement>({} as HTMLElement);
-  const { moveProps } = useDraggable({ targetRef, isDisabled: !isOpen });
+  const { isOpen, onOpenChange } = useDisclosure();
 
   useEffect(() => {
-    if (open) {
-      onOpen();
-    }
-  }, [open, onOpen]);
+    onOpenChange(open);
+  }, [open, onOpenChange]);
 
   const [newWord, setNewWord] = useState(word || "");
   const [newExplain, setNewExplain] = useState(explain || "");
@@ -47,89 +78,108 @@ export const SaveWordModal: FC<{
     setNewType(type);
   }, [word, explain, type, example]);
 
+  const handleOpenChange = (open: boolean) => {
+    onChange(open);
+    onOpenChange(open);
+  };
+
   return (
-    <Modal
-      isOpen={isOpen}
-      backdrop="blur"
-      size="lg"
-      placement="top-center"
-      ref={targetRef}
-      onOpenChange={(p) => {
-        onChange(p);
-        onOpenChange();
-      }}
-    >
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1" {...moveProps}>
-              Save Word
-            </ModalHeader>
-            <ModalBody>
-              <Switch
-                isSelected={newType === 1}
-                onValueChange={(p) => setNewType(p ? 1 : 0)}
-              >
-                Grammar
-              </Switch>
-              <Textarea
-                label="Word"
-                isInvalid={newWord.length === 0}
-                errorMessage={"Word is empty"}
+    <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
+      <Dialog.Content maxWidth="500px">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
+        >
+          <Dialog.Title>Save to Vocabulary</Dialog.Title>
+          <Flex direction="column" gap="4" mt="4">
+            <Box>
+              <Text as="label" size="2" weight="medium">
+                <Flex gap="2" align="center" className="cursor-pointer">
+                  <Switch
+                    checked={newType === 1}
+                    onCheckedChange={(p) => setNewType(p ? 1 : 0)}
+                  />
+                  Grammar / Pattern
+                </Flex>
+              </Text>
+            </Box>
+
+            <Flex direction="column" gap="1">
+              <Text as="label" size="2" weight="bold" color="gray">
+                Word / Phrase
+              </Text>
+              <TextArea
+                color={newWord.length === 0 ? "red" : undefined}
                 value={newWord}
                 onChange={(p) => setNewWord(p.target.value)}
-                placeholder="Enter Word"
-                variant="bordered"
+                placeholder="What did you learn?"
+                variant="surface"
               />
-              <Textarea
-                label="Explain"
-                isInvalid={newExplain.length === 0}
-                errorMessage={"Explain is empty"}
+            </Flex>
+
+            <Flex direction="column" gap="1">
+              <Text as="label" size="2" weight="bold" color="gray">
+                Meaning / Explanation
+              </Text>
+              <TextArea
+                color={newExplain.length === 0 ? "red" : undefined}
                 value={newExplain}
                 onChange={(p) => setNewExplain(p.target.value)}
-                placeholder="Enter explain"
-                variant="bordered"
+                placeholder="Explain it here..."
+                variant="surface"
+                className="min-h-[100px]"
               />
+            </Flex>
 
-              <Textarea
-                label="Example"
+            <Flex direction="column" gap="1">
+              <Text as="label" size="2" weight="bold" color="gray">
+                Context / Example
+              </Text>
+              <TextArea
                 value={newExample}
                 onChange={(p) => setNewExample(p.target.value)}
-                placeholder="Enter example"
-                variant="bordered"
+                placeholder="Add an example sentence..."
+                variant="surface"
+                className="min-h-[80px]"
               />
-            </ModalBody>
-            <ModalFooter>
-              <Button color="danger" variant="flat" onPress={onClose}>
-                Close
-              </Button>
-              <Button
-                color="primary"
-                isLoading={saving}
-                onPress={() => {
-                  if (newWord.length === 0 || newExplain.length === 0) return;
-                  setSaving(true);
-                  saveWord(
-                    newWord,
-                    newExplain,
-                    newExample,
-                    newType,
-                    (error) => {
-                      setSaving(false);
-                      onClose();
-                      if (!error && onSaved) onSaved();
-                    },
-                    origin,
-                  );
-                }}
-              >
-                Save
-              </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+            </Flex>
+          </Flex>
+          <Flex gap="3" mt="5" justify="end">
+            <Button
+              variant="soft"
+              color="gray"
+              className="cursor-pointer"
+              onClick={() => handleOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="cursor-pointer"
+              loading={saving}
+              onClick={() => {
+                if (newWord.length === 0 || newExplain.length === 0) return;
+                setSaving(true);
+                saveWord(
+                  newWord,
+                  newExplain,
+                  newExample,
+                  newType,
+                  (error) => {
+                    setSaving(true);
+                    handleOpenChange(false);
+                    if (!error && onSaved) onSaved();
+                  },
+                  origin,
+                );
+              }}
+            >
+              Save Word
+            </Button>
+          </Flex>
+        </motion.div>
+      </Dialog.Content>
+    </Dialog.Root>
   );
 };
 
@@ -299,49 +349,81 @@ export async function listModel(
   });
 }
 
+type LegacyColor =
+  | "danger"
+  | "default"
+  | "primary"
+  | "secondary"
+  | "success"
+  | "warning";
+type RadixColor =
+  | "crimson"
+  | "ruby"
+  | "tomato"
+  | "red"
+  | "purple"
+  | "violet"
+  | "iris"
+  | "indigo"
+  | "blue"
+  | "cyan"
+  | "teal"
+  | "jade"
+  | "green"
+  | "grass"
+  | "brown"
+  | "orange"
+  | "sky"
+  | "mint"
+  | "lime"
+  | "yellow"
+  | "amber"
+  | "gold"
+  | "bronze"
+  | "gray";
+
 export const ConfirmModal: FC<{
   title: string;
   open: boolean;
   onChange: (open: boolean) => void;
   onConfirm: () => Promise<void>;
-  color?:
-    | "danger"
-    | "default"
-    | "primary"
-    | "secondary"
-    | "success"
-    | "warning";
+  color?: RadixColor | LegacyColor;
 }> = ({ title, open, onConfirm, onChange, color }) => {
   const [loading, setLoading] = useState(false);
 
+  // Map legacy HeroUI colors to Radix colors, otherwise pass through the given Radix color
+  let radixColor: RadixColor | undefined;
+
+  if (color === "danger") radixColor = "red";
+  else if (color === "success") radixColor = "green";
+  else if (color === "warning") radixColor = "orange";
+  else if (color === "secondary" || color === "default") radixColor = "gray";
+  else if (color === "primary") radixColor = "blue";
+  else radixColor = color as RadixColor | undefined;
+
   return (
-    <Modal
-      isOpen={open}
-      onOpenChange={onChange}
-      hideCloseButton
-      backdrop="blur"
-    >
-      <ModalContent>
-        <>
-          <ModalBody className="text-center">{title}</ModalBody>
-          <ModalFooter>
-            <Button onPress={() => onChange(false)}>Close</Button>
-            <Button
-              isLoading={loading}
-              color={color}
-              onPress={async () => {
-                setLoading(true);
-                await onConfirm();
-                setLoading(false);
-                onChange(false);
-              }}
-            >
-              Ok
-            </Button>
-          </ModalFooter>
-        </>
-      </ModalContent>
-    </Modal>
+    <Dialog.Root open={open} onOpenChange={onChange}>
+      <Dialog.Content maxWidth="400px">
+        <Dialog.Title className="text-center mb-4">{title}</Dialog.Title>
+        <Flex gap="3" mt="4" justify="center">
+          <Button variant="soft" color="gray" onClick={() => onChange(false)}>
+            Close
+          </Button>
+          <Button
+            loading={loading}
+            color={radixColor}
+            onClick={async () => {
+              setLoading(true);
+              await onConfirm();
+              setLoading(false);
+              onChange(false);
+            }}
+          >
+            Ok
+          </Button>
+        </Flex>
+      </Dialog.Content>
+    </Dialog.Root>
   );
 };
 
@@ -502,36 +584,52 @@ export const Spoiler: FC<{ children: ReactNode; className?: string }> = ({
   const [hide, setHide] = useState(true);
   return (
     <div
-      className={`transition-all duration-500 overflow-hidden min-h-[3rem] ${hide ? "cursor-pointer relative" : ""} ${className || ""}`}
-      onClick={() => {
-        if (hide) setHide(false);
-      }}
+      className={`relative rounded-xl overflow-hidden transition-all duration-300 ${hide ? "bg-slate-100/50 dark:bg-slate-800/30" : ""} ${className || ""}`}
     >
-      <div
-        className={`transition-all duration-500 ${hide ? "blur-sm opacity-50 select-none grayscale" : "blur-0 opacity-100"} ${className?.includes("h-full") ? "h-full" : ""}`}
+      <motion.div
+        animate={{
+          filter: hide ? "blur(8px)" : "blur(0px)",
+          opacity: hide ? 0.3 : 1,
+          scale: hide ? 0.98 : 1,
+        }}
+        transition={{ duration: 0.4, ease: "easeInOut" }}
+        className={hide ? "select-none pointer-events-none grayscale" : ""}
+        onClick={() => {
+          if (!hide) return;
+        }}
       >
-        {children}
-      </div>
-      {hide && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
-          <span className="text-tiny font-bold uppercase tracking-widest text-default-500 bg-default-100/50 px-2 py-1 rounded-full border border-default-200 shadow-sm backdrop-blur-md">
-            Spoiler
-          </span>
-        </div>
-      )}
+        <div className="p-1">{children}</div>
+      </motion.div>
+
+      <AnimatePresence>
+        {hide && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 flex items-center justify-center z-10 cursor-pointer group"
+            onClick={() => setHide(false)}
+          >
+            <span className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-700 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm group-hover:scale-105 active:scale-95">
+              Click to Reveal
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {!hide && (
-        <div className="flex justify-end mt-1 relative z-20">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex justify-end p-2"
+        >
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setHide(true);
-            }}
-            className="text-[10px] text-default-400 hover:text-default-600 uppercase tracking-wider font-bold cursor-pointer p-2"
+            onClick={() => setHide(true)}
+            className="text-[10px] text-slate-400 hover:text-blue-500 uppercase tracking-wider font-bold cursor-pointer transition-colors"
           >
-            Hide
+            Hide again
           </button>
-        </div>
+        </motion.div>
       )}
     </div>
   );

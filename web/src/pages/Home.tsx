@@ -3,18 +3,18 @@ import {
   Avatar,
   Button,
   Card,
-  CardBody,
-  Dropdown,
-  DropdownItem,
   DropdownMenu,
-  DropdownSection,
-  DropdownTrigger,
   Switch,
-  Textarea,
+  TextArea,
   Tooltip,
-} from "@heroui/react";
+  IconButton,
+  Flex,
+  Text,
+  Box,
+} from "@radix-ui/themes";
 import { useCallback, useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   DiskIcon,
   listModel as listModels,
@@ -114,6 +114,23 @@ const dictSources = [
 const translationMap = Object.fromEntries(
   [...translationSources, ...dictSources].map(({ key, name }) => [key, name]),
 ) as Record<(typeof translationSources)[number]["key"], string>;
+
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export default function Home() {
   const [selected, setSelected] = useLocalStorage("translate_type", "ktbk");
@@ -269,7 +286,7 @@ export default function Home() {
   }, [setOpen, doQueryWord]);
 
   return (
-    <>
+    <div className="min-h-screen">
       <SaveWordModal
         open={open}
         onChange={(p) => setOpen(p)}
@@ -277,264 +294,353 @@ export default function Home() {
         explain={result.result}
         type={0}
       />
-      <div className="p-2">
-        <div className="sticky flex flex-wrap justify-center top-1 z-50 gap-1">
-          <div className="flex gap-1">
-            <Dropdown>
-              <DropdownTrigger>
-                <Button
-                  variant="bordered"
-                  className="shadow-md backdrop-blur-sm capitalize"
-                >
-                  <Tooltip content="Translate Method">
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+          className="sticky top-0 z-50 flex flex-wrap justify-center gap-2 py-3 px-4 -mx-4 backdrop-blur-xl bg-[var(--color-panel-solid)]/80 border-b border-[var(--gray-a5)]"
+        >
+          <div className="flex gap-2">
+            <DropdownMenu.Root>
+              <Tooltip content="Translate Method">
+                <DropdownMenu.Trigger>
+                  <Button
+                    variant="surface"
+                    color="gray"
+                    className="capitalize cursor-pointer"
+                  >
                     {translationMap[selected] ||
                       customModels?.[selected]?.model ||
                       "Select"}
-                  </Tooltip>
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                selectionMode="single"
-                selectedKeys={[selected]}
-                onSelectionChange={(e) =>
-                  e.currentKey && setSelected(e.currentKey)
-                }
-              >
-                <>
-                  <DropdownSection showDivider>
-                    {translationSources.map((source) => (
-                      <DropdownItem key={source.key}>
-                        {source.name}
-                      </DropdownItem>
+                  </Button>
+                </DropdownMenu.Trigger>
+              </Tooltip>
+              <DropdownMenu.Content>
+                <DropdownMenu.Group>
+                  {translationSources.map((source) => (
+                    <DropdownMenu.Item
+                      key={source.key}
+                      onSelect={() => setSelected(source.key)}
+                    >
+                      {source.name}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Group>
+
+                {dictSources.length > 0 && <DropdownMenu.Separator />}
+
+                <DropdownMenu.Group>
+                  {dictSources.map((source) => (
+                    <DropdownMenu.Item
+                      key={source.key}
+                      onSelect={() => setSelected(source.key)}
+                    >
+                      <Flex justify="between" width="100%" gap="4">
+                        <Text>{source.name}</Text>
+                        {source.tag && (
+                          <Text color="gray" size="1">
+                            {source.tag}
+                          </Text>
+                        )}
+                      </Flex>
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Group>
+
+                {Object.keys(customModels || {}).length > 0 && (
+                  <DropdownMenu.Separator />
+                )}
+
+                {Object.keys(customModels || {}).length > 0 && (
+                  <DropdownMenu.Group>
+                    {Object.keys(customModels || {}).map((key) => (
+                      <DropdownMenu.Item
+                        key={key}
+                        onSelect={() => setSelected(key)}
+                      >
+                        <Flex justify="between" width="100%" gap="4">
+                          <Text>{customModels[key].model}</Text>
+                          <Text color="gray" size="1">
+                            {customModels[key].name}
+                          </Text>
+                        </Flex>
+                      </DropdownMenu.Item>
                     ))}
-                  </DropdownSection>
-                  <DropdownSection
-                    showDivider={Object.keys(customModels || {}).length > 0}
-                  >
-                    {dictSources.map((source) => (
-                      <DropdownItem shortcut={source.tag} key={source.key}>
-                        {source.name}
-                      </DropdownItem>
-                    ))}
-                  </DropdownSection>
-                  {Object.keys(customModels || {}).length > 0 && (
-                    <DropdownSection>
-                      {Object.keys(customModels || {}).map((key) => (
-                        <DropdownItem
-                          shortcut={customModels[key].name}
-                          key={key}
-                        >
-                          {customModels[key].model}
-                        </DropdownItem>
-                      ))}
-                    </DropdownSection>
-                  )}
-                </>
-              </DropdownMenu>
-            </Dropdown>
+                  </DropdownMenu.Group>
+                )}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
 
             {showSelectLang(selected) && (
-              <>
-                <Dropdown>
-                  <DropdownTrigger>
-                    <Button
-                      isIconOnly
-                      variant="bordered"
-                      className="shadow-md backdrop-blur-sm capitalize"
-                    >
-                      <Tooltip content="Source Language">
+              <div className="flex gap-2">
+                <DropdownMenu.Root>
+                  <Tooltip content="Source Language">
+                    <DropdownMenu.Trigger>
+                      <IconButton
+                        variant="surface"
+                        color="gray"
+                        className="cursor-pointer"
+                      >
                         <Avatar
-                          alt={languageMap[srcLang].name}
-                          className="w-6 h-6"
-                          src={`https://flagcdn.com/${languageMap[srcLang].icon}.svg`}
+                          fallback="Auto"
+                          alt={languageMap[srcLang]?.name || "Auto"}
+                          size="1"
+                          src={
+                            languageMap[srcLang]?.icon
+                              ? `https://flagcdn.com/${languageMap[srcLang].icon}.svg`
+                              : undefined
+                          }
                         />
-                        {/* {languageMap[srcLang].name || "Auto"} */}
-                      </Tooltip>
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu
-                    selectionMode="single"
-                    selectedKeys={[srcLang]}
-                    onSelectionChange={(e) =>
-                      e.currentKey !== undefined &&
-                      e.currentKey !== null &&
-                      setSrcLang(e.currentKey)
-                    }
-                  >
+                      </IconButton>
+                    </DropdownMenu.Trigger>
+                  </Tooltip>
+                  <DropdownMenu.Content>
                     {languages.map((lang) => (
-                      <DropdownItem
+                      <DropdownMenu.Item
                         key={lang.key}
-                        startContent={
-                          lang.icon ? (
+                        onSelect={() => setSrcLang(lang.key)}
+                      >
+                        <Flex gap="2" align="center">
+                          {lang.icon && (
                             <Avatar
+                              fallback={lang.name.charAt(0)}
                               alt={lang.name}
-                              className="w-6 h-6"
+                              size="1"
                               src={`https://flagcdn.com/${lang.icon}.svg`}
                             />
-                          ) : undefined
-                        }
-                      >
-                        {lang.name}
-                      </DropdownItem>
+                          )}
+                          {lang.name}
+                        </Flex>
+                      </DropdownMenu.Item>
                     ))}
-                  </DropdownMenu>
-                </Dropdown>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
 
-                <Dropdown>
-                  <DropdownTrigger>
-                    <Button
-                      isIconOnly
-                      variant="bordered"
-                      className="shadow-md backdrop-blur-sm capitalize"
-                    >
-                      <Tooltip content="Target Language">
+                <DropdownMenu.Root>
+                  <Tooltip content="Target Language">
+                    <DropdownMenu.Trigger>
+                      <IconButton
+                        variant="surface"
+                        color="gray"
+                        className="cursor-pointer"
+                      >
                         <Avatar
-                          alt={languageMap[dstLang].name}
-                          className="w-6 h-6"
-                          src={`https://flagcdn.com/${languageMap[dstLang].icon}.svg`}
+                          fallback="Auto"
+                          alt={languageMap[dstLang]?.name || "Auto"}
+                          size="1"
+                          src={
+                            languageMap[dstLang]?.icon
+                              ? `https://flagcdn.com/${languageMap[dstLang].icon}.svg`
+                              : undefined
+                          }
                         />
-                        {/* {languageMap[dstLang].name || "Auto"} */}
-                      </Tooltip>
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu
-                    selectionMode="single"
-                    selectedKeys={[dstLang]}
-                    onSelectionChange={(e) =>
-                      e.currentKey !== undefined &&
-                      e.currentKey !== null &&
-                      setDstLang(e.currentKey)
-                    }
-                  >
+                      </IconButton>
+                    </DropdownMenu.Trigger>
+                  </Tooltip>
+                  <DropdownMenu.Content>
                     {languages
                       .filter((lang) => lang.key !== "")
                       .map((lang) => (
-                        <DropdownItem
+                        <DropdownMenu.Item
                           key={lang.key}
-                          startContent={
-                            lang.icon ? (
+                          onSelect={() => setDstLang(lang.key)}
+                        >
+                          <Flex gap="2" align="center">
+                            {lang.icon && (
                               <Avatar
+                                fallback={lang.name.charAt(0)}
                                 alt={lang.name}
-                                className="w-6 h-6"
+                                size="1"
                                 src={`https://flagcdn.com/${lang.icon}.svg`}
                               />
-                            ) : undefined
-                          }
-                        >
-                          {lang.name}
-                        </DropdownItem>
+                            )}
+                            {lang.name}
+                          </Flex>
+                        </DropdownMenu.Item>
                       ))}
-                  </DropdownMenu>
-                </Dropdown>
-              </>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
+              </div>
             )}
           </div>
 
-          <div className="flex justify-center gap-1">
-            <Tooltip content="Translate">
-              <Button
-                isIconOnly
-                variant="bordered"
-                className="shadow-md backdrop-blur-sm"
-                isLoading={loading}
-                onPress={doQueryWord}
+          <div className="flex justify-center gap-2">
+            <Tooltip content="Translate (Ctrl+Enter)">
+              <IconButton
+                variant="solid"
+                color="blue"
+                className="cursor-pointer"
+                loading={loading}
+                onClick={doQueryWord}
               >
                 <PlayIcon />
-              </Button>
+              </IconButton>
             </Tooltip>
-            <Tooltip content="Save To D1">
-              <Button
-                isIconOnly
-                variant="bordered"
-                className="shadow-md backdrop-blur-sm"
-                onPress={() => setOpen(true)}
+            <Tooltip content="Save Word (Ctrl+S)">
+              <IconButton
+                variant="surface"
+                color="green"
+                className="cursor-pointer"
+                onClick={() => setOpen(true)}
               >
                 <DiskIcon />
-              </Button>
+              </IconButton>
             </Tooltip>
           </div>
-        </div>
+        </motion.div>
 
-        <Textarea
-          className="mt-2"
-          isInvalid={query.length === 0}
-          errorMessage={"Query is empty"}
-          label="Text"
-          type="textarea"
-          value={query}
-          height={"full"}
-          classNames={{
-            input: "resize-y min-h-[40px]",
-          }}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <motion.div variants={itemVariants} initial="hidden" animate="visible">
+          <Card>
+            <Box>
+              <Text
+                as="label"
+                size="1"
+                weight="bold"
+                color="gray"
+                className="mb-2 block uppercase tracking-widest"
+              >
+                Input
+              </Text>
+              <TextArea
+                color={query.length === 0 ? "red" : undefined}
+                value={query}
+                placeholder="Type or paste text to translate..."
+                variant="soft"
+                className="min-h-[80px]"
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </Box>
+          </Card>
+        </motion.div>
 
         {selected.startsWith("custom-") && (
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-4">
-              <Switch
-                className="mt-2"
-                isSelected={googleSearch}
-                onValueChange={(e) => setGoogleSearch(e)}
-              >
-                Google Search
-              </Switch>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            <Card>
+              <Flex gap="6">
+                <Text as="label" size="2" weight="medium">
+                  <Flex gap="2" align="center" className="cursor-pointer">
+                    <Switch
+                      checked={googleSearch}
+                      onCheckedChange={(e) => setGoogleSearch(e)}
+                    />
+                    Google Search
+                  </Flex>
+                </Text>
 
-              <Switch
-                className="mt-2"
-                isSelected={stream}
-                onValueChange={(e) => setStream(e)}
-              >
-                Stream
-              </Switch>
-            </div>
+                <Text as="label" size="2" weight="medium">
+                  <Flex gap="2" align="center" className="cursor-pointer">
+                    <Switch
+                      checked={stream}
+                      onCheckedChange={(e) => setStream(e)}
+                    />
+                    Stream
+                  </Flex>
+                </Text>
+              </Flex>
+            </Card>
 
             {!googleSearch && (
-              <Textarea
-                className="mt-2"
-                label="Instruction"
-                type="textarea"
-                value={instruction}
-                height={"full"}
-                classNames={{
-                  input: "resize-y min-h-[40px]",
-                }}
-                onChange={(e) => setInstruction(e.target.value)}
-              />
+              <Card>
+                <Text
+                  as="label"
+                  size="1"
+                  weight="bold"
+                  color="gray"
+                  className="mb-2 block uppercase tracking-widest"
+                >
+                  Custom Instruction
+                </Text>
+                <TextArea
+                  value={instruction}
+                  placeholder="e.g. Translate to natural spoken Japanese..."
+                  className="min-h-[60px]"
+                  onChange={(e) => setInstruction(e.target.value)}
+                />
+              </Card>
             )}
-          </div>
+          </motion.div>
         )}
 
-        {result.reasoning && (
-          <div className="mt-2">
-            <Card>
-              <CardBody>
-                <div className="flex-1 max-w-none">
+        <AnimatePresence mode="wait">
+          {result.reasoning && (
+            <motion.div
+              key="reasoning"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <Text
+                size="1"
+                weight="bold"
+                color="blue"
+                className="mb-2 ml-1 block uppercase tracking-widest"
+              >
+                Thinking Process
+              </Text>
+              <Card variant="surface">
+                <Box className="prose prose-sm dark:prose-invert max-w-none opacity-80">
                   <Markdown>{result.reasoning}</Markdown>
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-        )}
+                </Box>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <div className="mt-2">
-          <Card>
-            <CardBody>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="result"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pb-24"
+          >
+            <Text
+              size="1"
+              weight="bold"
+              color="gray"
+              className="mb-2 ml-1 block uppercase tracking-widest"
+            >
+              Result
+            </Text>
+            <Card>
               {result.result ? (
-                <div className="flex-1 max-w-none">
+                <Box className="prose prose-sm dark:prose-invert max-w-none">
                   <Markdown>{result.result}</Markdown>
-                </div>
+                </Box>
               ) : (
-                <>
-                  <div className="h-50 flex items-center justify-center">
-                    Please input translate text and click translate button.
-                  </div>
-                </>
+                <Flex
+                  className="min-h-[150px]"
+                  align="center"
+                  justify="center"
+                  direction="column"
+                  gap="3"
+                >
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.08, 1],
+                      opacity: [0.15, 0.3, 0.15],
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 3,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <PlayIcon size={40} />
+                  </motion.div>
+                  <Text color="gray" size="2" className="italic">
+                    Waiting for input...
+                  </Text>
+                </Flex>
               )}
-            </CardBody>
-          </Card>
-        </div>
+            </Card>
+          </motion.div>
+        </AnimatePresence>
       </div>
-    </>
+    </div>
   );
 }

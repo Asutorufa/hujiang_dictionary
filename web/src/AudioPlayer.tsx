@@ -1,4 +1,4 @@
-import { Button, Slider } from "@heroui/react";
+import { IconButton, Slider, Flex, Text, Box } from "@radix-ui/themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 function PlayIcon({
@@ -137,47 +137,47 @@ export const AudioPlayer = (props: any) => {
   const { controls, className, style, ...restProps } = props;
 
   return (
-    <div
-      className={`flex items-center gap-3 bg-default-100 dark:bg-default-50 rounded-xl p-3 w-full max-w-md border border-default-200 shadow-sm my-2 ${className || ""}`}
+    <Flex
+      align="center"
+      gap="3"
+      className={`bg-default-100 dark:bg-default-50 rounded-xl p-3 w-full max-w-md border border-default-200 shadow-sm my-2 ${className || ""}`}
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       style={style}
     >
       <audio ref={audioRef} {...restProps} className="hidden" />
 
-      <Button
-        isIconOnly
-        size="sm"
-        variant="flat"
-        color="primary"
+      <IconButton
+        size="2"
+        variant="soft"
+        color="blue"
         radius="full"
-        onPress={togglePlay}
+        onClick={togglePlay}
         aria-label={isPlaying ? "Pause" : "Play"}
-        className="min-w-8 w-8 h-8"
       >
         {isPlaying ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
-      </Button>
+      </IconButton>
 
-      <div className="flex-1 flex flex-col justify-center gap-1">
+      <Box className="flex-1 flex flex-col justify-center gap-1 w-full">
         <Slider
-          size="sm"
+          size="1"
           step={0.01}
-          maxValue={duration || 100}
-          minValue={0}
-          value={isEnded ? duration : currentTime}
-          onChange={handleSeek}
+          max={duration || 100}
+          min={0}
+          value={[isEnded ? duration : currentTime]}
+          onValueChange={handleSeek}
           aria-label="Audio Progress"
-          color="primary"
-          classNames={{
-            base: "max-w-full w-full gap-0",
-            track: "h-1 cursor-pointer border-x-0",
-            thumb: "w-2 h-2 after:w-2 after:h-2",
-          }}
+          color="blue"
         />
-      </div>
+      </Box>
 
-      <div className="text-tiny font-medium text-default-500 tabular-nums min-w-[70px] text-right">
+      <Text
+        size="1"
+        weight="medium"
+        color="gray"
+        className="tabular-nums min-w-[70px] text-right"
+      >
         {formatTime(currentTime)} / {formatTime(duration)}
-      </div>
-    </div>
+      </Text>
+    </Flex>
   );
 };

@@ -1,12 +1,6 @@
 import { ROUTE_HOME, TOKEN_KEY } from "@/lib/constants";
-import {
-  addToast,
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  Input,
-} from "@heroui/react";
+import { addToast } from "@/components";
+import { Button, Card, TextField, Flex, Text, Box } from "@radix-ui/themes";
 import { useState } from "react";
 import { useLocation } from "wouter";
 
@@ -70,28 +64,44 @@ export default function Login() {
 
   return (
     <div className="flex items-center justify-center h-screen p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="flex justify-center pb-0">
-          <h1 className="text-2xl font-bold">Login</h1>
-        </CardHeader>
-        <CardBody className="gap-4">
-          <Input
-            label="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-          />
-          <Input
-            label="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-          />
-          <Button color="primary" isLoading={loading} onPress={handleLogin}>
-            Login
-          </Button>
-        </CardBody>
+      <Card size="4" className="w-full max-w-sm">
+        <Flex direction="column" gap="4">
+          <Box className="flex justify-center pb-0">
+            <Text size="6" weight="bold">
+              Login
+            </Text>
+          </Box>
+          <Flex direction="column" gap="3">
+            <Flex direction="column" gap="1">
+              <Text as="label" size="2" weight="bold">
+                Username
+              </Text>
+              <TextField.Root
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                size="3"
+                variant="surface"
+              />
+            </Flex>
+            <Flex direction="column" gap="1">
+              <Text as="label" size="2" weight="bold">
+                Password
+              </Text>
+              <TextField.Root
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                size="3"
+                variant="surface"
+              />
+            </Flex>
+            <Button size="3" loading={loading} onClick={handleLogin}>
+              Login
+            </Button>
+          </Flex>
+        </Flex>
       </Card>
     </div>
   );
