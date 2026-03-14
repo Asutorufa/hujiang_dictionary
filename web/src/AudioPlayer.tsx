@@ -170,7 +170,12 @@ export const AudioPlayer = (props: any) => {
         />
       </Box>
 
-      <Text size="1" weight="medium" color="gray" className="tabular-nums min-w-[70px] text-right">
+      <Text
+        size="1"
+        weight="medium"
+        color="gray"
+        className="tabular-nums min-w-[70px] text-right"
+      >
         {formatTime(currentTime)} / {formatTime(duration)}
       </Text>
     </Flex>

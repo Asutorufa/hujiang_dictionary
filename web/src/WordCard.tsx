@@ -66,7 +66,9 @@ export default function WordCard({
     <Card className="break-inside-avoid mb-4 shadow-sm hover:shadow-md transition-shadow">
       <Flex justify="between" align="start" mb="2">
         <Flex direction="column" className="max-w-[70%]">
-          <Text size="5" weight="bold" className="break-words">{word.word}</Text>
+          <Text size="5" weight="bold" className="break-words">
+            {word.word}
+          </Text>
           <Text size="2" color="gray">
             {new Date(word.update_time * 1000).toLocaleDateString()}
           </Text>
@@ -78,20 +80,35 @@ export default function WordCard({
               <Badge
                 size="1"
                 variant="soft"
-                color={word.priority === 0 ? "green" : word.priority === 1 ? "orange" : "gray"}
+                color={
+                  word.priority === 0
+                    ? "green"
+                    : word.priority === 1
+                      ? "orange"
+                      : "gray"
+                }
                 className="cursor-pointer"
               >
                 {getPriorityText(word.priority)}
               </Badge>
             </DropdownMenu.Trigger>
             <DropdownMenu.Content>
-              <DropdownMenu.Item color="green" onSelect={() => handlePriorityChange("0")}>
+              <DropdownMenu.Item
+                color="green"
+                onSelect={() => handlePriorityChange("0")}
+              >
                 Low
               </DropdownMenu.Item>
-              <DropdownMenu.Item color="orange" onSelect={() => handlePriorityChange("1")}>
+              <DropdownMenu.Item
+                color="orange"
+                onSelect={() => handlePriorityChange("1")}
+              >
                 Medium
               </DropdownMenu.Item>
-              <DropdownMenu.Item color="gray" onSelect={() => handlePriorityChange("2")}>
+              <DropdownMenu.Item
+                color="gray"
+                onSelect={() => handlePriorityChange("2")}
+              >
                 High
               </DropdownMenu.Item>
             </DropdownMenu.Content>

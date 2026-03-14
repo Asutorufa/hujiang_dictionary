@@ -1,13 +1,6 @@
 import { ROUTE_HOME, TOKEN_KEY } from "@/lib/constants";
 import { addToast } from "@/components";
-import {
-  Button,
-  Card,
-  TextField,
-  Flex,
-  Text,
-  Box,
-} from "@radix-ui/themes";
+import { Button, Card, TextField, Flex, Text, Box } from "@radix-ui/themes";
 import { useState } from "react";
 import { useLocation } from "wouter";
 
@@ -74,11 +67,15 @@ export default function Login() {
       <Card size="4" className="w-full max-w-sm">
         <Flex direction="column" gap="4">
           <Box className="flex justify-center pb-0">
-            <Text size="6" weight="bold">Login</Text>
+            <Text size="6" weight="bold">
+              Login
+            </Text>
           </Box>
           <Flex direction="column" gap="3">
             <Flex direction="column" gap="1">
-              <Text as="label" size="2" weight="bold">Username</Text>
+              <Text as="label" size="2" weight="bold">
+                Username
+              </Text>
               <TextField.Root
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -88,7 +85,9 @@ export default function Login() {
               />
             </Flex>
             <Flex direction="column" gap="1">
-              <Text as="label" size="2" weight="bold">Password</Text>
+              <Text as="label" size="2" weight="bold">
+                Password
+              </Text>
               <TextField.Root
                 type="password"
                 value={password}

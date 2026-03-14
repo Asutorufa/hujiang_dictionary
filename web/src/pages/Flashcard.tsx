@@ -235,17 +235,39 @@ export default function Flashcard() {
               }}
             >
               <DropdownMenu.RadioItem value="word">Word</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="word desc">Word DESC</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="priority">Priority</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="priority desc">Priority DESC</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="add_time">Add Time</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="add_time desc">Add Time DESC</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="update_time">Update Time</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="update_time desc">Update Time DESC</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="reminder_time">Reminder</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="reminder_time desc">Reminder DESC</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="anki_count">Count</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="anki_count desc">Count DESC</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="word desc">
+                Word DESC
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="priority">
+                Priority
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="priority desc">
+                Priority DESC
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="add_time">
+                Add Time
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="add_time desc">
+                Add Time DESC
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="update_time">
+                Update Time
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="update_time desc">
+                Update Time DESC
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="reminder_time">
+                Reminder
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="reminder_time desc">
+                Reminder DESC
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="anki_count">
+                Count
+              </DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="anki_count desc">
+                Count DESC
+              </DropdownMenu.RadioItem>
             </DropdownMenu.RadioGroup>
           </DropdownMenu.Content>
         </DropdownMenu.Root>
@@ -269,13 +291,23 @@ export default function Flashcard() {
               }}
             >
               <DropdownMenu.RadioItem value="word">Word</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="grammar">Grammar</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="grammar">
+                Grammar
+              </DropdownMenu.RadioItem>
             </DropdownMenu.RadioGroup>
           </DropdownMenu.Content>
         </DropdownMenu.Root>
 
-        <Flex align="center" ml="2" px="3" py="1" className="bg-default-100 rounded-lg">
-          <Text size="2">{page} / {total}</Text>
+        <Flex
+          align="center"
+          ml="2"
+          px="3"
+          py="1"
+          className="bg-default-100 rounded-lg"
+        >
+          <Text size="2">
+            {page} / {total}
+          </Text>
         </Flex>
       </div>
 
@@ -345,7 +377,11 @@ export default function Flashcard() {
               </motion.div>
 
               <Card className="w-full h-full shadow-xl bg-content1 border border-default-200 p-0 flex flex-col">
-                <Flex justify="between" align="start" className="pb-0 pt-4 px-4">
+                <Flex
+                  justify="between"
+                  align="start"
+                  className="pb-0 pt-4 px-4"
+                >
                   <Flex direction="column">
                     <Text size="5" weight="bold" className="break-words">
                       {currentWord.word}
@@ -369,20 +405,35 @@ export default function Flashcard() {
                         <Badge
                           size="1"
                           variant="soft"
-                          color={currentWord.priority === 0 ? "green" : currentWord.priority === 1 ? "orange" : "gray"}
+                          color={
+                            currentWord.priority === 0
+                              ? "green"
+                              : currentWord.priority === 1
+                                ? "orange"
+                                : "gray"
+                          }
                           className="cursor-pointer"
                         >
                           {getPriorityText(currentWord.priority)}
                         </Badge>
                       </DropdownMenu.Trigger>
                       <DropdownMenu.Content>
-                        <DropdownMenu.Item color="green" onSelect={() => handlePriorityChange("0")}>
+                        <DropdownMenu.Item
+                          color="green"
+                          onSelect={() => handlePriorityChange("0")}
+                        >
                           Low
                         </DropdownMenu.Item>
-                        <DropdownMenu.Item color="orange" onSelect={() => handlePriorityChange("1")}>
+                        <DropdownMenu.Item
+                          color="orange"
+                          onSelect={() => handlePriorityChange("1")}
+                        >
                           Medium
                         </DropdownMenu.Item>
-                        <DropdownMenu.Item color="gray" onSelect={() => handlePriorityChange("2")}>
+                        <DropdownMenu.Item
+                          color="gray"
+                          onSelect={() => handlePriorityChange("2")}
+                        >
                           High
                         </DropdownMenu.Item>
                       </DropdownMenu.Content>
@@ -413,7 +464,11 @@ export default function Flashcard() {
                   </div>
                 </Box>
 
-                <Flex justify="between" align="center" className="p-4 w-full border-t border-default-100">
+                <Flex
+                  justify="between"
+                  align="center"
+                  className="p-4 w-full border-t border-default-100"
+                >
                   <Button
                     color="red"
                     variant="soft"

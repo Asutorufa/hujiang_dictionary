@@ -315,13 +315,19 @@ export default function Home() {
                     >
                       <Flex justify="between" width="100%">
                         <Text>{source.name}</Text>
-                        {source.tag && <Text color="gray" size="1">{source.tag}</Text>}
+                        {source.tag && (
+                          <Text color="gray" size="1">
+                            {source.tag}
+                          </Text>
+                        )}
                       </Flex>
                     </DropdownMenu.Item>
                   ))}
                 </DropdownMenu.Group>
 
-                {Object.keys(customModels || {}).length > 0 && <DropdownMenu.Separator />}
+                {Object.keys(customModels || {}).length > 0 && (
+                  <DropdownMenu.Separator />
+                )}
 
                 {Object.keys(customModels || {}).length > 0 && (
                   <DropdownMenu.Group>
@@ -332,7 +338,9 @@ export default function Home() {
                       >
                         <Flex justify="between" width="100%">
                           <Text>{customModels[key].model}</Text>
-                          <Text color="gray" size="1">{customModels[key].name}</Text>
+                          <Text color="gray" size="1">
+                            {customModels[key].name}
+                          </Text>
                         </Flex>
                       </DropdownMenu.Item>
                     ))}
@@ -355,7 +363,11 @@ export default function Home() {
                           fallback="Auto"
                           alt={languageMap[srcLang]?.name || "Auto"}
                           size="1"
-                          src={languageMap[srcLang]?.icon ? `https://flagcdn.com/${languageMap[srcLang].icon}.svg` : undefined}
+                          src={
+                            languageMap[srcLang]?.icon
+                              ? `https://flagcdn.com/${languageMap[srcLang].icon}.svg`
+                              : undefined
+                          }
                         />
                       </IconButton>
                     </Tooltip>
@@ -394,7 +406,11 @@ export default function Home() {
                           fallback="Auto"
                           alt={languageMap[dstLang]?.name || "Auto"}
                           size="1"
-                          src={languageMap[dstLang]?.icon ? `https://flagcdn.com/${languageMap[dstLang].icon}.svg` : undefined}
+                          src={
+                            languageMap[dstLang]?.icon
+                              ? `https://flagcdn.com/${languageMap[dstLang].icon}.svg`
+                              : undefined
+                          }
                         />
                       </IconButton>
                     </Tooltip>
@@ -452,7 +468,9 @@ export default function Home() {
         </div>
 
         <Box mt="2">
-          <Text as="label" size="2" weight="bold">Text</Text>
+          <Text as="label" size="2" weight="bold">
+            Text
+          </Text>
           <TextArea
             color={query.length === 0 ? "red" : undefined}
             value={query}
@@ -488,7 +506,9 @@ export default function Home() {
 
             {!googleSearch && (
               <Box>
-                <Text as="label" size="2" weight="bold">Instruction</Text>
+                <Text as="label" size="2" weight="bold">
+                  Instruction
+                </Text>
                 <TextArea
                   value={instruction}
                   className="min-h-[40px] resize-y"
@@ -516,8 +536,15 @@ export default function Home() {
                 <Markdown>{result.result}</Markdown>
               </Box>
             ) : (
-              <Flex className="h-50" align="center" justify="center" direction="column">
-                <Text color="gray">Please input translate text and click translate button.</Text>
+              <Flex
+                className="h-50"
+                align="center"
+                justify="center"
+                direction="column"
+              >
+                <Text color="gray">
+                  Please input translate text and click translate button.
+                </Text>
               </Flex>
             )}
           </Card>

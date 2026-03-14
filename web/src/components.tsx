@@ -1,12 +1,5 @@
 import { authorizedRequest } from "@/lib/api";
-import {
-  Button,
-  Dialog,
-  Switch,
-  TextArea,
-  Flex,
-  Text,
-} from "@radix-ui/themes";
+import { Button, Dialog, Switch, TextArea, Flex, Text } from "@radix-ui/themes";
 import { FC, ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -96,7 +89,9 @@ export const SaveWordModal: FC<{
             </Flex>
           </Text>
           <Flex direction="column" gap="1">
-            <Text as="label" size="2" weight="bold">Word</Text>
+            <Text as="label" size="2" weight="bold">
+              Word
+            </Text>
             <TextArea
               color={newWord.length === 0 ? "red" : undefined}
               value={newWord}
@@ -106,7 +101,9 @@ export const SaveWordModal: FC<{
             />
           </Flex>
           <Flex direction="column" gap="1">
-            <Text as="label" size="2" weight="bold">Explain</Text>
+            <Text as="label" size="2" weight="bold">
+              Explain
+            </Text>
             <TextArea
               color={newExplain.length === 0 ? "red" : undefined}
               value={newExplain}
@@ -117,7 +114,9 @@ export const SaveWordModal: FC<{
           </Flex>
 
           <Flex direction="column" gap="1">
-            <Text as="label" size="2" weight="bold">Example</Text>
+            <Text as="label" size="2" weight="bold">
+              Example
+            </Text>
             <TextArea
               value={newExample}
               onChange={(p) => setNewExample(p.target.value)}
@@ -127,7 +126,11 @@ export const SaveWordModal: FC<{
           </Flex>
         </Flex>
         <Flex gap="3" mt="4" justify="end">
-          <Button variant="soft" color="gray" onClick={() => handleOpenChange(false)}>
+          <Button
+            variant="soft"
+            color="gray"
+            onClick={() => handleOpenChange(false)}
+          >
             Close
           </Button>
           <Button
@@ -323,51 +326,57 @@ export async function listModel(
   });
 }
 
+type LegacyColor =
+  | "danger"
+  | "default"
+  | "primary"
+  | "secondary"
+  | "success"
+  | "warning";
+type RadixColor =
+  | "crimson"
+  | "ruby"
+  | "tomato"
+  | "red"
+  | "purple"
+  | "violet"
+  | "iris"
+  | "indigo"
+  | "blue"
+  | "cyan"
+  | "teal"
+  | "jade"
+  | "green"
+  | "grass"
+  | "brown"
+  | "orange"
+  | "sky"
+  | "mint"
+  | "lime"
+  | "yellow"
+  | "amber"
+  | "gold"
+  | "bronze"
+  | "gray";
+
 export const ConfirmModal: FC<{
   title: string;
   open: boolean;
   onChange: (open: boolean) => void;
   onConfirm: () => Promise<void>;
-  color?:
-    | "crimson"
-    | "ruby"
-    | "tomato"
-    | "red"
-    | "purple"
-    | "violet"
-    | "iris"
-    | "indigo"
-    | "blue"
-    | "cyan"
-    | "teal"
-    | "jade"
-    | "green"
-    | "grass"
-    | "brown"
-    | "orange"
-    | "sky"
-    | "mint"
-    | "lime"
-    | "yellow"
-    | "amber"
-    | "gold"
-    | "bronze"
-    | "gray"
-    | "danger"
-    | "default"
-    | "primary"
-    | "secondary"
-    | "success"
-    | "warning";
+  color?: RadixColor | LegacyColor;
 }> = ({ title, open, onConfirm, onChange, color }) => {
   const [loading, setLoading] = useState(false);
 
-  // Map arbitrary colors to radix colors
-  let radixColor: "red" | "gray" | "indigo" | "blue" | "green" | "orange" = "blue";
-  if (color === "danger" || color === "red") radixColor = "red";
-  if (color === "success" || color === "green") radixColor = "green";
-  if (color === "warning" || color === "amber" || color === "orange") radixColor = "orange";
-  if (color === "secondary" || color === "gray" || color === "default") radixColor = "gray";
+  // Map legacy HeroUI colors to Radix colors, otherwise pass through the given Radix color
+  let radixColor: RadixColor | undefined;
+
+  if (color === "danger") radixColor = "red";
+  else if (color === "success") radixColor = "green";
+  else if (color === "warning") radixColor = "orange";
+  else if (color === "secondary" || color === "default") radixColor = "gray";
+  else if (color === "primary") radixColor = "blue";
+  else radixColor = color as RadixColor | undefined;
 
   return (
     <Dialog.Root open={open} onOpenChange={onChange}>

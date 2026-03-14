@@ -166,7 +166,20 @@ export default function Words() {
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 15 15"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z"
+                  fill="currentColor"
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                ></path>
+              </svg>
             </IconButton>
             <Text size="2" weight="medium">
               {page} / {total || 1}
@@ -177,7 +190,20 @@ export default function Words() {
               disabled={page >= total}
               onClick={() => setPage((p) => Math.min(total, p + 1))}
             >
-              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.1584 3.13508C5.95694 3.32394 5.94673 3.64036 6.13559 3.84182L9.565 7.49991L6.13559 11.158C5.94673 11.3595 5.95694 11.6759 6.1584 11.8648C6.35986 12.0536 6.67628 12.0434 6.86514 11.842L10.6151 7.84197C10.7954 7.64964 10.7954 7.35036 10.6151 7.15803L6.86514 3.15803C6.67628 2.95657 6.35986 2.94637 6.1584 3.13508Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 15 15"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6.1584 3.13508C5.95694 3.32394 5.94673 3.64036 6.13559 3.84182L9.565 7.49991L6.13559 11.158C5.94673 11.3595 5.95694 11.6759 6.1584 11.8648C6.35986 12.0536 6.67628 12.0434 6.86514 11.842L10.6151 7.84197C10.7954 7.64964 10.7954 7.35036 10.6151 7.15803L6.86514 3.15803C6.67628 2.95657 6.35986 2.94637 6.1584 3.13508Z"
+                  fill="currentColor"
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                ></path>
+              </svg>
             </IconButton>
           </Flex>
 
@@ -194,17 +220,40 @@ export default function Words() {
               </DropdownMenu.Trigger>
               <DropdownMenu.Content>
                 <DropdownMenu.Label>Sort By</DropdownMenu.Label>
-                <DropdownMenu.RadioGroup value={orderBy} onValueChange={setOrderBy}>
-                  <DropdownMenu.RadioItem value="word">Word (A-Z)</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="word desc">Word (Z-A)</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="priority">Priority (Low-High)</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="priority desc">Priority (High-Low)</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="add_time">Date Added (Oldest)</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="add_time desc">Date Added (Newest)</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="update_time">Date Updated (Oldest)</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="update_time desc">Date Updated (Newest)</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="anki_count">Count (Low-High)</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="anki_count desc">Count (High-Low)</DropdownMenu.RadioItem>
+                <DropdownMenu.RadioGroup
+                  value={orderBy}
+                  onValueChange={setOrderBy}
+                >
+                  <DropdownMenu.RadioItem value="word">
+                    Word (A-Z)
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="word desc">
+                    Word (Z-A)
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="priority">
+                    Priority (Low-High)
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="priority desc">
+                    Priority (High-Low)
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="add_time">
+                    Date Added (Oldest)
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="add_time desc">
+                    Date Added (Newest)
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="update_time">
+                    Date Updated (Oldest)
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="update_time desc">
+                    Date Updated (Newest)
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="anki_count">
+                    Count (Low-High)
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="anki_count desc">
+                    Count (High-Low)
+                  </DropdownMenu.RadioItem>
                 </DropdownMenu.RadioGroup>
 
                 <DropdownMenu.Separator />

@@ -109,7 +109,9 @@ export default function Llm() {
   return (
     <div className="container mx-auto p-4 max-w-4xl pb-32">
       <Flex justify="between" align="center" mb="6">
-        <Text size="6" weight="bold">LLM Providers</Text>
+        <Text size="6" weight="bold">
+          LLM Providers
+        </Text>
         <Button color="blue" onClick={openAddModal}>
           Add Provider
         </Button>
@@ -120,14 +122,24 @@ export default function Llm() {
           <Card key={p.name} size="2">
             <Flex justify="between" align="start">
               <Box>
-                <Text size="4" weight="bold" as="div">{p.name}</Text>
-                <Text size="2" color="gray" as="div">{p.provider}</Text>
+                <Text size="4" weight="bold" as="div">
+                  {p.name}
+                </Text>
+                <Text size="2" color="gray" as="div">
+                  {p.provider}
+                </Text>
                 {p.base_url && (
-                  <Text size="1" className="truncate" as="div">{p.base_url}</Text>
+                  <Text size="1" className="truncate" as="div">
+                    {p.base_url}
+                  </Text>
                 )}
               </Box>
               <Flex gap="2">
-                <Button size="1" variant="soft" onClick={() => openEditModal(p)}>
+                <Button
+                  size="1"
+                  variant="soft"
+                  onClick={() => openEditModal(p)}
+                >
                   Edit
                 </Button>
                 <Button
@@ -152,7 +164,9 @@ export default function Llm() {
             </Dialog.Title>
             <Flex direction="column" gap="3" mt="4">
               <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">Name</Text>
+                <Text as="label" size="2" weight="bold">
+                  Name
+                </Text>
                 <TextField.Root
                   name="name"
                   defaultValue={editingProvider?.name}
@@ -161,10 +175,14 @@ export default function Llm() {
                 />
               </Flex>
               <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">Provider Type</Text>
+                <Text as="label" size="2" weight="bold">
+                  Provider Type
+                </Text>
                 <Select.Root
                   name="provider"
-                  defaultValue={editingProvider ? editingProvider.provider : "openai"}
+                  defaultValue={
+                    editingProvider ? editingProvider.provider : "openai"
+                  }
                 >
                   <Select.Trigger />
                   <Select.Content>
@@ -176,14 +194,18 @@ export default function Llm() {
                 </Select.Root>
               </Flex>
               <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">Base URL (Optional)</Text>
+                <Text as="label" size="2" weight="bold">
+                  Base URL (Optional)
+                </Text>
                 <TextField.Root
                   name="base_url"
                   defaultValue={editingProvider?.base_url}
                 />
               </Flex>
               <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">API Key</Text>
+                <Text as="label" size="2" weight="bold">
+                  API Key
+                </Text>
                 <TextField.Root
                   name="api_key"
                   type="password"
@@ -191,7 +213,9 @@ export default function Llm() {
                 />
               </Flex>
               <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">Models (comma separated)</Text>
+                <Text as="label" size="2" weight="bold">
+                  Models (comma separated)
+                </Text>
                 <TextField.Root
                   name="models"
                   defaultValue={editingProvider?.models}
@@ -199,14 +223,18 @@ export default function Llm() {
                 />
               </Flex>
               <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">Project ID (for VertexAI)</Text>
+                <Text as="label" size="2" weight="bold">
+                  Project ID (for VertexAI)
+                </Text>
                 <TextField.Root
                   name="project_id"
                   defaultValue={editingProvider?.project_id}
                 />
               </Flex>
               <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">Location (for VertexAI)</Text>
+                <Text as="label" size="2" weight="bold">
+                  Location (for VertexAI)
+                </Text>
                 <TextField.Root
                   name="location"
                   defaultValue={editingProvider?.location}
@@ -214,7 +242,12 @@ export default function Llm() {
               </Flex>
             </Flex>
             <Flex gap="3" mt="4" justify="end">
-              <Button color="gray" variant="soft" type="button" onClick={onClose}>
+              <Button
+                color="gray"
+                variant="soft"
+                type="button"
+                onClick={onClose}
+              >
                 Cancel
               </Button>
               <Button color="blue" type="submit">
