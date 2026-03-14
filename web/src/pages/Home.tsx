@@ -280,8 +280,8 @@ export default function Home() {
         <div className="sticky flex flex-wrap justify-center top-1 z-50 gap-1">
           <div className="flex gap-1">
             <DropdownMenu.Root>
-              <DropdownMenu.Trigger>
-                <Tooltip content="Translate Method">
+              <Tooltip content="Translate Method">
+                <DropdownMenu.Trigger>
                   <Button
                     variant="surface"
                     color="gray"
@@ -291,8 +291,8 @@ export default function Home() {
                       customModels?.[selected]?.model ||
                       "Select"}
                   </Button>
-                </Tooltip>
-              </DropdownMenu.Trigger>
+                </DropdownMenu.Trigger>
+              </Tooltip>
               <DropdownMenu.Content>
                 <DropdownMenu.Group>
                   {translationSources.map((source) => (
@@ -352,8 +352,8 @@ export default function Home() {
             {showSelectLang(selected) && (
               <>
                 <DropdownMenu.Root>
-                  <DropdownMenu.Trigger>
-                    <Tooltip content="Source Language">
+                  <Tooltip content="Source Language">
+                    <DropdownMenu.Trigger>
                       <IconButton
                         variant="surface"
                         color="gray"
@@ -370,8 +370,8 @@ export default function Home() {
                           }
                         />
                       </IconButton>
-                    </Tooltip>
-                  </DropdownMenu.Trigger>
+                    </DropdownMenu.Trigger>
+                  </Tooltip>
                   <DropdownMenu.Content>
                     {languages.map((lang) => (
                       <DropdownMenu.Item
@@ -395,8 +395,8 @@ export default function Home() {
                 </DropdownMenu.Root>
 
                 <DropdownMenu.Root>
-                  <DropdownMenu.Trigger>
-                    <Tooltip content="Target Language">
+                  <Tooltip content="Target Language">
+                    <DropdownMenu.Trigger>
                       <IconButton
                         variant="surface"
                         color="gray"
@@ -413,8 +413,8 @@ export default function Home() {
                           }
                         />
                       </IconButton>
-                    </Tooltip>
-                  </DropdownMenu.Trigger>
+                    </DropdownMenu.Trigger>
+                  </Tooltip>
                   <DropdownMenu.Content>
                     {languages
                       .filter((lang) => lang.key !== "")
