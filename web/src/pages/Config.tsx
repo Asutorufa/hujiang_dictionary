@@ -85,7 +85,7 @@ export default function Config() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleDelete = async (name: string) => {
+  const handleDelete = (name: string) => {
     setDeleteTarget(name);
   };
 
@@ -297,7 +297,10 @@ export default function Config() {
         <Card
           size="3"
           className="mt-4"
-          style={{ backgroundColor: "var(--color-panel-solid)", backdropFilter: "none" }}
+          style={{
+            backgroundColor: "var(--color-panel-solid)",
+            backdropFilter: "none",
+          }}
         >
           <form onSubmit={handleGeneralConfigSave}>
             <Flex direction="column" gap="4">

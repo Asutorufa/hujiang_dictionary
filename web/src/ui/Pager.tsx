@@ -1,5 +1,10 @@
 import { IconButton, Text, TextField, Flex } from "@radix-ui/themes";
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 export function Pager({

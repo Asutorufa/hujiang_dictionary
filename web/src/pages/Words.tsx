@@ -10,13 +10,7 @@ import {
   SaveWordModal,
 } from "@/components";
 import WordCard from "@/WordCard";
-import {
-  Button,
-  DropdownMenu,
-  Tooltip,
-  IconButton,
-  Flex,
-} from "@radix-ui/themes";
+import { DropdownMenu, Tooltip, IconButton, Flex } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { LoadingOverlay } from "@/ui/LoadingOverlay";
@@ -186,54 +180,54 @@ export default function Words() {
                     value={orderBy}
                     onValueChange={setOrderBy}
                   >
-                  <DropdownMenu.RadioItem value="word">
-                    Word (A-Z)
-                  </DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="word desc">
-                    Word (Z-A)
-                  </DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="priority">
-                    Priority (Low-High)
-                  </DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="priority desc">
-                    Priority (High-Low)
-                  </DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="add_time">
-                    Date Added (Oldest)
-                  </DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="add_time desc">
-                    Date Added (Newest)
-                  </DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="update_time">
-                    Date Updated (Oldest)
-                  </DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="update_time desc">
-                    Date Updated (Newest)
-                  </DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="anki_count">
-                    Count (Low-High)
-                  </DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="anki_count desc">
-                    Count (High-Low)
-                  </DropdownMenu.RadioItem>
-                </DropdownMenu.RadioGroup>
+                    <DropdownMenu.RadioItem value="word">
+                      Word (A-Z)
+                    </DropdownMenu.RadioItem>
+                    <DropdownMenu.RadioItem value="word desc">
+                      Word (Z-A)
+                    </DropdownMenu.RadioItem>
+                    <DropdownMenu.RadioItem value="priority">
+                      Priority (Low-High)
+                    </DropdownMenu.RadioItem>
+                    <DropdownMenu.RadioItem value="priority desc">
+                      Priority (High-Low)
+                    </DropdownMenu.RadioItem>
+                    <DropdownMenu.RadioItem value="add_time">
+                      Date Added (Oldest)
+                    </DropdownMenu.RadioItem>
+                    <DropdownMenu.RadioItem value="add_time desc">
+                      Date Added (Newest)
+                    </DropdownMenu.RadioItem>
+                    <DropdownMenu.RadioItem value="update_time">
+                      Date Updated (Oldest)
+                    </DropdownMenu.RadioItem>
+                    <DropdownMenu.RadioItem value="update_time desc">
+                      Date Updated (Newest)
+                    </DropdownMenu.RadioItem>
+                    <DropdownMenu.RadioItem value="anki_count">
+                      Count (Low-High)
+                    </DropdownMenu.RadioItem>
+                    <DropdownMenu.RadioItem value="anki_count desc">
+                      Count (High-Low)
+                    </DropdownMenu.RadioItem>
+                  </DropdownMenu.RadioGroup>
 
-                <DropdownMenu.Separator />
+                  <DropdownMenu.Separator />
 
-                <DropdownMenu.Label>Filter</DropdownMenu.Label>
-                <DropdownMenu.RadioGroup
-                  value={grammar ? "grammar" : "words"}
-                  onValueChange={(v) => setGrammar(v === "grammar")}
-                >
-                  <DropdownMenu.RadioItem value="words">
-                    Words
-                  </DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="grammar">
-                    <Flex gap="2" align="center">
-                      <BookIcon size={18} />
-                      Grammar
-                    </Flex>
-                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.Label>Filter</DropdownMenu.Label>
+                  <DropdownMenu.RadioGroup
+                    value={grammar ? "grammar" : "words"}
+                    onValueChange={(v) => setGrammar(v === "grammar")}
+                  >
+                    <DropdownMenu.RadioItem value="words">
+                      Words
+                    </DropdownMenu.RadioItem>
+                    <DropdownMenu.RadioItem value="grammar">
+                      <Flex gap="2" align="center">
+                        <BookIcon size={18} />
+                        Grammar
+                      </Flex>
+                    </DropdownMenu.RadioItem>
                   </DropdownMenu.RadioGroup>
                 </DropdownMenu.Content>
               </DropdownMenu.Root>
@@ -245,23 +239,23 @@ export default function Words() {
                   variant="solid"
                   className="cursor-pointer"
                   onClick={() => {
-                  setNewWord({
-                    new: {
-                      word: "",
-                      example: "",
-                      explain: "",
-                      add_time: 0,
-                      update_time: 0,
-                      reminder_time: 0,
-                      anki_count: 0,
-                      priority: 0,
-                      type: 0,
-                    },
-                  });
-                  setOpen(true);
-                }}
-              >
-                <PlusIcon size={16} />
+                    setNewWord({
+                      new: {
+                        word: "",
+                        example: "",
+                        explain: "",
+                        add_time: 0,
+                        update_time: 0,
+                        reminder_time: 0,
+                        anki_count: 0,
+                        priority: 0,
+                        type: 0,
+                      },
+                    });
+                    setOpen(true);
+                  }}
+                >
+                  <PlusIcon size={16} />
                 </IconButton>
               </Tooltip>
 

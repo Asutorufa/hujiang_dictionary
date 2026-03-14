@@ -89,9 +89,7 @@ function Main() {
 
         <div
           className={
-            location === ROUTE_LOGIN
-              ? undefined
-              : "app-bottom-pad min-h-dvh"
+            location === ROUTE_LOGIN ? undefined : "app-bottom-pad min-h-dvh"
           }
         >
           <Switch>

@@ -324,129 +324,129 @@ export default function Home() {
           }
         >
           <Flex gap="2" align="center" wrap="wrap" justify="between">
-              <DropdownMenu.Root>
-                <Tooltip content="Translate Method">
-                  <DropdownMenu.Trigger>
-                    <Button
-                      variant="surface"
-                      color="gray"
-                      className="capitalize cursor-pointer"
+            <DropdownMenu.Root>
+              <Tooltip content="Translate Method">
+                <DropdownMenu.Trigger>
+                  <Button
+                    variant="surface"
+                    color="gray"
+                    className="capitalize cursor-pointer"
+                  >
+                    {translationMap[selected] ||
+                      customModels?.[selected]?.model ||
+                      "Select"}
+                  </Button>
+                </DropdownMenu.Trigger>
+              </Tooltip>
+              <DropdownMenu.Content>
+                <DropdownMenu.Group>
+                  {translationSources.map((source) => (
+                    <DropdownMenu.Item
+                      key={source.key}
+                      onSelect={() => setSelected(source.key)}
                     >
-                      {translationMap[selected] ||
-                        customModels?.[selected]?.model ||
-                        "Select"}
-                    </Button>
-                  </DropdownMenu.Trigger>
-                </Tooltip>
-                <DropdownMenu.Content>
-                  <DropdownMenu.Group>
-                    {translationSources.map((source) => (
-                      <DropdownMenu.Item
-                        key={source.key}
-                        onSelect={() => setSelected(source.key)}
-                      >
-                        {source.name}
-                      </DropdownMenu.Item>
-                    ))}
-                  </DropdownMenu.Group>
+                      {source.name}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Group>
 
-                  {dictSources.length > 0 && <DropdownMenu.Separator />}
+                {dictSources.length > 0 && <DropdownMenu.Separator />}
 
+                <DropdownMenu.Group>
+                  {dictSources.map((source) => (
+                    <DropdownMenu.Item
+                      key={source.key}
+                      onSelect={() => setSelected(source.key)}
+                    >
+                      <Flex justify="between" width="100%" gap="4">
+                        <Text>{source.name}</Text>
+                        {source.tag && (
+                          <Text color="gray" size="1">
+                            {source.tag}
+                          </Text>
+                        )}
+                      </Flex>
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Group>
+
+                {Object.keys(customModels || {}).length > 0 && (
+                  <DropdownMenu.Separator />
+                )}
+
+                {Object.keys(customModels || {}).length > 0 && (
                   <DropdownMenu.Group>
-                    {dictSources.map((source) => (
+                    {Object.keys(customModels || {}).map((key) => (
                       <DropdownMenu.Item
-                        key={source.key}
-                        onSelect={() => setSelected(source.key)}
+                        key={key}
+                        onSelect={() => setSelected(key)}
                       >
                         <Flex justify="between" width="100%" gap="4">
-                          <Text>{source.name}</Text>
-                          {source.tag && (
-                            <Text color="gray" size="1">
-                              {source.tag}
-                            </Text>
-                          )}
+                          <Text>{customModels[key].model}</Text>
+                          <Text color="gray" size="1">
+                            {customModels[key].name}
+                          </Text>
                         </Flex>
                       </DropdownMenu.Item>
                     ))}
                   </DropdownMenu.Group>
+                )}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
 
-                  {Object.keys(customModels || {}).length > 0 && (
-                    <DropdownMenu.Separator />
-                  )}
+            {showSelectLang(selected) && (
+              <Flex gap="2" align="center" wrap="wrap">
+                <DropdownMenu.Root>
+                  <Tooltip content="Source Language">
+                    <DropdownMenu.Trigger>
+                      <Button
+                        variant="surface"
+                        color="gray"
+                        className="cursor-pointer"
+                      >
+                        {languageMap[srcLang]?.name || "Auto"}
+                      </Button>
+                    </DropdownMenu.Trigger>
+                  </Tooltip>
+                  <DropdownMenu.Content>
+                    {languages.map((lang) => (
+                      <DropdownMenu.Item
+                        key={lang.key}
+                        onSelect={() => setSrcLang(lang.key)}
+                      >
+                        {lang.name}
+                      </DropdownMenu.Item>
+                    ))}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
 
-                  {Object.keys(customModels || {}).length > 0 && (
-                    <DropdownMenu.Group>
-                      {Object.keys(customModels || {}).map((key) => (
-                        <DropdownMenu.Item
-                          key={key}
-                          onSelect={() => setSelected(key)}
-                        >
-                          <Flex justify="between" width="100%" gap="4">
-                            <Text>{customModels[key].model}</Text>
-                            <Text color="gray" size="1">
-                              {customModels[key].name}
-                            </Text>
-                          </Flex>
-                        </DropdownMenu.Item>
-                      ))}
-                    </DropdownMenu.Group>
-                  )}
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
-
-              {showSelectLang(selected) && (
-                <Flex gap="2" align="center" wrap="wrap">
-                  <DropdownMenu.Root>
-                    <Tooltip content="Source Language">
-                      <DropdownMenu.Trigger>
-                        <Button
-                          variant="surface"
-                          color="gray"
-                          className="cursor-pointer"
-                        >
-                          {languageMap[srcLang]?.name || "Auto"}
-                        </Button>
-                      </DropdownMenu.Trigger>
-                    </Tooltip>
-                    <DropdownMenu.Content>
-                      {languages.map((lang) => (
+                <DropdownMenu.Root>
+                  <Tooltip content="Target Language">
+                    <DropdownMenu.Trigger>
+                      <Button
+                        variant="surface"
+                        color="gray"
+                        className="cursor-pointer"
+                      >
+                        {languageMap[dstLang]?.name || "Auto"}
+                      </Button>
+                    </DropdownMenu.Trigger>
+                  </Tooltip>
+                  <DropdownMenu.Content>
+                    {languages
+                      .filter((lang) => lang.key !== "")
+                      .map((lang) => (
                         <DropdownMenu.Item
                           key={lang.key}
-                          onSelect={() => setSrcLang(lang.key)}
+                          onSelect={() => setDstLang(lang.key)}
                         >
                           {lang.name}
                         </DropdownMenu.Item>
                       ))}
-                    </DropdownMenu.Content>
-                  </DropdownMenu.Root>
-
-                  <DropdownMenu.Root>
-                    <Tooltip content="Target Language">
-                      <DropdownMenu.Trigger>
-                        <Button
-                          variant="surface"
-                          color="gray"
-                          className="cursor-pointer"
-                        >
-                          {languageMap[dstLang]?.name || "Auto"}
-                        </Button>
-                      </DropdownMenu.Trigger>
-                    </Tooltip>
-                    <DropdownMenu.Content>
-                      {languages
-                        .filter((lang) => lang.key !== "")
-                        .map((lang) => (
-                          <DropdownMenu.Item
-                            key={lang.key}
-                            onSelect={() => setDstLang(lang.key)}
-                          >
-                            {lang.name}
-                          </DropdownMenu.Item>
-                        ))}
-                    </DropdownMenu.Content>
-                  </DropdownMenu.Root>
-                </Flex>
-              )}
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
+              </Flex>
+            )}
           </Flex>
         </PageHeader>
 

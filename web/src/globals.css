@@ -22,8 +22,16 @@ body,
 
 body {
   /* Typography: pick a more characterful stack that still supports CJK well. */
-  font-family: "Avenir Next", "Avenir", "PingFang SC", "Hiragino Sans",
-    "Noto Sans CJK SC", "Microsoft YaHei", system-ui, -apple-system, Segoe UI,
+  font-family:
+    "Avenir Next",
+    "Avenir",
+    "PingFang SC",
+    "Hiragino Sans",
+    "Noto Sans CJK SC",
+    "Microsoft YaHei",
+    system-ui,
+    -apple-system,
+    Segoe UI,
     sans-serif;
   letter-spacing: -0.005em;
 
@@ -199,8 +207,9 @@ body::before {
 }
 
 .prose :where(code):not(:where([class~="not-prose"] *)) {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", "Courier New", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
   font-size: 0.9em;
   padding: 0.12em 0.35em;
   border-radius: 0.4em;
