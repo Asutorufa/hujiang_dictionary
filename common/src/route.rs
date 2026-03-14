@@ -492,7 +492,10 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
             })
             .await?;
 
-        let mut cache = self.config_cache.write().map_err(|e| Error::Internal(e.to_string()))?;
+        let mut cache = self
+            .config_cache
+            .write()
+            .map_err(|e| Error::Internal(e.to_string()))?;
         cache.last_updated = 0; // Invalidate cache
 
         Ok([b'{', b'}'].to_vec())

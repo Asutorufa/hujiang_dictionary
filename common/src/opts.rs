@@ -30,7 +30,10 @@ impl<T: DatabaseExecutor, T2: crate::ai::Translator> RunOpt<T, T2> {
     pub async fn get_config(&self) -> Result<ConfigCache, Box<dyn std::error::Error>> {
         let now = chrono::Utc::now().timestamp() as u64;
         {
-            let cache = self.config_cache.read().map_err(|e| format!("Config cache lock is poisoned: {}", e))?;
+            let cache = self
+                .config_cache
+                .read()
+                .map_err(|e| format!("Config cache lock is poisoned: {}", e))?;
             if now - cache.last_updated < 300 {
                 return Ok(cache.clone());
             }
@@ -73,7 +76,10 @@ impl<T: DatabaseExecutor, T2: crate::ai::Translator> RunOpt<T, T2> {
             Some(client_reqwest::Bot::new(&telegram_token))
         };
 
-        let mut cache = self.config_cache.write().map_err(|e| format!("Config cache lock is poisoned: {}", e))?;
+        let mut cache = self
+            .config_cache
+            .write()
+            .map_err(|e| format!("Config cache lock is poisoned: {}", e))?;
         cache.allow_users = Arc::new(set);
         cache.maintainer_id = maintainer_id;
         cache.bot = bot;
