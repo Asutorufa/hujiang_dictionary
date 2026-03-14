@@ -1,3 +1,5 @@
+#[macro_use]
+pub mod macros;
 pub mod duckduckgo_search;
 pub mod en;
 pub mod error;

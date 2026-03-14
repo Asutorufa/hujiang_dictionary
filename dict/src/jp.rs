@@ -125,18 +125,14 @@ pub async fn get(word: &str, t: &str) -> Result<Vec<Word>, Error> {
 fn parse_detail(element: ElementRef) -> Vec<Detail> {
     let mut eps: Vec<Detail> = vec![];
 
-    let detail_selector = Selector::parse(".word-details-pane-content .word-details-item").unwrap();
-    let details = element.select(&detail_selector);
+    let details = element.select(sel!(".word-details-pane-content .word-details-item"));
     for detail in details {
-        let source_selector = Selector::parse(".detail-source").unwrap();
-        let source = detail.select(&source_selector).string_or_empty();
+        let source = detail.select(sel!(".detail-source")).string_or_empty();
 
-        let dl_selector = Selector::parse(".word-details-item-content .detail-groups dl").unwrap();
-        let dls = detail.select(&dl_selector);
+        let dls = detail.select(sel!(".word-details-item-content .detail-groups dl"));
 
         for dl in dls {
-            let attr_selector = Selector::parse("dt").unwrap();
-            let attr = dl.select(&attr_selector).string_or_empty();
+            let attr = dl.select(sel!("dt")).string_or_empty();
 
             let mut d = Detail {
                 attribute: attr,
@@ -144,28 +140,22 @@ fn parse_detail(element: ElementRef) -> Vec<Detail> {
                 source: source.clone(),
             };
 
-            let dd_selector = Selector::parse("dd").unwrap();
-            let dds = dl.select(&dd_selector);
+            let dds = dl.select(sel!("dd"));
 
             for dd in dds {
-                let explain_selector = Selector::parse("h3 p").unwrap();
                 let mut ep = ExplainsAndExample {
                     explain: dd
-                        .select(&explain_selector)
+                        .select(sel!("h3 p"))
                         .map(|x| x.trim_text())
                         .collect::<Vec<_>>()
                         .join(""),
                     examples: vec![],
                 };
 
-                let example_selector = Selector::parse("ul li").unwrap();
-                for example in dd.select(&example_selector) {
-                    let from_selector = Selector::parse(".def-sentence-from").unwrap();
-                    let to_selector = Selector::parse(".def-sentence-to").unwrap();
+                for example in dd.select(sel!("ul li")) {
+                    let from = example.select(sel!(".def-sentence-from")).string_or_empty();
 
-                    let from = example.select(&from_selector).string_or_empty();
-
-                    let to = example.select(&to_selector).string_or_empty();
+                    let to = example.select(sel!(".def-sentence-to")).string_or_empty();
 
                     ep.examples.push(Example {
                         original: from,
@@ -186,26 +176,20 @@ fn parse_detail(element: ElementRef) -> Vec<Detail> {
 fn parse_simple(element: ElementRef) -> Vec<Simple> {
     let mut sps: Vec<Simple> = vec![];
 
-    let simple_selector = Selector::parse(".simple").unwrap();
-
-    let simples = element.select(&simple_selector);
+    let simples = element.select(sel!(".simple"));
 
     for simple in simples {
-        let attributes_selector = Selector::parse("h2").unwrap();
-        let mut attributes = simple.select(&attributes_selector);
+        let mut attributes = simple.select(sel!("h2"));
 
         let attribute = attributes.string_or_empty();
 
-        let list_selector = Selector::parse("ul").unwrap();
-
-        for li in simple.select(&list_selector) {
+        for li in simple.select(sel!("ul")) {
             let mut sp = Simple {
                 attribute: attribute.clone(),
                 explains: vec![],
             };
 
-            let li_selector = Selector::parse("li").unwrap();
-            let lis = li.select(&li_selector);
+            let lis = li.select(sel!("li"));
 
             for li in lis {
                 let li_text = li.trim_text();
@@ -253,28 +237,23 @@ fn parse(text: &str) -> Vec<Word> {
         }
     }
 
-    let selector = scraper::Selector::parse(".word-details-pane").unwrap();
-
-    let res = q.select(&selector);
+    let res = q.select(sel!(".word-details-pane"));
 
     for element in res {
-        let word_selector = Selector::parse(".word-text h2").unwrap();
-        let pronounce_selector = Selector::parse(".pronounces").unwrap();
-        let katakana_selector = Selector::parse("span").unwrap();
-        let audio_selector = Selector::parse(".word-audio").unwrap();
-
         let mut w = Word {
-            word: element.select(&word_selector).string_or_empty(),
+            word: element.select(sel!(".word-text h2")).string_or_empty(),
             katakana: "".to_string(),
             audio_url: "".to_string(),
             simple: parse_simple(element),
             detail: parse_detail(element),
         };
 
-        if let Some(pronounce) = element.select(&pronounce_selector).next() {
-            w.audio_url = pronounce.select(&audio_selector).attr_or_empty("data-src");
+        if let Some(pronounce) = element.select(sel!(".pronounces")).next() {
+            w.audio_url = pronounce
+                .select(sel!(".word-audio"))
+                .attr_or_empty("data-src");
             w.katakana = pronounce
-                .select(&katakana_selector)
+                .select(sel!("span"))
                 .map(|x| x.trim_text())
                 .collect::<Vec<_>>()
                 .join("");
