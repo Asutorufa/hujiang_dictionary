@@ -1,7 +1,7 @@
-pub mod duckduckgo_search;
-pub mod en;
 #[macro_use]
 pub mod macros;
+pub mod duckduckgo_search;
+pub mod en;
 pub mod error;
 pub mod google;
 pub mod google_search;

@@ -1,5 +1,4 @@
-use crate::error::Error;
-use scraper::Selector;
+use crate::{error::Error, sel};
 use std::fmt::Write;
 
 #[derive(Debug)]

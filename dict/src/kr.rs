@@ -1,9 +1,10 @@
 use crate::{
     en::{COOKIE, USER_AGENT},
     error::Error,
+    sel,
 };
 use log::info;
-use scraper::{Html, Selector};
+use scraper::Html;
 use std::fmt::Write;
 use url::form_urlencoded;
 
