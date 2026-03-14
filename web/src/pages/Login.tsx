@@ -3,7 +3,6 @@ import { addToast } from "@/components";
 import { Button, Card, TextField, Flex, Text, Box } from "@radix-ui/themes";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { PageContainer } from "@/ui/PageContainer";
 
 type LoginResponse = { token: string };
 
@@ -14,14 +13,7 @@ export default function Login() {
   const [, setLocation] = useLocation();
 
   const handleLogin = async () => {
-    if (!username.trim() || !password) {
-      addToast({
-        title: "Missing username or password",
-        description: "Please enter both fields to continue.",
-        color: "warning",
-      });
-      return;
-    }
+    if (!username || !password) return;
     setLoading(true);
     try {
       const res = await fetch("/login", {
@@ -71,10 +63,7 @@ export default function Login() {
   };
 
   return (
-    <PageContainer
-      size="3xl"
-      className="min-h-dvh flex items-center justify-center"
-    >
+    <div className="flex items-center justify-center h-screen p-4">
       <Card size="4" className="w-full max-w-sm">
         <Flex direction="column" gap="4">
           <Box className="flex justify-center pb-0">
@@ -114,6 +103,6 @@ export default function Login() {
           </Flex>
         </Flex>
       </Card>
-    </PageContainer>
+    </div>
   );
 }

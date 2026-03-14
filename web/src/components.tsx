@@ -150,7 +150,6 @@ export const SaveWordModal: FC<{
               variant="soft"
               color="gray"
               className="cursor-pointer"
-              disabled={saving}
               onClick={() => handleOpenChange(false)}
             >
               Cancel
@@ -167,16 +166,15 @@ export const SaveWordModal: FC<{
                   newExample,
                   newType,
                   (error) => {
-                    setSaving(false);
-                    if (error) return;
+                    setSaving(true);
                     handleOpenChange(false);
-                    if (onSaved) onSaved();
+                    if (!error && onSaved) onSaved();
                   },
                   origin,
                 );
               }}
             >
-              Save
+              Save Word
             </Button>
           </Flex>
         </motion.div>
@@ -390,17 +388,7 @@ export const ConfirmModal: FC<{
   onChange: (open: boolean) => void;
   onConfirm: () => Promise<void>;
   color?: RadixColor | LegacyColor;
-  confirmLabel?: string;
-  cancelLabel?: string;
-}> = ({
-  title,
-  open,
-  onConfirm,
-  onChange,
-  color,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
-}) => {
+}> = ({ title, open, onConfirm, onChange, color }) => {
   const [loading, setLoading] = useState(false);
 
   // Map legacy HeroUI colors to Radix colors, otherwise pass through the given Radix color
@@ -418,13 +406,8 @@ export const ConfirmModal: FC<{
       <Dialog.Content maxWidth="400px">
         <Dialog.Title className="text-center mb-4">{title}</Dialog.Title>
         <Flex gap="3" mt="4" justify="center">
-          <Button
-            variant="soft"
-            color="gray"
-            disabled={loading}
-            onClick={() => onChange(false)}
-          >
-            {cancelLabel}
+          <Button variant="soft" color="gray" onClick={() => onChange(false)}>
+            Close
           </Button>
           <Button
             loading={loading}
@@ -436,7 +419,7 @@ export const ConfirmModal: FC<{
               onChange(false);
             }}
           >
-            {confirmLabel}
+            Ok
           </Button>
         </Flex>
       </Dialog.Content>

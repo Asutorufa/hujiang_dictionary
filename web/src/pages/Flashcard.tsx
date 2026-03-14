@@ -33,8 +33,6 @@ import {
 } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
-import { EmptyState } from "@/ui/EmptyState";
-import { Layers3 } from "lucide-react";
 
 // Helper for swipe icons
 const CheckIcon = () => (
@@ -215,7 +213,7 @@ export default function Flashcard() {
   };
 
   return (
-    <div className="flex flex-col min-h-dvh overflow-hidden items-center relative p-4 pb-[calc(env(safe-area-inset-bottom)+112px)]">
+    <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden items-center relative p-4">
       {/* Header / Filter Bar */}
       <div className="flex gap-2 mb-4 z-10 w-full justify-center">
         <DropdownMenu.Root>
@@ -305,7 +303,7 @@ export default function Flashcard() {
           ml="2"
           px="3"
           py="1"
-          className="bg-[var(--gray-a3)] rounded-lg"
+          className="bg-default-100 rounded-lg"
         >
           <Text size="2">
             {page} / {total}
@@ -314,17 +312,16 @@ export default function Flashcard() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-h-0 w-full max-w-md flex items-center justify-center relative overflow-hidden">
+      <div className="flex-1 w-full max-w-md flex items-center justify-center relative overflow-hidden">
         {loading && wordsMap.size === 0 && <Spinner size="3" />}
 
         {!loading && wordsMap.size === 0 && (
-          <EmptyState
-            title="No words found"
-            description="Add some words first, then come back to review."
-            icon={<Layers3 size={28} className="text-[var(--gray-a11)]" />}
-            actionLabel="Reset"
-            onAction={() => setPage(1)}
-          />
+          <div className="text-center">
+            <Text color="gray">No words found.</Text>
+            <Button className="mt-4" onClick={() => setPage(1)}>
+              Reset to start
+            </Button>
+          </div>
         )}
 
         <AnimatePresence mode="wait">
@@ -336,14 +333,13 @@ export default function Flashcard() {
               exit={{ opacity: 0, x: 0 }}
               transition={{ duration: 0.2 }}
               drag="x"
-              dragListener={false}
               dragControls={dragControls}
               dragConstraints={{ left: 0, right: 0 }}
               dragDirectionLock
               dragElastic={0.9}
               onDragEnd={handleDragEnd}
               style={{ x, rotate, touchAction: "pan-y" }}
-              className="w-full absolute inset-0 cursor-grab active:cursor-grabbing flex flex-col min-h-0"
+              className="w-full absolute inset-0 cursor-grab active:cursor-grabbing flex flex-col"
               onTapStart={() => {
                 longPressTimer.current = setTimeout(handleLongPress, 800);
               }}
@@ -365,7 +361,7 @@ export default function Flashcard() {
                 className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
                 style={{ opacity: opacityRight }}
               >
-                <div className="text-green-500 p-6 rounded-full border-4 border-green-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_86%,transparent)] backdrop-blur-sm">
+                <div className="text-green-500 p-6 rounded-full border-4 border-green-500 bg-[var(--color-panel-solid)]/80 backdrop-blur-sm">
                   <CheckIcon />
                 </div>
               </motion.div>
@@ -374,26 +370,12 @@ export default function Flashcard() {
                 className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
                 style={{ opacity: opacityLeft }}
               >
-                <div className="text-red-500 p-6 rounded-full border-4 border-red-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_86%,transparent)] backdrop-blur-sm">
+                <div className="text-red-500 p-6 rounded-full border-4 border-red-500 bg-[var(--color-panel-solid)]/80 backdrop-blur-sm">
                   <CrossIcon />
                 </div>
               </motion.div>
 
-              <Card
-                className="flex-1 min-h-0 flex flex-col overflow-hidden"
-                onPointerDown={(e) => {
-                  const target = e.target as HTMLElement;
-                  // Don't start swipe-drag from interactive elements.
-                  if (
-                    target.closest(
-                      "a,button,input,textarea,select,[role='menuitem'],[data-radix-collection-item]",
-                    )
-                  ) {
-                    return;
-                  }
-                  dragControls.start(e);
-                }}
-              >
+              <Card className="flex-1 flex flex-col overflow-hidden">
                 <Flex justify="between" align="start">
                   <Flex direction="column">
                     <Text size="5" weight="bold" className="break-words">
@@ -455,11 +437,11 @@ export default function Flashcard() {
                 </Flex>
 
                 <Box
-                  className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden mt-3"
-                  style={{ WebkitOverflowScrolling: "touch" }}
-                  onPointerDown={(e) => {
-                    // Allow the content area to scroll; prevent the parent Card from starting drag.
-                    e.stopPropagation();
+                  className="flex-1 overflow-y-auto overflow-x-hidden mt-3"
+                  onPointerDown={(e: React.PointerEvent<HTMLDivElement>) => {
+                    const target = e.target as HTMLElement;
+                    if (target.closest(".prose")) return;
+                    dragControls.start(e);
                   }}
                 >
                   <div className="w-full text-left prose prose-sm max-w-none dark:prose-invert">

@@ -1,11 +1,13 @@
 import { authorizedRequest, streamRequest } from "@/lib/api";
 import {
+  Avatar,
   Button,
   Card,
   DropdownMenu,
   Switch,
   TextArea,
   Tooltip,
+  IconButton,
   Flex,
   Text,
   Box,
@@ -20,8 +22,6 @@ import {
   PlayIcon,
   SaveWordModal,
 } from "../components";
-import { PageHeader } from "@/ui/PageHeader";
-import { PageContainer } from "@/ui/PageContainer";
 
 async function fetchTranslation(
   opts: {
@@ -115,6 +115,18 @@ const translationMap = Object.fromEntries(
   [...translationSources, ...dictSources].map(({ key, name }) => [key, name]),
 ) as Record<(typeof translationSources)[number]["key"], string>;
 
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      staggerChildren: 0.1,
+    },
+  },
+};
+
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0 },
@@ -137,10 +149,6 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [stream, setStream] = useLocalStorage("stream", true);
   const [open, setOpen] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useLocalStorage(
-    "home_advanced_open",
-    false,
-  );
   const [customModels, setCustomModels] = useLocalStorage<
     Record<string, { name: string; model: string }>
   >("custom_llms_cache", {});
@@ -278,7 +286,7 @@ export default function Home() {
   }, [setOpen, doQueryWord]);
 
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-screen">
       <SaveWordModal
         open={open}
         onChange={(p) => setOpen(p)}
@@ -286,44 +294,14 @@ export default function Home() {
         explain={result.result}
         type={0}
       />
-      <PageContainer className="space-y-6">
-        <PageHeader
-          title="HJ Dict"
-          subtitle="Ctrl+Enter to translate · Ctrl+S to save"
-          actions={
-            <Flex gap="2" align="center" wrap="wrap">
-              <Tooltip content="Translate (Ctrl+Enter)">
-                <Button
-                  variant="solid"
-                  color="blue"
-                  className="cursor-pointer"
-                  loading={loading}
-                  onClick={doQueryWord}
-                >
-                  <Flex gap="2" align="center">
-                    <PlayIcon size={18} />
-                    Translate
-                  </Flex>
-                </Button>
-              </Tooltip>
-
-              <Tooltip content="Save Word (Ctrl+S)">
-                <Button
-                  variant="surface"
-                  color="green"
-                  className="cursor-pointer"
-                  onClick={() => setOpen(true)}
-                >
-                  <Flex gap="2" align="center">
-                    <DiskIcon size={18} />
-                    Save
-                  </Flex>
-                </Button>
-              </Tooltip>
-            </Flex>
-          }
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+          className="sticky top-0 z-50 flex flex-wrap justify-center gap-2 py-3 px-4 -mx-4 backdrop-blur-xl bg-[var(--color-panel-solid)]/80 border-b border-[var(--gray-a5)]"
         >
-          <Flex gap="2" align="center" wrap="wrap" justify="between">
+          <div className="flex gap-2">
             <DropdownMenu.Root>
               <Tooltip content="Translate Method">
                 <DropdownMenu.Trigger>
@@ -395,17 +373,26 @@ export default function Home() {
             </DropdownMenu.Root>
 
             {showSelectLang(selected) && (
-              <Flex gap="2" align="center" wrap="wrap">
+              <div className="flex gap-2">
                 <DropdownMenu.Root>
                   <Tooltip content="Source Language">
                     <DropdownMenu.Trigger>
-                      <Button
+                      <IconButton
                         variant="surface"
                         color="gray"
                         className="cursor-pointer"
                       >
-                        {languageMap[srcLang]?.name || "Auto"}
-                      </Button>
+                        <Avatar
+                          fallback="Auto"
+                          alt={languageMap[srcLang]?.name || "Auto"}
+                          size="1"
+                          src={
+                            languageMap[srcLang]?.icon
+                              ? `https://flagcdn.com/${languageMap[srcLang].icon}.svg`
+                              : undefined
+                          }
+                        />
+                      </IconButton>
                     </DropdownMenu.Trigger>
                   </Tooltip>
                   <DropdownMenu.Content>
@@ -414,7 +401,17 @@ export default function Home() {
                         key={lang.key}
                         onSelect={() => setSrcLang(lang.key)}
                       >
-                        {lang.name}
+                        <Flex gap="2" align="center">
+                          {lang.icon && (
+                            <Avatar
+                              fallback={lang.name.charAt(0)}
+                              alt={lang.name}
+                              size="1"
+                              src={`https://flagcdn.com/${lang.icon}.svg`}
+                            />
+                          )}
+                          {lang.name}
+                        </Flex>
                       </DropdownMenu.Item>
                     ))}
                   </DropdownMenu.Content>
@@ -423,13 +420,22 @@ export default function Home() {
                 <DropdownMenu.Root>
                   <Tooltip content="Target Language">
                     <DropdownMenu.Trigger>
-                      <Button
+                      <IconButton
                         variant="surface"
                         color="gray"
                         className="cursor-pointer"
                       >
-                        {languageMap[dstLang]?.name || "Auto"}
-                      </Button>
+                        <Avatar
+                          fallback="Auto"
+                          alt={languageMap[dstLang]?.name || "Auto"}
+                          size="1"
+                          src={
+                            languageMap[dstLang]?.icon
+                              ? `https://flagcdn.com/${languageMap[dstLang].icon}.svg`
+                              : undefined
+                          }
+                        />
+                      </IconButton>
                     </DropdownMenu.Trigger>
                   </Tooltip>
                   <DropdownMenu.Content>
@@ -440,15 +446,49 @@ export default function Home() {
                           key={lang.key}
                           onSelect={() => setDstLang(lang.key)}
                         >
-                          {lang.name}
+                          <Flex gap="2" align="center">
+                            {lang.icon && (
+                              <Avatar
+                                fallback={lang.name.charAt(0)}
+                                alt={lang.name}
+                                size="1"
+                                src={`https://flagcdn.com/${lang.icon}.svg`}
+                              />
+                            )}
+                            {lang.name}
+                          </Flex>
                         </DropdownMenu.Item>
                       ))}
                   </DropdownMenu.Content>
                 </DropdownMenu.Root>
-              </Flex>
+              </div>
             )}
-          </Flex>
-        </PageHeader>
+          </div>
+
+          <div className="flex justify-center gap-2">
+            <Tooltip content="Translate (Ctrl+Enter)">
+              <IconButton
+                variant="solid"
+                color="blue"
+                className="cursor-pointer"
+                loading={loading}
+                onClick={doQueryWord}
+              >
+                <PlayIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip content="Save Word (Ctrl+S)">
+              <IconButton
+                variant="surface"
+                color="green"
+                className="cursor-pointer"
+                onClick={() => setOpen(true)}
+              >
+                <DiskIcon />
+              </IconButton>
+            </Tooltip>
+          </div>
+        </motion.div>
 
         <motion.div variants={itemVariants} initial="hidden" animate="visible">
           <Card>
@@ -475,80 +515,55 @@ export default function Home() {
         </motion.div>
 
         {selected.startsWith("custom-") && (
-          <Card>
-            <Flex justify="between" align="center" gap="3" wrap="wrap">
-              <Box>
-                <Text size="2" weight="bold">
-                  Advanced
-                </Text>
-                <Text size="1" color="gray">
-                  Options for custom LLM queries
-                </Text>
-              </Box>
-              <Button
-                variant="soft"
-                color="gray"
-                className="cursor-pointer"
-                onClick={() => setShowAdvanced((v) => !v)}
-              >
-                {showAdvanced ? "Hide" : "Show"}
-              </Button>
-            </Flex>
-
-            <AnimatePresence initial={false}>
-              {showAdvanced && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="mt-4 space-y-4 overflow-hidden"
-                >
-                  <Flex gap="6" wrap="wrap">
-                    <Text as="label" size="2" weight="medium">
-                      <Flex gap="2" align="center" className="cursor-pointer">
-                        <Switch
-                          checked={googleSearch}
-                          onCheckedChange={(e) => setGoogleSearch(e)}
-                        />
-                        Google Search
-                      </Flex>
-                    </Text>
-
-                    <Text as="label" size="2" weight="medium">
-                      <Flex gap="2" align="center" className="cursor-pointer">
-                        <Switch
-                          checked={stream}
-                          onCheckedChange={(e) => setStream(e)}
-                        />
-                        Stream
-                      </Flex>
-                    </Text>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            <Card>
+              <Flex gap="6">
+                <Text as="label" size="2" weight="medium">
+                  <Flex gap="2" align="center" className="cursor-pointer">
+                    <Switch
+                      checked={googleSearch}
+                      onCheckedChange={(e) => setGoogleSearch(e)}
+                    />
+                    Google Search
                   </Flex>
+                </Text>
 
-                  {!googleSearch && (
-                    <Box>
-                      <Text
-                        as="label"
-                        size="1"
-                        weight="bold"
-                        color="gray"
-                        className="mb-2 block uppercase tracking-widest"
-                      >
-                        Custom Instruction
-                      </Text>
-                      <TextArea
-                        value={instruction}
-                        placeholder="e.g. Translate to natural spoken Japanese..."
-                        className="min-h-[60px]"
-                        onChange={(e) => setInstruction(e.target.value)}
-                      />
-                    </Box>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Card>
+                <Text as="label" size="2" weight="medium">
+                  <Flex gap="2" align="center" className="cursor-pointer">
+                    <Switch
+                      checked={stream}
+                      onCheckedChange={(e) => setStream(e)}
+                    />
+                    Stream
+                  </Flex>
+                </Text>
+              </Flex>
+            </Card>
+
+            {!googleSearch && (
+              <Card>
+                <Text
+                  as="label"
+                  size="1"
+                  weight="bold"
+                  color="gray"
+                  className="mb-2 block uppercase tracking-widest"
+                >
+                  Custom Instruction
+                </Text>
+                <TextArea
+                  value={instruction}
+                  placeholder="e.g. Translate to natural spoken Japanese..."
+                  className="min-h-[60px]"
+                  onChange={(e) => setInstruction(e.target.value)}
+                />
+              </Card>
+            )}
+          </motion.div>
         )}
 
         <AnimatePresence mode="wait">
@@ -581,6 +596,7 @@ export default function Home() {
             key="result"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
+            className="pb-24"
           >
             <Text
               size="1"
@@ -624,7 +640,7 @@ export default function Home() {
             </Card>
           </motion.div>
         </AnimatePresence>
-      </PageContainer>
+      </div>
     </div>
   );
 }
