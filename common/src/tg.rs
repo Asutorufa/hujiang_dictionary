@@ -14,7 +14,7 @@ use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use log::*;
 use std::sync::Arc;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum Command {
     JPCN(String),
     CNJP(String),
@@ -139,103 +139,141 @@ mod tests {
     #[test]
     fn test_parse_command() {
         // Test empty command
-        assert!(parse_command("", "", "").is_err());
-        assert!(parse_command("/", "", "").is_err());
-        assert!(parse_command("/@bot", "", "").is_err());
+        assert_eq!(parse_command("", "", ""), Err(Error("command is empty".to_string())));
+        assert_eq!(parse_command("/", "", ""), Err(Error("command is empty".to_string())));
+        assert_eq!(parse_command("/@bot", "", ""), Err(Error("command is empty".to_string())));
 
         // Test normal commands
-        let (cmd, _) = parse_command("/en", "hello", "").unwrap();
-        match cmd {
-            Command::EN(s) => assert_eq!(s, "hello"),
-            _ => panic!("Expected Command::EN"),
-        }
+        assert_eq!(
+            parse_command("/en", "hello", "").unwrap().0,
+            Command::EN("hello".to_string())
+        );
+        assert_eq!(
+            parse_command("/jpcn", "hello", "").unwrap().0,
+            Command::JPCN("hello".to_string())
+        );
+        assert_eq!(
+            parse_command("/cnjp", "hello", "").unwrap().0,
+            Command::CNJP("hello".to_string())
+        );
+        assert_eq!(
+            parse_command("/kr", "hello", "").unwrap().0,
+            Command::KR("hello".to_string())
+        );
+        assert_eq!(
+            parse_command("/weblio", "hello", "").unwrap().0,
+            Command::Weblio("hello".to_string())
+        );
+        assert_eq!(
+            parse_command("/ktbk", "hello", "").unwrap().0,
+            Command::Ktbk("hello".to_string())
+        );
+        assert_eq!(
+            parse_command("/random", "", "").unwrap().0,
+            Command::Random
+        );
+        assert_eq!(
+            parse_command("/userid", "", "").unwrap().0,
+            Command::UserID
+        );
 
         // Test bot suffix
-        let (cmd, _) = parse_command("/en@my_bot", "hello", "").unwrap();
-        match cmd {
-            Command::EN(s) => assert_eq!(s, "hello"),
-            _ => panic!("Expected Command::EN"),
-        }
+        assert_eq!(
+            parse_command("/en@my_bot", "hello", "").unwrap().0,
+            Command::EN("hello".to_string())
+        );
 
         // Test quote and argument
-        let (cmd, _) = parse_command("/en", "", "quote").unwrap();
-        match cmd {
-            Command::EN(s) => assert_eq!(s, "quote"),
-            _ => panic!("Expected Command::EN"),
-        }
+        assert_eq!(
+            parse_command("/en", "", "quote").unwrap().0,
+            Command::EN("quote".to_string())
+        );
 
         // Test GG command
-        let (cmd, _) = parse_command("/gg", "en_ja hello", "").unwrap();
-        match cmd {
-            Command::GG(src, target, text) => {
-                assert_eq!(src, Some("en".to_string()));
-                assert_eq!(target, "ja");
-                assert_eq!(text, "hello");
-            }
-            _ => panic!("Expected Command::GG"),
-        }
+        assert_eq!(
+            parse_command("/gg", "en_ja hello", "").unwrap().0,
+            Command::GG(Some("en".to_string()), "ja".to_string(), "hello".to_string())
+        );
 
-        let (cmd, _) = parse_command("/gg", "ja hello", "quote").unwrap();
-        match cmd {
-            Command::GG(src, target, text) => {
-                assert_eq!(src, None);
-                assert_eq!(target, "ja");
-                assert_eq!(text, "hello");
-            }
-            _ => panic!("Expected Command::GG"),
-        }
+        assert_eq!(
+            parse_command("/gg", "ja hello", "quote").unwrap().0,
+            Command::GG(None, "ja".to_string(), "hello".to_string())
+        );
 
         // Test GG with quote
-        let (cmd, _) = parse_command("/gg", "ja", "quote").unwrap();
-        match cmd {
-            Command::GG(src, target, text) => {
-                assert_eq!(src, None);
-                assert_eq!(target, "ja");
-                assert_eq!(text, "quote");
-            }
-            _ => panic!("Expected Command::GG"),
-        }
+        assert_eq!(
+            parse_command("/gg", "ja", "quote").unwrap().0,
+            Command::GG(None, "ja".to_string(), "quote".to_string())
+        );
+
+        // Test GG validation
+        assert!(parse_command("/gg", "", "").is_err());
+        assert!(parse_command("/gg", "ja", "").is_err());
 
         // Test LLM commands
-        let (cmd, _) = parse_command("/gemma", "arg", "quote").unwrap();
-        match cmd {
-            Command::Gemma(s) => assert_eq!(s, "quote\narg"),
-            _ => panic!("Expected Command::Gemma"),
-        }
+        assert_eq!(
+            parse_command("/gemma", "arg", "quote").unwrap().0,
+            Command::Gemma("quote\narg".to_string())
+        );
+        assert_eq!(
+            parse_command("/gemma", "arg", "").unwrap().0,
+            Command::Gemma("arg".to_string())
+        );
+        assert_eq!(
+            parse_command("/gemma", "", "quote").unwrap().0,
+            Command::Gemma("quote".to_string())
+        );
+        assert_eq!(
+            parse_command("/llama4", "arg", "quote").unwrap().0,
+            Command::Llama4("quote\narg".to_string())
+        );
+        assert_eq!(
+            parse_command("/gpt", "arg", "quote").unwrap().0,
+            Command::GPT("quote\narg".to_string())
+        );
 
         // Test save command
-        let (cmd, _) = parse_command("/save", "arg", "quote").unwrap();
-        match cmd {
-            Command::Save(arg, quote) => {
-                assert_eq!(arg, "arg");
-                assert_eq!(quote, "quote");
-            }
-            _ => panic!("Expected Command::Save"),
-        }
+        assert_eq!(
+            parse_command("/save", "arg", "quote").unwrap().0,
+            Command::Save("arg".to_string(), "quote".to_string())
+        );
 
         // Test unknown command
-        assert!(parse_command("/unknown", "", "").is_err());
+        assert_eq!(parse_command("/unknown", "", ""), Err(Error("not implemented".to_string())));
     }
 
     #[test]
     fn test_parse_callback_query_command() {
-        let (cmd, _) = parse_callback_query_command("delete", "").unwrap();
-        match cmd {
-            CallbackQueryCommand::Delete => (),
-            _ => panic!("Expected CallbackQueryCommand::Delete"),
-        }
+        assert_eq!(
+            parse_callback_query_command("delete", "").unwrap().0,
+            CallbackQueryCommand::Delete
+        );
+        assert_eq!(
+            parse_callback_query_command("/save", "word").unwrap().0,
+            CallbackQueryCommand::Save("word".to_string())
+        );
+        assert_eq!(
+            parse_callback_query_command("remove", "word").unwrap().0,
+            CallbackQueryCommand::Remove("word".to_string())
+        );
+        assert_eq!(
+            parse_callback_query_command("unknown", ""),
+            Err(Error("not implemented".to_string()))
+        );
+    }
 
-        let (cmd, _) = parse_callback_query_command("/save", "word").unwrap();
-        match cmd {
-            CallbackQueryCommand::Save(s) => assert_eq!(s, "word"),
-            _ => panic!("Expected CallbackQueryCommand::Save"),
-        }
-
-        assert!(parse_callback_query_command("unknown", "").is_err());
+    #[test]
+    fn test_escape() {
+        assert_eq!(markdown_escape("hello_world"), "hello\\_world");
+        assert_eq!(html_escape("<p>&</p>"), "&lt;p&gt;&amp;&lt;/p&gt;");
+        assert_eq!(
+            vec_string_markdown_escape(&vec!["a_b".to_string(), "c*d".to_string()]),
+            "a\\_b\nc\\*d\n"
+        );
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum CallbackQueryCommand {
     Delete,
     Save(String),
@@ -340,7 +378,7 @@ pub async fn handle<T: DatabaseExecutor, T2: Translator>(
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Error(pub String);
 
 impl fmt::Display for Error {
@@ -416,9 +454,19 @@ pub fn parse_command(
         "weblio" => Ok((Command::Weblio(quote_or_argument), None)),
         "ktbk" => Ok((Command::Ktbk(quote_or_argument), None)),
         "random" => Ok((Command::Random, None)),
-        "gemma" => Ok((Command::Gemma(format!("{}\n{}", quote, argument)), None)),
-        "llama4" => Ok((Command::Llama4(format!("{}\n{}", quote, argument)), None)),
-        "gpt" => Ok((Command::GPT(format!("{}\n{}", quote, argument)), None)),
+        "gemma" | "llama4" | "gpt" => {
+            let full_text = match (quote.is_empty(), argument.is_empty()) {
+                (false, false) => format!("{}\n{}", quote, argument),
+                (false, true) => quote.to_string(),
+                (true, false) => argument.to_string(),
+                (true, true) => "".to_string(),
+            };
+            match command {
+                "gemma" => Ok((Command::Gemma(full_text), None)),
+                "llama4" => Ok((Command::Llama4(full_text), None)),
+                _ => Ok((Command::GPT(full_text), None)),
+            }
+        }
         "save" => Ok((Command::Save(argument.to_string(), quote.to_string()), None)),
         "gg" | "cfai" | "gg1" => {
             let mut parts = argument.splitn(2, ' ');
@@ -431,6 +479,14 @@ pub fn parse_command(
                 true => (Some(args[0].to_string()), args[1].to_string()),
                 false => (None, first.to_string()),
             };
+
+            if target.is_empty() {
+                return Err(Error("target language is empty".to_string()));
+            }
+
+            if rest.is_empty() {
+                return Err(Error("text to translate is empty".to_string()));
+            }
 
             if command == "cfai" {
                 Ok((Command::CFAI(src, target, rest), None))
