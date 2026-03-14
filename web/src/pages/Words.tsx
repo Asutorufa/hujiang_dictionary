@@ -158,65 +158,41 @@ export default function Words() {
 
       <div className="container mx-auto p-2 sm:p-4 max-w-7xl">
         {/* Sticky Header */}
-        <div className="sticky top-4 z-40 bg-background/60 backdrop-blur-xl rounded-2xl shadow-lg border border-default-200/50 p-3 mb-8 flex flex-wrap items-center justify-between gap-4 transition-all hover:shadow-xl">
-          <Flex gap="2" align="center">
+        <div className="sticky top-0 z-40 backdrop-blur-xl bg-[var(--color-panel-solid)]/80 border-b border-[var(--gray-a5)] py-2 px-3 mb-4 -mx-2 sm:-mx-4 flex items-center justify-between gap-2">
+          <Flex gap="1" align="center">
             <IconButton
-              variant="soft"
+              size="1"
+              variant="ghost"
               color="gray"
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 15 15"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z"
-                  fill="currentColor"
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                ></path>
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
               </svg>
             </IconButton>
-            <Text size="2" weight="medium">
-              {page} / {total || 1}
+            <Text size="1" weight="medium" color="gray">
+              {page}/{total || 1}
             </Text>
             <IconButton
-              variant="soft"
+              size="1"
+              variant="ghost"
               color="gray"
               disabled={page >= total}
               onClick={() => setPage((p) => Math.min(total, p + 1))}
             >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 15 15"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M6.1584 3.13508C5.95694 3.32394 5.94673 3.64036 6.13559 3.84182L9.565 7.49991L6.13559 11.158C5.94673 11.3595 5.95694 11.6759 6.1584 11.8648C6.35986 12.0536 6.67628 12.0434 6.86514 11.842L10.6151 7.84197C10.7954 7.64964 10.7954 7.35036 10.6151 7.15803L6.86514 3.15803C6.67628 2.95657 6.35986 2.94637 6.1584 3.13508Z"
-                  fill="currentColor"
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                ></path>
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6.1584 3.13508C5.95694 3.32394 5.94673 3.64036 6.13559 3.84182L9.565 7.49991L6.13559 11.158C5.94673 11.3595 5.95694 11.6759 6.1584 11.8648C6.35986 12.0536 6.67628 12.0434 6.86514 11.842L10.6151 7.84197C10.7954 7.64964 10.7954 7.35036 10.6151 7.15803L6.86514 3.15803C6.67628 2.95657 6.35986 2.94637 6.1584 3.13508Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path>
               </svg>
             </IconButton>
           </Flex>
 
-          <div className="flex gap-2 items-center ml-auto">
+          <Flex gap="2" align="center">
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
-                <Button
-                  variant="soft"
-                  color="gray"
-                  className="bg-default-100 font-medium"
-                >
-                  <FilterIcon /> View Options
-                </Button>
+                <IconButton variant="ghost" color="gray" className="cursor-pointer">
+                  <FilterIcon size={18} />
+                </IconButton>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content>
                 <DropdownMenu.Label>Sort By</DropdownMenu.Label>
@@ -259,24 +235,29 @@ export default function Words() {
                 <DropdownMenu.Separator />
 
                 <DropdownMenu.Label>Filter</DropdownMenu.Label>
-                <DropdownMenu.CheckboxItem
-                  checked={grammar}
-                  onCheckedChange={(checked) => setGrammar(checked)}
+                <DropdownMenu.RadioGroup
+                  value={grammar ? "grammar" : "words"}
+                  onValueChange={(v) => setGrammar(v === "grammar")}
                 >
-                  <Flex gap="2" align="center">
-                    <BookIcon size={18} />
-                    {grammar ? "Show Grammar Only" : "Show All Words"}
-                  </Flex>
-                </DropdownMenu.CheckboxItem>
+                  <DropdownMenu.RadioItem value="words">
+                    Words
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="grammar">
+                    <Flex gap="2" align="center">
+                      <BookIcon size={18} />
+                      Grammar
+                    </Flex>
+                  </DropdownMenu.RadioItem>
+                </DropdownMenu.RadioGroup>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
 
-            <div className="h-6 w-[1px] bg-default-200 mx-1" />
-
             <Tooltip content="Add Word">
               <IconButton
+                size="1"
                 color="blue"
                 variant="solid"
+                className="cursor-pointer"
                 onClick={() => {
                   setNewWord({
                     new: {
@@ -294,20 +275,22 @@ export default function Words() {
                   setOpen(true);
                 }}
               >
-                <PlusIcon />
+                <PlusIcon size={16} />
               </IconButton>
             </Tooltip>
 
             <Tooltip content="Refresh">
               <IconButton
+                size="1"
                 variant="ghost"
                 color="gray"
+                className="cursor-pointer"
                 onClick={() => setRefresh((r) => r + 1)}
               >
-                <RefreshIcon />
+                <RefreshIcon size={16} />
               </IconButton>
             </Tooltip>
-          </div>
+          </Flex>
         </div>
 
         {/* Masonry Grid Layout */}

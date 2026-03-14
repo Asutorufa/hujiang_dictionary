@@ -312,12 +312,12 @@ export default function Flashcard() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 w-full max-w-md flex items-center justify-center relative">
+      <div className="flex-1 w-full max-w-md flex items-center justify-center relative overflow-hidden">
         {loading && wordsMap.size === 0 && <Spinner size="3" />}
 
         {!loading && wordsMap.size === 0 && (
-          <div className="text-center text-default-500">
-            <p>No words found.</p>
+          <div className="text-center">
+            <Text color="gray">No words found.</Text>
             <Button className="mt-4" onClick={() => setPage(1)}>
               Reset to start
             </Button>
@@ -339,8 +339,7 @@ export default function Flashcard() {
               dragElastic={0.9}
               onDragEnd={handleDragEnd}
               style={{ x, rotate, touchAction: "pan-y" }}
-              className="w-full h-full max-h-[600px] absolute cursor-grab active:cursor-grabbing"
-              // Gestures for long press
+              className="w-full absolute inset-0 cursor-grab active:cursor-grabbing flex flex-col"
               onTapStart={() => {
                 longPressTimer.current = setTimeout(handleLongPress, 800);
               }}
@@ -362,7 +361,7 @@ export default function Flashcard() {
                 className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
                 style={{ opacity: opacityRight }}
               >
-                <div className="text-success p-6 rounded-full border-4 border-success bg-background/80 backdrop-blur-sm">
+                <div className="text-green-500 p-6 rounded-full border-4 border-green-500 bg-[var(--color-panel-solid)]/80 backdrop-blur-sm">
                   <CheckIcon />
                 </div>
               </motion.div>
@@ -371,17 +370,13 @@ export default function Flashcard() {
                 className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
                 style={{ opacity: opacityLeft }}
               >
-                <div className="text-danger p-6 rounded-full border-4 border-danger bg-background/80 backdrop-blur-sm">
+                <div className="text-red-500 p-6 rounded-full border-4 border-red-500 bg-[var(--color-panel-solid)]/80 backdrop-blur-sm">
                   <CrossIcon />
                 </div>
               </motion.div>
 
-              <Card className="w-full h-full shadow-xl bg-content1 border border-default-200 p-0 flex flex-col">
-                <Flex
-                  justify="between"
-                  align="start"
-                  className="pb-0 pt-4 px-4"
-                >
+              <Card className="flex-1 flex flex-col overflow-hidden">
+                <Flex justify="between" align="start">
                   <Flex direction="column">
                     <Text size="5" weight="bold" className="break-words">
                       {currentWord.word}
@@ -442,65 +437,65 @@ export default function Flashcard() {
                 </Flex>
 
                 <Box
-                  className="flex flex-col pt-4 px-4 overflow-y-auto overflow-x-hidden scrollbar-hide flex-1"
+                  className="flex-1 overflow-y-auto overflow-x-hidden mt-3"
                   onPointerDown={(e: React.PointerEvent<HTMLDivElement>) => {
                     const target = e.target as HTMLElement;
                     if (target.closest(".prose")) return;
                     dragControls.start(e);
                   }}
                 >
-                  <div className="w-full text-left prose max-w-none dark:prose-invert flex-1 flex flex-col h-full">
+                  <div className="w-full text-left prose prose-sm max-w-none dark:prose-invert">
                     {currentWord.example && (
-                      <Box className="bg-default-50 rounded-lg p-3 mb-2 text-small">
+                      <Box className="rounded-lg bg-[var(--gray-a3)] p-3 mb-2">
                         <Markdown>{currentWord.example}</Markdown>
                       </Box>
                     )}
 
-                    <Spoiler className="flex-1 h-full">
+                    <Spoiler>
                       <Box mt="2">
                         <Markdown>{currentWord.explain}</Markdown>
                       </Box>
                     </Spoiler>
                   </div>
                 </Box>
-
-                <Flex
-                  justify="between"
-                  align="center"
-                  className="p-4 w-full border-t border-default-100"
-                >
-                  <Button
-                    color="red"
-                    variant="soft"
-                    onClick={() => handleSwipe("skip")}
-                    className="w-24"
-                  >
-                    Skip
-                  </Button>
-
-                  <IconButton
-                    variant="ghost"
-                    color="gray"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
-                    <LeftArrowIcon />
-                  </IconButton>
-
-                  <Button
-                    color="green"
-                    variant="soft"
-                    onClick={() => handleSwipe("know")}
-                    className="w-24"
-                  >
-                    Know
-                  </Button>
-                </Flex>
               </Card>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Fixed Bottom Buttons — always visible */}
+      {currentWord && (
+        <div className="w-full max-w-md py-3 flex items-center justify-between gap-3 z-10">
+          <Button
+            color="red"
+            variant="soft"
+            className="flex-1 cursor-pointer"
+            onClick={() => handleSwipe("skip")}
+          >
+            Skip
+          </Button>
+
+          <IconButton
+            variant="ghost"
+            color="gray"
+            disabled={page <= 1}
+            className="cursor-pointer"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            <LeftArrowIcon />
+          </IconButton>
+
+          <Button
+            color="green"
+            variant="soft"
+            className="flex-1 cursor-pointer"
+            onClick={() => handleSwipe("know")}
+          >
+            Know
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

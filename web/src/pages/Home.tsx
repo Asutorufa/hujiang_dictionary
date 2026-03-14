@@ -14,6 +14,7 @@ import {
 } from "@radix-ui/themes";
 import { useCallback, useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   DiskIcon,
   listModel as listModels,
@@ -113,6 +114,23 @@ const dictSources = [
 const translationMap = Object.fromEntries(
   [...translationSources, ...dictSources].map(({ key, name }) => [key, name]),
 ) as Record<(typeof translationSources)[number]["key"], string>;
+
+const containerVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export default function Home() {
   const [selected, setSelected] = useLocalStorage("translate_type", "ktbk");
@@ -268,7 +286,7 @@ export default function Home() {
   }, [setOpen, doQueryWord]);
 
   return (
-    <>
+    <div className="min-h-screen">
       <SaveWordModal
         open={open}
         onChange={(p) => setOpen(p)}
@@ -276,16 +294,21 @@ export default function Home() {
         explain={result.result}
         type={0}
       />
-      <div className="p-2">
-        <div className="sticky flex flex-wrap justify-center top-1 z-50 gap-1">
-          <div className="flex gap-1">
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+          className="sticky top-0 z-50 flex flex-wrap justify-center gap-2 py-3 px-4 -mx-4 backdrop-blur-xl bg-[var(--color-panel-solid)]/80 border-b border-[var(--gray-a5)]"
+        >
+          <div className="flex gap-2">
             <DropdownMenu.Root>
               <Tooltip content="Translate Method">
                 <DropdownMenu.Trigger>
                   <Button
                     variant="surface"
                     color="gray"
-                    className="shadow-md backdrop-blur-sm capitalize"
+                    className="capitalize cursor-pointer"
                   >
                     {translationMap[selected] ||
                       customModels?.[selected]?.model ||
@@ -313,7 +336,7 @@ export default function Home() {
                       key={source.key}
                       onSelect={() => setSelected(source.key)}
                     >
-                      <Flex justify="between" width="100%">
+                      <Flex justify="between" width="100%" gap="4">
                         <Text>{source.name}</Text>
                         {source.tag && (
                           <Text color="gray" size="1">
@@ -336,7 +359,7 @@ export default function Home() {
                         key={key}
                         onSelect={() => setSelected(key)}
                       >
-                        <Flex justify="between" width="100%">
+                        <Flex justify="between" width="100%" gap="4">
                           <Text>{customModels[key].model}</Text>
                           <Text color="gray" size="1">
                             {customModels[key].name}
@@ -350,14 +373,14 @@ export default function Home() {
             </DropdownMenu.Root>
 
             {showSelectLang(selected) && (
-              <>
+              <div className="flex gap-2">
                 <DropdownMenu.Root>
                   <Tooltip content="Source Language">
                     <DropdownMenu.Trigger>
                       <IconButton
                         variant="surface"
                         color="gray"
-                        className="shadow-md backdrop-blur-sm"
+                        className="cursor-pointer"
                       >
                         <Avatar
                           fallback="Auto"
@@ -400,7 +423,7 @@ export default function Home() {
                       <IconButton
                         variant="surface"
                         color="gray"
-                        className="shadow-md backdrop-blur-sm"
+                        className="cursor-pointer"
                       >
                         <Avatar
                           fallback="Auto"
@@ -438,118 +461,161 @@ export default function Home() {
                       ))}
                   </DropdownMenu.Content>
                 </DropdownMenu.Root>
-              </>
+              </div>
             )}
           </div>
 
-          <div className="flex justify-center gap-1">
-            <Tooltip content="Translate">
+          <div className="flex justify-center gap-2">
+            <Tooltip content="Translate (Ctrl+Enter)">
               <IconButton
-                variant="surface"
-                color="gray"
-                className="shadow-md backdrop-blur-sm"
+                variant="solid"
+                color="blue"
+                className="cursor-pointer"
                 loading={loading}
                 onClick={doQueryWord}
               >
                 <PlayIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip content="Save To D1">
+            <Tooltip content="Save Word (Ctrl+S)">
               <IconButton
                 variant="surface"
-                color="gray"
-                className="shadow-md backdrop-blur-sm"
+                color="green"
+                className="cursor-pointer"
                 onClick={() => setOpen(true)}
               >
                 <DiskIcon />
               </IconButton>
             </Tooltip>
           </div>
-        </div>
+        </motion.div>
 
-        <Box mt="2">
-          <Text as="label" size="2" weight="bold">
-            Text
-          </Text>
-          <TextArea
-            color={query.length === 0 ? "red" : undefined}
-            value={query}
-            placeholder="Enter text..."
-            className="min-h-[40px] resize-y"
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </Box>
+        <motion.div variants={itemVariants} initial="hidden" animate="visible">
+          <Card>
+            <Box>
+              <Text as="label" size="1" weight="bold" color="gray" className="mb-2 block uppercase tracking-widest">
+                Input
+              </Text>
+              <TextArea
+                color={query.length === 0 ? "red" : undefined}
+                value={query}
+                placeholder="Type or paste text to translate..."
+                variant="soft"
+                className="min-h-[80px]"
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </Box>
+          </Card>
+        </motion.div>
 
         {selected.startsWith("custom-") && (
-          <Flex direction="column" gap="2" mt="2">
-            <Flex gap="4">
-              <Text as="label" size="2">
-                <Flex gap="2" align="center">
-                  <Switch
-                    checked={googleSearch}
-                    onCheckedChange={(e) => setGoogleSearch(e)}
-                  />
-                  Google Search
-                </Flex>
-              </Text>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            <Card>
+              <Flex gap="6">
+                <Text as="label" size="2" weight="medium">
+                  <Flex gap="2" align="center" className="cursor-pointer">
+                    <Switch
+                      checked={googleSearch}
+                      onCheckedChange={(e) => setGoogleSearch(e)}
+                    />
+                    Google Search
+                  </Flex>
+                </Text>
 
-              <Text as="label" size="2">
-                <Flex gap="2" align="center">
-                  <Switch
-                    checked={stream}
-                    onCheckedChange={(e) => setStream(e)}
-                  />
-                  Stream
-                </Flex>
-              </Text>
-            </Flex>
+                <Text as="label" size="2" weight="medium">
+                  <Flex gap="2" align="center" className="cursor-pointer">
+                    <Switch
+                      checked={stream}
+                      onCheckedChange={(e) => setStream(e)}
+                    />
+                    Stream
+                  </Flex>
+                </Text>
+              </Flex>
+            </Card>
 
             {!googleSearch && (
-              <Box>
-                <Text as="label" size="2" weight="bold">
-                  Instruction
+              <Card>
+                <Text as="label" size="1" weight="bold" color="gray" className="mb-2 block uppercase tracking-widest">
+                  Custom Instruction
                 </Text>
                 <TextArea
                   value={instruction}
-                  className="min-h-[40px] resize-y"
+                  placeholder="e.g. Translate to natural spoken Japanese..."
+                  className="min-h-[60px]"
                   onChange={(e) => setInstruction(e.target.value)}
                 />
-              </Box>
+              </Card>
             )}
-          </Flex>
+          </motion.div>
         )}
 
-        {result.reasoning && (
-          <Box mt="2">
+        <AnimatePresence mode="wait">
+          {result.reasoning && (
+            <motion.div
+              key="reasoning"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <Text size="1" weight="bold" color="blue" className="mb-2 ml-1 block uppercase tracking-widest">
+                Thinking Process
+              </Text>
+              <Card variant="surface">
+                <Box className="prose prose-sm dark:prose-invert max-w-none opacity-80">
+                  <Markdown>{result.reasoning}</Markdown>
+                </Box>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="result"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pb-24"
+          >
+            <Text size="1" weight="bold" color="gray" className="mb-2 ml-1 block uppercase tracking-widest">
+              Result
+            </Text>
             <Card>
-              <Box className="flex-1 max-w-none">
-                <Markdown>{result.reasoning}</Markdown>
-              </Box>
+              {result.result ? (
+                <Box className="prose prose-sm dark:prose-invert max-w-none">
+                  <Markdown>{result.result}</Markdown>
+                </Box>
+              ) : (
+                <Flex
+                  className="min-h-[150px]"
+                  align="center"
+                  justify="center"
+                  direction="column"
+                  gap="3"
+                >
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.08, 1],
+                      opacity: [0.15, 0.3, 0.15],
+                    }}
+                    transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                  >
+                    <PlayIcon size={40} />
+                  </motion.div>
+                  <Text color="gray" size="2" className="italic">
+                    Waiting for input...
+                  </Text>
+                </Flex>
+              )}
             </Card>
-          </Box>
-        )}
-
-        <Box mt="2">
-          <Card>
-            {result.result ? (
-              <Box className="flex-1 max-w-none">
-                <Markdown>{result.result}</Markdown>
-              </Box>
-            ) : (
-              <Flex
-                className="h-50"
-                align="center"
-                justify="center"
-                direction="column"
-              >
-                <Text color="gray">
-                  Please input translate text and click translate button.
-                </Text>
-              </Flex>
-            )}
-          </Card>
-        </Box>
+          </motion.div>
+        </AnimatePresence>
       </div>
-    </>
+    </div>
   );
 }
+
