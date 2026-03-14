@@ -51,7 +51,11 @@ pub trait TelegramBot {
                     .quote
                     .as_ref()
                     .map(|v| v.text.as_str())
-                    .or_else(|| msg.reply_to_message.as_ref().and_then(|v| v.text.as_deref()))
+                    .or_else(|| {
+                        msg.reply_to_message
+                            .as_ref()
+                            .and_then(|v| v.text.as_deref())
+                    })
                     .unwrap_or("");
 
                 let command =
