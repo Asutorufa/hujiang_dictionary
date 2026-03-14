@@ -2,11 +2,11 @@ pub mod ai;
 pub mod consolelog;
 
 use crate::ai::WasmAI;
-use frankenstein::client_reqwest;
 use hjcommon::d1::migrations;
-use hjcommon::opts::RunOpt;
+use hjcommon::opts::{ConfigCache, RunOpt};
 use hjcommon::tg::send_random_word;
 use log::error;
+use std::sync::RwLock;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Once, OnceLock};
 use std::{collections::HashSet, sync::Arc};
@@ -15,11 +15,9 @@ use worker::*;
 static INIT: Once = Once::new();
 static ENV_CONFIG: OnceLock<EnvConfig> = OnceLock::new();
 static MIGRATION_DONE: AtomicBool = AtomicBool::new(false);
+static GLOBAL_CONFIG_CACHE: OnceLock<Arc<RwLock<ConfigCache>>> = OnceLock::new();
 
 struct EnvConfig {
-    allow_users: Arc<HashSet<i64>>,
-    maintainer_id: i64,
-    bot: client_reqwest::Bot,
     auth_secret: String,
     auth_username: String,
     auth_password: String,
@@ -28,29 +26,12 @@ struct EnvConfig {
 
 impl EnvConfig {
     fn from_env(env: &Env) -> Result<Self> {
-        let token = get_string_from_env(env, "TELEGRAM_TOKEN");
-        let bot = client_reqwest::Bot::new(&token);
-
-        let maintainer_id = get_string_from_env(env, "MAINTAINER_ID")
-            .parse::<i64>()
-            .unwrap_or(0);
-
-        let mut set = HashSet::from([maintainer_id]);
-        set.extend(
-            get_string_from_env(env, "ALLOW_USERS")
-                .split(",")
-                .map(|v| v.parse::<i64>().unwrap_or(0)),
-        );
-
         let auth_secret = get_string_from_env(env, "AUTH_SECRET");
         if auth_secret.is_empty() {
             return Err(worker::Error::from("AUTH_SECRET is required"));
         }
 
         Ok(Self {
-            allow_users: Arc::new(set),
-            maintainer_id,
-            bot,
             auth_secret,
             auth_username: get_string_from_env(env, "AUTH_USERNAME"),
             auth_password: get_string_from_env(env, "AUTH_PASSWORD"),
@@ -91,7 +72,6 @@ async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
     }
 
     Ok(Arc::new(RunOpt {
-        allow_users: config.allow_users.clone(),
         d1: env.d1("DB").expect("D1 binding not found"),
         translator: WasmAI::new(&env, "AI"),
         workers_ai: if env.ai("AI").is_ok() {
@@ -106,12 +86,20 @@ async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
         } else {
             None
         },
-        matainer: config.maintainer_id,
-        bot: config.bot.clone(),
         auth_secret: config.auth_secret.clone(),
         auth_username: config.auth_username.clone(),
         auth_password: config.auth_password.clone(),
         auth_token_expiration: config.auth_token_expiration,
+        config_cache: GLOBAL_CONFIG_CACHE
+            .get_or_init(|| {
+                Arc::new(RwLock::new(ConfigCache {
+                    allow_users: Arc::new(HashSet::new()),
+                    maintainer_id: 0,
+                    bot: None,
+                    last_updated: 0,
+                }))
+            })
+            .clone(),
     }))
 }
 

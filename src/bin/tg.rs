@@ -10,9 +10,6 @@ use hjnative::opts::run_opts;
 use log::*;
 
 /*
- telegram bot token env: TELOXIDE_TOKEN=
- maintainer od env: MAINTAINER_ID=
- allow user ids env: ALLOW_USERS=12231,1213314
  cloudflare account id: CLOUDFLARE_ACCOUNT_ID=
  cloudflare api token: CLOUDFLARE_API_TOKEN=
  cloudflare d1 database id: CLOUDFLARE_D1_DATABASE_ID=
@@ -39,41 +36,79 @@ async fn main() {
             {
                 Ok(_) => info!("create table [words] successful"),
                 Err(e) => {
-                    let _ = opt
-                        .bot
-                        .send_message(
-                            &SendMessageParams::builder()
-                                .chat_id(ChatId::Integer(opt.matainer as i64))
-                                .text(format!("create_table [words] error: {}", e))
-                                .build(),
-                        )
-                        .await;
+                    error!("create table [words] error: {}", e);
+                    if let Ok(config) = opt.get_config().await
+                        && let Some(bot) = config.bot
+                    {
+                        let _ = bot
+                            .send_message(
+                                &SendMessageParams::builder()
+                                    .chat_id(ChatId::Integer(config.maintainer_id))
+                                    .text(format!("create_table [words] error: {}", e))
+                                    .build(),
+                            )
+                            .await;
+                    }
                 }
             }
 
-            opt.bot
-                .delete_webhook(
-                    &DeleteWebhookParams::builder()
-                        .drop_pending_updates(true)
-                        .build(),
-                )
-                .await
-                .unwrap();
+            match opt.get_config().await {
+                Ok(config) => {
+                    if let Some(bot) = &config.bot {
+                        if let Err(e) = bot
+                            .delete_webhook(
+                                &DeleteWebhookParams::builder()
+                                    .drop_pending_updates(true)
+                                    .build(),
+                            )
+                            .await
+                        {
+                            error!("Failed to delete webhook: {}", e);
+                        }
 
-            opt.bot
-                .send_message(
-                    &SendMessageParams::builder()
-                        .chat_id(ChatId::Integer(opt.matainer as i64))
-                        .text("start new bot")
-                        .build(),
-                )
-                .await
-                .unwrap();
+                        if let Err(e) = bot
+                            .send_message(
+                                &SendMessageParams::builder()
+                                    .chat_id(ChatId::Integer(config.maintainer_id))
+                                    .text("start new bot")
+                                    .build(),
+                            )
+                            .await
+                        {
+                            error!("Failed to send start message: {}", e);
+                        }
+                    } else {
+                        error!("telegram bot token not configured at startup");
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to get config at startup: {}", e);
+                }
+            }
 
             let mut update_params = GetUpdatesParams::builder().build();
 
             loop {
-                let result = opt.bot.get_updates(&update_params).await;
+                // Fetch the config on each iteration (the cache and TTL will limit DB hits)
+                let config = match opt.get_config().await {
+                    Ok(c) => c,
+                    Err(e) => {
+                        error!("Failed to get config: {}", e);
+                        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                        continue;
+                    }
+                };
+
+                let bot = match config.bot.as_ref() {
+                    Some(b) => b,
+                    None => {
+                        error!("Telegram bot token not configured");
+                        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                        continue;
+                    }
+                };
+
+                let result = bot.get_updates(&update_params).await;
                 match result {
                     Ok(response) => {
                         for update in response.result {
@@ -90,6 +125,7 @@ async fn main() {
                     }
                     Err(error) => {
                         error!("Failed to get updates: {error:?}");
+                        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                     }
                 }
             }

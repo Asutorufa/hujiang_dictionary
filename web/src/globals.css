@@ -13,3 +13,240 @@
     border-color: var(--color-gray-200, currentcolor);
   }
 }
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  /* Typography: pick a more characterful stack that still supports CJK well. */
+  font-family:
+    "Avenir Next",
+    "Avenir",
+    "PingFang SC",
+    "Hiragino Sans",
+    "Noto Sans CJK SC",
+    "Microsoft YaHei",
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    sans-serif;
+  letter-spacing: -0.005em;
+
+  /* Radix Themes provides the core color tokens; we add atmosphere only. */
+  background:
+    radial-gradient(
+      900px 520px at 18% -6%,
+      color-mix(in srgb, var(--blue-a6) 45%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      980px 640px at 96% 8%,
+      color-mix(in srgb, var(--amber-a5) 34%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      900px 700px at 50% 110%,
+      color-mix(in srgb, var(--green-a4) 22%, transparent),
+      transparent 55%
+    ),
+    var(--color-background);
+  position: relative;
+}
+
+/* Soft noise layer to avoid flat gradients. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.045;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='160'%20height='160'%20viewBox='0%200%20160%20160'%3E%3Cfilter%20id='n'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='.75'%20numOctaves='3'%20stitchTiles='stitch'/%3E%3C/filter%3E%3Crect%20width='160'%20height='160'%20filter='url(%23n)'%20opacity='.55'/%3E%3C/svg%3E");
+}
+
+/* ------------------------------------------------------------
+   App-level utilities
+   We use Radix Themes as the design-token source; Tailwind is
+   primarily used for layout and composition.
+------------------------------------------------------------ */
+
+/* Page content should never be covered by the fixed bottom nav. */
+.app-bottom-pad {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
+}
+
+/* A consistent translucent surface for fixed/sticky UI. */
+.app-nav-surface {
+  background: color-mix(in srgb, var(--color-panel-solid) 82%, transparent);
+  border: 1px solid var(--gray-a6);
+  box-shadow:
+    0 12px 28px color-mix(in srgb, var(--gray-a12) 9%, transparent),
+    0 2px 10px color-mix(in srgb, var(--gray-a12) 7%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+/* For sticky headers that should blend with content but remain readable. */
+.app-sticky-surface {
+  background: color-mix(in srgb, var(--color-panel-solid) 86%, transparent);
+  backdrop-filter: blur(14px);
+}
+
+/* For full-screen loading / modal backdrops. */
+.app-overlay {
+  background: color-mix(in srgb, var(--color-background) 22%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+/* ------------------------------------------------------------
+   Bottom nav styling (Radix Themes Tabs)
+------------------------------------------------------------ */
+.app-bottom-nav .rt-TabsList {
+  gap: 2px;
+}
+
+/* Remove Radix' default active indicator line in the bottom nav only. */
+.app-bottom-nav :where(.rt-TabsList) {
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+.app-bottom-nav :where(.rt-TabsTrigger, [role="tab"]) {
+  border-bottom: 0 !important;
+}
+
+.app-bottom-nav :where(.rt-TabsTrigger, [role="tab"])::before,
+.app-bottom-nav :where(.rt-TabsTrigger, [role="tab"])::after,
+.app-bottom-nav :where(.rt-TabsList)::before,
+.app-bottom-nav :where(.rt-TabsList)::after {
+  content: none !important;
+}
+
+.app-bottom-nav .rt-TabsTrigger.app-nav-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 9999px;
+  color: var(--gray-a11);
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.app-bottom-nav .rt-TabsTrigger.app-nav-trigger:hover {
+  background: color-mix(in srgb, var(--gray-a4) 75%, transparent);
+  color: var(--gray-a12);
+}
+
+.app-bottom-nav .rt-TabsTrigger.app-nav-trigger[data-state="active"] {
+  background: color-mix(in srgb, var(--blue-a4) 60%, transparent);
+  color: var(--blue-12);
+  box-shadow:
+    0 8px 18px color-mix(in srgb, var(--blue-a8) 18%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--blue-a7) 40%, transparent);
+}
+
+.app-bottom-nav .app-nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 420px) {
+  .app-bottom-nav .app-nav-label {
+    display: none;
+  }
+
+  .app-bottom-nav .rt-TabsTrigger.app-nav-trigger {
+    padding: 10px 12px;
+    gap: 0;
+  }
+}
+
+/* ------------------------------------------------------------
+   Minimal "prose" styles
+   The project uses `prose` classes but doesn't include Tailwind
+   Typography. Keep this lightweight and predictable.
+------------------------------------------------------------ */
+.prose {
+  color: var(--gray-a12);
+  line-height: 1.65;
+  font-size: 0.95rem;
+}
+
+.prose :where(p):not(:where([class~="not-prose"] *)) {
+  margin: 0.75em 0;
+}
+
+.prose :where(h1, h2, h3):not(:where([class~="not-prose"] *)) {
+  color: var(--gray-12);
+  line-height: 1.2;
+  margin: 1em 0 0.5em;
+  letter-spacing: -0.01em;
+}
+
+.prose :where(h1):not(:where([class~="not-prose"] *)) {
+  font-size: 1.5em;
+}
+.prose :where(h2):not(:where([class~="not-prose"] *)) {
+  font-size: 1.25em;
+}
+.prose :where(h3):not(:where([class~="not-prose"] *)) {
+  font-size: 1.1em;
+}
+
+.prose :where(a):not(:where([class~="not-prose"] *)) {
+  color: var(--blue-11);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose :where(code):not(:where([class~="not-prose"] *)) {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: 0.9em;
+  padding: 0.12em 0.35em;
+  border-radius: 0.4em;
+  background: var(--gray-a3);
+}
+
+.prose :where(pre):not(:where([class~="not-prose"] *)) {
+  margin: 1em 0;
+  padding: 0.9em 1em;
+  border-radius: 0.8em;
+  background: var(--gray-a3);
+  border: 1px solid var(--gray-a6);
+  overflow: auto;
+}
+
+.prose :where(pre code):not(:where([class~="not-prose"] *)) {
+  padding: 0;
+  background: transparent;
+}
+
+.prose :where(ul, ol):not(:where([class~="not-prose"] *)) {
+  margin: 0.75em 0 0.75em 1.2em;
+}
+
+.prose :where(li):not(:where([class~="not-prose"] *)) {
+  margin: 0.35em 0;
+}
+
+.prose :where(blockquote):not(:where([class~="not-prose"] *)) {
+  margin: 1em 0;
+  padding: 0.8em 1em;
+  border-left: 3px solid var(--gray-a8);
+  background: var(--gray-a2);
+  border-radius: 0.6em;
+  color: var(--gray-a11);
+}
+
+.dark .prose {
+  color: var(--gray-a12);
+}

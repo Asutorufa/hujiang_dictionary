@@ -140,7 +140,7 @@ export const AudioPlayer = (props: any) => {
     <Flex
       align="center"
       gap="3"
-      className={`bg-default-100 dark:bg-default-50 rounded-xl p-3 w-full max-w-md border border-default-200 shadow-sm my-2 ${className || ""}`}
+      className={`rounded-xl p-3 w-full max-w-md border shadow-sm my-2 bg-[var(--color-panel-solid)] border-[var(--gray-a6)] ${className || ""}`}
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       style={style}
     >

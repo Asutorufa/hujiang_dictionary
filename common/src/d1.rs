@@ -108,6 +108,14 @@ define_sql!(
 
     DeleteLlmProvider { name: &'a str } => "DELETE FROM llm_providers WHERE name = ?",
     GetLlmProviderByName { name: &'a str } => "SELECT * FROM llm_providers WHERE name = ?",
+
+    ListConfigurations => "SELECT * FROM configurations",
+    GetConfigurationByKey { key: &'a str } => "SELECT * FROM configurations WHERE key = ?",
+    SaveConfiguration { key: &'a str, value: &'a str } => r#"
+        INSERT INTO configurations (key, value)
+        VALUES (?1, ?2)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+    "#,
 );
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
