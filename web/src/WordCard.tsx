@@ -70,7 +70,7 @@ export default function WordCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className="break-inside-avoid mb-4"
+      className="w-full"
     >
       <Card>
         <Flex justify="between" align="start" gap="3">

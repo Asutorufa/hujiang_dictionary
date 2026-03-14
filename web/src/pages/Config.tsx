@@ -9,10 +9,12 @@ import {
   Text,
   Box,
 } from "@radix-ui/themes";
-import { useDisclosure } from "@/components";
+import { addToast, ConfirmModal, useDisclosure } from "@/components";
 import { authorizedRequest } from "../lib/api";
 import { useLocation } from "wouter";
 import { ROUTE_LOGIN } from "../lib/constants";
+import { PageContainer } from "@/ui/PageContainer";
+import { PageHeader } from "@/ui/PageHeader";
 
 export type LlmProvider = {
   name: string;
@@ -34,8 +36,9 @@ export default function Config() {
   const [providers, setProviders] = useState<LlmProvider[]>([]);
   const [configurations, setConfigurations] = useState<Configuration[]>([]);
   const [activeTab, setActiveTab] = useState("llm");
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen, onOpenChange } = useDisclosure();
   const [editingProvider, setEditingProvider] = useState<LlmProvider | null>(
     null,
   );
@@ -83,21 +86,7 @@ export default function Config() {
   }, []);
 
   const handleDelete = async (name: string) => {
-    if (
-      !window.confirm(`Are you sure you want to delete provider "${name}"?`)
-    ) {
-      return;
-    }
-    try {
-      await authorizedRequest("/llm/delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-      fetchProviders();
-    } catch (e) {
-      console.error(e);
-    }
+    setDeleteTarget(name);
   };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -113,19 +102,21 @@ export default function Config() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-      onClose();
+      onOpenChange(false);
       fetchProviders();
     } catch (err) {
       console.error(err);
-      alert(
-        `Failed to save provider: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      addToast({
+        title: "Failed to save provider",
+        description: err instanceof Error ? err.message : String(err),
+        color: "danger",
+      });
     }
   };
 
   const openAddModal = () => {
     setEditingProvider(null);
-    onOpen();
+    onOpenChange(true);
   };
 
   const handleGeneralConfigSave = async (
@@ -161,36 +152,94 @@ export default function Config() {
         ),
       );
       fetchConfigurations();
-      alert("Configurations saved successfully.");
+      addToast({
+        title: "Configurations saved",
+        color: "success",
+      });
     } catch (err) {
       console.error(err);
-      alert(
-        `Failed to save configurations: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      addToast({
+        title: "Failed to save configurations",
+        description: err instanceof Error ? err.message : String(err),
+        color: "danger",
+        timeout: 0,
+      });
     }
   };
 
   const openEditModal = (provider: LlmProvider) => {
     setEditingProvider(provider);
-    onOpen();
+    onOpenChange(true);
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl pb-32">
-      <Flex gap="4" mb="6" align="center">
-        <Button
-          variant={activeTab === "llm" ? "solid" : "soft"}
-          onClick={() => setActiveTab("llm")}
-        >
-          LLM Providers
-        </Button>
-        <Button
-          variant={activeTab === "config" ? "solid" : "soft"}
-          onClick={() => setActiveTab("config")}
-        >
-          General Configurations
-        </Button>
-      </Flex>
+    <PageContainer size="4xl" className="space-y-6">
+      <ConfirmModal
+        title={
+          deleteTarget
+            ? `Are you sure you want to delete provider "${deleteTarget}"?`
+            : "Are you sure?"
+        }
+        open={!!deleteTarget}
+        color="danger"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          try {
+            const res = await authorizedRequest("/llm/delete", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: deleteTarget }),
+            });
+            if (!res.ok) {
+              addToast({
+                title: "Delete failed",
+                description: `(${res.status}) ${await res.text()}`,
+                color: "danger",
+              });
+              return;
+            }
+            addToast({
+              title: "Provider deleted",
+              color: "success",
+            });
+            fetchProviders();
+          } catch (e) {
+            addToast({
+              title: "Delete failed",
+              description: e instanceof Error ? e.message : String(e),
+              color: "danger",
+            });
+          } finally {
+            setDeleteTarget(null);
+          }
+        }}
+      />
+
+      <PageHeader
+        title="Config"
+        subtitle="LLM providers and general settings"
+        actions={
+          <Flex gap="2" align="center">
+            <Button
+              variant={activeTab === "llm" ? "solid" : "soft"}
+              onClick={() => setActiveTab("llm")}
+            >
+              LLM Providers
+            </Button>
+            <Button
+              variant={activeTab === "config" ? "solid" : "soft"}
+              onClick={() => setActiveTab("config")}
+            >
+              General
+            </Button>
+          </Flex>
+        }
+      />
 
       {activeTab === "llm" && (
         <>
@@ -245,7 +294,11 @@ export default function Config() {
       )}
 
       {activeTab === "config" && (
-        <Card size="3" className="mt-4">
+        <Card
+          size="3"
+          className="mt-4"
+          style={{ backgroundColor: "var(--color-panel-solid)", backdropFilter: "none" }}
+        >
           <form onSubmit={handleGeneralConfigSave}>
             <Flex direction="column" gap="4">
               <Text size="6" weight="bold" mb="2">
@@ -312,7 +365,7 @@ export default function Config() {
         </Card>
       )}
 
-      <Dialog.Root open={isOpen} onOpenChange={onClose}>
+      <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
         <Dialog.Content maxWidth="450px">
           <form onSubmit={handleSave}>
             <Dialog.Title>
@@ -402,7 +455,7 @@ export default function Config() {
                 color="gray"
                 variant="soft"
                 type="button"
-                onClick={onClose}
+                onClick={() => onOpenChange(false)}
               >
                 Cancel
               </Button>
@@ -413,6 +466,6 @@ export default function Config() {
           </form>
         </Dialog.Content>
       </Dialog.Root>
-    </div>
+    </PageContainer>
   );
 }
