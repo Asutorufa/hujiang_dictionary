@@ -33,33 +33,41 @@ pub trait TelegramBot {
     async fn handle_update(&self, update: Update) -> Result<(), Self::Error> {
         match update.content {
             UpdateContent::Message(msg) | UpdateContent::EditedMessage(msg) => {
-                let entity = match msg.entities.as_ref() {
-                    Some(v)
-                        if !v.is_empty() && v[0].type_field == MessageEntityType::BotCommand =>
-                    {
-                        &v[0]
-                    }
-                    _ => return self.handle_message(msg).await,
-                };
+                let command;
+                let argument;
+                let quote_or_reply_message;
 
-                let txt = match msg.text.as_ref() {
-                    Some(v) => v,
-                    None => return self.handle_message(msg).await,
-                };
+                // create a block to limit the borrow scope of msg
+                {
+                    let entity = match msg.entities.as_ref() {
+                        Some(v)
+                            if !v.is_empty() && v[0].type_field == MessageEntityType::BotCommand =>
+                        {
+                            &v[0]
+                        }
+                        _ => return self.handle_message(msg).await,
+                    };
+                    let command_len = entity.length as usize;
+                    let command_offset = entity.offset as usize;
 
-                let quote_or_reply_message = msg
-                    .quote
-                    .as_ref()
-                    .map(|v| v.text.as_str())
-                    .or_else(|| {
-                        msg.reply_to_message
-                            .as_ref()
-                            .and_then(|v| v.text.as_deref())
-                    })
-                    .unwrap_or("");
+                    let txt = match msg.text.as_ref() {
+                        Some(v) => v,
+                        None => return self.handle_message(msg).await,
+                    };
 
-                let command =
-                    match utils::utf16_slice(txt, entity.offset as usize, entity.length as usize) {
+                    quote_or_reply_message = msg
+                        .quote
+                        .as_ref()
+                        .map(|v| v.text.as_str())
+                        .or_else(|| {
+                            msg.reply_to_message
+                                .as_ref()
+                                .and_then(|v| v.text.as_deref())
+                        })
+                        .unwrap_or("")
+                        .to_string();
+
+                    command = match utils::utf16_slice(txt, command_offset, command_len) {
                         Some(v) => v.to_string(),
                         None => {
                             error!("Failed to slice command out of text");
@@ -67,18 +75,14 @@ pub trait TelegramBot {
                         }
                     };
 
-                let argument = match utils::utf16_slice_from(
-                    txt,
-                    entity.offset as usize + entity.length as usize,
-                ) {
-                    Some(v) => v.trim().to_string(),
-                    None => {
-                        error!("Failed to slice argument out of text");
-                        return self.handle_message(msg).await;
-                    }
-                };
-
-                let quote_or_reply_message = quote_or_reply_message.to_string();
+                    argument = match utils::utf16_slice_from(txt, command_offset + command_len) {
+                        Some(v) => v.trim().to_string(),
+                        None => {
+                            error!("Failed to slice argument out of text");
+                            return self.handle_message(msg).await;
+                        }
+                    };
+                }
 
                 self.handle_command(msg, &command, &argument, &quote_or_reply_message)
                     .await
