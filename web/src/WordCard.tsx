@@ -80,9 +80,9 @@ export default function WordCard({
             </Text>
             <Text size="1" color="gray">
               {new Date(word.update_time * 1000).toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
+                year: "numeric",
+                month: "short",
+                day: "numeric",
               })}
             </Text>
           </Flex>
@@ -129,7 +129,12 @@ export default function WordCard({
 
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
-                <IconButton size="1" variant="ghost" color="gray" className="cursor-pointer">
+                <IconButton
+                  size="1"
+                  variant="ghost"
+                  color="gray"
+                  className="cursor-pointer"
+                >
                   <MoreVertIcon />
                 </IconButton>
               </DropdownMenu.Trigger>
@@ -152,7 +157,14 @@ export default function WordCard({
         <Box mt="3">
           {word.example && (
             <Box mb="3" p="3" className="rounded-lg bg-[var(--gray-a3)]">
-              <Text size="1" weight="bold" color="gray" className="block mb-1 uppercase tracking-widest">Example</Text>
+              <Text
+                size="1"
+                weight="bold"
+                color="gray"
+                className="block mb-1 uppercase tracking-widest"
+              >
+                Example
+              </Text>
               <div className="prose prose-sm dark:prose-invert max-w-none italic opacity-80">
                 <Markdown>{word.example}</Markdown>
               </div>
@@ -181,8 +193,14 @@ export default function WordCard({
                 onClick={handleIncrement}
                 loading={isIncrementing}
               >
-                {!isIncrementing && <Text size="1" weight="bold">+</Text>}
-                <Text size="2" weight="bold">{word.anki_count}</Text>
+                {!isIncrementing && (
+                  <Text size="1" weight="bold">
+                    +
+                  </Text>
+                )}
+                <Text size="2" weight="bold">
+                  {word.anki_count}
+                </Text>
               </Button>
             </Tooltip>
           </Flex>
@@ -191,4 +209,3 @@ export default function WordCard({
     </motion.div>
   );
 }
-

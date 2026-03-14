@@ -493,7 +493,13 @@ export default function Home() {
         <motion.div variants={itemVariants} initial="hidden" animate="visible">
           <Card>
             <Box>
-              <Text as="label" size="1" weight="bold" color="gray" className="mb-2 block uppercase tracking-widest">
+              <Text
+                as="label"
+                size="1"
+                weight="bold"
+                color="gray"
+                className="mb-2 block uppercase tracking-widest"
+              >
                 Input
               </Text>
               <TextArea
@@ -540,7 +546,13 @@ export default function Home() {
 
             {!googleSearch && (
               <Card>
-                <Text as="label" size="1" weight="bold" color="gray" className="mb-2 block uppercase tracking-widest">
+                <Text
+                  as="label"
+                  size="1"
+                  weight="bold"
+                  color="gray"
+                  className="mb-2 block uppercase tracking-widest"
+                >
                   Custom Instruction
                 </Text>
                 <TextArea
@@ -562,7 +574,12 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              <Text size="1" weight="bold" color="blue" className="mb-2 ml-1 block uppercase tracking-widest">
+              <Text
+                size="1"
+                weight="bold"
+                color="blue"
+                className="mb-2 ml-1 block uppercase tracking-widest"
+              >
                 Thinking Process
               </Text>
               <Card variant="surface">
@@ -581,7 +598,12 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             className="pb-24"
           >
-            <Text size="1" weight="bold" color="gray" className="mb-2 ml-1 block uppercase tracking-widest">
+            <Text
+              size="1"
+              weight="bold"
+              color="gray"
+              className="mb-2 ml-1 block uppercase tracking-widest"
+            >
               Result
             </Text>
             <Card>
@@ -602,7 +624,11 @@ export default function Home() {
                       scale: [1, 1.08, 1],
                       opacity: [0.15, 0.3, 0.15],
                     }}
-                    transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 3,
+                      ease: "easeInOut",
+                    }}
                   >
                     <PlayIcon size={40} />
                   </motion.div>
@@ -618,4 +644,3 @@ export default function Home() {
     </div>
   );
 }
-

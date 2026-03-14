@@ -1,5 +1,13 @@
 import { authorizedRequest } from "@/lib/api";
-import { Button, Dialog, Switch, TextArea, Flex, Text, Box } from "@radix-ui/themes";
+import {
+  Button,
+  Dialog,
+  Switch,
+  TextArea,
+  Flex,
+  Text,
+  Box,
+} from "@radix-ui/themes";
 import { FC, ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -174,7 +182,6 @@ export const SaveWordModal: FC<{
     </Dialog.Root>
   );
 };
-
 
 export type ListWordResponse = {
   word: string;
