@@ -37,17 +37,17 @@ async fn main() {
                 Ok(_) => info!("create table [words] successful"),
                 Err(e) => {
                     error!("create table [words] error: {}", e);
-                    if let Ok(config) = opt.get_config().await {
-                        if let Some(bot) = config.bot {
-                            let _ = bot
-                                .send_message(
-                                    &SendMessageParams::builder()
-                                        .chat_id(ChatId::Integer(config.maintainer_id as i64))
-                                        .text(format!("create_table [words] error: {}", e))
-                                        .build(),
-                                )
-                                .await;
-                        }
+                    if let Ok(config) = opt.get_config().await
+                        && let Some(bot) = config.bot
+                    {
+                        let _ = bot
+                            .send_message(
+                                &SendMessageParams::builder()
+                                    .chat_id(ChatId::Integer(config.maintainer_id))
+                                    .text(format!("create_table [words] error: {}", e))
+                                    .build(),
+                            )
+                            .await;
                     }
                 }
             }
@@ -69,7 +69,7 @@ async fn main() {
                         if let Err(e) = bot
                             .send_message(
                                 &SendMessageParams::builder()
-                                    .chat_id(ChatId::Integer(config.maintainer_id as i64))
+                                    .chat_id(ChatId::Integer(config.maintainer_id))
                                     .text("start new bot")
                                     .build(),
                             )
