@@ -1,9 +1,8 @@
 use crate::{
     en::{AttrOrEmpty, COOKIE, StringOrEmpty, TrimText, USER_AGENT},
     error::Error,
-    sel,
 };
-use scraper::ElementRef;
+use scraper::{ElementRef, Selector};
 use std::fmt::Write;
 use url::form_urlencoded;
 

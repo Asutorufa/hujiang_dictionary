@@ -1,4 +1,4 @@
-use crate::{error::Error, sel};
+use crate::error::Error;
 use std::fmt::Write;
 
 #[derive(Debug)]
