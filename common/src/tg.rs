@@ -139,9 +139,18 @@ mod tests {
     #[test]
     fn test_parse_command() {
         // Test empty command
-        assert_eq!(parse_command("", "", ""), Err(Error("command is empty".to_string())));
-        assert_eq!(parse_command("/", "", ""), Err(Error("command is empty".to_string())));
-        assert_eq!(parse_command("/@bot", "", ""), Err(Error("command is empty".to_string())));
+        assert_eq!(
+            parse_command("", "", ""),
+            Err(Error("command is empty".to_string()))
+        );
+        assert_eq!(
+            parse_command("/", "", ""),
+            Err(Error("command is empty".to_string()))
+        );
+        assert_eq!(
+            parse_command("/@bot", "", ""),
+            Err(Error("command is empty".to_string()))
+        );
 
         // Test normal commands
         assert_eq!(
@@ -168,14 +177,8 @@ mod tests {
             parse_command("/ktbk", "hello", "").unwrap().0,
             Command::Ktbk("hello".to_string())
         );
-        assert_eq!(
-            parse_command("/random", "", "").unwrap().0,
-            Command::Random
-        );
-        assert_eq!(
-            parse_command("/userid", "", "").unwrap().0,
-            Command::UserID
-        );
+        assert_eq!(parse_command("/random", "", "").unwrap().0, Command::Random);
+        assert_eq!(parse_command("/userid", "", "").unwrap().0, Command::UserID);
 
         // Test bot suffix
         assert_eq!(
@@ -192,7 +195,11 @@ mod tests {
         // Test GG command
         assert_eq!(
             parse_command("/gg", "en_ja hello", "").unwrap().0,
-            Command::GG(Some("en".to_string()), "ja".to_string(), "hello".to_string())
+            Command::GG(
+                Some("en".to_string()),
+                "ja".to_string(),
+                "hello".to_string()
+            )
         );
 
         assert_eq!(
@@ -239,7 +246,10 @@ mod tests {
         );
 
         // Test unknown command
-        assert_eq!(parse_command("/unknown", "", ""), Err(Error("not implemented".to_string())));
+        assert_eq!(
+            parse_command("/unknown", "", ""),
+            Err(Error("not implemented".to_string()))
+        );
     }
 
     #[test]
