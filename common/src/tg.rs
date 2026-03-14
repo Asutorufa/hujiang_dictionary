@@ -1,18 +1,20 @@
 use crate::ai::Models;
 use crate::d1::Queries;
 use crate::{ai::Translator, opts::RunOpt};
+use async_trait::async_trait;
 use core::fmt;
 use d1_orm::DatabaseExecutor;
 use frankenstein::AsyncTelegramApi;
 use frankenstein::client_reqwest::Bot;
 use frankenstein::methods::{SendMessageParams, SetMyCommandsParams, SetWebhookParams};
-use frankenstein::types::{
-    ChatId, LinkPreviewOptions, MaybeInaccessibleMessage, MessageEntityType,
-};
-use frankenstein::updates::UpdateContent;
+use frankenstein::types::{ChatId, LinkPreviewOptions, MaybeInaccessibleMessage};
 use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use log::*;
 use std::sync::Arc;
+use tg_bot_worker::{
+    TelegramBot,
+    utils::{html_escape, markdown_escape, split_message, vec_string_markdown_escape},
+};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Command {
@@ -99,42 +101,9 @@ pub fn bot_commands() -> Vec<frankenstein::types::BotCommand> {
     ]
 }
 
-pub fn split_message(text: &str, max_len: usize) -> Vec<String> {
-    let mut chunks = Vec::with_capacity(text.len() / max_len.max(1) + 1);
-    let mut start = 0;
-
-    for (idx, c) in text.char_indices() {
-        if idx - start + c.len_utf8() > max_len && idx > start {
-            chunks.push(text[start..idx].to_string());
-            start = idx;
-        }
-    }
-
-    if start < text.len() {
-        chunks.push(text[start..].to_string());
-    }
-
-    chunks
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_split_message() {
-        let text = "hello world";
-        let chunks = split_message(text, 5);
-        assert_eq!(chunks, vec!["hello", " worl", "d"]);
-
-        let text = "你好世界";
-        let chunks = split_message(text, 6);
-        assert_eq!(chunks, vec!["你好", "世界"]);
-
-        let text = "嗨";
-        let chunks = split_message(text, 2);
-        assert_eq!(chunks, vec!["嗨"]);
-    }
 
     #[test]
     fn test_parse_command() {
@@ -271,16 +240,6 @@ mod tests {
             Err(Error("not implemented".to_string()))
         );
     }
-
-    #[test]
-    fn test_escape() {
-        assert_eq!(markdown_escape("hello_world"), "hello\\_world");
-        assert_eq!(html_escape("<p>&</p>"), "&lt;p&gt;&amp;&lt;/p&gt;");
-        assert_eq!(
-            vec_string_markdown_escape(&vec!["a_b".to_string(), "c*d".to_string()]),
-            "a\\_b\nc\\*d\n"
-        );
-    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -290,102 +249,50 @@ pub enum CallbackQueryCommand {
     Remove(String),
 }
 
-pub(super) const MARKDOWN_ESCAPE_CHARS: [char; 19] = [
-    '\\', '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!',
-];
-
-pub fn markdown_escape(s: &str) -> String {
-    s.chars().fold(String::with_capacity(s.len()), |mut s, c| {
-        if MARKDOWN_ESCAPE_CHARS.contains(&c) {
-            s.push('\\');
-        }
-        s.push(c);
-        s
-    })
+pub struct BotHandler<T: DatabaseExecutor, T2: Translator> {
+    pub opt: Arc<RunOpt<T, T2>>,
 }
 
-pub fn html_escape(s: &str) -> String {
-    s.chars().fold(String::with_capacity(s.len()), |mut s, c| {
-        match c {
-            '&' => s.push_str("&amp;"),
-            '<' => s.push_str("&lt;"),
-            '>' => s.push_str("&gt;"),
-            c => s.push(c),
-        }
-        s
-    })
-}
+#[async_trait(?Send)]
+impl<T: DatabaseExecutor, T2: Translator> TelegramBot for BotHandler<T, T2> {
+    type Error = Error;
 
-pub fn vec_string_markdown_escape(v: &Vec<String>) -> String {
-    let mut s = String::new();
-    for i in v {
-        s.push_str(markdown_escape(i.as_str()).as_str());
-        s.push('\n');
+    async fn handle_command(
+        &self,
+        msg: Box<frankenstein::types::Message>,
+        command: &str,
+        argument: &str,
+        quote: &str,
+    ) -> Result<(), Self::Error> {
+        let (cmd, text) = parse_command(command, argument, quote)?;
+
+        info!("message command: {:?}, argument: {:?}", cmd, text);
+
+        answer(self.opt.clone(), msg, cmd).await?;
+        Ok(())
     }
-    s
+
+    async fn handle_callback(
+        &self,
+        call_query: Box<frankenstein::types::CallbackQuery>,
+        command: &str,
+        argument: &str,
+    ) -> Result<(), Self::Error> {
+        let (cmd, text) = parse_callback_query_command(command, argument)?;
+
+        info!("callback query command: {:?}, argument: {:?}", cmd, text);
+
+        callback_query(self.opt.clone(), call_query, cmd).await?;
+        Ok(())
+    }
 }
 
 pub async fn handle<T: DatabaseExecutor, T2: Translator>(
     opt: Arc<RunOpt<T, T2>>,
     update: frankenstein::updates::Update,
 ) -> Result<(), Error> {
-    match update.content {
-        UpdateContent::Message(msg) | UpdateContent::EditedMessage(msg) => {
-            let entity = match msg.entities.as_ref() {
-                Some(v) if !v.is_empty() && v[0].type_field == MessageEntityType::BotCommand => {
-                    &v[0]
-                }
-                _ => return Err(Error("no command entity".to_string())),
-            };
-
-            let txt = match msg.text.as_ref() {
-                Some(v) => v,
-                None => return Err(Error("no text".to_string())),
-            };
-
-            let quote_or_reply_message = match msg.quote.as_ref() {
-                None => match msg.reply_to_message.as_ref() {
-                    None => "",
-                    Some(v) => match v.text.as_ref() {
-                        Some(v) => v,
-                        None => "",
-                    },
-                },
-                Some(v) => v.text.as_ref(),
-            };
-
-            let command =
-                &txt[entity.offset as usize..entity.offset as usize + entity.length as usize];
-
-            let argument = txt[entity.offset as usize + entity.length as usize..].trim();
-
-            let (cmd, text) = parse_command(command, argument, quote_or_reply_message)?;
-
-            info!("message command: {:?}, argument: {:?}", cmd, text);
-
-            answer(opt, msg, cmd).await?;
-        }
-        UpdateContent::CallbackQuery(msg) => {
-            let (command, argument) = match msg.data.as_ref() {
-                Some(v) => {
-                    let mut data = v.splitn(2, ' ');
-                    let command = data.next().unwrap_or("");
-                    let argument = data.next().unwrap_or("");
-                    (command.to_string(), argument.to_string())
-                }
-                None => return Err(Error("no data".to_string())),
-            };
-
-            let (cmd, text) = parse_callback_query_command(command.as_str(), argument.as_str())?;
-
-            info!("callback query command: {:?}, argument: {:?}", cmd, text);
-
-            callback_query(opt, msg, cmd).await?;
-        }
-        _ => return Err(Error("not message".to_string())),
-    };
-
-    Ok(())
+    let handler = BotHandler { opt };
+    handler.handle_update(update).await
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -431,8 +338,11 @@ pub async fn llm_answer<T: DatabaseExecutor, T2: Translator>(
             ..Default::default()
         };
         match crate::ai::translate(ai, req).await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
-            Ok(x) => (v, markdown_escape(x.content.as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
+            Ok(x) => (v, markdown_escape(x.content.as_str()).to_string()),
         }
     } else {
         (v, "workers_ai not available".to_string())
@@ -533,50 +443,76 @@ pub async fn answer<T: DatabaseExecutor, T2: Translator>(
 
     let (word, reply) = match cmd {
         Command::CNJP(word) => match jp::get(word.as_str(), "cj").await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => (
                 word,
-                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
+                vec_string_markdown_escape(
+                    &v.iter().map(|x| x.markdown()).collect::<Vec<String>>(),
+                ),
             ),
         },
         Command::EN(word) => match en::get(word.as_str()).await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => (
                 word,
-                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
+                vec_string_markdown_escape(
+                    &v.iter().map(|x| x.markdown()).collect::<Vec<String>>(),
+                ),
             ),
         },
         Command::JPCN(word) => match jp::get(word.as_str(), "jc").await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => (
                 word,
-                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
+                vec_string_markdown_escape(
+                    &v.iter().map(|x| x.markdown()).collect::<Vec<String>>(),
+                ),
             ),
         },
         Command::KR(word) => match kr::get(word.as_str()).await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => (
                 word,
-                vec_string_markdown_escape(&v.iter().map(|x| x.markdown()).collect()),
+                vec_string_markdown_escape(
+                    &v.iter().map(|x| x.markdown()).collect::<Vec<String>>(),
+                ),
             ),
         },
         Command::Ktbk(word) => match kotobanku::get(word.as_str()).await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => {
                 let reply = vec_string_markdown_escape(&v);
                 if reply.len() > 4096 {
-                    (word, markdown_escape(&v[0]))
+                    (word, markdown_escape(&v[0]).to_string())
                 } else {
                     (word, reply)
                 }
             }
         },
         Command::Weblio(word) => match weblio::get(word.as_str()).await {
-            Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
+            Err(e) => (
+                "".to_string(),
+                markdown_escape(e.to_string().as_str()).to_string(),
+            ),
             Ok(v) => {
                 let reply = vec_string_markdown_escape(&v);
                 if reply.len() > 4096 {
-                    (word, markdown_escape(&v[0]))
+                    (word, markdown_escape(&v[0]).to_string())
                 } else {
                     (word, reply)
                 }
@@ -588,20 +524,35 @@ pub async fn answer<T: DatabaseExecutor, T2: Translator>(
         ),
         Command::GG(from, to, text) => {
             match google::translatev2(text.as_ref(), from, to.as_ref()).await {
-                Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
-                Ok(v) => (text, markdown_escape(google::merge_translation(v).as_str())),
+                Err(e) => (
+                    "".to_string(),
+                    markdown_escape(e.to_string().as_str()).to_string(),
+                ),
+                Ok(v) => (
+                    text,
+                    markdown_escape(google::merge_translation(v).as_str()).to_string(),
+                ),
             }
         }
         Command::GG1(from, to, text) => {
             match google::translate(text.as_ref(), from, to.as_ref()).await {
-                Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
-                Ok(v) => (text, markdown_escape(google::merge_translation(v).as_str())),
+                Err(e) => (
+                    "".to_string(),
+                    markdown_escape(e.to_string().as_str()).to_string(),
+                ),
+                Ok(v) => (
+                    text,
+                    markdown_escape(google::merge_translation(v).as_str()).to_string(),
+                ),
             }
         }
         Command::CFAI(from, to, text) => {
             match opt.translator.m2m100_1_2b(text.as_ref(), from, to).await {
-                Err(e) => ("".to_string(), markdown_escape(e.to_string().as_str())),
-                Ok(v) => (text, markdown_escape(v.as_str())),
+                Err(e) => (
+                    "".to_string(),
+                    markdown_escape(e.to_string().as_str()).to_string(),
+                ),
+                Ok(v) => (text, markdown_escape(v.as_str()).to_string()),
             }
         }
         Command::Gemma(v) => llm_answer(opt.clone(), Models::Gemma3_12bIt, v).await,
