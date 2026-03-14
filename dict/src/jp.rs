@@ -4,15 +4,7 @@ use crate::{
 };
 use scraper::{ElementRef, Selector};
 use std::fmt::Write;
-use std::sync::OnceLock;
 use url::form_urlencoded;
-
-macro_rules! sel {
-    ($selector:expr) => {{
-        static SELECTOR: OnceLock<Selector> = OnceLock::new();
-        SELECTOR.get_or_init(|| Selector::parse($selector).unwrap())
-    }};
-}
 
 #[derive(Debug)]
 pub struct Simple {

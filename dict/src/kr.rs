@@ -5,14 +5,6 @@ use crate::{
 use log::info;
 use scraper::{Html, Selector};
 use std::fmt::Write;
-use std::sync::OnceLock;
-
-macro_rules! sel {
-    ($selector:expr) => {{
-        static SELECTOR: OnceLock<Selector> = OnceLock::new();
-        SELECTOR.get_or_init(|| Selector::parse($selector).unwrap())
-    }};
-}
 use url::form_urlencoded;
 
 #[derive(Debug, Default)]
