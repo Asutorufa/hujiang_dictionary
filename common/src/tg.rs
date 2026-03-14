@@ -262,7 +262,7 @@ impl<T: DatabaseExecutor, T2: Translator> TelegramBot for BotHandler<T, T2> {
         argument: &str,
         quote: &str,
     ) -> Result<(), Self::Error> {
-        let (cmd, text) = Command::parse(command, argument, quote).map_err(|e| Error(e))?;
+        let (cmd, text) = Command::parse(command, argument, quote).map_err(Error)?;
 
         info!("message command: {:?}, argument: {:?}", cmd, text);
 
