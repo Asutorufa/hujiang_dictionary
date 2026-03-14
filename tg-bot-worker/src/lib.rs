@@ -47,16 +47,12 @@ pub trait TelegramBot {
                     None => return self.handle_message(msg).await,
                 };
 
-                let quote_or_reply_message = match msg.quote.as_ref() {
-                    None => match msg.reply_to_message.as_ref() {
-                        None => "",
-                        Some(v) => match v.text.as_ref() {
-                            Some(v) => v,
-                            None => "",
-                        },
-                    },
-                    Some(v) => v.text.as_ref(),
-                };
+                let quote_or_reply_message = msg
+                    .quote
+                    .as_ref()
+                    .map(|v| v.text.as_str())
+                    .or_else(|| msg.reply_to_message.as_ref().and_then(|v| v.text.as_deref()))
+                    .unwrap_or("");
 
                 let command =
                     match utils::utf16_slice(txt, entity.offset as usize, entity.length as usize) {
