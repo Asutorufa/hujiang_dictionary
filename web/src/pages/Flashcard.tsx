@@ -3,7 +3,6 @@ import {
   changePriority,
   countWord,
   FilterIcon,
-  getPriorityColor,
   getPriorityText,
   incrementRemindCount,
   ListWordResponse,
@@ -11,19 +10,18 @@ import {
   queryWord,
   Spoiler,
 } from "@/components";
+import { addToast } from "@/components";
 import {
-  addToast,
   Button,
   Card,
-  CardBody,
-  CardHeader,
-  Chip,
-  Dropdown,
-  DropdownItem,
+  Badge,
   DropdownMenu,
-  DropdownTrigger,
   Spinner,
-} from "@heroui/react";
+  IconButton,
+  Flex,
+  Text,
+  Box,
+} from "@radix-ui/themes";
 import {
   AnimatePresence,
   motion,
@@ -218,66 +216,67 @@ export default function Flashcard() {
     <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden items-center relative p-4">
       {/* Header / Filter Bar */}
       <div className="flex gap-2 mb-4 z-10 w-full justify-center">
-        <Dropdown>
-          <DropdownTrigger>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger disabled={loading && wordsMap.size === 0}>
             <Button
-              isDisabled={loading && wordsMap.size === 0}
-              variant="bordered"
+              variant="surface"
+              color="gray"
               className="shadow-md backdrop-blur-sm capitalize"
             >
               <FilterIcon /> {orderBy.replace("_", " ")}
             </Button>
-          </DropdownTrigger>
-          <DropdownMenu
-            selectionMode="single"
-            selectedKeys={[orderBy]}
-            onSelectionChange={(e) => {
-              const val = e.currentKey ? String(e.currentKey) : "word";
-              setOrderBy(val);
-              setPage(1);
-            }}
-          >
-            <DropdownItem key="word">Word</DropdownItem>
-            <DropdownItem key="word desc">Word DESC</DropdownItem>
-            <DropdownItem key="priority">Priority</DropdownItem>
-            <DropdownItem key="priority desc">Priority DESC</DropdownItem>
-            <DropdownItem key="add_time">Add Time</DropdownItem>
-            <DropdownItem key="add_time desc">Add Time DESC</DropdownItem>
-            <DropdownItem key="update_time">Update Time</DropdownItem>
-            <DropdownItem key="update_time desc">Update Time DESC</DropdownItem>
-            <DropdownItem key="reminder_time">Reminder</DropdownItem>
-            <DropdownItem key="reminder_time desc">Reminder DESC</DropdownItem>
-            <DropdownItem key="anki_count">Count</DropdownItem>
-            <DropdownItem key="anki_count desc">Count DESC</DropdownItem>
-          </DropdownMenu>
-        </Dropdown>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content>
+            <DropdownMenu.RadioGroup
+              value={orderBy}
+              onValueChange={(val) => {
+                setOrderBy(val);
+                setPage(1);
+              }}
+            >
+              <DropdownMenu.RadioItem value="word">Word</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="word desc">Word DESC</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="priority">Priority</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="priority desc">Priority DESC</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="add_time">Add Time</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="add_time desc">Add Time DESC</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="update_time">Update Time</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="update_time desc">Update Time DESC</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="reminder_time">Reminder</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="reminder_time desc">Reminder DESC</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="anki_count">Count</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="anki_count desc">Count DESC</DropdownMenu.RadioItem>
+            </DropdownMenu.RadioGroup>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
 
-        <Dropdown>
-          <DropdownTrigger>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger disabled={loading && wordsMap.size === 0}>
             <Button
-              isDisabled={loading && wordsMap.size === 0}
-              variant="bordered"
+              variant="surface"
+              color="gray"
               className="shadow-md backdrop-blur-sm capitalize"
             >
               <BookIcon /> {grammar ? "Grammar" : "Word"}
             </Button>
-          </DropdownTrigger>
-          <DropdownMenu
-            selectionMode="single"
-            selectedKeys={[grammar ? "grammar" : "word"]}
-            onSelectionChange={(e) => {
-              setGrammar(e.currentKey === "grammar");
-              setPage(1);
-            }}
-          >
-            <DropdownItem key="word">Word</DropdownItem>
-            <DropdownItem key="grammar">Grammar</DropdownItem>
-          </DropdownMenu>
-        </Dropdown>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content>
+            <DropdownMenu.RadioGroup
+              value={grammar ? "grammar" : "word"}
+              onValueChange={(val) => {
+                setGrammar(val === "grammar");
+                setPage(1);
+              }}
+            >
+              <DropdownMenu.RadioItem value="word">Word</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem value="grammar">Grammar</DropdownMenu.RadioItem>
+            </DropdownMenu.RadioGroup>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
 
-        <div className="flex items-center ml-2 px-3 py-1 bg-default-100 rounded-lg text-small">
-          {page} / {total}
-        </div>
+        <Flex align="center" ml="2" px="3" py="1" className="bg-default-100 rounded-lg">
+          <Text size="2">{page} / {total}</Text>
+        </Flex>
       </div>
 
       {/* Main Content Area */}

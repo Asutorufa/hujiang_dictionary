@@ -13,16 +13,15 @@ import {
 import {
   Button,
   Card,
-  CardBody,
-  CardHeader,
-  Chip,
-  Divider,
-  Dropdown,
-  DropdownItem,
+  Badge,
+  Separator,
   DropdownMenu,
-  DropdownTrigger,
   Tooltip,
-} from "@heroui/react";
+  IconButton,
+  Flex,
+  Text,
+  Box,
+} from "@radix-ui/themes";
 import { useState } from "react";
 
 interface WordCardProps {
@@ -66,109 +65,93 @@ export default function WordCard({
 
   return (
     <Card className="break-inside-avoid mb-4 shadow-sm hover:shadow-md transition-shadow">
-      <CardHeader className="flex justify-between items-start pb-0">
-        <div className="flex flex-col max-w-[70%]">
-          <h3 className="text-lg font-bold break-words">{word.word}</h3>
-          <span className="text-tiny text-default-400">
+      <Flex justify="between" align="start" mb="2">
+        <Flex direction="column" className="max-w-[70%]">
+          <Text size="5" weight="bold" className="break-words">{word.word}</Text>
+          <Text size="2" color="gray">
             {new Date(word.update_time * 1000).toLocaleDateString()}
-          </span>
-        </div>
+          </Text>
+        </Flex>
 
-        <div className="flex items-center gap-1">
-          <Dropdown isDisabled={loading}>
-            <DropdownTrigger>
-              <Chip
-                size="sm"
-                variant="flat"
-                color={getPriorityColor(word.priority)}
-                className={`cursor-pointer px-2 min-w-unit-12 ${loading ? "opacity-50 pointer-events-none" : ""}`}
+        <Flex align="center" gap="1">
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger disabled={loading}>
+              <Badge
+                size="1"
+                variant="soft"
+                color={word.priority === 0 ? "green" : word.priority === 1 ? "orange" : "gray"}
+                className="cursor-pointer"
               >
                 {getPriorityText(word.priority)}
-              </Chip>
-            </DropdownTrigger>
-            <DropdownMenu
-              aria-label="Priority Actions"
-              onAction={(key) => handlePriorityChange(key as string)}
-            >
-              <DropdownItem key="0" className="text-success">
+              </Badge>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content>
+              <DropdownMenu.Item color="green" onSelect={() => handlePriorityChange("0")}>
                 Low
-              </DropdownItem>
-              <DropdownItem key="1" className="text-warning">
+              </DropdownMenu.Item>
+              <DropdownMenu.Item color="orange" onSelect={() => handlePriorityChange("1")}>
                 Medium
-              </DropdownItem>
-              <DropdownItem key="2" className="text-secondary">
+              </DropdownMenu.Item>
+              <DropdownMenu.Item color="gray" onSelect={() => handlePriorityChange("2")}>
                 High
-              </DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
 
-          <Dropdown>
-            <DropdownTrigger>
-              <Button
-                isIconOnly
-                size="sm"
-                variant="light"
-                className="min-w-unit-8 w-unit-8 h-unit-8"
-              >
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              <IconButton size="1" variant="ghost" color="gray">
                 <MoreVertIcon />
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu aria-label="Card Actions">
-              <DropdownItem
-                key="edit"
-                startContent={<EditIcon />}
-                onPress={onEdit}
-              >
-                Edit
-              </DropdownItem>
-              <DropdownItem
-                key="delete"
-                className="text-danger"
-                color="danger"
-                startContent={<TrashIcon />}
-                onPress={onDelete}
-              >
-                Delete
-              </DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
-        </div>
-      </CardHeader>
+              </IconButton>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content>
+              <DropdownMenu.Item onSelect={onEdit}>
+                <Flex gap="2" align="center">
+                  <EditIcon /> Edit
+                </Flex>
+              </DropdownMenu.Item>
+              <DropdownMenu.Item color="red" onSelect={onDelete}>
+                <Flex gap="2" align="center">
+                  <TrashIcon /> Delete
+                </Flex>
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        </Flex>
+      </Flex>
 
-      <CardBody className="pt-2">
+      <Box pt="2">
         {word.example && (
-          <div className="bg-default-50 rounded-lg p-3 mb-2 text-small">
+          <Box className="bg-default-50 rounded-lg p-3 mb-2 text-small">
             <Markdown>{word.example}</Markdown>
-          </div>
+          </Box>
         )}
 
         <Spoiler>
           <Markdown>{word.explain}</Markdown>
         </Spoiler>
 
-        <Divider className="my-3" />
+        <Separator my="3" size="4" />
 
-        <div className="flex justify-between items-center">
-          <div className="text-tiny text-default-400">
+        <Flex justify="between" align="center">
+          <Text size="1" color="gray">
             Review: {new Date(word.reminder_time * 1000).toLocaleDateString()}
-          </div>
+          </Text>
           <Tooltip content="Increment Anki Count">
             <Button
-              size="sm"
-              variant="light"
+              size="1"
+              variant="ghost"
+              color="gray"
               radius="full"
-              className="text-tiny px-1 h-6 min-w-12 text-default-400 hover:text-primary"
-              onPress={handleIncrement}
-              startContent={
-                !isIncrementing ? <span className="text-small">+</span> : null
-              }
-              isLoading={isIncrementing}
+              onClick={handleIncrement}
+              loading={isIncrementing}
             >
+              {!isIncrementing && <Text size="2">+</Text>}
               {word.anki_count}
             </Button>
           </Tooltip>
-        </div>
-      </CardBody>
+        </Flex>
+      </Box>
     </Card>
   );
 }

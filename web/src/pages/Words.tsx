@@ -12,15 +12,14 @@ import {
 import WordCard from "@/WordCard";
 import {
   Button,
-  Dropdown,
-  DropdownItem,
   DropdownMenu,
-  DropdownSection,
-  DropdownTrigger,
-  Pagination,
   Spinner,
   Tooltip,
-} from "@heroui/react";
+  IconButton,
+  Flex,
+  Text,
+  Box,
+} from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 
@@ -161,89 +160,76 @@ export default function Words() {
       <div className="container mx-auto p-2 sm:p-4 max-w-7xl">
         {/* Sticky Header */}
         <div className="sticky top-4 z-40 bg-background/60 backdrop-blur-xl rounded-2xl shadow-lg border border-default-200/50 p-3 mb-8 flex flex-wrap items-center justify-between gap-4 transition-all hover:shadow-xl">
-          <Pagination
-            isCompact
-            showControls
-            total={total}
-            page={page}
-            onChange={setPage}
-            className="overflow-visible"
-            classNames={{
-              wrapper: "shadow-none bg-transparent gap-1",
-              item: "bg-transparent border-small border-default-200 shadow-none hover:bg-default-100",
-              cursor: "bg-foreground text-background font-bold",
-            }}
-          />
+          <Flex gap="2" align="center">
+            <IconButton
+              variant="soft"
+              color="gray"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.84182 3.13514C9.04327 3.32401 9.05348 3.64042 8.86462 3.84188L5.43521 7.49991L8.86462 11.1579C9.05348 11.3594 9.04327 11.6758 8.84182 11.8647C8.64036 12.0535 8.32394 12.0433 8.13508 11.8419L4.38508 7.84188C4.20477 7.64955 4.20477 7.35027 4.38508 7.15794L8.13508 3.15794C8.32394 2.95648 8.64036 2.94628 8.84182 3.13514Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
+            </IconButton>
+            <Text size="2" weight="medium">
+              {page} / {total || 1}
+            </Text>
+            <IconButton
+              variant="soft"
+              color="gray"
+              disabled={page >= total}
+              onClick={() => setPage((p) => Math.min(total, p + 1))}
+            >
+              <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.1584 3.13508C5.95694 3.32394 5.94673 3.64036 6.13559 3.84182L9.565 7.49991L6.13559 11.158C5.94673 11.3595 5.95694 11.6759 6.1584 11.8648C6.35986 12.0536 6.67628 12.0434 6.86514 11.842L10.6151 7.84197C10.7954 7.64964 10.7954 7.35036 10.6151 7.15803L6.86514 3.15803C6.67628 2.95657 6.35986 2.94637 6.1584 3.13508Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
+            </IconButton>
+          </Flex>
 
           <div className="flex gap-2 items-center ml-auto">
-            <Dropdown>
-              <DropdownTrigger>
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
                 <Button
-                  variant="flat"
-                  startContent={<FilterIcon />}
+                  variant="soft"
+                  color="gray"
                   className="bg-default-100 font-medium"
                 >
-                  View Options
+                  <FilterIcon /> View Options
                 </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                aria-label="View Options"
-                closeOnSelect={false}
-                selectionMode="single"
-                selectedKeys={[orderBy]}
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys)[0] as string;
-                  if (selected) setOrderBy(selected);
-                }}
-              >
-                <DropdownSection title="Sort By" showDivider>
-                  <DropdownItem key="word">Word (A-Z)</DropdownItem>
-                  <DropdownItem key="word desc">Word (Z-A)</DropdownItem>
-                  <DropdownItem key="priority">
-                    Priority (Low-High)
-                  </DropdownItem>
-                  <DropdownItem key="priority desc">
-                    Priority (High-Low)
-                  </DropdownItem>
-                  <DropdownItem key="add_time">
-                    Date Added (Oldest)
-                  </DropdownItem>
-                  <DropdownItem key="add_time desc">
-                    Date Added (Newest)
-                  </DropdownItem>
-                  <DropdownItem key="update_time">
-                    Date Updated (Oldest)
-                  </DropdownItem>
-                  <DropdownItem key="update_time desc">
-                    Date Updated (Newest)
-                  </DropdownItem>
-                  <DropdownItem key="anki_count">Count (Low-High)</DropdownItem>
-                  <DropdownItem key="anki_count desc">
-                    Count (High-Low)
-                  </DropdownItem>
-                </DropdownSection>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content>
+                <DropdownMenu.Label>Sort By</DropdownMenu.Label>
+                <DropdownMenu.RadioGroup value={orderBy} onValueChange={setOrderBy}>
+                  <DropdownMenu.RadioItem value="word">Word (A-Z)</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="word desc">Word (Z-A)</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="priority">Priority (Low-High)</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="priority desc">Priority (High-Low)</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="add_time">Date Added (Oldest)</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="add_time desc">Date Added (Newest)</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="update_time">Date Updated (Oldest)</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="update_time desc">Date Updated (Newest)</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="anki_count">Count (Low-High)</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="anki_count desc">Count (High-Low)</DropdownMenu.RadioItem>
+                </DropdownMenu.RadioGroup>
 
-                <DropdownSection title="Filter">
-                  <DropdownItem
-                    key="grammar-toggle"
-                    startContent={<BookIcon size={18} />}
-                    className={grammar ? "bg-primary-50 text-primary" : ""}
-                    onPress={() => setGrammar(!grammar)}
-                  >
-                    {grammar ? "Show All Words" : "Show Grammar Only"}
-                  </DropdownItem>
-                </DropdownSection>
-              </DropdownMenu>
-            </Dropdown>
+                <DropdownMenu.Separator />
+
+                <DropdownMenu.Label>Filter</DropdownMenu.Label>
+                <DropdownMenu.CheckboxItem
+                  checked={grammar}
+                  onCheckedChange={(checked) => setGrammar(checked)}
+                >
+                  <Flex gap="2" align="center">
+                    <BookIcon size={18} />
+                    {grammar ? "Show Grammar Only" : "Show All Words"}
+                  </Flex>
+                </DropdownMenu.CheckboxItem>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
 
             <div className="h-6 w-[1px] bg-default-200 mx-1" />
 
             <Tooltip content="Add Word">
-              <Button
-                isIconOnly
-                color="primary"
-                variant="shadow"
-                onPress={() => {
+              <IconButton
+                color="blue"
+                variant="solid"
+                onClick={() => {
                   setNewWord({
                     new: {
                       word: "",
@@ -261,18 +247,17 @@ export default function Words() {
                 }}
               >
                 <PlusIcon />
-              </Button>
+              </IconButton>
             </Tooltip>
 
             <Tooltip content="Refresh">
-              <Button
-                isIconOnly
-                variant="light"
-                className="text-default-500"
-                onPress={() => setRefresh((r) => r + 1)}
+              <IconButton
+                variant="ghost"
+                color="gray"
+                onClick={() => setRefresh((r) => r + 1)}
               >
                 <RefreshIcon />
-              </Button>
+              </IconButton>
             </Tooltip>
           </div>
         </div>
@@ -305,10 +290,10 @@ export default function Words() {
             <div className="flex flex-col items-center justify-center p-10 text-default-400 col-span-full w-full">
               <p>No words found.</p>
               <Button
-                variant="light"
-                color="primary"
+                variant="ghost"
+                color="blue"
                 className="mt-2"
-                onPress={() => setOpen(true)}
+                onClick={() => setOpen(true)}
               >
                 Add your first word
               </Button>

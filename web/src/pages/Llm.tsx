@@ -2,17 +2,14 @@ import { useEffect, useState } from "react";
 import {
   Button,
   Card,
-  CardBody,
-  Input,
+  TextField,
   Select,
-  SelectItem,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-} from "@heroui/react";
+  Dialog,
+  Flex,
+  Text,
+  Box,
+} from "@radix-ui/themes";
+import { useDisclosure } from "@/components";
 import { authorizedRequest } from "../lib/api";
 import { useLocation } from "wouter";
 import { ROUTE_LOGIN } from "../lib/constants";
@@ -111,108 +108,122 @@ export default function Llm() {
 
   return (
     <div className="container mx-auto p-4 max-w-4xl pb-32">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">LLM Providers</h1>
-        <Button color="primary" onPress={openAddModal}>
+      <Flex justify="between" align="center" mb="6">
+        <Text size="6" weight="bold">LLM Providers</Text>
+        <Button color="blue" onClick={openAddModal}>
           Add Provider
         </Button>
-      </div>
+      </Flex>
 
       <div className="grid gap-4 md:grid-cols-2">
         {providers.map((p) => (
-          <Card key={p.name}>
-            <CardBody>
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-semibold">{p.name}</h3>
-                  <p className="text-sm text-gray-500">{p.provider}</p>
-                  {p.base_url && (
-                    <p className="text-xs truncate">{p.base_url}</p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onPress={() => openEditModal(p)}>
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    color="danger"
-                    onPress={() => handleDelete(p.name)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            </CardBody>
+          <Card key={p.name} size="2">
+            <Flex justify="between" align="start">
+              <Box>
+                <Text size="4" weight="bold" as="div">{p.name}</Text>
+                <Text size="2" color="gray" as="div">{p.provider}</Text>
+                {p.base_url && (
+                  <Text size="1" className="truncate" as="div">{p.base_url}</Text>
+                )}
+              </Box>
+              <Flex gap="2">
+                <Button size="1" variant="soft" onClick={() => openEditModal(p)}>
+                  Edit
+                </Button>
+                <Button
+                  size="1"
+                  color="red"
+                  variant="soft"
+                  onClick={() => handleDelete(p.name)}
+                >
+                  Delete
+                </Button>
+              </Flex>
+            </Flex>
           </Card>
         ))}
       </div>
 
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalContent>
+      <Dialog.Root open={isOpen} onOpenChange={onClose}>
+        <Dialog.Content maxWidth="450px">
           <form onSubmit={handleSave}>
-            <ModalHeader>
+            <Dialog.Title>
               {editingProvider ? "Edit Provider" : "Add Provider"}
-            </ModalHeader>
-            <ModalBody>
-              <Input
-                name="name"
-                label="Name"
-                defaultValue={editingProvider?.name}
-                isReadOnly={!!editingProvider}
-                required
-              />
-              <Select
-                name="provider"
-                label="Provider Type"
-                defaultSelectedKeys={
-                  editingProvider ? [editingProvider.provider] : ["openai"]
-                }
-              >
-                <SelectItem key="openai">OpenAI</SelectItem>
-                <SelectItem key="gemini">Gemini</SelectItem>
-                <SelectItem key="vertexai">VertexAI</SelectItem>
-                <SelectItem key="workersai">Workers AI</SelectItem>
-              </Select>
-              <Input
-                name="base_url"
-                label="Base URL (Optional)"
-                defaultValue={editingProvider?.base_url}
-              />
-              <Input
-                name="api_key"
-                label="API Key"
-                type="password"
-                defaultValue={editingProvider?.api_key}
-              />
-              <Input
-                name="models"
-                label="Models (comma separated)"
-                defaultValue={editingProvider?.models}
-                required
-              />
-              <Input
-                name="project_id"
-                label="Project ID (for VertexAI)"
-                defaultValue={editingProvider?.project_id}
-              />
-              <Input
-                name="location"
-                label="Location (for VertexAI)"
-                defaultValue={editingProvider?.location}
-              />
-            </ModalBody>
-            <ModalFooter>
-              <Button color="danger" variant="light" onPress={onClose}>
+            </Dialog.Title>
+            <Flex direction="column" gap="3" mt="4">
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">Name</Text>
+                <TextField.Root
+                  name="name"
+                  defaultValue={editingProvider?.name}
+                  readOnly={!!editingProvider}
+                  required
+                />
+              </Flex>
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">Provider Type</Text>
+                <Select.Root
+                  name="provider"
+                  defaultValue={editingProvider ? editingProvider.provider : "openai"}
+                >
+                  <Select.Trigger />
+                  <Select.Content>
+                    <Select.Item value="openai">OpenAI</Select.Item>
+                    <Select.Item value="gemini">Gemini</Select.Item>
+                    <Select.Item value="vertexai">VertexAI</Select.Item>
+                    <Select.Item value="workersai">Workers AI</Select.Item>
+                  </Select.Content>
+                </Select.Root>
+              </Flex>
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">Base URL (Optional)</Text>
+                <TextField.Root
+                  name="base_url"
+                  defaultValue={editingProvider?.base_url}
+                />
+              </Flex>
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">API Key</Text>
+                <TextField.Root
+                  name="api_key"
+                  type="password"
+                  defaultValue={editingProvider?.api_key}
+                />
+              </Flex>
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">Models (comma separated)</Text>
+                <TextField.Root
+                  name="models"
+                  defaultValue={editingProvider?.models}
+                  required
+                />
+              </Flex>
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">Project ID (for VertexAI)</Text>
+                <TextField.Root
+                  name="project_id"
+                  defaultValue={editingProvider?.project_id}
+                />
+              </Flex>
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">Location (for VertexAI)</Text>
+                <TextField.Root
+                  name="location"
+                  defaultValue={editingProvider?.location}
+                />
+              </Flex>
+            </Flex>
+            <Flex gap="3" mt="4" justify="end">
+              <Button color="gray" variant="soft" type="button" onClick={onClose}>
                 Cancel
               </Button>
-              <Button color="primary" type="submit">
+              <Button color="blue" type="submit">
                 Save
               </Button>
-            </ModalFooter>
+            </Flex>
           </form>
-        </ModalContent>
-      </Modal>
+        </Dialog.Content>
+      </Dialog.Root>
     </div>
   );
 }

@@ -3,16 +3,15 @@ import {
   Avatar,
   Button,
   Card,
-  CardBody,
-  Dropdown,
-  DropdownItem,
   DropdownMenu,
-  DropdownSection,
-  DropdownTrigger,
   Switch,
-  Textarea,
+  TextArea,
   Tooltip,
-} from "@heroui/react";
+  IconButton,
+  Flex,
+  Text,
+  Box,
+} from "@radix-ui/themes";
 import { useCallback, useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import {
@@ -280,260 +279,249 @@ export default function Home() {
       <div className="p-2">
         <div className="sticky flex flex-wrap justify-center top-1 z-50 gap-1">
           <div className="flex gap-1">
-            <Dropdown>
-              <DropdownTrigger>
-                <Button
-                  variant="bordered"
-                  className="shadow-md backdrop-blur-sm capitalize"
-                >
-                  <Tooltip content="Translate Method">
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                <Tooltip content="Translate Method">
+                  <Button
+                    variant="surface"
+                    color="gray"
+                    className="shadow-md backdrop-blur-sm capitalize"
+                  >
                     {translationMap[selected] ||
                       customModels?.[selected]?.model ||
                       "Select"}
-                  </Tooltip>
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                selectionMode="single"
-                selectedKeys={[selected]}
-                onSelectionChange={(e) =>
-                  e.currentKey && setSelected(e.currentKey)
-                }
-              >
-                <>
-                  <DropdownSection showDivider>
-                    {translationSources.map((source) => (
-                      <DropdownItem key={source.key}>
-                        {source.name}
-                      </DropdownItem>
+                  </Button>
+                </Tooltip>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content>
+                <DropdownMenu.Group>
+                  {translationSources.map((source) => (
+                    <DropdownMenu.Item
+                      key={source.key}
+                      onSelect={() => setSelected(source.key)}
+                    >
+                      {source.name}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Group>
+
+                {dictSources.length > 0 && <DropdownMenu.Separator />}
+
+                <DropdownMenu.Group>
+                  {dictSources.map((source) => (
+                    <DropdownMenu.Item
+                      key={source.key}
+                      onSelect={() => setSelected(source.key)}
+                    >
+                      <Flex justify="between" width="100%">
+                        <Text>{source.name}</Text>
+                        {source.tag && <Text color="gray" size="1">{source.tag}</Text>}
+                      </Flex>
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.Group>
+
+                {Object.keys(customModels || {}).length > 0 && <DropdownMenu.Separator />}
+
+                {Object.keys(customModels || {}).length > 0 && (
+                  <DropdownMenu.Group>
+                    {Object.keys(customModels || {}).map((key) => (
+                      <DropdownMenu.Item
+                        key={key}
+                        onSelect={() => setSelected(key)}
+                      >
+                        <Flex justify="between" width="100%">
+                          <Text>{customModels[key].model}</Text>
+                          <Text color="gray" size="1">{customModels[key].name}</Text>
+                        </Flex>
+                      </DropdownMenu.Item>
                     ))}
-                  </DropdownSection>
-                  <DropdownSection
-                    showDivider={Object.keys(customModels || {}).length > 0}
-                  >
-                    {dictSources.map((source) => (
-                      <DropdownItem shortcut={source.tag} key={source.key}>
-                        {source.name}
-                      </DropdownItem>
-                    ))}
-                  </DropdownSection>
-                  {Object.keys(customModels || {}).length > 0 && (
-                    <DropdownSection>
-                      {Object.keys(customModels || {}).map((key) => (
-                        <DropdownItem
-                          shortcut={customModels[key].name}
-                          key={key}
-                        >
-                          {customModels[key].model}
-                        </DropdownItem>
-                      ))}
-                    </DropdownSection>
-                  )}
-                </>
-              </DropdownMenu>
-            </Dropdown>
+                  </DropdownMenu.Group>
+                )}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
 
             {showSelectLang(selected) && (
               <>
-                <Dropdown>
-                  <DropdownTrigger>
-                    <Button
-                      isIconOnly
-                      variant="bordered"
-                      className="shadow-md backdrop-blur-sm capitalize"
-                    >
-                      <Tooltip content="Source Language">
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger>
+                    <Tooltip content="Source Language">
+                      <IconButton
+                        variant="surface"
+                        color="gray"
+                        className="shadow-md backdrop-blur-sm"
+                      >
                         <Avatar
-                          alt={languageMap[srcLang].name}
-                          className="w-6 h-6"
-                          src={`https://flagcdn.com/${languageMap[srcLang].icon}.svg`}
+                          fallback="Auto"
+                          alt={languageMap[srcLang]?.name || "Auto"}
+                          size="1"
+                          src={languageMap[srcLang]?.icon ? `https://flagcdn.com/${languageMap[srcLang].icon}.svg` : undefined}
                         />
-                        {/* {languageMap[srcLang].name || "Auto"} */}
-                      </Tooltip>
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu
-                    selectionMode="single"
-                    selectedKeys={[srcLang]}
-                    onSelectionChange={(e) =>
-                      e.currentKey !== undefined &&
-                      e.currentKey !== null &&
-                      setSrcLang(e.currentKey)
-                    }
-                  >
+                      </IconButton>
+                    </Tooltip>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Content>
                     {languages.map((lang) => (
-                      <DropdownItem
+                      <DropdownMenu.Item
                         key={lang.key}
-                        startContent={
-                          lang.icon ? (
+                        onSelect={() => setSrcLang(lang.key)}
+                      >
+                        <Flex gap="2" align="center">
+                          {lang.icon && (
                             <Avatar
+                              fallback={lang.name.charAt(0)}
                               alt={lang.name}
-                              className="w-6 h-6"
+                              size="1"
                               src={`https://flagcdn.com/${lang.icon}.svg`}
                             />
-                          ) : undefined
-                        }
-                      >
-                        {lang.name}
-                      </DropdownItem>
+                          )}
+                          {lang.name}
+                        </Flex>
+                      </DropdownMenu.Item>
                     ))}
-                  </DropdownMenu>
-                </Dropdown>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
 
-                <Dropdown>
-                  <DropdownTrigger>
-                    <Button
-                      isIconOnly
-                      variant="bordered"
-                      className="shadow-md backdrop-blur-sm capitalize"
-                    >
-                      <Tooltip content="Target Language">
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger>
+                    <Tooltip content="Target Language">
+                      <IconButton
+                        variant="surface"
+                        color="gray"
+                        className="shadow-md backdrop-blur-sm"
+                      >
                         <Avatar
-                          alt={languageMap[dstLang].name}
-                          className="w-6 h-6"
-                          src={`https://flagcdn.com/${languageMap[dstLang].icon}.svg`}
+                          fallback="Auto"
+                          alt={languageMap[dstLang]?.name || "Auto"}
+                          size="1"
+                          src={languageMap[dstLang]?.icon ? `https://flagcdn.com/${languageMap[dstLang].icon}.svg` : undefined}
                         />
-                        {/* {languageMap[dstLang].name || "Auto"} */}
-                      </Tooltip>
-                    </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu
-                    selectionMode="single"
-                    selectedKeys={[dstLang]}
-                    onSelectionChange={(e) =>
-                      e.currentKey !== undefined &&
-                      e.currentKey !== null &&
-                      setDstLang(e.currentKey)
-                    }
-                  >
+                      </IconButton>
+                    </Tooltip>
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Content>
                     {languages
                       .filter((lang) => lang.key !== "")
                       .map((lang) => (
-                        <DropdownItem
+                        <DropdownMenu.Item
                           key={lang.key}
-                          startContent={
-                            lang.icon ? (
+                          onSelect={() => setDstLang(lang.key)}
+                        >
+                          <Flex gap="2" align="center">
+                            {lang.icon && (
                               <Avatar
+                                fallback={lang.name.charAt(0)}
                                 alt={lang.name}
-                                className="w-6 h-6"
+                                size="1"
                                 src={`https://flagcdn.com/${lang.icon}.svg`}
                               />
-                            ) : undefined
-                          }
-                        >
-                          {lang.name}
-                        </DropdownItem>
+                            )}
+                            {lang.name}
+                          </Flex>
+                        </DropdownMenu.Item>
                       ))}
-                  </DropdownMenu>
-                </Dropdown>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
               </>
             )}
           </div>
 
           <div className="flex justify-center gap-1">
             <Tooltip content="Translate">
-              <Button
-                isIconOnly
-                variant="bordered"
+              <IconButton
+                variant="surface"
+                color="gray"
                 className="shadow-md backdrop-blur-sm"
-                isLoading={loading}
-                onPress={doQueryWord}
+                loading={loading}
+                onClick={doQueryWord}
               >
                 <PlayIcon />
-              </Button>
+              </IconButton>
             </Tooltip>
             <Tooltip content="Save To D1">
-              <Button
-                isIconOnly
-                variant="bordered"
+              <IconButton
+                variant="surface"
+                color="gray"
                 className="shadow-md backdrop-blur-sm"
-                onPress={() => setOpen(true)}
+                onClick={() => setOpen(true)}
               >
                 <DiskIcon />
-              </Button>
+              </IconButton>
             </Tooltip>
           </div>
         </div>
 
-        <Textarea
-          className="mt-2"
-          isInvalid={query.length === 0}
-          errorMessage={"Query is empty"}
-          label="Text"
-          type="textarea"
-          value={query}
-          height={"full"}
-          classNames={{
-            input: "resize-y min-h-[40px]",
-          }}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        <Box mt="2">
+          <Text as="label" size="2" weight="bold">Text</Text>
+          <TextArea
+            color={query.length === 0 ? "red" : undefined}
+            value={query}
+            placeholder="Enter text..."
+            className="min-h-[40px] resize-y"
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </Box>
 
         {selected.startsWith("custom-") && (
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-4">
-              <Switch
-                className="mt-2"
-                isSelected={googleSearch}
-                onValueChange={(e) => setGoogleSearch(e)}
-              >
-                Google Search
-              </Switch>
+          <Flex direction="column" gap="2" mt="2">
+            <Flex gap="4">
+              <Text as="label" size="2">
+                <Flex gap="2" align="center">
+                  <Switch
+                    checked={googleSearch}
+                    onCheckedChange={(e) => setGoogleSearch(e)}
+                  />
+                  Google Search
+                </Flex>
+              </Text>
 
-              <Switch
-                className="mt-2"
-                isSelected={stream}
-                onValueChange={(e) => setStream(e)}
-              >
-                Stream
-              </Switch>
-            </div>
+              <Text as="label" size="2">
+                <Flex gap="2" align="center">
+                  <Switch
+                    checked={stream}
+                    onCheckedChange={(e) => setStream(e)}
+                  />
+                  Stream
+                </Flex>
+              </Text>
+            </Flex>
 
             {!googleSearch && (
-              <Textarea
-                className="mt-2"
-                label="Instruction"
-                type="textarea"
-                value={instruction}
-                height={"full"}
-                classNames={{
-                  input: "resize-y min-h-[40px]",
-                }}
-                onChange={(e) => setInstruction(e.target.value)}
-              />
+              <Box>
+                <Text as="label" size="2" weight="bold">Instruction</Text>
+                <TextArea
+                  value={instruction}
+                  className="min-h-[40px] resize-y"
+                  onChange={(e) => setInstruction(e.target.value)}
+                />
+              </Box>
             )}
-          </div>
+          </Flex>
         )}
 
         {result.reasoning && (
-          <div className="mt-2">
+          <Box mt="2">
             <Card>
-              <CardBody>
-                <div className="flex-1 max-w-none">
-                  <Markdown>{result.reasoning}</Markdown>
-                </div>
-              </CardBody>
+              <Box className="flex-1 max-w-none">
+                <Markdown>{result.reasoning}</Markdown>
+              </Box>
             </Card>
-          </div>
+          </Box>
         )}
 
-        <div className="mt-2">
+        <Box mt="2">
           <Card>
-            <CardBody>
-              {result.result ? (
-                <div className="flex-1 max-w-none">
-                  <Markdown>{result.result}</Markdown>
-                </div>
-              ) : (
-                <>
-                  <div className="h-50 flex items-center justify-center">
-                    Please input translate text and click translate button.
-                  </div>
-                </>
-              )}
-            </CardBody>
+            {result.result ? (
+              <Box className="flex-1 max-w-none">
+                <Markdown>{result.result}</Markdown>
+              </Box>
+            ) : (
+              <Flex className="h-50" align="center" justify="center" direction="column">
+                <Text color="gray">Please input translate text and click translate button.</Text>
+              </Flex>
+            )}
           </Card>
-        </div>
+        </Box>
       </div>
     </>
   );

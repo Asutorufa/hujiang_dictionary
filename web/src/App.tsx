@@ -1,5 +1,6 @@
-import { HeroUIProvider, Tab, Tabs, ToastProvider } from "@heroui/react";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { Theme, Tabs } from "@radix-ui/themes";
+import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
+import { Toaster } from "sonner";
 import { Route, Router, Switch, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import "@/globals.css";
@@ -18,6 +19,21 @@ import {
 } from "./lib/constants";
 import { useEffect } from "react";
 
+function ThemeWrapper({ children }: { children: React.ReactNode }) {
+  const { theme } = useTheme();
+
+  return (
+    <Theme
+      appearance={(theme === "dark" || theme === "light") ? theme : "inherit"}
+      accentColor="blue"
+      grayColor="slate"
+      radius="large"
+    >
+      {children}
+    </Theme>
+  );
+}
+
 function Main() {
   const [location, setLocation] = useLocation();
   const scrollDirection = useScrollDirection();
@@ -34,30 +50,23 @@ function Main() {
   }, [setLocation]);
 
   return (
-    <HeroUIProvider navigate={setLocation}>
-      <ToastProvider />
-      <NextThemesProvider attribute="class" defaultTheme="system">
+    <NextThemesProvider attribute="class" defaultTheme="system">
+      <ThemeWrapper>
+        <Toaster position="bottom-right" richColors />
         {location !== ROUTE_LOGIN && (
           <div
             className={`fixed bottom-15 left-1/2 -translate-x-1/2 z-50 transition-transform duration-300 ${scrollDirection === "down" ? "translate-y-32" : "translate-y-0"}`}
           >
-            <Tabs
-              variant="bordered"
-              aria-label="Options"
-              classNames={{
-                tabList: "backdrop-blur-sm shadow-md",
-              }}
-              selectedKey={location}
-            >
-              <Tab title="Home" href={ROUTE_HOME} key={ROUTE_HOME} />
-              <Tab title="Words" href={ROUTE_WORDS} key={ROUTE_WORDS} />
-              <Tab
-                title="Flashcard"
-                href={ROUTE_FLASHCARD}
-                key={ROUTE_FLASHCARD}
-              />
-              <Tab title="LLM" href={ROUTE_LLM} key={ROUTE_LLM} />
-            </Tabs>
+            <div className="bg-background/80 backdrop-blur-sm shadow-md rounded-full px-2 border border-default-200">
+              <Tabs.Root value={location} onValueChange={setLocation}>
+                <Tabs.List size="2" color="blue" aria-label="Navigation">
+                  <Tabs.Trigger value={ROUTE_HOME}>Home</Tabs.Trigger>
+                  <Tabs.Trigger value={ROUTE_WORDS}>Words</Tabs.Trigger>
+                  <Tabs.Trigger value={ROUTE_FLASHCARD}>Flashcard</Tabs.Trigger>
+                  <Tabs.Trigger value={ROUTE_LLM}>LLM</Tabs.Trigger>
+                </Tabs.List>
+              </Tabs.Root>
+            </div>
           </div>
         )}
 
@@ -68,8 +77,8 @@ function Main() {
           <Route path={ROUTE_FLASHCARD} component={Flashcard} />
           <Route path={ROUTE_LLM} component={Llm} />
         </Switch>
-      </NextThemesProvider>
-    </HeroUIProvider>
+      </ThemeWrapper>
+    </NextThemesProvider>
   );
 }
 
