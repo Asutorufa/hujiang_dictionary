@@ -41,7 +41,8 @@ pub trait TelegramBot {
                 {
                     let entity = match msg.entities.as_ref() {
                         Some(v)
-                            if !v.is_empty() && v[0].type_field == MessageEntityType::BotCommand =>
+                            if !v.is_empty()
+                                && v[0].type_field == MessageEntityType::BotCommand =>
                         {
                             &v[0]
                         }
@@ -88,21 +89,19 @@ pub trait TelegramBot {
                     .await
             }
             UpdateContent::CallbackQuery(msg) => {
-                let (command, argument) = match msg.data.as_ref() {
-                    Some(v) => {
-                        let mut data = v.splitn(2, ' ');
-                        let command = data.next().unwrap_or("");
-                        let argument = data.next().unwrap_or("");
-                        (command.to_string(), argument.to_string())
-                    }
+                let data = match msg.data.as_ref() {
+                    Some(v) => v.clone(),
                     None => {
                         warn!("Callback query has no data");
                         return Ok(());
                     }
                 };
 
-                self.handle_callback(msg, command.as_str(), argument.as_str())
-                    .await
+                let mut parts = data.splitn(2, ' ');
+                let command = parts.next().unwrap_or("");
+                let argument = parts.next().unwrap_or("");
+
+                self.handle_callback(msg, command, argument).await
             }
             _ => Ok(()),
         }
