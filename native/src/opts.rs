@@ -22,10 +22,10 @@ pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error
     let cloudflare_d1_database_name =
         std::env::var("CLOUDFLARE_D1_DATABASE_NAME").unwrap_or("".to_string());
 
-    let auth_secret = std::env::var("AUTH_SECRET")
-        .ok()
-        .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "default_secret".to_string());
+    let auth_secret = std::env::var("AUTH_SECRET")?;
+    if auth_secret.is_empty() {
+        return Err("AUTH_SECRET is empty".into());
+    }
 
     let auth_username = std::env::var("AUTH_USERNAME").unwrap_or("".to_string());
     let auth_password = std::env::var("AUTH_PASSWORD").unwrap_or("".to_string());
