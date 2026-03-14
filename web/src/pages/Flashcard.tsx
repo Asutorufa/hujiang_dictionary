@@ -281,12 +281,12 @@ export default function Flashcard() {
 
       {/* Main Content Area */}
       <div className="flex-1 w-full max-w-md flex items-center justify-center relative">
-        {loading && wordsMap.size === 0 && <Spinner size="lg" />}
+        {loading && wordsMap.size === 0 && <Spinner size="3" />}
 
         {!loading && wordsMap.size === 0 && (
           <div className="text-center text-default-500">
             <p>No words found.</p>
-            <Button className="mt-4" onPress={() => setPage(1)}>
+            <Button className="mt-4" onClick={() => setPage(1)}>
               Reset to start
             </Button>
           </div>
@@ -344,124 +344,103 @@ export default function Flashcard() {
                 </div>
               </motion.div>
 
-              <Card className="w-full h-full shadow-xl bg-content1 border border-default-200">
-                <CardHeader className="flex justify-between items-start pb-0 pt-4 px-4">
-                  <div className="flex flex-col">
-                    <h3 className="text-lg font-bold break-words">
+              <Card className="w-full h-full shadow-xl bg-content1 border border-default-200 p-0 flex flex-col">
+                <Flex justify="between" align="start" className="pb-0 pt-4 px-4">
+                  <Flex direction="column">
+                    <Text size="5" weight="bold" className="break-words">
                       {currentWord.word}
-                    </h3>
-                    <span className="text-tiny text-default-400">
+                    </Text>
+                    <Text size="1" color="gray">
                       {new Date(
                         currentWord.update_time * 1000,
                       ).toLocaleDateString()}
-                    </span>
-                  </div>
+                    </Text>
+                  </Flex>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-default-400 text-tiny">
+                  <Flex align="center" gap="2">
+                    <Text size="1" color="gray">
                       Review:{" "}
                       {new Date(
                         currentWord.reminder_time * 1000,
                       ).toLocaleDateString()}
-                    </span>
-                    <Dropdown>
-                      <DropdownTrigger>
-                        <Chip
-                          size="sm"
-                          variant="flat"
-                          color={getPriorityColor(currentWord.priority)}
-                          className="cursor-pointer px-2"
+                    </Text>
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger>
+                        <Badge
+                          size="1"
+                          variant="soft"
+                          color={currentWord.priority === 0 ? "green" : currentWord.priority === 1 ? "orange" : "gray"}
+                          className="cursor-pointer"
                         >
                           {getPriorityText(currentWord.priority)}
-                        </Chip>
-                      </DropdownTrigger>
-                      <DropdownMenu
-                        aria-label="Priority Actions"
-                        onAction={(key) => handlePriorityChange(key as string)}
-                      >
-                        <DropdownItem key="0" className="text-success">
+                        </Badge>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Content>
+                        <DropdownMenu.Item color="green" onSelect={() => handlePriorityChange("0")}>
                           Low
-                        </DropdownItem>
-                        <DropdownItem key="1" className="text-warning">
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item color="orange" onSelect={() => handlePriorityChange("1")}>
                           Medium
-                        </DropdownItem>
-                        <DropdownItem key="2" className="text-secondary">
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item color="gray" onSelect={() => handlePriorityChange("2")}>
                           High
-                        </DropdownItem>
-                      </DropdownMenu>
-                    </Dropdown>
-                  </div>
-                </CardHeader>
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+                  </Flex>
+                </Flex>
 
-                <CardBody
-                  className="flex flex-col pt-4 px-4 overflow-y-auto overflow-x-hidden scrollbar-hide"
-                  onPointerDown={(e) => {
-                    // Only start drag if not selecting text (simple heuristic: not on a text node directly, though React events bubble)
-                    // Better: Only start drag if target is the CardBody itself or specific areas, NOT prose content.
-                    // Actually, let's move the drag listener to the Card itself, but we need text selection to work.
-                    // If we check if the target is interactive (like button) or text, we can skip.
-
-                    // Allow default behavior (text selection) if clicking on text content
-                    // checking if the target or its parent has 'prose' class might be complex.
-                    // Simplest: Don't start drag on CardBody pointer down.
-                    // Move drag start to the Header or a specific area.
-                    // But user wants to swipe the card.
-
-                    // Let's try: if user is selecting text, they are likely clicking and dragging on text.
-                    // If we don't call dragControls.start(e), text selection works.
-                    // We can require dragging from the edges or header/footer?
-                    // Or just check if the target is likely text.
-
+                <Box
+                  className="flex flex-col pt-4 px-4 overflow-y-auto overflow-x-hidden scrollbar-hide flex-1"
+                  onPointerDown={(e: React.PointerEvent<HTMLDivElement>) => {
                     const target = e.target as HTMLElement;
-                    // If clicking on text content (p, span, etc inside prose), don't drag.
                     if (target.closest(".prose")) return;
-
                     dragControls.start(e);
                   }}
                 >
                   <div className="w-full text-left prose max-w-none dark:prose-invert flex-1 flex flex-col h-full">
                     {currentWord.example && (
-                      <div className="bg-default-50 rounded-lg p-3 mb-2 text-small">
+                      <Box className="bg-default-50 rounded-lg p-3 mb-2 text-small">
                         <Markdown>{currentWord.example}</Markdown>
-                      </div>
+                      </Box>
                     )}
 
                     <Spoiler className="flex-1 h-full">
-                      <div className="mt-2">
+                      <Box mt="2">
                         <Markdown>{currentWord.explain}</Markdown>
-                      </div>
+                      </Box>
                     </Spoiler>
                   </div>
-                </CardBody>
+                </Box>
 
-                <div className="p-4 flex justify-between w-full border-t border-default-100 items-center">
+                <Flex justify="between" align="center" className="p-4 w-full border-t border-default-100">
                   <Button
-                    color="danger"
-                    variant="flat"
-                    onPress={() => handleSwipe("skip")}
+                    color="red"
+                    variant="soft"
+                    onClick={() => handleSwipe("skip")}
                     className="w-24"
                   >
                     Skip
                   </Button>
 
-                  <Button
-                    isIconOnly
-                    variant="light"
-                    isDisabled={page <= 1}
-                    onPress={() => setPage((p) => Math.max(1, p - 1))}
+                  <IconButton
+                    variant="ghost"
+                    color="gray"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
                   >
                     <LeftArrowIcon />
-                  </Button>
+                  </IconButton>
 
                   <Button
-                    color="success"
-                    variant="flat"
-                    onPress={() => handleSwipe("know")}
+                    color="green"
+                    variant="soft"
+                    onClick={() => handleSwipe("know")}
                     className="w-24"
                   >
                     Know
                   </Button>
-                </div>
+                </Flex>
               </Card>
             </motion.div>
           )}

@@ -24,19 +24,26 @@ export const addToast = ({
   title,
   description,
   color,
+  timeout,
 }: {
   title: string;
   description?: string;
   color?: "success" | "danger" | "warning" | "default";
+  timeout?: number;
 }) => {
+  const options: Record<string, unknown> = { description };
+  if (timeout !== undefined) {
+    options.duration = timeout === 0 ? Infinity : timeout;
+  }
+
   if (color === "danger") {
-    toast.error(title, { description });
+    toast.error(title, options);
   } else if (color === "success") {
-    toast.success(title, { description });
+    toast.success(title, options);
   } else if (color === "warning") {
-    toast.warning(title, { description });
+    toast.warning(title, options);
   } else {
-    toast(title, { description });
+    toast(title, options);
   }
 };
 

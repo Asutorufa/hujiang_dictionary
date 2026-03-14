@@ -1,7 +1,6 @@
 import {
   changePriority,
   EditIcon,
-  getPriorityColor,
   getPriorityText,
   incrementRemindCount,
   ListWordResponse,
