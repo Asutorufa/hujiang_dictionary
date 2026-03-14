@@ -289,12 +289,17 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                     return Ok(UnifiedResponse::error(401, e));
                 }
                 let url = format!("https://{}/tgbot", domain);
-                crate::tg::set_webhook(&self.bot, url.as_ref(), self.matainer)
-                    .await
-                    .map_err(|e| Error::Internal(e.to_string()))?;
-                Ok(UnifiedResponse::ok(
-                    format!("register telegram bot to {} successful", url).into_bytes(),
-                ))
+                let config = self.get_config().await.map_err(|e| Error::Internal(e.to_string()))?;
+                if let Some(bot) = &config.bot {
+                    crate::tg::set_webhook(bot, url.as_ref(), config.maintainer_id)
+                        .await
+                        .map_err(|e| Error::Internal(e.to_string()))?;
+                    Ok(UnifiedResponse::ok(
+                        format!("register telegram bot to {} successful", url).into_bytes(),
+                    ))
+                } else {
+                    Ok(UnifiedResponse::error(500, "telegram bot token not configured".to_string()))
+                }
             }
             "/d1/create_table" => {
                 if let Err(e) = self.check_auth(auth_header) {
@@ -330,7 +335,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                 }
             }
             _ => {
-                if path.starts_with("/word/") || path.starts_with("/llm/") {
+                if path.starts_with("/word/") || path.starts_with("/llm/") || path.starts_with("/config/") {
                     if let Err(e) = self.check_auth(auth_header) {
                         return Ok(UnifiedResponse::error(401, e));
                     }
@@ -359,6 +364,8 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
             "/llm/list" => self.list_llm_providers().await,
             "/llm/save" => self.save_llm_provider(body).await,
             "/llm/delete" => self.delete_llm_provider(body).await,
+            "/config/list" => self.list_configurations().await,
+            "/config/save" => self.save_configuration(body).await,
             _ => Err(Error::NotFound),
         }
     }
@@ -455,6 +462,30 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
         self.d1
             .execute(Queries::IncrementRemindCount { word: &req.word })
             .await?;
+        Ok([b'{', b'}'].to_vec())
+    }
+
+    pub async fn list_configurations(&self) -> Result<Vec<u8>, Error> {
+        let configurations: Vec<crate::d1::Configuration> = self
+            .d1
+            .query_all(crate::d1::Queries::ListConfigurations)
+            .await?;
+
+        Ok(serde_json::to_vec(&configurations)?)
+    }
+
+    pub async fn save_configuration(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        let req = serde_json::from_slice::<crate::d1::Configuration>(&body)?;
+        self.d1
+            .execute(crate::d1::Queries::SaveConfiguration {
+                key: &req.key,
+                value: &req.value,
+            })
+            .await?;
+
+        let mut cache = self.config_cache.write().unwrap();
+        cache.last_updated = 0; // Invalidate cache
+
         Ok([b'{', b'}'].to_vec())
     }
 

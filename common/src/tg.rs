@@ -351,7 +351,7 @@ pub async fn answer<T: DatabaseExecutor, T2: Translator>(
     opt: Arc<RunOpt<T, T2>>,
     msg: Box<frankenstein::types::Message>,
     cmd: Command,
-) -> Result<(), frankenstein::Error> {
+) -> Result<(), Error> {
     let from_user = match &msg.from {
         None => return Ok(()),
         Some(v) => v.id,
@@ -359,10 +359,14 @@ pub async fn answer<T: DatabaseExecutor, T2: Translator>(
 
     info!("new request from: {}, cmd: {:?}", from_user, cmd);
 
-    if !opt.allow_users.contains(&(from_user as i64)) {
+    let config = opt.get_config().await.map_err(|e| Error(e.to_string()))?;
+
+    if !config.allow_users.contains(&(from_user as i64)) {
         warn!("user not allowed: {}", from_user);
         return Ok(());
     }
+
+    let bot = config.bot.as_ref().ok_or(Error("telegram bot token not configured".to_string()))?;
 
     let mut parse_mode = frankenstein::ParseMode::MarkdownV2;
 
@@ -567,7 +571,7 @@ pub async fn answer<T: DatabaseExecutor, T2: Translator>(
             ))
         };
 
-        opt.bot.send_message(&req).await?;
+        bot.send_message(&req).await?;
     }
 
     Ok(())
@@ -582,10 +586,14 @@ pub async fn callback_query<T: DatabaseExecutor, T2: Translator>(
 
     info!("new request from: {}, cmd: {:?}", from_user, command);
 
-    if !opt.allow_users.contains(&(from_user as i64)) {
+    let config = opt.get_config().await.map_err(|e| Error(e.to_string()))?;
+
+    if !config.allow_users.contains(&(from_user as i64)) {
         warn!("user not allowed: {}", from_user);
         return Ok(());
     }
+
+    let bot = config.bot.as_ref().ok_or(Error("telegram bot token not configured".to_string()))?;
 
     let (chat_id, msg_id, text) = match call_query.message {
         None => return Ok(()),
@@ -602,7 +610,7 @@ pub async fn callback_query<T: DatabaseExecutor, T2: Translator>(
                 .message_id(msg_id)
                 .build();
 
-            opt.bot.delete_message(&req).await?;
+            bot.delete_message(&req).await?;
         }
 
         CallbackQueryCommand::Save(v) => {
@@ -644,7 +652,7 @@ pub async fn callback_query<T: DatabaseExecutor, T2: Translator>(
                 )
                 .build();
 
-            opt.bot.edit_message_reply_markup(&req).await?;
+            bot.edit_message_reply_markup(&req).await?;
         }
         CallbackQueryCommand::Remove(v) => {
             if let Err(e) = opt.d1.execute(Queries::DeleteWord { word: &v }).await {
@@ -671,7 +679,7 @@ pub async fn callback_query<T: DatabaseExecutor, T2: Translator>(
                 )
                 .build();
 
-            opt.bot.edit_message_reply_markup(&req).await?;
+            bot.edit_message_reply_markup(&req).await?;
         }
     };
 
@@ -680,7 +688,7 @@ pub async fn callback_query<T: DatabaseExecutor, T2: Translator>(
 
 pub async fn send_random_word<T: DatabaseExecutor, T2: Translator>(
     opt: Arc<RunOpt<T, T2>>,
-) -> Result<(), frankenstein::Error> {
+) -> Result<(), Error> {
     let reply = match crate::d1::random_word(&opt.d1).await {
         Err(e) => e.to_string(),
         Ok(v) => {
@@ -692,16 +700,19 @@ pub async fn send_random_word<T: DatabaseExecutor, T2: Translator>(
         }
     };
 
-    opt.bot
-        .send_message(
+    let config = opt.get_config().await.map_err(|e| Error(e.to_string()))?;
+
+    if let Some(bot) = config.bot {
+        bot.send_message(
             &SendMessageParams::builder()
-                .chat_id(frankenstein::types::ChatId::Integer(opt.matainer))
+                .chat_id(frankenstein::types::ChatId::Integer(config.maintainer_id))
                 .text(reply)
                 .parse_mode(frankenstein::ParseMode::Html)
                 .link_preview_options(frankenstein::types::LinkPreviewOptions::DISABLED)
                 .build(),
         )
         .await?;
+    }
 
     Ok(())
 }

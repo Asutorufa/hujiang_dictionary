@@ -8,12 +8,12 @@ import { useScrollDirection } from "@/hooks/useScrollDirection";
 import Home from "./pages/Home";
 import Words from "./pages/Words";
 import Flashcard from "./pages/Flashcard";
-import Llm from "./pages/Llm";
+import Config from "./pages/Config";
 import Login from "./pages/Login";
 import {
   ROUTE_FLASHCARD,
   ROUTE_HOME,
-  ROUTE_LLM,
+  ROUTE_CONFIG,
   ROUTE_LOGIN,
   ROUTE_WORDS,
 } from "./lib/constants";
@@ -63,7 +63,7 @@ function Main() {
                   <Tabs.Trigger value={ROUTE_HOME}>Home</Tabs.Trigger>
                   <Tabs.Trigger value={ROUTE_WORDS}>Words</Tabs.Trigger>
                   <Tabs.Trigger value={ROUTE_FLASHCARD}>Flashcard</Tabs.Trigger>
-                  <Tabs.Trigger value={ROUTE_LLM}>LLM</Tabs.Trigger>
+                  <Tabs.Trigger value={ROUTE_CONFIG}>Config</Tabs.Trigger>
                 </Tabs.List>
               </Tabs.Root>
             </div>
@@ -75,7 +75,7 @@ function Main() {
           <Route path={ROUTE_LOGIN} component={Login} />
           <Route path={ROUTE_WORDS} component={Words} />
           <Route path={ROUTE_FLASHCARD} component={Flashcard} />
-          <Route path={ROUTE_LLM} component={Llm} />
+          <Route path={ROUTE_CONFIG} component={Config} />
         </Switch>
       </ThemeWrapper>
     </NextThemesProvider>
