@@ -42,6 +42,7 @@ cloudflare = { version = "^0.14", default-features = false, features = [
     "rustls-tls",
 ] }
 scraper = "^0.25"
+ego-tree = "^0.11"
 html2text = { version = "^0.16", default-features = false }
 dom_smoothie = { version = "0.16", features = ["aho-corasick"] }
 rust-embed = "8.11"

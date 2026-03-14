@@ -36,40 +36,54 @@ async fn main() {
             {
                 Ok(_) => info!("create table [words] successful"),
                 Err(e) => {
-                    let config = opt.get_config().await.unwrap();
-                    if let Some(bot) = config.bot {
-                        let _ = bot
-                            .send_message(
-                                &SendMessageParams::builder()
-                                    .chat_id(ChatId::Integer(config.maintainer_id as i64))
-                                    .text(format!("create_table [words] error: {}", e))
-                                    .build(),
-                            )
-                            .await;
+                    error!("create table [words] error: {}", e);
+                    if let Ok(config) = opt.get_config().await {
+                        if let Some(bot) = config.bot {
+                            let _ = bot
+                                .send_message(
+                                    &SendMessageParams::builder()
+                                        .chat_id(ChatId::Integer(config.maintainer_id as i64))
+                                        .text(format!("create_table [words] error: {}", e))
+                                        .build(),
+                                )
+                                .await;
+                        }
                     }
                 }
             }
 
-            let config = opt.get_config().await.unwrap();
-            if let Some(bot) = &config.bot {
-                bot.delete_webhook(
-                    &DeleteWebhookParams::builder()
-                        .drop_pending_updates(true)
-                        .build(),
-                )
-                .await
-                .unwrap();
+            match opt.get_config().await {
+                Ok(config) => {
+                    if let Some(bot) = &config.bot {
+                        if let Err(e) = bot
+                            .delete_webhook(
+                                &DeleteWebhookParams::builder()
+                                    .drop_pending_updates(true)
+                                    .build(),
+                            )
+                            .await
+                        {
+                            error!("Failed to delete webhook: {}", e);
+                        }
 
-                bot.send_message(
-                    &SendMessageParams::builder()
-                        .chat_id(ChatId::Integer(config.maintainer_id as i64))
-                        .text("start new bot")
-                        .build(),
-                )
-                .await
-                .unwrap();
-            } else {
-                error!("telegram bot token not configured at startup");
+                        if let Err(e) = bot
+                            .send_message(
+                                &SendMessageParams::builder()
+                                    .chat_id(ChatId::Integer(config.maintainer_id as i64))
+                                    .text("start new bot")
+                                    .build(),
+                            )
+                            .await
+                        {
+                            error!("Failed to send start message: {}", e);
+                        }
+                    } else {
+                        error!("telegram bot token not configured at startup");
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to get config at startup: {}", e);
+                }
             }
 
             let mut update_params = GetUpdatesParams::builder().build();

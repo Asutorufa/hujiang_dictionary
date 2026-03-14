@@ -30,7 +30,7 @@ impl<T: DatabaseExecutor, T2: crate::ai::Translator> RunOpt<T, T2> {
         let now = chrono::Utc::now().timestamp() as u64;
         {
             let cache = self.config_cache.read().unwrap();
-            if now - cache.last_updated < 300 && cache.bot.is_some() {
+            if now - cache.last_updated < 300 {
                 return Ok(ConfigCache {
                     allow_users: cache.allow_users.clone(),
                     maintainer_id: cache.maintainer_id,

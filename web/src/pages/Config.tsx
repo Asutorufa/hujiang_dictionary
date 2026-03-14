@@ -40,15 +40,6 @@ export default function Config() {
     null,
   );
 
-  const {
-    isOpen: isConfigOpen,
-    onOpen: onConfigOpen,
-    onClose: onConfigClose,
-  } = useDisclosure();
-  const [editingConfig, setEditingConfig] = useState<Configuration | null>(
-    null,
-  );
-
   const fetchProviders = async () => {
     try {
       const res = await authorizedRequest("/llm/list", {
@@ -137,25 +128,44 @@ export default function Config() {
     onOpen();
   };
 
-  const handleConfigSave = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleGeneralConfigSave = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data = Object.fromEntries(
-      formData.entries(),
-    ) as unknown as Configuration;
+
+    const telegramToken = formData.get("TELEGRAM_TOKEN") as string;
+    const allowUsers = formData.get("ALLOW_USERS") as string;
+    const maintainerId = formData.get("MAINTAINER_ID") as string;
+
+    const formattedAllowUsers = allowUsers
+      .split(",")
+      .map((u) => u.trim())
+      .filter((u) => u.length > 0)
+      .join(",");
+
+    const updates = [
+      { key: "TELEGRAM_TOKEN", value: telegramToken.trim() },
+      { key: "ALLOW_USERS", value: formattedAllowUsers },
+      { key: "MAINTAINER_ID", value: maintainerId.trim() },
+    ];
 
     try {
-      await authorizedRequest("/config/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      onConfigClose();
+      await Promise.all(
+        updates.map((config) =>
+          authorizedRequest("/config/save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(config),
+          }),
+        ),
+      );
       fetchConfigurations();
+      alert("Configurations saved successfully.");
     } catch (err) {
       console.error(err);
       alert(
-        `Failed to save configuration: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to save configurations: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
   };
@@ -163,16 +173,6 @@ export default function Config() {
   const openEditModal = (provider: LlmProvider) => {
     setEditingProvider(provider);
     onOpen();
-  };
-
-  const openConfigAddModal = () => {
-    setEditingConfig(null);
-    onConfigOpen();
-  };
-
-  const openConfigEditModal = (config: Configuration) => {
-    setEditingConfig(config);
-    onConfigOpen();
   };
 
   return (
@@ -245,42 +245,71 @@ export default function Config() {
       )}
 
       {activeTab === "config" && (
-        <>
-          <Flex justify="between" align="center" mb="6">
-            <Text size="6" weight="bold">
-              General Configurations
-            </Text>
-            <Button color="blue" onClick={openConfigAddModal}>
-              Add Configuration
-            </Button>
-          </Flex>
+        <Card size="3" className="mt-4">
+          <form onSubmit={handleGeneralConfigSave}>
+            <Flex direction="column" gap="4">
+              <Text size="6" weight="bold" mb="2">
+                General Configurations
+              </Text>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            {configurations.map((c) => (
-              <Card key={c.key} size="2">
-                <Flex justify="between" align="start">
-                  <Box>
-                    <Text size="4" weight="bold" as="div">
-                      {c.key}
-                    </Text>
-                    <Text size="2" color="gray" as="div" className="truncate">
-                      {c.value}
-                    </Text>
-                  </Box>
-                  <Flex gap="2">
-                    <Button
-                      size="1"
-                      variant="soft"
-                      onClick={() => openConfigEditModal(c)}
-                    >
-                      Edit
-                    </Button>
-                  </Flex>
-                </Flex>
-              </Card>
-            ))}
-          </div>
-        </>
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">
+                  Telegram Bot Token (TELEGRAM_TOKEN)
+                </Text>
+                <TextField.Root
+                  name="TELEGRAM_TOKEN"
+                  type="password"
+                  defaultValue={
+                    configurations.find((c) => c.key === "TELEGRAM_TOKEN")
+                      ?.value || ""
+                  }
+                  placeholder="123456789:ABCDefghIJKlmnopQRSTuvwxYZ1234567890"
+                />
+              </Flex>
+
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">
+                  Maintainer ID (MAINTAINER_ID)
+                </Text>
+                <Text size="1" color="gray">
+                  The primary admin user ID who receives cron messages and error
+                  reports.
+                </Text>
+                <TextField.Root
+                  name="MAINTAINER_ID"
+                  defaultValue={
+                    configurations.find((c) => c.key === "MAINTAINER_ID")
+                      ?.value || ""
+                  }
+                  placeholder="123456789"
+                />
+              </Flex>
+
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">
+                  Allowed Users (ALLOW_USERS)
+                </Text>
+                <Text size="1" color="gray">
+                  Comma-separated list of allowed Telegram User IDs.
+                </Text>
+                <TextField.Root
+                  name="ALLOW_USERS"
+                  defaultValue={
+                    configurations.find((c) => c.key === "ALLOW_USERS")
+                      ?.value || ""
+                  }
+                  placeholder="123456789,987654321"
+                />
+              </Flex>
+
+              <Flex justify="end" mt="4">
+                <Button color="blue" type="submit" size="3">
+                  Save Configurations
+                </Button>
+              </Flex>
+            </Flex>
+          </form>
+        </Card>
       )}
 
       <Dialog.Root open={isOpen} onOpenChange={onClose}>
@@ -374,52 +403,6 @@ export default function Config() {
                 variant="soft"
                 type="button"
                 onClick={onClose}
-              >
-                Cancel
-              </Button>
-              <Button color="blue" type="submit">
-                Save
-              </Button>
-            </Flex>
-          </form>
-        </Dialog.Content>
-      </Dialog.Root>
-
-      <Dialog.Root open={isConfigOpen} onOpenChange={onConfigClose}>
-        <Dialog.Content maxWidth="450px">
-          <form onSubmit={handleConfigSave}>
-            <Dialog.Title>
-              {editingConfig ? "Edit Configuration" : "Add Configuration"}
-            </Dialog.Title>
-            <Flex direction="column" gap="3" mt="4">
-              <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">
-                  Key
-                </Text>
-                <TextField.Root
-                  name="key"
-                  defaultValue={editingConfig?.key}
-                  readOnly={!!editingConfig}
-                  required
-                />
-              </Flex>
-              <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">
-                  Value
-                </Text>
-                <TextField.Root
-                  name="value"
-                  defaultValue={editingConfig?.value}
-                  required
-                />
-              </Flex>
-            </Flex>
-            <Flex gap="3" mt="4" justify="end">
-              <Button
-                color="gray"
-                variant="soft"
-                type="button"
-                onClick={onConfigClose}
               >
                 Cancel
               </Button>

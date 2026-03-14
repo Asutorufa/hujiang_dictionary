@@ -15,6 +15,7 @@ use worker::*;
 static INIT: Once = Once::new();
 static ENV_CONFIG: OnceLock<EnvConfig> = OnceLock::new();
 static MIGRATION_DONE: AtomicBool = AtomicBool::new(false);
+static GLOBAL_CONFIG_CACHE: OnceLock<Arc<RwLock<ConfigCache>>> = OnceLock::new();
 
 struct EnvConfig {
     auth_secret: String,
@@ -89,12 +90,16 @@ async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
         auth_username: config.auth_username.clone(),
         auth_password: config.auth_password.clone(),
         auth_token_expiration: config.auth_token_expiration,
-        config_cache: Arc::new(RwLock::new(ConfigCache {
-            allow_users: Arc::new(HashSet::new()),
-            maintainer_id: 0,
-            bot: None,
-            last_updated: 0, // Force fetch on first request
-        })),
+        config_cache: GLOBAL_CONFIG_CACHE
+            .get_or_init(|| {
+                Arc::new(RwLock::new(ConfigCache {
+                    allow_users: Arc::new(HashSet::new()),
+                    maintainer_id: 0,
+                    bot: None,
+                    last_updated: 0,
+                }))
+            })
+            .clone(),
     }))
 }
 
