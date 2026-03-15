@@ -718,12 +718,11 @@ export function SpeakerIcon({ size = 24, width, height, ...props }: IconProps) {
   );
 }
 
-
-export const TTSButton: FC<{ text: string; lang: string; className?: string }> = ({
-  text,
-  lang,
-  className,
-}) => {
+export const TTSButton: FC<{
+  text: string;
+  lang: string;
+  className?: string;
+}> = ({ text, lang, className }) => {
   const [playing, setPlaying] = useState(false);
 
   const play = () => {

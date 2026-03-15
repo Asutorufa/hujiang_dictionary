@@ -455,17 +455,17 @@ export default function Home() {
           <Card>
             <Box>
               <Flex justify="between" align="center" className="mb-2">
-              <Text
-                as="label"
-                size="1"
-                weight="bold"
-                color="gray"
-                className="block uppercase tracking-widest"
-              >
-                Input
-              </Text>
-              <TTSButton text={query} lang={srcLang || 'en'} />
-            </Flex>
+                <Text
+                  as="label"
+                  size="1"
+                  weight="bold"
+                  color="gray"
+                  className="block uppercase tracking-widest"
+                >
+                  Input
+                </Text>
+                <TTSButton text={query} lang={srcLang || "en"} />
+              </Flex>
               <TextArea
                 color={query.length === 0 ? "red" : undefined}
                 value={query}
@@ -595,7 +595,7 @@ export default function Home() {
               >
                 Result
               </Text>
-              <TTSButton text={result.result} lang={dstLang || 'en'} />
+              <TTSButton text={result.result} lang={dstLang || "en"} />
             </Flex>
             <Card>
               {result.result ? (
