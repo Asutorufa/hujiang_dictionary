@@ -19,6 +19,7 @@ import {
   Markdown,
   PlayIcon,
   SaveWordModal,
+  TTSButton,
 } from "../components";
 import { PageHeader } from "@/ui/PageHeader";
 import { PageContainer } from "@/ui/PageContainer";
@@ -453,15 +454,18 @@ export default function Home() {
         <motion.div variants={itemVariants} initial="hidden" animate="visible">
           <Card>
             <Box>
+              <Flex justify="between" align="center" className="mb-2">
               <Text
                 as="label"
                 size="1"
                 weight="bold"
                 color="gray"
-                className="mb-2 block uppercase tracking-widest"
+                className="block uppercase tracking-widest"
               >
                 Input
               </Text>
+              <TTSButton text={query} lang={srcLang || 'en'} />
+            </Flex>
               <TextArea
                 color={query.length === 0 ? "red" : undefined}
                 value={query}
@@ -582,14 +586,17 @@ export default function Home() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Text
-              size="1"
-              weight="bold"
-              color="gray"
-              className="mb-2 ml-1 block uppercase tracking-widest"
-            >
-              Result
-            </Text>
+            <Flex justify="between" align="center" className="mb-2 ml-1">
+              <Text
+                size="1"
+                weight="bold"
+                color="gray"
+                className="block uppercase tracking-widest"
+              >
+                Result
+              </Text>
+              <TTSButton text={result.result} lang={dstLang || 'en'} />
+            </Flex>
             <Card>
               {result.result ? (
                 <Box className="prose prose-sm dark:prose-invert max-w-none">
