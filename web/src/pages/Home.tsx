@@ -511,24 +511,38 @@ export default function Home() {
                       </Text>
                       <DropdownMenu.Root>
                         <DropdownMenu.Trigger>
-                          <Button variant="surface" color="gray" className="cursor-pointer">
+                          <Button
+                            variant="surface"
+                            color="gray"
+                            className="cursor-pointer"
+                          >
                             {searchEngine === "none" && "None"}
                             {searchEngine === "duckduckgo" && "DuckDuckGo"}
-                            {searchEngine === "google_api" && "Google Search API"}
-                            {searchEngine === "google_scraped" && "Google Search v2 (Scraped)"}
+                            {searchEngine === "google_api" &&
+                              "Google Search API"}
+                            {searchEngine === "google_scraped" &&
+                              "Google Search v2 (Scraped)"}
                           </Button>
                         </DropdownMenu.Trigger>
                         <DropdownMenu.Content>
-                          <DropdownMenu.Item onSelect={() => setSearchEngine("none")}>
+                          <DropdownMenu.Item
+                            onSelect={() => setSearchEngine("none")}
+                          >
                             None
                           </DropdownMenu.Item>
-                          <DropdownMenu.Item onSelect={() => setSearchEngine("duckduckgo")}>
+                          <DropdownMenu.Item
+                            onSelect={() => setSearchEngine("duckduckgo")}
+                          >
                             DuckDuckGo
                           </DropdownMenu.Item>
-                          <DropdownMenu.Item onSelect={() => setSearchEngine("google_api")}>
+                          <DropdownMenu.Item
+                            onSelect={() => setSearchEngine("google_api")}
+                          >
                             Google Search API
                           </DropdownMenu.Item>
-                          <DropdownMenu.Item onSelect={() => setSearchEngine("google_scraped")}>
+                          <DropdownMenu.Item
+                            onSelect={() => setSearchEngine("google_scraped")}
+                          >
                             Google Search v2 (Scraped)
                           </DropdownMenu.Item>
                         </DropdownMenu.Content>
