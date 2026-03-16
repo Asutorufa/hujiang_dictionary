@@ -69,4 +69,10 @@ impl Provider {
             Provider::OpenAIResponses(provider) => provider.model = model.to_string(),
         }
     }
+
+    pub fn set_gemini_search(&mut self, enabled: bool) {
+        if let Provider::Gemini(provider) = self {
+            provider.gemini_search = enabled;
+        }
+    }
 }

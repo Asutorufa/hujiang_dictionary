@@ -529,8 +529,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                 api_key: &req.api_key,
                 provider: &req.provider,
                 models: &req.models,
-                project_id: &req.project_id,
-                location: &req.location,
+                features: &req.features,
             })
             .await?;
         Ok([b'{', b'}'].to_vec())
@@ -599,15 +598,10 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                 .filter(|s| !s.trim().is_empty())
                 .map(|s| s.trim().to_string())
                 .collect(),
-            project_id: if p.project_id.is_empty() {
+            features: if p.features.is_empty() {
                 None
             } else {
-                Some(p.project_id)
-            },
-            location: if p.location.is_empty() {
-                None
-            } else {
-                Some(p.location)
+                serde_json::from_str(&p.features).ok()
             },
         };
         hj_ai::provider::Provider::from(config)

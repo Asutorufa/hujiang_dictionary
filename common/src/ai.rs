@@ -363,13 +363,12 @@ pub struct ConfigProvider {
     pub api_key: Option<String>,
     pub provider: Option<ProviderType>,
     pub models: Vec<String>,
-    pub project_id: Option<String>,
-    pub location: Option<String>,
+    pub features: Option<serde_json::Value>,
 }
 
 impl From<ConfigProvider> for hj_ai::provider::Provider {
     fn from(v: ConfigProvider) -> Self {
-        match v.provider.unwrap_or_default() {
+        let mut provider = match v.provider.unwrap_or_default() {
             ProviderType::OpenAI => hj_ai::provider::Provider::OpenAI(hj_ai::openai::OpenAI {
                 name: v.name,
                 base_url: v.base_url.unwrap_or_default(),
@@ -384,9 +383,24 @@ impl From<ConfigProvider> for hj_ai::provider::Provider {
                 v.models,
             )),
             ProviderType::VertexAI => {
+                let project_id = v
+                    .features
+                    .as_ref()
+                    .and_then(|f| f.get("project_id"))
+                    .and_then(|f| f.as_str())
+                    .unwrap_or_default()
+                    .to_string();
+                let location = v
+                    .features
+                    .as_ref()
+                    .and_then(|f| f.get("location"))
+                    .and_then(|f| f.as_str())
+                    .unwrap_or("us-central1")
+                    .to_string();
+
                 hj_ai::provider::Provider::Gemini(hj_ai::gemini::Gemini::new_vertex_ai(
-                    v.project_id.unwrap_or_default(),
-                    v.location.unwrap_or_else(|| "us-central1".to_string()),
+                    project_id,
+                    location,
                     v.models.first().cloned().unwrap_or_default(),
                     v.api_key.unwrap_or_default(),
                     v.models,
@@ -401,7 +415,15 @@ impl From<ConfigProvider> for hj_ai::provider::Provider {
                     ..Default::default()
                 })
             }
+        };
+
+        if let Some(features) = v.features
+            && let Some(gemini_search) = features.get("gemini_search").and_then(|v| v.as_bool())
+        {
+            provider.set_gemini_search(gemini_search);
         }
+
+        provider
     }
 }
 

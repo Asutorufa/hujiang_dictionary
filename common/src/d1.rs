@@ -41,8 +41,7 @@ define_model!(
         api_key: String,
         provider: String,
         models: String,
-        project_id: String,
-        location: String,
+        features: String,
     }
 );
 
@@ -92,18 +91,16 @@ define_sql!(
         api_key: &'a str,
         provider: &'a str,
         models: &'a str,
-        project_id: &'a str,
-        location: &'a str
+        features: &'a str
     } => r#"
-        INSERT INTO llm_providers (name, base_url, api_key, provider, models, project_id, location)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+        INSERT INTO llm_providers (name, base_url, api_key, provider, models, features)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6)
         ON CONFLICT(name) DO UPDATE SET
             base_url = excluded.base_url,
             api_key = excluded.api_key,
             provider = excluded.provider,
             models = excluded.models,
-            project_id = excluded.project_id,
-            location = excluded.location
+            features = excluded.features
     "#,
 
     DeleteLlmProvider { name: &'a str } => "DELETE FROM llm_providers WHERE name = ?",
@@ -194,10 +191,29 @@ pub fn migrations() -> Vec<Migration<SqlStatement>> {
                 "base_url" TEXT DEFAULT '',
                 "api_key" TEXT DEFAULT '',
                 "provider" TEXT DEFAULT '',
-                "models" TEXT DEFAULT '',
-                "project_id" TEXT DEFAULT '',
-                "location" TEXT DEFAULT ''
+                "models" TEXT DEFAULT ''
             );
+            "#
+                .to_string(),
+            )],
+        ),
+        Migration::new(
+            4,
+            "add_features_to_llm_providers",
+            vec![SqlStatement(
+                r#"
+            ALTER TABLE llm_providers ADD COLUMN features TEXT DEFAULT '{}';
+            "#
+                .to_string(),
+            )],
+        ),
+        Migration::new(
+            5,
+            "drop_project_id_and_location_from_llm_providers",
+            vec![SqlStatement(
+                r#"
+            ALTER TABLE llm_providers DROP COLUMN project_id;
+            ALTER TABLE llm_providers DROP COLUMN location;
             "#
                 .to_string(),
             )],
