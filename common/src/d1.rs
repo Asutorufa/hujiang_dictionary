@@ -191,9 +191,7 @@ pub fn migrations() -> Vec<Migration<SqlStatement>> {
                 "base_url" TEXT DEFAULT '',
                 "api_key" TEXT DEFAULT '',
                 "provider" TEXT DEFAULT '',
-                "models" TEXT DEFAULT '',
-                "project_id" TEXT DEFAULT '',
-                "location" TEXT DEFAULT ''
+                "models" TEXT DEFAULT ''
             );
             "#
                 .to_string(),
