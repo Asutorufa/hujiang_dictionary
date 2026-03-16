@@ -124,9 +124,9 @@ export default function Home() {
   const [selected, setSelected] = useLocalStorage("translate_type", "ktbk");
   const [query, setQuery] = useLocalStorage("query", "");
   const [instruction, setInstruction] = useLocalStorage("instruction", "");
-  const [googleSearch, setGoogleSearch] = useLocalStorage(
-    "google_search",
-    false,
+  const [searchEngine, setSearchEngine] = useLocalStorage(
+    "search_engine",
+    "none",
   );
   const [result, setResult] = useLocalStorage<{
     result: string;
@@ -188,7 +188,7 @@ export default function Home() {
             method: modelName,
             word: query,
             instruction: instruction.length > 0 ? instruction : undefined,
-            google_search: googleSearch,
+            search_engine: searchEngine === "none" ? undefined : searchEngine,
             src_lang: srcLang ? srcLang : undefined,
             dst_lang: dstLang ? dstLang : undefined,
             custom_llm: customLLM,
@@ -221,7 +221,7 @@ export default function Home() {
           query: query,
           srcLang: srcLang,
           dstLang: dstLang,
-          google_search: googleSearch,
+          search_engine: searchEngine === "none" ? undefined : searchEngine,
           instruction: instruction,
           selected: modelName,
           custom_llm: customLLM,
@@ -243,7 +243,7 @@ export default function Home() {
     query,
     srcLang,
     dstLang,
-    googleSearch,
+    searchEngine,
     instruction,
     selected,
     customModels,
@@ -505,15 +505,35 @@ export default function Home() {
                   className="mt-4 space-y-4 overflow-hidden"
                 >
                   <Flex gap="6" wrap="wrap">
-                    <Text as="label" size="2" weight="medium">
-                      <Flex gap="2" align="center" className="cursor-pointer">
-                        <Switch
-                          checked={googleSearch}
-                          onCheckedChange={(e) => setGoogleSearch(e)}
-                        />
-                        Google Search
-                      </Flex>
-                    </Text>
+                    <Flex gap="2" align="center">
+                      <Text size="2" color="gray">
+                        Search Grounding
+                      </Text>
+                      <DropdownMenu.Root>
+                        <DropdownMenu.Trigger>
+                          <Button variant="surface" color="gray" className="cursor-pointer">
+                            {searchEngine === "none" && "None"}
+                            {searchEngine === "duckduckgo" && "DuckDuckGo"}
+                            {searchEngine === "google_api" && "Google Search API"}
+                            {searchEngine === "google_scraped" && "Google Search v2 (Scraped)"}
+                          </Button>
+                        </DropdownMenu.Trigger>
+                        <DropdownMenu.Content>
+                          <DropdownMenu.Item onSelect={() => setSearchEngine("none")}>
+                            None
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item onSelect={() => setSearchEngine("duckduckgo")}>
+                            DuckDuckGo
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item onSelect={() => setSearchEngine("google_api")}>
+                            Google Search API
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item onSelect={() => setSearchEngine("google_scraped")}>
+                            Google Search v2 (Scraped)
+                          </DropdownMenu.Item>
+                        </DropdownMenu.Content>
+                      </DropdownMenu.Root>
+                    </Flex>
 
                     <Text as="label" size="2" weight="medium">
                       <Flex gap="2" align="center" className="cursor-pointer">
@@ -526,7 +546,7 @@ export default function Home() {
                     </Text>
                   </Flex>
 
-                  {!googleSearch && (
+                  {searchEngine === "none" && (
                     <Box>
                       <Text
                         as="label"
