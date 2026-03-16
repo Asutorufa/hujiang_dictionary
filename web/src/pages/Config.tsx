@@ -114,7 +114,8 @@ export default function Config() {
       } catch {
         addToast({
           title: "Warning",
-          description: "Existing feature configuration was corrupt and will be reset.",
+          description:
+            "Existing feature configuration was corrupt and will be reset.",
           color: "warning",
         });
       }
