@@ -7,6 +7,7 @@ use crate::{Completion, CompletionResponse, Error, Message};
 pub struct Gemini {
     client: Client,
     pub models: Vec<String>,
+    pub gemini_search: bool,
 }
 
 impl Gemini {
@@ -14,6 +15,7 @@ impl Gemini {
         Self {
             client: Client::new(api_key, model),
             models,
+            gemini_search: false,
         }
     }
 
@@ -27,6 +29,7 @@ impl Gemini {
         Self {
             client: Client::new_vertex_ai(project_id, location, model, token),
             models,
+            gemini_search: false,
         }
     }
 
@@ -54,9 +57,16 @@ impl Gemini {
             })
             .collect();
 
+        let mut tools = None;
+        if self.gemini_search {
+            tools = Some(vec![gemini::Tool {
+                google_search: Some(gemini::GoogleSearch::default()),
+            }]);
+        }
+
         let req = GenerateContentRequest {
             contents,
-            tools: None,
+            tools,
             safety_settings: None,
             system_instruction: None,
             generation_config: Some(gemini::GenerationConfig {
@@ -147,9 +157,16 @@ impl Completion for Gemini {
             })
             .collect();
 
+        let mut tools = None;
+        if self.gemini_search {
+            tools = Some(vec![gemini::Tool {
+                google_search: Some(gemini::GoogleSearch::default()),
+            }]);
+        }
+
         let req = GenerateContentRequest {
             contents,
-            tools: None,
+            tools,
             safety_settings: None,
             system_instruction: None,
             generation_config: Some(gemini::GenerationConfig {

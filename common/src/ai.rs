@@ -365,11 +365,12 @@ pub struct ConfigProvider {
     pub models: Vec<String>,
     pub project_id: Option<String>,
     pub location: Option<String>,
+    pub features: Option<serde_json::Value>,
 }
 
 impl From<ConfigProvider> for hj_ai::provider::Provider {
     fn from(v: ConfigProvider) -> Self {
-        match v.provider.unwrap_or_default() {
+        let mut provider = match v.provider.unwrap_or_default() {
             ProviderType::OpenAI => hj_ai::provider::Provider::OpenAI(hj_ai::openai::OpenAI {
                 name: v.name,
                 base_url: v.base_url.unwrap_or_default(),
@@ -401,7 +402,15 @@ impl From<ConfigProvider> for hj_ai::provider::Provider {
                     ..Default::default()
                 })
             }
+        };
+
+        if let Some(features) = v.features {
+            if let Some(gemini_search) = features.get("gemini_search").and_then(|v| v.as_bool()) {
+                provider.set_gemini_search(gemini_search);
+            }
         }
+
+        provider
     }
 }
 

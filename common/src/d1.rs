@@ -43,6 +43,7 @@ define_model!(
         models: String,
         project_id: String,
         location: String,
+        features: String,
     }
 );
 
@@ -93,17 +94,19 @@ define_sql!(
         provider: &'a str,
         models: &'a str,
         project_id: &'a str,
-        location: &'a str
+        location: &'a str,
+        features: &'a str
     } => r#"
-        INSERT INTO llm_providers (name, base_url, api_key, provider, models, project_id, location)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+        INSERT INTO llm_providers (name, base_url, api_key, provider, models, project_id, location, features)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
         ON CONFLICT(name) DO UPDATE SET
             base_url = excluded.base_url,
             api_key = excluded.api_key,
             provider = excluded.provider,
             models = excluded.models,
             project_id = excluded.project_id,
-            location = excluded.location
+            location = excluded.location,
+            features = excluded.features
     "#,
 
     DeleteLlmProvider { name: &'a str } => "DELETE FROM llm_providers WHERE name = ?",
@@ -198,6 +201,16 @@ pub fn migrations() -> Vec<Migration<SqlStatement>> {
                 "project_id" TEXT DEFAULT '',
                 "location" TEXT DEFAULT ''
             );
+            "#
+                .to_string(),
+            )],
+        ),
+        Migration::new(
+            4,
+            "add_features_to_llm_providers",
+            vec![SqlStatement(
+                r#"
+            ALTER TABLE llm_providers ADD COLUMN features TEXT DEFAULT '{}';
             "#
                 .to_string(),
             )],

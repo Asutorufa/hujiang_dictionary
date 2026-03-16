@@ -24,6 +24,7 @@ export type LlmProvider = {
   models: string;
   project_id: string;
   location: string;
+  features: string;
 };
 
 export type Configuration = {
@@ -42,6 +43,8 @@ export default function Config() {
   const [editingProvider, setEditingProvider] = useState<LlmProvider | null>(
     null,
   );
+  const [selectedProviderType, setSelectedProviderType] = useState<string>("openai");
+  const [geminiSearch, setGeminiSearch] = useState<boolean>(false);
 
   const fetchProviders = async () => {
     try {
@@ -96,6 +99,23 @@ export default function Config() {
       formData.entries(),
     ) as unknown as LlmProvider;
 
+    // Pack features
+    let featuresObj: Record<string, unknown> = {};
+    if (editingProvider && editingProvider.features) {
+        try {
+            featuresObj = JSON.parse(editingProvider.features) as Record<string, unknown>;
+        } catch {
+            // ignore
+        }
+    }
+
+    if ((data.provider === "gemini" || data.provider === "vertexai") && geminiSearch) {
+        featuresObj.gemini_search = true;
+    } else {
+        delete featuresObj.gemini_search;
+    }
+    data.features = JSON.stringify(featuresObj);
+
     try {
       await authorizedRequest("/llm/save", {
         method: "POST",
@@ -116,6 +136,8 @@ export default function Config() {
 
   const openAddModal = () => {
     setEditingProvider(null);
+    setSelectedProviderType("openai");
+    setGeminiSearch(false);
     onOpenChange(true);
   };
 
@@ -169,6 +191,13 @@ export default function Config() {
 
   const openEditModal = (provider: LlmProvider) => {
     setEditingProvider(provider);
+    setSelectedProviderType(provider.provider);
+    try {
+        const features = JSON.parse(provider.features || "{}") as Record<string, unknown>;
+        setGeminiSearch(features?.gemini_search === true);
+    } catch {
+        setGeminiSearch(false);
+    }
     onOpenChange(true);
   };
 
@@ -392,9 +421,8 @@ export default function Config() {
                 </Text>
                 <Select.Root
                   name="provider"
-                  defaultValue={
-                    editingProvider ? editingProvider.provider : "openai"
-                  }
+                  value={selectedProviderType}
+                  onValueChange={setSelectedProviderType}
                 >
                   <Select.Trigger />
                   <Select.Content>
@@ -434,24 +462,54 @@ export default function Config() {
                   required
                 />
               </Flex>
-              <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">
-                  Project ID (for VertexAI)
-                </Text>
-                <TextField.Root
-                  name="project_id"
-                  defaultValue={editingProvider?.project_id}
-                />
-              </Flex>
-              <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">
-                  Location (for VertexAI)
-                </Text>
-                <TextField.Root
-                  name="location"
-                  defaultValue={editingProvider?.location}
-                />
-              </Flex>
+              {selectedProviderType === "vertexai" && (
+                  <>
+                      <Flex direction="column" gap="1">
+                        <Text as="label" size="2" weight="bold">
+                          Project ID (for VertexAI)
+                        </Text>
+                        <TextField.Root
+                          name="project_id"
+                          defaultValue={editingProvider?.project_id}
+                        />
+                      </Flex>
+                      <Flex direction="column" gap="1">
+                        <Text as="label" size="2" weight="bold">
+                          Location (for VertexAI)
+                        </Text>
+                        <TextField.Root
+                          name="location"
+                          defaultValue={editingProvider?.location}
+                        />
+                      </Flex>
+                  </>
+              )}
+              {(selectedProviderType === "gemini" || selectedProviderType === "vertexai") && (
+                <Flex direction="column" gap="1">
+                  <Text as="label" size="2" weight="bold">
+                    Features
+                  </Text>
+                  <Flex align="center" gap="2">
+                    <Switch
+                        id="gemini_search"
+                        checked={geminiSearch}
+                        onCheckedChange={setGeminiSearch}
+                    />
+                    <Text as="label" size="2" htmlFor="gemini_search" className="cursor-pointer">
+                        Enable Gemini Google Search Grounding
+                    </Text>
+                  </Flex>
+                  {geminiSearch && (
+                    <Text
+                      size="1"
+                      color="orange"
+                      className="block mt-1"
+                    >
+                      Warning: Gemini 3 models charge per search query executed.
+                    </Text>
+                  )}
+                </Flex>
+              )}
             </Flex>
             <Flex gap="3" mt="4" justify="end">
               <Button
