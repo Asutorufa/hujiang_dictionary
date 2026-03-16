@@ -41,8 +41,6 @@ define_model!(
         api_key: String,
         provider: String,
         models: String,
-        project_id: String,
-        location: String,
         features: String,
     }
 );
@@ -93,19 +91,15 @@ define_sql!(
         api_key: &'a str,
         provider: &'a str,
         models: &'a str,
-        project_id: &'a str,
-        location: &'a str,
         features: &'a str
     } => r#"
-        INSERT INTO llm_providers (name, base_url, api_key, provider, models, project_id, location, features)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+        INSERT INTO llm_providers (name, base_url, api_key, provider, models, features)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6)
         ON CONFLICT(name) DO UPDATE SET
             base_url = excluded.base_url,
             api_key = excluded.api_key,
             provider = excluded.provider,
             models = excluded.models,
-            project_id = excluded.project_id,
-            location = excluded.location,
             features = excluded.features
     "#,
 

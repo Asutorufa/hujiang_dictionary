@@ -47,6 +47,8 @@ export default function Config() {
   const [selectedProviderType, setSelectedProviderType] =
     useState<string>("openai");
   const [geminiSearch, setGeminiSearch] = useState<boolean>(false);
+  const [projectId, setProjectId] = useState<string>("");
+  const [vertexLocation, setVertexLocation] = useState<string>("");
 
   const fetchProviders = async () => {
     try {
@@ -122,6 +124,17 @@ export default function Config() {
     } else {
       delete featuresObj.gemini_search;
     }
+
+    if (data.provider === "vertexai") {
+      const formDataProjectId = formData.get("project_id") as string;
+      const formDataLocation = formData.get("location") as string;
+      if (formDataProjectId) featuresObj.project_id = formDataProjectId;
+      if (formDataLocation) featuresObj.location = formDataLocation;
+    } else {
+      delete featuresObj.project_id;
+      delete featuresObj.location;
+    }
+
     data.features = JSON.stringify(featuresObj);
 
     try {
@@ -146,6 +159,8 @@ export default function Config() {
     setEditingProvider(null);
     setSelectedProviderType("openai");
     setGeminiSearch(false);
+    setProjectId("");
+    setVertexLocation("");
     onOpenChange(true);
   };
 
@@ -206,8 +221,12 @@ export default function Config() {
         unknown
       >;
       setGeminiSearch(features?.gemini_search === true);
+      setProjectId((features?.project_id as string) || "");
+      setVertexLocation((features?.location as string) || "");
     } catch {
       setGeminiSearch(false);
+      setProjectId("");
+      setVertexLocation("");
     }
     onOpenChange(true);
   };
@@ -481,7 +500,7 @@ export default function Config() {
                     </Text>
                     <TextField.Root
                       name="project_id"
-                      defaultValue={editingProvider?.project_id}
+                      defaultValue={projectId}
                     />
                   </Flex>
                   <Flex direction="column" gap="1">
@@ -490,7 +509,7 @@ export default function Config() {
                     </Text>
                     <TextField.Root
                       name="location"
-                      defaultValue={editingProvider?.location}
+                      defaultValue={vertexLocation}
                     />
                   </Flex>
                 </>
