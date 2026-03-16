@@ -48,7 +48,8 @@ async function fetchTranslation(
       method: opts.selected,
       word: opts.query,
       instruction: opts.instruction.length > 0 ? opts.instruction : undefined,
-      prompt_mode: opts.prompt_mode !== "default" ? opts.prompt_mode : undefined,
+      prompt_mode:
+        opts.prompt_mode !== "default" ? opts.prompt_mode : undefined,
       google_search: opts.google_search,
       src_lang: opts.srcLang ? opts.srcLang : undefined,
       dst_lang: opts.dstLang ? opts.dstLang : undefined,
@@ -544,24 +545,37 @@ export default function Home() {
                     </Text>
                     <DropdownMenu.Root>
                       <DropdownMenu.Trigger>
-                        <Button variant="surface" color="gray" className="cursor-pointer">
+                        <Button
+                          variant="surface"
+                          color="gray"
+                          className="cursor-pointer"
+                        >
                           {promptMode === "translate" && "Simple Translation"}
-                          {promptMode === "explain" && "Word-by-Word Explanation"}
+                          {promptMode === "explain" &&
+                            "Word-by-Word Explanation"}
                           {promptMode === "detailed" && "Detailed Analysis"}
                           {promptMode === "default" && "Default"}
                         </Button>
                       </DropdownMenu.Trigger>
                       <DropdownMenu.Content>
-                        <DropdownMenu.Item onSelect={() => setPromptMode("default")}>
+                        <DropdownMenu.Item
+                          onSelect={() => setPromptMode("default")}
+                        >
                           Default
                         </DropdownMenu.Item>
-                        <DropdownMenu.Item onSelect={() => setPromptMode("translate")}>
+                        <DropdownMenu.Item
+                          onSelect={() => setPromptMode("translate")}
+                        >
                           Simple Translation
                         </DropdownMenu.Item>
-                        <DropdownMenu.Item onSelect={() => setPromptMode("explain")}>
+                        <DropdownMenu.Item
+                          onSelect={() => setPromptMode("explain")}
+                        >
                           Word-by-Word Explanation
                         </DropdownMenu.Item>
-                        <DropdownMenu.Item onSelect={() => setPromptMode("detailed")}>
+                        <DropdownMenu.Item
+                          onSelect={() => setPromptMode("detailed")}
+                        >
                           Detailed Analysis
                         </DropdownMenu.Item>
                       </DropdownMenu.Content>
