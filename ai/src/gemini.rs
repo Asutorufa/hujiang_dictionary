@@ -37,6 +37,16 @@ impl Gemini {
         self.client.set_model(model);
     }
 
+    fn get_tools(&self) -> Option<Vec<gemini::Tool>> {
+        if self.gemini_search {
+            Some(vec![gemini::Tool {
+                google_search: Some(gemini::GoogleSearch::default()),
+            }])
+        } else {
+            None
+        }
+    }
+
     pub async fn create_completion_stream(
         self,
         messages: Vec<Message>,
@@ -57,12 +67,7 @@ impl Gemini {
             })
             .collect();
 
-        let mut tools = None;
-        if self.gemini_search {
-            tools = Some(vec![gemini::Tool {
-                google_search: Some(gemini::GoogleSearch::default()),
-            }]);
-        }
+        let tools = self.get_tools();
 
         let req = GenerateContentRequest {
             contents,
