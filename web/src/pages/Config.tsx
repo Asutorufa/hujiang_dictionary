@@ -112,7 +112,11 @@ export default function Config() {
           unknown
         >;
       } catch {
-        // ignore
+        addToast({
+          title: "Warning",
+          description: "Existing feature configuration was corrupt and will be reset.",
+          color: "warning",
+        });
       }
     }
 
