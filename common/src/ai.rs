@@ -383,12 +383,16 @@ impl From<ConfigProvider> for hj_ai::provider::Provider {
                 v.models,
             )),
             ProviderType::VertexAI => {
-                let project_id = v.features.as_ref()
+                let project_id = v
+                    .features
+                    .as_ref()
                     .and_then(|f| f.get("project_id"))
                     .and_then(|f| f.as_str())
                     .unwrap_or_default()
                     .to_string();
-                let location = v.features.as_ref()
+                let location = v
+                    .features
+                    .as_ref()
                     .and_then(|f| f.get("location"))
                     .and_then(|f| f.as_str())
                     .unwrap_or("us-central1")
