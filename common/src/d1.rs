@@ -207,6 +207,17 @@ pub fn migrations() -> Vec<Migration<SqlStatement>> {
                 .to_string(),
             )],
         ),
+        Migration::new(
+            5,
+            "drop_project_id_and_location_from_llm_providers",
+            vec![SqlStatement(
+                r#"
+            ALTER TABLE llm_providers DROP COLUMN project_id;
+            ALTER TABLE llm_providers DROP COLUMN location;
+            "#
+                .to_string(),
+            )],
+        ),
     ]
 }
 
