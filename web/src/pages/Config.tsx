@@ -44,7 +44,8 @@ export default function Config() {
   const [editingProvider, setEditingProvider] = useState<LlmProvider | null>(
     null,
   );
-  const [selectedProviderType, setSelectedProviderType] = useState<string>("openai");
+  const [selectedProviderType, setSelectedProviderType] =
+    useState<string>("openai");
   const [geminiSearch, setGeminiSearch] = useState<boolean>(false);
 
   const fetchProviders = async () => {
@@ -103,17 +104,23 @@ export default function Config() {
     // Pack features
     let featuresObj: Record<string, unknown> = {};
     if (editingProvider && editingProvider.features) {
-        try {
-            featuresObj = JSON.parse(editingProvider.features) as Record<string, unknown>;
-        } catch {
-            // ignore
-        }
+      try {
+        featuresObj = JSON.parse(editingProvider.features) as Record<
+          string,
+          unknown
+        >;
+      } catch {
+        // ignore
+      }
     }
 
-    if ((data.provider === "gemini" || data.provider === "vertexai") && geminiSearch) {
-        featuresObj.gemini_search = true;
+    if (
+      (data.provider === "gemini" || data.provider === "vertexai") &&
+      geminiSearch
+    ) {
+      featuresObj.gemini_search = true;
     } else {
-        delete featuresObj.gemini_search;
+      delete featuresObj.gemini_search;
     }
     data.features = JSON.stringify(featuresObj);
 
@@ -194,10 +201,13 @@ export default function Config() {
     setEditingProvider(provider);
     setSelectedProviderType(provider.provider);
     try {
-        const features = JSON.parse(provider.features || "{}") as Record<string, unknown>;
-        setGeminiSearch(features?.gemini_search === true);
+      const features = JSON.parse(provider.features || "{}") as Record<
+        string,
+        unknown
+      >;
+      setGeminiSearch(features?.gemini_search === true);
     } catch {
-        setGeminiSearch(false);
+      setGeminiSearch(false);
     }
     onOpenChange(true);
   };
@@ -464,48 +474,50 @@ export default function Config() {
                 />
               </Flex>
               {selectedProviderType === "vertexai" && (
-                  <>
-                      <Flex direction="column" gap="1">
-                        <Text as="label" size="2" weight="bold">
-                          Project ID (for VertexAI)
-                        </Text>
-                        <TextField.Root
-                          name="project_id"
-                          defaultValue={editingProvider?.project_id}
-                        />
-                      </Flex>
-                      <Flex direction="column" gap="1">
-                        <Text as="label" size="2" weight="bold">
-                          Location (for VertexAI)
-                        </Text>
-                        <TextField.Root
-                          name="location"
-                          defaultValue={editingProvider?.location}
-                        />
-                      </Flex>
-                  </>
+                <>
+                  <Flex direction="column" gap="1">
+                    <Text as="label" size="2" weight="bold">
+                      Project ID (for VertexAI)
+                    </Text>
+                    <TextField.Root
+                      name="project_id"
+                      defaultValue={editingProvider?.project_id}
+                    />
+                  </Flex>
+                  <Flex direction="column" gap="1">
+                    <Text as="label" size="2" weight="bold">
+                      Location (for VertexAI)
+                    </Text>
+                    <TextField.Root
+                      name="location"
+                      defaultValue={editingProvider?.location}
+                    />
+                  </Flex>
+                </>
               )}
-              {(selectedProviderType === "gemini" || selectedProviderType === "vertexai") && (
+              {(selectedProviderType === "gemini" ||
+                selectedProviderType === "vertexai") && (
                 <Flex direction="column" gap="1">
                   <Text as="label" size="2" weight="bold">
                     Features
                   </Text>
                   <Flex align="center" gap="2">
                     <Switch
-                        id="gemini_search"
-                        checked={geminiSearch}
-                        onCheckedChange={setGeminiSearch}
+                      id="gemini_search"
+                      checked={geminiSearch}
+                      onCheckedChange={setGeminiSearch}
                     />
-                    <Text as="label" size="2" htmlFor="gemini_search" className="cursor-pointer">
-                        Enable Gemini Google Search Grounding
+                    <Text
+                      as="label"
+                      size="2"
+                      htmlFor="gemini_search"
+                      className="cursor-pointer"
+                    >
+                      Enable Gemini Google Search Grounding
                     </Text>
                   </Flex>
                   {geminiSearch && (
-                    <Text
-                      size="1"
-                      color="orange"
-                      className="block mt-1"
-                    >
+                    <Text size="1" color="orange" className="block mt-1">
                       Warning: Gemini 3 models charge per search query executed.
                     </Text>
                   )}
