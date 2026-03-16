@@ -107,14 +107,38 @@ impl Models {
     }
 }
 
-fn system_msg(chars_limit: bool) -> &'static str {
-    if chars_limit {
-        r#"You are a professional, authentic translation engine, only returns translations.
+fn system_msg(chars_limit: bool, mode: Option<&str>) -> &'static str {
+    match mode {
+        Some("translate") => {
+            r#"You are a professional, authentic translation engine.
+Your task is to provide ONLY the direct translation of the input text.
+Do not include any explanations, annotations, phonetic transcriptions, or conversational text.
+Just output the translated text."#
+        }
+        Some("explain") => {
+            r#"You are a professional, authentic translation engine.
+Your task is to provide the translation, followed by a brief, clear explanation of the key words, phrases, or grammar points used in the text.
+Help the user understand why the text was translated this way."#
+        }
+        Some("detailed") => {
+            r#"You are a professional language tutor and translation engine.
+Your task is to provide a highly detailed analysis of the input text.
+Include the following:
+1. The overall translation.
+2. The pronunciation (e.g., Romaji, Pinyin, or IPA if appropriate).
+3. A detailed, word-by-word breakdown of meaning and grammar.
+4. Explanations of any idioms, cultural nuances, or specific grammar patterns."#
+        }
+        _ => {
+            if chars_limit {
+                r#"You are a professional, authentic translation engine, only returns translations.
 - For words, phrases, or short sentences, provide the translation directly. Include essential explanations only if the context is ambiguous or the user explicitly requests it.
 - If the translated content is approaching the limit, prioritize preserving core meaning and compress the expression when necessary. Paraphrase or summarize if required.
 "#
-    } else {
-        r#"You are a professional, authentic translation engine, only returns translations."#
+            } else {
+                r#"You are a professional, authentic translation engine, only returns translations."#
+            }
+        }
     }
 }
 
@@ -130,6 +154,7 @@ pub struct TranslateRequest<'a> {
     pub query: &'a str,
     pub chars_limit: bool,
     pub instruction: Option<&'a str>,
+    pub prompt_mode: Option<&'a str>,
     pub dst_lang: Option<&'a str>,
 }
 
@@ -162,13 +187,14 @@ pub async fn translate<'a>(
         query: req.query,
         chars_limit: req.chars_limit,
         instruction: instruction.as_deref(),
+        prompt_mode: req.prompt_mode,
         dst_lang: req.dst_lang,
     };
 
     let messages = vec![
         hj_ai::Message {
             role: "system".to_string(),
-            content: system_msg(req2.chars_limit).to_string(),
+            content: system_msg(req2.chars_limit, req2.prompt_mode).to_string(),
         },
         hj_ai::Message {
             role: "user".to_string(),
@@ -203,7 +229,7 @@ pub async fn google_search_req<'a>(
     let messages = vec![
         hj_ai::Message {
             role: "system".to_string(),
-            content: system_msg(req.chars_limit).to_string(),
+            content: system_msg(req.chars_limit, req.prompt_mode).to_string(),
         },
         hj_ai::Message {
             role: "user".to_string(),
@@ -270,13 +296,14 @@ pub async fn translate_stream<'a>(
         query: req.query,
         chars_limit: req.chars_limit,
         instruction: instruction.as_deref(),
+        prompt_mode: req.prompt_mode,
         dst_lang: req.dst_lang,
     };
 
     let messages = vec![
         hj_ai::Message {
             role: "system".to_string(),
-            content: system_msg(req2.chars_limit).to_string(),
+            content: system_msg(req2.chars_limit, req2.prompt_mode).to_string(),
         },
         hj_ai::Message {
             role: "user".to_string(),
@@ -323,7 +350,7 @@ pub async fn google_search_req_stream<'a>(
     let messages = vec![
         hj_ai::Message {
             role: "system".to_string(),
-            content: system_msg(req.chars_limit).to_string(),
+            content: system_msg(req.chars_limit, req.prompt_mode).to_string(),
         },
         hj_ai::Message {
             role: "user".to_string(),

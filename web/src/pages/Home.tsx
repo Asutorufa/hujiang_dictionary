@@ -28,6 +28,7 @@ async function fetchTranslation(
     selected: string;
     query: string;
     instruction: string;
+    prompt_mode?: string;
     google_search: boolean;
     srcLang: string;
     dstLang: string;
@@ -47,6 +48,7 @@ async function fetchTranslation(
       method: opts.selected,
       word: opts.query,
       instruction: opts.instruction.length > 0 ? opts.instruction : undefined,
+      prompt_mode: opts.prompt_mode !== "default" ? opts.prompt_mode : undefined,
       google_search: opts.google_search,
       src_lang: opts.srcLang ? opts.srcLang : undefined,
       dst_lang: opts.dstLang ? opts.dstLang : undefined,
@@ -136,6 +138,7 @@ export default function Home() {
   const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
   const [loading, setLoading] = useState(false);
   const [stream, setStream] = useLocalStorage("stream", true);
+  const [promptMode, setPromptMode] = useLocalStorage("prompt_mode", "default");
   const [open, setOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useLocalStorage(
     "home_advanced_open",
@@ -188,6 +191,7 @@ export default function Home() {
             method: modelName,
             word: query,
             instruction: instruction.length > 0 ? instruction : undefined,
+            prompt_mode: promptMode !== "default" ? promptMode : undefined,
             google_search: googleSearch,
             src_lang: srcLang ? srcLang : undefined,
             dst_lang: dstLang ? dstLang : undefined,
@@ -223,6 +227,7 @@ export default function Home() {
           dstLang: dstLang,
           google_search: googleSearch,
           instruction: instruction,
+          prompt_mode: promptMode,
           selected: modelName,
           custom_llm: customLLM,
         },
@@ -245,6 +250,7 @@ export default function Home() {
     dstLang,
     googleSearch,
     instruction,
+    promptMode,
     selected,
     customModels,
     setResult,
@@ -504,7 +510,7 @@ export default function Home() {
                   transition={{ duration: 0.25 }}
                   className="mt-4 space-y-4 overflow-hidden"
                 >
-                  <Flex gap="6" wrap="wrap">
+                  <Flex gap="6" wrap="wrap" align="center">
                     <Text as="label" size="2" weight="medium">
                       <Flex gap="2" align="center" className="cursor-pointer">
                         <Switch
@@ -525,6 +531,42 @@ export default function Home() {
                       </Flex>
                     </Text>
                   </Flex>
+
+                  <Box>
+                    <Text
+                      as="label"
+                      size="1"
+                      weight="bold"
+                      color="gray"
+                      className="mb-2 block uppercase tracking-widest"
+                    >
+                      Prompt Mode
+                    </Text>
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger>
+                        <Button variant="surface" color="gray" className="cursor-pointer">
+                          {promptMode === "translate" && "Simple Translation"}
+                          {promptMode === "explain" && "Word-by-Word Explanation"}
+                          {promptMode === "detailed" && "Detailed Analysis"}
+                          {promptMode === "default" && "Default"}
+                        </Button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Content>
+                        <DropdownMenu.Item onSelect={() => setPromptMode("default")}>
+                          Default
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item onSelect={() => setPromptMode("translate")}>
+                          Simple Translation
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item onSelect={() => setPromptMode("explain")}>
+                          Word-by-Word Explanation
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item onSelect={() => setPromptMode("detailed")}>
+                          Detailed Analysis
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+                  </Box>
 
                   {!googleSearch && (
                     <Box>

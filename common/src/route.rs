@@ -66,6 +66,7 @@ pub struct WordQueryRequest {
     pub word: String,
     pub custom_llm: Option<CustomLLM>,
     pub instruction: Option<String>,
+    pub prompt_mode: Option<String>,
     pub google_search: Option<bool>,
     pub src_lang: Option<String>,
     pub dst_lang: Option<String>,
@@ -653,6 +654,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                     chars_limit: false,
                                     query: &req.word,
                                     instruction: req.instruction().as_deref(),
+                                    prompt_mode: req.prompt_mode.as_deref(),
                                     dst_lang: req.dst_lang.as_deref(),
                                 },
                             )
@@ -671,6 +673,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                     chars_limit: false,
                                     query: &req.word,
                                     instruction: req.instruction().as_deref(),
+                                    prompt_mode: req.prompt_mode.as_deref(),
                                     dst_lang: req.dst_lang.as_deref(),
                                 },
                             )
@@ -794,6 +797,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                 chars_limit: false,
                                 query: &req.word,
                                 instruction: req.instruction().as_deref(),
+                                prompt_mode: req.prompt_mode.as_deref(),
                                 dst_lang: req.dst_lang.as_deref(),
                             },
                         )
@@ -810,6 +814,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                 chars_limit: false,
                                 query: &req.word,
                                 instruction: req.instruction().as_deref(),
+                                prompt_mode: req.prompt_mode.as_deref(),
                                 dst_lang: req.dst_lang.as_deref(),
                             },
                         )
