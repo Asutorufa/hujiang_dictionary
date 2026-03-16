@@ -66,7 +66,7 @@ pub struct WordQueryRequest {
     pub word: String,
     pub custom_llm: Option<CustomLLM>,
     pub instruction: Option<String>,
-    pub google_search: Option<bool>,
+    pub search_engine: Option<String>,
     pub src_lang: Option<String>,
     pub dst_lang: Option<String>,
 }
@@ -647,7 +647,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                         Some(
                             crate::ai::explain(
                                 &provider,
-                                req.google_search.unwrap_or(false),
+                                req.search_engine.as_deref() == Some("google_scraped"),
                                 crate::ai::TranslateRequest {
                                     model,
                                     chars_limit: false,
@@ -665,7 +665,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                         Some(
                             crate::ai::explain(
                                 &provider,
-                                req.google_search.unwrap_or(false),
+                                req.search_engine.as_deref() == Some("google_scraped"),
                                 crate::ai::TranslateRequest {
                                     model,
                                     chars_limit: false,
@@ -788,7 +788,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                         }
                         crate::ai::explain_stream(
                             &provider,
-                            req.google_search.unwrap_or(false),
+                            req.search_engine.as_deref() == Some("google_scraped"),
                             crate::ai::TranslateRequest {
                                 model,
                                 chars_limit: false,
@@ -804,7 +804,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                         provider.set_model(model);
                         crate::ai::explain_stream(
                             &provider,
-                            req.google_search.unwrap_or(false),
+                            req.search_engine.as_deref() == Some("google_scraped"),
                             crate::ai::TranslateRequest {
                                 model,
                                 chars_limit: false,

@@ -96,8 +96,6 @@ async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
                     allow_users: Arc::new(HashSet::new()),
                     maintainer_id: 0,
                     bot: None,
-                    google_search_api_key: "".to_string(),
-                    google_search_cx: "".to_string(),
                     last_updated: 0,
                 }))
             })

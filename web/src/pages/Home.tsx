@@ -28,7 +28,7 @@ async function fetchTranslation(
     selected: string;
     query: string;
     instruction: string;
-    google_search: boolean;
+    search_engine?: string;
     srcLang: string;
     dstLang: string;
     custom_llm?: { name: string; model: string };
@@ -47,7 +47,7 @@ async function fetchTranslation(
       method: opts.selected,
       word: opts.query,
       instruction: opts.instruction.length > 0 ? opts.instruction : undefined,
-      google_search: opts.google_search,
+      search_engine: opts.search_engine,
       src_lang: opts.srcLang ? opts.srcLang : undefined,
       dst_lang: opts.dstLang ? opts.dstLang : undefined,
       custom_llm: opts.custom_llm,
