@@ -28,7 +28,7 @@ async function fetchTranslation(
     selected: string;
     query: string;
     instruction: string;
-    prompt_mode?: string;
+    prompt_mode?: "translate" | "explain" | "detailed" | "default";
     google_search: boolean;
     srcLang: string;
     dstLang: string;
@@ -139,7 +139,7 @@ export default function Home() {
   const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
   const [loading, setLoading] = useState(false);
   const [stream, setStream] = useLocalStorage("stream", true);
-  const [promptMode, setPromptMode] = useLocalStorage("prompt_mode", "default");
+  const [promptMode, setPromptMode] = useLocalStorage<"translate" | "explain" | "detailed" | "default">("prompt_mode", "default");
   const [open, setOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useLocalStorage(
     "home_advanced_open",

@@ -107,22 +107,8 @@ impl Models {
     }
 }
 
-enum PromptMode {
-    Translate,
-    Explain,
-    Detailed,
-    Default,
-}
-
-fn system_msg(chars_limit: bool, mode: Option<&str>) -> &'static str {
-    let mode = match mode {
-        Some("translate") => PromptMode::Translate,
-        Some("explain") => PromptMode::Explain,
-        Some("detailed") => PromptMode::Detailed,
-        _ => PromptMode::Default,
-    };
-
-    match mode {
+fn system_msg(chars_limit: bool, mode: Option<PromptMode>) -> &'static str {
+    match mode.unwrap_or(PromptMode::Default) {
         PromptMode::Translate => {
             r#"You are a professional, authentic translation engine.
 Your task is to provide ONLY the direct translation of the input text.
@@ -162,13 +148,23 @@ pub struct Response {
     pub reasoning: Option<String>,
 }
 
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PromptMode {
+    Translate,
+    Explain,
+    Detailed,
+    #[default]
+    Default,
+}
+
 #[derive(Debug, Default)]
 pub struct TranslateRequest<'a> {
     pub model: &'a str,
     pub query: &'a str,
     pub chars_limit: bool,
     pub instruction: Option<&'a str>,
-    pub prompt_mode: Option<&'a str>,
+    pub prompt_mode: Option<PromptMode>,
     pub dst_lang: Option<&'a str>,
 }
 
