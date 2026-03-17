@@ -81,24 +81,21 @@ body::before {
 
 /* A consistent translucent surface for fixed/sticky UI. */
 .app-nav-surface {
-  background: color-mix(in srgb, var(--color-panel-solid) 82%, transparent);
+  background: color-mix(in srgb, var(--color-panel-solid) 95%, transparent);
   border: 1px solid var(--gray-a6);
   box-shadow:
     0 12px 28px color-mix(in srgb, var(--gray-a12) 9%, transparent),
     0 2px 10px color-mix(in srgb, var(--gray-a12) 7%, transparent);
-  backdrop-filter: blur(10px);
 }
 
 /* For sticky headers that should blend with content but remain readable. */
 .app-sticky-surface {
-  background: color-mix(in srgb, var(--color-panel-solid) 86%, transparent);
-  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--color-panel-solid) 95%, transparent);
 }
 
 /* For full-screen loading / modal backdrops. */
 .app-overlay {
-  background: color-mix(in srgb, var(--color-background) 22%, transparent);
-  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--color-background) 80%, transparent);
 }
 
 /* ------------------------------------------------------------

@@ -317,7 +317,7 @@ export default function Home() {
         type={0}
       />
       <PageContainer className="space-y-6">
-        <PageHeader
+        <PageHeader sticky={false}
           title="HJ Dict"
           subtitle="Ctrl+Enter to translate · Ctrl+S to save"
           actions={
