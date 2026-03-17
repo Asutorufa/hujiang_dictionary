@@ -118,6 +118,17 @@ const translationMap = Object.fromEntries(
   [...translationSources, ...dictSources].map(({ key, name }) => [key, name]),
 ) as Record<(typeof translationSources)[number]["key"], string>;
 
+const promptModes = [
+  { key: "default", label: "Default" },
+  { key: "translate", label: "Simple Translation" },
+  { key: "explain", label: "Word-by-Word Explanation" },
+  { key: "detailed", label: "Detailed Analysis" },
+] as const;
+
+const promptModeLabels = Object.fromEntries(
+  promptModes.map((m) => [m.key, m.label]),
+) as Record<(typeof promptModes)[number]["key"], string>;
+
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0 },
@@ -550,34 +561,18 @@ export default function Home() {
                           color="gray"
                           className="cursor-pointer"
                         >
-                          {promptMode === "translate" && "Simple Translation"}
-                          {promptMode === "explain" &&
-                            "Word-by-Word Explanation"}
-                          {promptMode === "detailed" && "Detailed Analysis"}
-                          {promptMode === "default" && "Default"}
+                          {promptModeLabels[promptMode]}
                         </Button>
                       </DropdownMenu.Trigger>
                       <DropdownMenu.Content>
-                        <DropdownMenu.Item
-                          onSelect={() => setPromptMode("default")}
-                        >
-                          Default
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          onSelect={() => setPromptMode("translate")}
-                        >
-                          Simple Translation
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          onSelect={() => setPromptMode("explain")}
-                        >
-                          Word-by-Word Explanation
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          onSelect={() => setPromptMode("detailed")}
-                        >
-                          Detailed Analysis
-                        </DropdownMenu.Item>
+                        {promptModes.map((mode) => (
+                          <DropdownMenu.Item
+                            key={mode.key}
+                            onSelect={() => setPromptMode(mode.key)}
+                          >
+                            {mode.label}
+                          </DropdownMenu.Item>
+                        ))}
                       </DropdownMenu.Content>
                     </DropdownMenu.Root>
                   </Box>
