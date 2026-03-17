@@ -7,6 +7,7 @@ import {
   Flex,
   Text,
   Box,
+  IconButton,
 } from "@radix-ui/themes";
 import { FC, ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -695,5 +696,69 @@ export function getPriorityText(priority: number) {
     return "High";
   }
 }
+
+export function SpeakerIcon({ size = 24, width, height, ...props }: IconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size || width}
+      height={size || height}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+    </svg>
+  );
+}
+
+export const TTSButton: FC<{
+  text: string;
+  lang: string;
+  className?: string;
+}> = ({ text, lang, className }) => {
+  const [playing, setPlaying] = useState(false);
+
+  const play = () => {
+    if (!text || playing) return;
+
+    // Google TTS URL construction
+    // max length is around 200 chars for google tts without tokens
+    const safeText = text.slice(0, 200);
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(safeText)}&tl=${lang}`;
+
+    const audio = new Audio(url);
+
+    audio.onplay = () => setPlaying(true);
+    audio.onended = () => setPlaying(false);
+    audio.onerror = () => setPlaying(false);
+
+    audio.play().catch((e) => {
+      console.error("Failed to play TTS audio", e);
+      setPlaying(false);
+    });
+  };
+
+  return (
+    <IconButton
+      size="1"
+      variant="ghost"
+      color="gray"
+      className={`cursor-pointer ${className || ""}`}
+      onClick={play}
+      disabled={playing || !text}
+      title="Play Pronunciation"
+    >
+      <SpeakerIcon size={16} />
+    </IconButton>
+  );
+};
+
 export * from "./AudioPlayer";
 export * from "./Markdown";
