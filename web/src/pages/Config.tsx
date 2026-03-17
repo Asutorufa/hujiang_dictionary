@@ -140,7 +140,9 @@ export default function Config() {
       delete featuresObj.location;
     }
 
-    const formDataGoogleSearchApiKey = formData.get("google_search_api_key") as string;
+    const formDataGoogleSearchApiKey = formData.get(
+      "google_search_api_key",
+    ) as string;
     const formDataGoogleSearchCx = formData.get("google_search_cx") as string;
 
     if (formDataGoogleSearchApiKey) {
