@@ -5,7 +5,7 @@ export function PageHeader({
   title,
   subtitle,
   actions,
-  sticky = true,
+  sticky = false,
   density = "default",
   children,
 }: PropsWithChildren<{
