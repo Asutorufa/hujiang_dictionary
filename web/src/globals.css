@@ -79,9 +79,19 @@ body::before {
   padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
 }
 
+@layer base {
+  :root {
+    --app-surface-background: color-mix(
+      in srgb,
+      var(--color-panel-solid) 95%,
+      transparent
+    );
+  }
+}
+
 /* A consistent translucent surface for fixed/sticky UI. */
 .app-nav-surface {
-  background: color-mix(in srgb, var(--color-panel-solid) 95%, transparent);
+  background: var(--app-surface-background);
   border: 1px solid var(--gray-a6);
   box-shadow:
     0 12px 28px color-mix(in srgb, var(--gray-a12) 9%, transparent),
@@ -90,7 +100,7 @@ body::before {
 
 /* For sticky headers that should blend with content but remain readable. */
 .app-sticky-surface {
-  background: color-mix(in srgb, var(--color-panel-solid) 95%, transparent);
+  background: var(--app-surface-background);
 }
 
 /* For full-screen loading / modal backdrops. */
