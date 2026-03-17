@@ -61,7 +61,9 @@ pub async fn run_opts() -> Result<RunOpt<D1, Workers>, Box<dyn std::error::Error
             allow_users: Arc::new(HashSet::new()),
             maintainer_id: 0,
             bot: None,
-            last_updated: 0, // Force fetch on first request
+            last_updated: 0,
+            google_search_api_key: "".to_string(),
+            google_search_cx: "".to_string(),
         })),
     })
 }

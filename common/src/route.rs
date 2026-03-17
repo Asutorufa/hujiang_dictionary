@@ -632,6 +632,10 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
 
     pub async fn word_query(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
         let req = serde_json::from_slice::<WordQueryRequest>(&body)?;
+        let config = self
+            .get_config()
+            .await
+            .map_err(|e| Error::Internal(e.to_string()))?;
 
         let response = match req.method.as_str() {
             "custom_llm" => {
@@ -658,6 +662,10 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                     prompt_mode: req.prompt_mode,
                                     dst_lang: req.dst_lang.as_deref(),
                                     search_engine: req.search_engine.as_deref(),
+                                    google_search_api_key: Some(
+                                        config.google_search_api_key.clone(),
+                                    ),
+                                    google_search_cx: Some(config.google_search_cx.clone()),
                                 },
                             )
                             .await?,
@@ -678,6 +686,10 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                     prompt_mode: req.prompt_mode,
                                     dst_lang: req.dst_lang.as_deref(),
                                     search_engine: req.search_engine.as_deref(),
+                                    google_search_api_key: Some(
+                                        config.google_search_api_key.clone(),
+                                    ),
+                                    google_search_cx: Some(config.google_search_cx.clone()),
                                 },
                             )
                             .await?,
@@ -778,6 +790,10 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
 
     pub async fn word_query_stream(&self, body: Vec<u8>) -> Result<UnifiedResponse, Error> {
         let req = serde_json::from_slice::<WordQueryRequest>(&body)?;
+        let config = self
+            .get_config()
+            .await
+            .map_err(|e| Error::Internal(e.to_string()))?;
 
         let stream = match req.method.as_str() {
             "custom_llm" => {
@@ -803,6 +819,8 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                 prompt_mode: req.prompt_mode,
                                 dst_lang: req.dst_lang.as_deref(),
                                 search_engine: req.search_engine.as_deref(),
+                                google_search_api_key: Some(config.google_search_api_key.clone()),
+                                google_search_cx: Some(config.google_search_cx.clone()),
                             },
                         )
                         .await?
@@ -821,6 +839,8 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                 prompt_mode: req.prompt_mode,
                                 dst_lang: req.dst_lang.as_deref(),
                                 search_engine: req.search_engine.as_deref(),
+                                google_search_api_key: Some(config.google_search_api_key.clone()),
+                                google_search_cx: Some(config.google_search_cx.clone()),
                             },
                         )
                         .await?

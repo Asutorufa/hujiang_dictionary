@@ -39,7 +39,9 @@ pub trait Translator {
 async fn google_search(
     query: &str,
     engine: Option<&str>,
-    provider: &hj_ai::provider::Provider,
+    _provider: &hj_ai::provider::Provider,
+    global_api_key: Option<&str>,
+    global_cx: Option<&str>,
 ) -> Result<String, Error> {
     let mut q = query.to_string();
 
@@ -47,20 +49,13 @@ async fn google_search(
 
     match search_engine {
         "google_api" => {
-            let features: serde_json::Value =
-                serde_json::from_str(provider.features()).unwrap_or_default();
-
-            let api_key = features
-                .get("google_search_api_key")
-                .and_then(|v| v.as_str())
-                .unwrap_or_default();
-            let cx = features
-                .get("google_search_cx")
-                .and_then(|v| v.as_str())
-                .unwrap_or_default();
+            let api_key = global_api_key.unwrap_or_default();
+            let cx = global_cx.unwrap_or_default();
 
             if api_key.is_empty() || cx.is_empty() {
-                log::warn!("Google Custom Search API key or CX is missing from provider features.");
+                log::warn!(
+                    "Google Custom Search API key or CX is missing from global configurations."
+                );
                 return Ok(query.to_string());
             }
 
@@ -228,6 +223,8 @@ pub struct TranslateRequest<'a> {
     pub prompt_mode: Option<PromptMode>,
     pub dst_lang: Option<&'a str>,
     pub search_engine: Option<&'a str>,
+    pub google_search_api_key: Option<String>,
+    pub google_search_cx: Option<String>,
 }
 
 pub async fn explain<'a>(
@@ -262,6 +259,8 @@ pub async fn translate<'a>(
         prompt_mode: req.prompt_mode,
         dst_lang: req.dst_lang,
         search_engine: req.search_engine,
+        google_search_api_key: req.google_search_api_key.clone(),
+        google_search_cx: req.google_search_cx.clone(),
     };
 
     let messages = vec![
@@ -291,7 +290,14 @@ pub async fn google_search_req<'a>(
     provider: &hj_ai::provider::Provider,
     req: TranslateRequest<'a>,
 ) -> Result<Response, Error> {
-    let mut instruction = google_search(req.query, req.search_engine, provider).await?;
+    let mut instruction = google_search(
+        req.query,
+        req.search_engine,
+        provider,
+        req.google_search_api_key.as_deref(),
+        req.google_search_cx.as_deref(),
+    )
+    .await?;
 
     if let Some(dst) = req.dst_lang {
         instruction.push_str(&format!("\nTarget Language: {}", dst));
@@ -372,6 +378,8 @@ pub async fn translate_stream<'a>(
         prompt_mode: req.prompt_mode,
         dst_lang: req.dst_lang,
         search_engine: req.search_engine,
+        google_search_api_key: req.google_search_api_key.clone(),
+        google_search_cx: req.google_search_cx.clone(),
     };
 
     let messages = vec![
@@ -413,7 +421,14 @@ pub async fn google_search_req_stream<'a>(
     >,
     Error,
 > {
-    let mut instruction = google_search(req.query, req.search_engine, provider).await?;
+    let mut instruction = google_search(
+        req.query,
+        req.search_engine,
+        provider,
+        req.google_search_api_key.as_deref(),
+        req.google_search_cx.as_deref(),
+    )
+    .await?;
 
     if let Some(dst) = req.dst_lang {
         instruction.push_str(&format!("\nTarget Language: {}", dst));

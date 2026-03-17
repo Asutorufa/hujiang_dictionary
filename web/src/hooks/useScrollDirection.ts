@@ -1,32 +1,37 @@
 import { useEffect, useState, useRef } from "react";
 
 export function useScrollDirection() {
-  const [scrollDirection, setScrollDirection] = useState<"up" | "down" | null>(
-    null,
-  );
+  const [direction, setDirection] = useState<"up" | "down" | null>(null);
   const lastScrollY = useRef(0);
+  const threshold = 10; // increase threshold slightly to reduce jitter
 
   useEffect(() => {
+    lastScrollY.current = window.scrollY;
+
     const updateScrollDirection = () => {
       const scrollY = window.scrollY;
-      const direction = scrollY > lastScrollY.current ? "down" : "up";
+      const diff = scrollY - lastScrollY.current;
 
-      if (
-        direction !== scrollDirection &&
-        Math.abs(scrollY - lastScrollY.current) > 5
-      ) {
-        setScrollDirection(direction);
+      // Ensure nav is always visible at the very top
+      if (scrollY <= threshold) {
+        if (direction !== "up") setDirection("up");
+        lastScrollY.current = scrollY;
+        return;
       }
-      lastScrollY.current = scrollY > 0 ? scrollY : 0;
+
+      // Check if scroll delta exceeded threshold
+      if (Math.abs(diff) > threshold) {
+        const newDirection = diff > 0 ? "down" : "up";
+        if (newDirection !== direction) {
+          setDirection(newDirection);
+        }
+        lastScrollY.current = scrollY;
+      }
     };
 
-    window.addEventListener("scroll", updateScrollDirection);
-    return () => {
-      window.removeEventListener("scroll", updateScrollDirection);
-    };
-  }, [scrollDirection]); // keeping scrollDirection in dep array is needed to compare inside closure unless we use functional update or ref for direction too.
-  // Actually, standard implementation often just re-attaches or uses a mutable ref for "blocking" updates.
-  // Re-attaching on direction change is infrequent enough (only when you change direction) so it's fine.
+    window.addEventListener("scroll", updateScrollDirection, { passive: true });
+    return () => window.removeEventListener("scroll", updateScrollDirection);
+  }, [direction]);
 
-  return scrollDirection;
+  return direction;
 }

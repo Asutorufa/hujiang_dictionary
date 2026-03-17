@@ -19,3 +19,4 @@ out
 dist-ssr
 *.local
 *.log
+web/dist/stats.html

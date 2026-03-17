@@ -97,6 +97,8 @@ async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
                     maintainer_id: 0,
                     bot: None,
                     last_updated: 0,
+                    google_search_api_key: "".to_string(),
+                    google_search_cx: "".to_string(),
                 }))
             })
             .clone(),

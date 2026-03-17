@@ -140,22 +140,6 @@ export default function Config() {
       delete featuresObj.location;
     }
 
-    const formDataGoogleSearchApiKey = formData.get(
-      "google_search_api_key",
-    ) as string;
-    const formDataGoogleSearchCx = formData.get("google_search_cx") as string;
-
-    if (formDataGoogleSearchApiKey) {
-      featuresObj.google_search_api_key = formDataGoogleSearchApiKey;
-    } else {
-      delete featuresObj.google_search_api_key;
-    }
-    if (formDataGoogleSearchCx) {
-      featuresObj.google_search_cx = formDataGoogleSearchCx;
-    } else {
-      delete featuresObj.google_search_cx;
-    }
-
     data.features = JSON.stringify(featuresObj);
 
     try {
@@ -194,6 +178,8 @@ export default function Config() {
     const telegramToken = formData.get("TELEGRAM_TOKEN") as string;
     const allowUsers = formData.get("ALLOW_USERS") as string;
     const maintainerId = formData.get("MAINTAINER_ID") as string;
+    const googleSearchApiKey = formData.get("GOOGLE_SEARCH_API_KEY") as string;
+    const googleSearchCx = formData.get("GOOGLE_SEARCH_CX") as string;
 
     const formattedAllowUsers = allowUsers
       .split(",")
@@ -205,6 +191,8 @@ export default function Config() {
       { key: "TELEGRAM_TOKEN", value: telegramToken.trim() },
       { key: "ALLOW_USERS", value: formattedAllowUsers },
       { key: "MAINTAINER_ID", value: maintainerId.trim() },
+      { key: "GOOGLE_SEARCH_API_KEY", value: googleSearchApiKey.trim() },
+      { key: "GOOGLE_SEARCH_CX", value: googleSearchCx.trim() },
     ];
 
     try {
@@ -438,6 +426,48 @@ export default function Config() {
                 />
               </Flex>
 
+              <Box mt="4">
+                <Card
+                  variant="surface"
+                  className="border-l-4 border-l-blue-500"
+                >
+                  <Flex direction="column" gap="4" p="1">
+                    <Text size="3" weight="bold">
+                      Google Search Grounding
+                    </Text>
+                    <Flex direction="column" gap="1">
+                      <Text as="label" size="2" weight="bold">
+                        Google Custom Search API Key (GOOGLE_SEARCH_API_KEY)
+                      </Text>
+                      <TextField.Root
+                        name="GOOGLE_SEARCH_API_KEY"
+                        type="password"
+                        defaultValue={
+                          configurations.find(
+                            (c) => c.key === "GOOGLE_SEARCH_API_KEY",
+                          )?.value || ""
+                        }
+                        placeholder="AIza..."
+                      />
+                    </Flex>
+                    <Flex direction="column" gap="1">
+                      <Text as="label" size="2" weight="bold">
+                        Google Custom Search CX (GOOGLE_SEARCH_CX)
+                      </Text>
+                      <TextField.Root
+                        name="GOOGLE_SEARCH_CX"
+                        defaultValue={
+                          configurations.find(
+                            (c) => c.key === "GOOGLE_SEARCH_CX",
+                          )?.value || ""
+                        }
+                        placeholder="0123456789..."
+                      />
+                    </Flex>
+                  </Flex>
+                </Card>
+              </Box>
+
               <Flex justify="end" mt="4">
                 <Button color="blue" type="submit" size="3">
                   Save Configurations
@@ -558,7 +588,7 @@ export default function Config() {
                   </Flex>
                   {geminiSearch && (
                     <Text size="1" color="orange" className="block mt-1">
-                      Warning: Gemini 3 models charge per search query executed.
+                      Warning: Gemini models charge per search query executed.
                     </Text>
                   )}
                 </Flex>

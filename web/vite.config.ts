@@ -2,17 +2,18 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { defineConfig } from "vite";
+import { visualizer } from "rollup-plugin-visualizer";
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    // visualizer({
-    //   filename: './dist/stats.html',
-    //   gzipSize: true,
-    //   brotliSize: true,
-    // }),
+    visualizer({
+      filename: "./dist/stats.html",
+      gzipSize: true,
+      brotliSize: true,
+    }),
   ],
   resolve: {
     alias: {
@@ -24,37 +25,38 @@ export default defineConfig({
   },
   build: {
     outDir: "out",
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       external: ["mockServiceWorker.js"],
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            const rules: Array<{
-              match: string | string[];
-              chunk: string;
-              strict?: boolean;
-            }> = [
-              {
-                match: [
-                  "/react/",
-                  "/react-dom/",
-                  "react-aria",
-                  "react-stately",
-                  "heroui",
-                ],
-                chunk: "react",
-              },
-            ];
-
-            // console.log(id);
-
-            for (const { match, chunk } of rules) {
-              if (Array.isArray(match)) {
-                if (match.some((k) => id.includes(k))) return chunk;
-              } else {
-                if (id.includes(match)) return chunk;
-              }
+            if (
+              id.includes("react") ||
+              id.includes("react-dom") ||
+              id.includes("react-aria") ||
+              id.includes("react-stately")
+            ) {
+              return "vendor-react";
             }
+            if (id.includes("@radix-ui")) {
+              return "vendor-radix";
+            }
+            if (id.includes("framer-motion")) {
+              return "vendor-motion";
+            }
+            if (id.includes("lucide-react")) {
+              return "vendor-lucide";
+            }
+            if (
+              id.includes("streamdown") ||
+              id.includes("rehype-raw") ||
+              id.includes("parse5") ||
+              id.includes("micromark")
+            ) {
+              return "vendor-markdown";
+            }
+            return "vendor-others";
           }
         },
       },

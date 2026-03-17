@@ -11,6 +11,8 @@ pub struct ConfigCache {
     pub allow_users: Arc<HashSet<i64>>,
     pub maintainer_id: i64,
     pub bot: Option<client_reqwest::Bot>,
+    pub google_search_api_key: String,
+    pub google_search_cx: String,
     pub last_updated: u64,
 }
 
@@ -48,7 +50,8 @@ impl<T: DatabaseExecutor, T2: crate::ai::Translator> RunOpt<T, T2> {
         let mut allow_users_str = "".to_string();
         let mut maintainer_id = 0;
         let mut telegram_token = "".to_string();
-
+        let mut google_search_api_key = "".to_string();
+        let mut google_search_cx = "".to_string();
         for config in configurations {
             match config.key.as_str() {
                 "ALLOW_USERS" => allow_users_str = config.value,
@@ -59,6 +62,8 @@ impl<T: DatabaseExecutor, T2: crate::ai::Translator> RunOpt<T, T2> {
                     })
                 }
                 "TELEGRAM_TOKEN" => telegram_token = config.value,
+                "GOOGLE_SEARCH_API_KEY" => google_search_api_key = config.value,
+                "GOOGLE_SEARCH_CX" => google_search_cx = config.value,
                 _ => {}
             }
         }
@@ -83,6 +88,8 @@ impl<T: DatabaseExecutor, T2: crate::ai::Translator> RunOpt<T, T2> {
         cache.allow_users = Arc::new(set);
         cache.maintainer_id = maintainer_id;
         cache.bot = bot;
+        cache.google_search_api_key = google_search_api_key;
+        cache.google_search_cx = google_search_cx;
         cache.last_updated = now;
 
         Ok(cache.clone())

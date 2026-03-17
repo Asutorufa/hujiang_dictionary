@@ -19,7 +19,10 @@ export function BottomNav({
         hidden ? "translate-y-32" : "translate-y-0",
       ].join(" ")}
       // Avoid relying on Tailwind spacing scale for "bottom-*".
-      style={{ bottom: "calc(env(safe-area-inset-bottom) + 1rem)" }}
+      style={{
+        bottom: "calc(env(safe-area-inset-bottom) + 1rem)",
+        willChange: "transform",
+      }}
     >
       <div className="app-nav-surface app-bottom-nav px-1.5 py-1.5 rounded-full">
         <Tabs.Root value={value} onValueChange={onValueChange}>
