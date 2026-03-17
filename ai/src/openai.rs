@@ -14,6 +14,7 @@ pub struct OpenAI {
     pub allow_all_models: Option<bool>,
     pub model: String,
     pub client: Client,
+    pub features: Option<String>,
 }
 
 impl Default for OpenAI {
@@ -26,6 +27,7 @@ impl Default for OpenAI {
             allow_all_models: Default::default(),
             model: Default::default(),
             client: Client::new(),
+            features: None,
         }
     }
 }

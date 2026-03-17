@@ -9,6 +9,7 @@ import {
   Flex,
   Text,
   Box,
+  Select,
 } from "@radix-ui/themes";
 import { useCallback, useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
@@ -30,6 +31,7 @@ async function fetchTranslation(
     instruction: string;
     prompt_mode?: "translate" | "explain" | "detailed" | "default";
     google_search: boolean;
+    search_engine?: string;
     srcLang: string;
     dstLang: string;
     custom_llm?: { name: string; model: string };
@@ -51,6 +53,7 @@ async function fetchTranslation(
       prompt_mode:
         opts.prompt_mode !== "default" ? opts.prompt_mode : undefined,
       google_search: opts.google_search,
+      search_engine: opts.search_engine ? opts.search_engine : undefined,
       src_lang: opts.srcLang ? opts.srcLang : undefined,
       dst_lang: opts.dstLang ? opts.dstLang : undefined,
       custom_llm: opts.custom_llm,
@@ -142,6 +145,10 @@ export default function Home() {
     "google_search",
     false,
   );
+  const [searchEngine, setSearchEngine] = useLocalStorage(
+    "search_engine",
+    "duckduckgo",
+  );
   const [result, setResult] = useLocalStorage<{
     result: string;
     reasoning?: string;
@@ -207,6 +214,7 @@ export default function Home() {
             instruction: instruction.length > 0 ? instruction : undefined,
             prompt_mode: promptMode !== "default" ? promptMode : undefined,
             google_search: googleSearch,
+            search_engine: searchEngine ? searchEngine : undefined,
             src_lang: srcLang ? srcLang : undefined,
             dst_lang: dstLang ? dstLang : undefined,
             custom_llm: customLLM,
@@ -240,6 +248,7 @@ export default function Home() {
           srcLang: srcLang,
           dstLang: dstLang,
           google_search: googleSearch,
+          search_engine: searchEngine,
           instruction: instruction,
           prompt_mode: promptMode,
           selected: modelName,
@@ -263,6 +272,7 @@ export default function Home() {
     srcLang,
     dstLang,
     googleSearch,
+    searchEngine,
     instruction,
     promptMode,
     selected,
@@ -534,6 +544,31 @@ export default function Home() {
                         Google Search
                       </Flex>
                     </Text>
+
+                    {googleSearch && (
+                      <Flex gap="2" align="center" className="cursor-pointer">
+                        <Select.Root
+                          value={searchEngine}
+                          onValueChange={setSearchEngine}
+                        >
+                          <Select.Trigger />
+                          <Select.Content>
+                            <Select.Group>
+                              <Select.Label>Search Engine</Select.Label>
+                              <Select.Item value="duckduckgo">
+                                DuckDuckGo
+                              </Select.Item>
+                              <Select.Item value="google">
+                                Google HTML
+                              </Select.Item>
+                              <Select.Item value="google_api">
+                                Google API
+                              </Select.Item>
+                            </Select.Group>
+                          </Select.Content>
+                        </Select.Root>
+                      </Flex>
+                    )}
 
                     <Text as="label" size="2" weight="medium">
                       <Flex gap="2" align="center" className="cursor-pointer">

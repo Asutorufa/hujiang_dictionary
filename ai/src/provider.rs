@@ -75,4 +75,22 @@ impl Provider {
             provider.gemini_search = enabled;
         }
     }
+
+    pub fn features(&self) -> &str {
+        match self {
+            Provider::OpenAI(provider) => provider.features.as_deref().unwrap_or("{}"),
+            Provider::Gemini(provider) => provider.features.as_deref().unwrap_or("{}"),
+            Provider::WorkersAI(_) => "{}",
+            Provider::OpenAIResponses(_) => "{}",
+        }
+    }
+
+    pub fn set_features(&mut self, features: Option<String>) {
+        match self {
+            Provider::OpenAI(provider) => provider.features = features,
+            Provider::Gemini(provider) => provider.features = features,
+            Provider::WorkersAI(_) => {}
+            Provider::OpenAIResponses(_) => {}
+        }
+    }
 }

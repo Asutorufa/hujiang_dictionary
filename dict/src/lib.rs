@@ -4,6 +4,7 @@ pub mod duckduckgo_search;
 pub mod en;
 pub mod error;
 pub mod google;
+pub mod google_custom_search;
 pub mod google_search;
 pub mod jp;
 pub mod kotobanku;

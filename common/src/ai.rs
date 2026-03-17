@@ -36,27 +36,88 @@ pub trait Translator {
     ) -> impl Future<Output = Result<String, Error>>;
 }
 
-async fn google_search(query: &str) -> Result<String, Error> {
+async fn google_search(
+    query: &str,
+    engine: Option<&str>,
+    provider: &hj_ai::provider::Provider,
+) -> Result<String, Error> {
     let mut q = query.to_string();
 
-    match hjdict::duckduckgo_search::get(query).await {
-        Ok(v) => {
-            q.push_str("\n\n### DuckDuckGo Search Results:\n");
-            for i in v {
-                match i {
-                    hjdict::google_search::Body::Content(c) => {
-                        q.push_str(&format!("{}\n\n", c));
-                    }
-                    hjdict::google_search::Body::Link(l) => {
-                        q.push_str(&format!("#### [{}]({})\n\n", l.title, l.url));
-                    }
+    let search_engine = engine.unwrap_or("duckduckgo");
+
+    match search_engine {
+        "google_api" => {
+            let features: serde_json::Value =
+                serde_json::from_str(provider.features()).unwrap_or_default();
+
+            let api_key = features
+                .get("google_search_api_key")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            let cx = features
+                .get("google_search_cx")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+
+            if api_key.is_empty() || cx.is_empty() {
+                log::warn!("Google Custom Search API key or CX is missing from provider features.");
+                return Ok(query.to_string());
+            }
+
+            match hjdict::google_custom_search::search(query, api_key, cx).await {
+                Ok(v) => {
+                    q.push_str("\n\n### Google Custom Search API Results:\n");
+                    q.push_str(&v);
+                    Ok(q)
+                }
+                Err(e) => {
+                    log::info!("google custom search error: {}", e);
+                    Ok(query.to_string())
                 }
             }
-            Ok(q)
         }
-        Err(e) => {
-            info!("google search error: {}", e);
-            Ok(query.to_string())
+        "google" => match hjdict::google_search::get(query).await {
+            Ok(v) => {
+                q.push_str("\n\n### Google Search Results:\n");
+                for i in v {
+                    match i {
+                        hjdict::google_search::Body::Content(c) => {
+                            q.push_str(&format!("{}\n\n", c));
+                        }
+                        hjdict::google_search::Body::Link(l) => {
+                            q.push_str(&format!("#### [{}]({})\n\n", l.title, l.url));
+                        }
+                    }
+                }
+                Ok(q)
+            }
+            Err(e) => {
+                log::info!("google HTML search error: {}", e);
+                Ok(query.to_string())
+            }
+        },
+        _ => {
+            // "duckduckgo" or default
+            match hjdict::duckduckgo_search::get(query).await {
+                Ok(v) => {
+                    q.push_str("\n\n### DuckDuckGo Search Results:\n");
+                    for i in v {
+                        match i {
+                            hjdict::google_search::Body::Content(c) => {
+                                q.push_str(&format!("{}\n\n", c));
+                            }
+                            hjdict::google_search::Body::Link(l) => {
+                                q.push_str(&format!("#### [{}]({})\n\n", l.title, l.url));
+                            }
+                        }
+                    }
+                    Ok(q)
+                }
+                Err(e) => {
+                    log::info!("duckduckgo search error: {}", e);
+                    Ok(query.to_string())
+                }
+            }
         }
     }
 }
@@ -166,6 +227,7 @@ pub struct TranslateRequest<'a> {
     pub instruction: Option<&'a str>,
     pub prompt_mode: Option<PromptMode>,
     pub dst_lang: Option<&'a str>,
+    pub search_engine: Option<&'a str>,
 }
 
 pub async fn explain<'a>(
@@ -199,6 +261,7 @@ pub async fn translate<'a>(
         instruction: instruction.as_deref(),
         prompt_mode: req.prompt_mode,
         dst_lang: req.dst_lang,
+        search_engine: req.search_engine,
     };
 
     let messages = vec![
@@ -228,7 +291,7 @@ pub async fn google_search_req<'a>(
     provider: &hj_ai::provider::Provider,
     req: TranslateRequest<'a>,
 ) -> Result<Response, Error> {
-    let mut instruction = google_search(req.query).await?;
+    let mut instruction = google_search(req.query, req.search_engine, provider).await?;
 
     if let Some(dst) = req.dst_lang {
         instruction.push_str(&format!("\nTarget Language: {}", dst));
@@ -308,6 +371,7 @@ pub async fn translate_stream<'a>(
         instruction: instruction.as_deref(),
         prompt_mode: req.prompt_mode,
         dst_lang: req.dst_lang,
+        search_engine: req.search_engine,
     };
 
     let messages = vec![
@@ -349,7 +413,7 @@ pub async fn google_search_req_stream<'a>(
     >,
     Error,
 > {
-    let mut instruction = google_search(req.query).await?;
+    let mut instruction = google_search(req.query, req.search_engine, provider).await?;
 
     if let Some(dst) = req.dst_lang {
         instruction.push_str(&format!("\nTarget Language: {}", dst));
