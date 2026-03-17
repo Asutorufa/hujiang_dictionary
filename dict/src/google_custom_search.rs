@@ -29,7 +29,7 @@ pub async fn search(
 
     if !res.status().is_success() {
         let status = res.status();
-        let body = res.text().await.unwrap_or_default();
+        let body = res.text().await.unwrap_or_else(|e| format!("Failed to read response body: {}", e));
         return Err(format!("Google API Error: {} - {}", status, body).into());
     }
 
