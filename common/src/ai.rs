@@ -107,20 +107,34 @@ impl Models {
     }
 }
 
+enum PromptMode {
+    Translate,
+    Explain,
+    Detailed,
+    Default,
+}
+
 fn system_msg(chars_limit: bool, mode: Option<&str>) -> &'static str {
+    let mode = match mode {
+        Some("translate") => PromptMode::Translate,
+        Some("explain") => PromptMode::Explain,
+        Some("detailed") => PromptMode::Detailed,
+        _ => PromptMode::Default,
+    };
+
     match mode {
-        Some("translate") => {
+        PromptMode::Translate => {
             r#"You are a professional, authentic translation engine.
 Your task is to provide ONLY the direct translation of the input text.
 Do not include any explanations, annotations, phonetic transcriptions, or conversational text.
 Just output the translated text."#
         }
-        Some("explain") => {
+        PromptMode::Explain => {
             r#"You are a professional, authentic translation engine.
 Your task is to provide the translation, followed by a brief, clear explanation of the key words, phrases, or grammar points used in the text.
 Help the user understand why the text was translated this way."#
         }
-        Some("detailed") => {
+        PromptMode::Detailed => {
             r#"You are a professional language tutor and translation engine.
 Your task is to provide a highly detailed analysis of the input text.
 Include the following:
@@ -129,7 +143,7 @@ Include the following:
 3. A detailed, word-by-word breakdown of meaning and grammar.
 4. Explanations of any idioms, cultural nuances, or specific grammar patterns."#
         }
-        _ => {
+        PromptMode::Default => {
             if chars_limit {
                 r#"You are a professional, authentic translation engine, only returns translations.
 - For words, phrases, or short sentences, provide the translation directly. Include essential explanations only if the context is ambiguous or the user explicitly requests it.
