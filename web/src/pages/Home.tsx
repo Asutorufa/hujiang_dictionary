@@ -28,6 +28,7 @@ async function fetchTranslation(
     selected: string;
     query: string;
     instruction: string;
+    prompt_mode?: "translate" | "explain" | "detailed" | "default";
     google_search: boolean;
     srcLang: string;
     dstLang: string;
@@ -47,6 +48,8 @@ async function fetchTranslation(
       method: opts.selected,
       word: opts.query,
       instruction: opts.instruction.length > 0 ? opts.instruction : undefined,
+      prompt_mode:
+        opts.prompt_mode !== "default" ? opts.prompt_mode : undefined,
       google_search: opts.google_search,
       src_lang: opts.srcLang ? opts.srcLang : undefined,
       dst_lang: opts.dstLang ? opts.dstLang : undefined,
@@ -115,6 +118,17 @@ const translationMap = Object.fromEntries(
   [...translationSources, ...dictSources].map(({ key, name }) => [key, name]),
 ) as Record<(typeof translationSources)[number]["key"], string>;
 
+const promptModes = [
+  { key: "default", label: "Default" },
+  { key: "translate", label: "Simple Translation" },
+  { key: "explain", label: "Word-by-Word Explanation" },
+  { key: "detailed", label: "Detailed Analysis" },
+] as const;
+
+const promptModeLabels = Object.fromEntries(
+  promptModes.map((m) => [m.key, m.label]),
+) as Record<(typeof promptModes)[number]["key"], string>;
+
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
   visible: { opacity: 1, y: 0 },
@@ -136,6 +150,9 @@ export default function Home() {
   const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
   const [loading, setLoading] = useState(false);
   const [stream, setStream] = useLocalStorage("stream", true);
+  const [promptMode, setPromptMode] = useLocalStorage<
+    "translate" | "explain" | "detailed" | "default"
+  >("prompt_mode", "default");
   const [open, setOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useLocalStorage(
     "home_advanced_open",
@@ -188,6 +205,7 @@ export default function Home() {
             method: modelName,
             word: query,
             instruction: instruction.length > 0 ? instruction : undefined,
+            prompt_mode: promptMode !== "default" ? promptMode : undefined,
             google_search: googleSearch,
             src_lang: srcLang ? srcLang : undefined,
             dst_lang: dstLang ? dstLang : undefined,
@@ -223,6 +241,7 @@ export default function Home() {
           dstLang: dstLang,
           google_search: googleSearch,
           instruction: instruction,
+          prompt_mode: promptMode,
           selected: modelName,
           custom_llm: customLLM,
         },
@@ -245,6 +264,7 @@ export default function Home() {
     dstLang,
     googleSearch,
     instruction,
+    promptMode,
     selected,
     customModels,
     setResult,
@@ -504,7 +524,7 @@ export default function Home() {
                   transition={{ duration: 0.25 }}
                   className="mt-4 space-y-4 overflow-hidden"
                 >
-                  <Flex gap="6" wrap="wrap">
+                  <Flex gap="6" wrap="wrap" align="center">
                     <Text as="label" size="2" weight="medium">
                       <Flex gap="2" align="center" className="cursor-pointer">
                         <Switch
@@ -525,6 +545,39 @@ export default function Home() {
                       </Flex>
                     </Text>
                   </Flex>
+
+                  <Box>
+                    <Text
+                      as="label"
+                      size="1"
+                      weight="bold"
+                      color="gray"
+                      className="mb-2 block uppercase tracking-widest"
+                    >
+                      Prompt Mode
+                    </Text>
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger>
+                        <Button
+                          variant="surface"
+                          color="gray"
+                          className="cursor-pointer"
+                        >
+                          {promptModeLabels[promptMode]}
+                        </Button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Content>
+                        {promptModes.map((mode) => (
+                          <DropdownMenu.Item
+                            key={mode.key}
+                            onSelect={() => setPromptMode(mode.key)}
+                          >
+                            {mode.label}
+                          </DropdownMenu.Item>
+                        ))}
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+                  </Box>
 
                   {!googleSearch && (
                     <Box>
