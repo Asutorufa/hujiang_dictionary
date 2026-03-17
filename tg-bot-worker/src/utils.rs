@@ -131,7 +131,7 @@ mod tests {
         assert_eq!(markdown_escape("hello_world"), "hello\\_world");
         assert_eq!(html_escape("<p>&</p>"), "&lt;p&gt;&amp;&lt;/p&gt;");
         assert_eq!(
-            vec_string_markdown_escape(&vec!["a_b".to_string(), "c*d".to_string()]),
+            vec_string_markdown_escape(&["a_b".to_string(), "c*d".to_string()]),
             "a\\_b\nc\\*d\n"
         );
     }

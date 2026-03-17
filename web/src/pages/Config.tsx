@@ -140,6 +140,17 @@ export default function Config() {
       delete featuresObj.location;
     }
 
+    if (googleSearchApiKey) {
+      featuresObj.google_search_api_key = googleSearchApiKey;
+    } else {
+      delete featuresObj.google_search_api_key;
+    }
+    if (googleSearchCx) {
+      featuresObj.google_search_cx = googleSearchCx;
+    } else {
+      delete featuresObj.google_search_cx;
+    }
+
     data.features = JSON.stringify(featuresObj);
 
     try {

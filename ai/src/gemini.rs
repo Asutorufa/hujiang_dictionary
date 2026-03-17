@@ -8,6 +8,7 @@ pub struct Gemini {
     client: Client,
     pub models: Vec<String>,
     pub gemini_search: bool,
+    pub features: Option<String>,
 }
 
 impl Gemini {
@@ -16,6 +17,7 @@ impl Gemini {
             client: Client::new(api_key, model),
             models,
             gemini_search: false,
+            features: None,
         }
     }
 
@@ -30,6 +32,7 @@ impl Gemini {
             client: Client::new_vertex_ai(project_id, location, model, token),
             models,
             gemini_search: false,
+            features: None,
         }
     }
 

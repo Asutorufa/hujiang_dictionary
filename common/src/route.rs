@@ -67,6 +67,7 @@ pub struct WordQueryRequest {
     pub custom_llm: Option<CustomLLM>,
     pub instruction: Option<String>,
     pub google_search: Option<bool>,
+    pub search_engine: Option<String>,
     pub src_lang: Option<String>,
     pub dst_lang: Option<String>,
 }
@@ -654,6 +655,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                     query: &req.word,
                                     instruction: req.instruction().as_deref(),
                                     dst_lang: req.dst_lang.as_deref(),
+                                    search_engine: req.search_engine.as_deref(),
                                 },
                             )
                             .await?,
@@ -672,6 +674,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                     query: &req.word,
                                     instruction: req.instruction().as_deref(),
                                     dst_lang: req.dst_lang.as_deref(),
+                                    search_engine: req.search_engine.as_deref(),
                                 },
                             )
                             .await?,
@@ -795,6 +798,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                 query: &req.word,
                                 instruction: req.instruction().as_deref(),
                                 dst_lang: req.dst_lang.as_deref(),
+                                search_engine: req.search_engine.as_deref(),
                             },
                         )
                         .await?
@@ -811,6 +815,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                                 query: &req.word,
                                 instruction: req.instruction().as_deref(),
                                 dst_lang: req.dst_lang.as_deref(),
+                                search_engine: req.search_engine.as_deref(),
                             },
                         )
                         .await?
