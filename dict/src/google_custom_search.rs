@@ -39,7 +39,10 @@ pub async fn search(
     if let Some(items) = response.items {
         for item in items.into_iter().take(5) {
             if let Some(snippet) = item.snippet {
-                results.push(format!("Title: {}\nLink: {}\nSnippet: {}\n", item.title, item.link, snippet));
+                results.push(format!(
+                    "Title: {}\nLink: {}\nSnippet: {}\n",
+                    item.title, item.link, snippet
+                ));
             }
         }
     }

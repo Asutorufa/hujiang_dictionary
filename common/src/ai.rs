@@ -47,10 +47,17 @@ async fn google_search(
 
     match search_engine {
         "google_api" => {
-            let features: serde_json::Value = serde_json::from_str(provider.features()).unwrap_or_default();
+            let features: serde_json::Value =
+                serde_json::from_str(provider.features()).unwrap_or_default();
 
-            let api_key = features.get("google_search_api_key").and_then(|v| v.as_str()).unwrap_or_default();
-            let cx = features.get("google_search_cx").and_then(|v| v.as_str()).unwrap_or_default();
+            let api_key = features
+                .get("google_search_api_key")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            let cx = features
+                .get("google_search_cx")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
 
             if api_key.is_empty() || cx.is_empty() {
                 log::warn!("Google Custom Search API key or CX is missing from provider features.");
@@ -69,28 +76,26 @@ async fn google_search(
                 }
             }
         }
-        "google" => {
-            match hjdict::google_search::get(query).await {
-                Ok(v) => {
-                    q.push_str("\n\n### Google Search Results:\n");
-                    for i in v {
-                        match i {
-                            hjdict::google_search::Body::Content(c) => {
-                                q.push_str(&format!("{}\n\n", c));
-                            }
-                            hjdict::google_search::Body::Link(l) => {
-                                q.push_str(&format!("#### [{}]({})\n\n", l.title, l.url));
-                            }
+        "google" => match hjdict::google_search::get(query).await {
+            Ok(v) => {
+                q.push_str("\n\n### Google Search Results:\n");
+                for i in v {
+                    match i {
+                        hjdict::google_search::Body::Content(c) => {
+                            q.push_str(&format!("{}\n\n", c));
+                        }
+                        hjdict::google_search::Body::Link(l) => {
+                            q.push_str(&format!("#### [{}]({})\n\n", l.title, l.url));
                         }
                     }
-                    Ok(q)
                 }
-                Err(e) => {
-                    log::info!("google HTML search error: {}", e);
-                    Ok(query.to_string())
-                }
+                Ok(q)
             }
-        }
+            Err(e) => {
+                log::info!("google HTML search error: {}", e);
+                Ok(query.to_string())
+            }
+        },
         _ => {
             // "duckduckgo" or default
             match hjdict::duckduckgo_search::get(query).await {
