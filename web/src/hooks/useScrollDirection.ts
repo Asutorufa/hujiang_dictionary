@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 export function useScrollDirection() {
   const [direction, setDirection] = useState<"up" | "down" | null>(null);
   const lastScrollY = useRef(0);
-  const threshold = 10; // increase threshold slightly to reduce jitter
+  const threshold = 15; // increased threshold to reduce jitter and state updates
 
   useEffect(() => {
     lastScrollY.current = window.scrollY;

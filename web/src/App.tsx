@@ -31,6 +31,7 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
       accentColor="blue"
       grayColor="slate"
       radius="large"
+      panelBackground="solid"
     >
       {children}
     </Theme>
