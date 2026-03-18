@@ -5,7 +5,6 @@
 @custom-variant dark (&:is(.dark *));
 
 @layer base {
-
   *,
   ::after,
   ::before,
@@ -137,6 +136,21 @@ body {
   border-color: var(--app-border) !important;
   background: var(--app-bg-raise) !important;
   color: var(--app-text) !important;
+}
+
+.app-language-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.app-language-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
 }
 
 .app-home-toolbar {
@@ -352,7 +366,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {

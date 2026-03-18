@@ -2,8 +2,6 @@ import { Flex } from "@radix-ui/themes";
 import { PropsWithChildren, ReactNode } from "react";
 
 export function PageHeader({
-  title,
-  subtitle,
   actions,
   sticky = false,
   density = "default",

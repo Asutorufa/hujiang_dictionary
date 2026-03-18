@@ -225,11 +225,7 @@ export default function Flashcard() {
       <div className="app-bottom-actions mb-4 flex w-full max-w-md flex-wrap items-center justify-center gap-2 px-3 py-3 z-10">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger disabled={loading && wordsMap.size === 0}>
-            <Button
-              variant="surface"
-              color="gray"
-              className="capitalize"
-            >
+            <Button variant="surface" color="gray" className="capitalize">
               <FilterIcon /> {orderBy.replace("_", " ")}
             </Button>
           </DropdownMenu.Trigger>
@@ -281,11 +277,7 @@ export default function Flashcard() {
 
         <DropdownMenu.Root>
           <DropdownMenu.Trigger disabled={loading && wordsMap.size === 0}>
-            <Button
-              variant="surface"
-              color="gray"
-              className="capitalize"
-            >
+            <Button variant="surface" color="gray" className="capitalize">
               <BookIcon /> {grammar ? "Grammar" : "Word"}
             </Button>
           </DropdownMenu.Trigger>
@@ -305,13 +297,7 @@ export default function Flashcard() {
           </DropdownMenu.Content>
         </DropdownMenu.Root>
 
-        <Flex
-          align="center"
-          ml="2"
-          px="3"
-          py="1"
-          className="app-stat-chip"
-        >
+        <Flex align="center" ml="2" px="3" py="1" className="app-stat-chip">
           <Text size="2">
             {page} / {total}
           </Text>
@@ -335,8 +321,12 @@ export default function Flashcard() {
         {currentWord && (
           <motion.div
             key={page}
-            initial={shouldReduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }}
-            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
+            initial={
+              shouldReduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }
+            }
+            animate={
+              shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }
+            }
             transition={{ duration: 0.16 }}
             drag="x"
             dragListener={false}
@@ -351,135 +341,132 @@ export default function Flashcard() {
               longPressTimer.current = setTimeout(handleLongPress, 800);
             }}
             onTapCancel={() => {
-              if (longPressTimer.current)
-                clearTimeout(longPressTimer.current);
+              if (longPressTimer.current) clearTimeout(longPressTimer.current);
             }}
             onTap={() => {
-              if (longPressTimer.current)
-                clearTimeout(longPressTimer.current);
+              if (longPressTimer.current) clearTimeout(longPressTimer.current);
             }}
             onDragStart={() => {
-              if (longPressTimer.current)
-                clearTimeout(longPressTimer.current);
+              if (longPressTimer.current) clearTimeout(longPressTimer.current);
             }}
           >
-              {/* Visual Feedback Overlays */}
-              <motion.div
-                className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
-                style={{ opacity: opacityRight }}
-              >
-                <div className="text-green-500 p-6 rounded-full border-4 border-green-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_92%,transparent)]">
-                  <CheckIcon />
-                </div>
-              </motion.div>
+            {/* Visual Feedback Overlays */}
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
+              style={{ opacity: opacityRight }}
+            >
+              <div className="text-green-500 p-6 rounded-full border-4 border-green-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_92%,transparent)]">
+                <CheckIcon />
+              </div>
+            </motion.div>
 
-              <motion.div
-                className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
-                style={{ opacity: opacityLeft }}
-              >
-                <div className="text-red-500 p-6 rounded-full border-4 border-red-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_92%,transparent)]">
-                  <CrossIcon />
-                </div>
-              </motion.div>
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
+              style={{ opacity: opacityLeft }}
+            >
+              <div className="text-red-500 p-6 rounded-full border-4 border-red-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_92%,transparent)]">
+                <CrossIcon />
+              </div>
+            </motion.div>
 
-              <Card
-                className="app-section-card flex-1 min-h-0 flex flex-col overflow-hidden"
-                onPointerDown={(e) => {
-                  const target = e.target as HTMLElement;
-                  // Don't start swipe-drag from interactive elements.
-                  if (
-                    target.closest(
-                      "a,button,input,textarea,select,[role='menuitem'],[data-radix-collection-item]",
-                    )
-                  ) {
-                    return;
-                  }
-                  dragControls.start(e);
-                }}
-              >
-                <Flex justify="between" align="start">
-                  <Flex direction="column">
-                    <Text size="5" weight="bold" className="break-words">
-                      {currentWord.word}
-                    </Text>
-                    <Text size="1" color="gray">
-                      {new Date(
-                        currentWord.update_time * 1000,
-                      ).toLocaleDateString()}
-                    </Text>
-                  </Flex>
-
-                  <Flex align="center" gap="2">
-                    <Text size="1" color="gray">
-                      Review:{" "}
-                      {new Date(
-                        currentWord.reminder_time * 1000,
-                      ).toLocaleDateString()}
-                    </Text>
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger>
-                        <Badge
-                          size="1"
-                          variant="soft"
-                          color={
-                            currentWord.priority === 0
-                              ? "green"
-                              : currentWord.priority === 1
-                                ? "orange"
-                                : "gray"
-                          }
-                          className="cursor-pointer"
-                        >
-                          {getPriorityText(currentWord.priority)}
-                        </Badge>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Content>
-                        <DropdownMenu.Item
-                          color="green"
-                          onSelect={() => handlePriorityChange("0")}
-                        >
-                          Low
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          color="orange"
-                          onSelect={() => handlePriorityChange("1")}
-                        >
-                          Medium
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          color="gray"
-                          onSelect={() => handlePriorityChange("2")}
-                        >
-                          High
-                        </DropdownMenu.Item>
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Root>
-                  </Flex>
+            <Card
+              className="app-section-card flex-1 min-h-0 flex flex-col overflow-hidden"
+              onPointerDown={(e) => {
+                const target = e.target as HTMLElement;
+                // Don't start swipe-drag from interactive elements.
+                if (
+                  target.closest(
+                    "a,button,input,textarea,select,[role='menuitem'],[data-radix-collection-item]",
+                  )
+                ) {
+                  return;
+                }
+                dragControls.start(e);
+              }}
+            >
+              <Flex justify="between" align="start">
+                <Flex direction="column">
+                  <Text size="5" weight="bold" className="break-words">
+                    {currentWord.word}
+                  </Text>
+                  <Text size="1" color="gray">
+                    {new Date(
+                      currentWord.update_time * 1000,
+                    ).toLocaleDateString()}
+                  </Text>
                 </Flex>
 
-                <Box
-                  className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden mt-3"
-                  style={{ WebkitOverflowScrolling: "touch" }}
-                  onPointerDown={(e) => {
-                    // Allow the content area to scroll; prevent the parent Card from starting drag.
-                    e.stopPropagation();
-                  }}
-                >
-                  <div className="w-full text-left prose prose-sm max-w-none dark:prose-invert">
-                    {currentWord.example && (
-                      <Box className="app-muted-panel mb-2 p-3">
-                        <Markdown>{currentWord.example}</Markdown>
-                      </Box>
-                    )}
+                <Flex align="center" gap="2">
+                  <Text size="1" color="gray">
+                    Review:{" "}
+                    {new Date(
+                      currentWord.reminder_time * 1000,
+                    ).toLocaleDateString()}
+                  </Text>
+                  <DropdownMenu.Root>
+                    <DropdownMenu.Trigger>
+                      <Badge
+                        size="1"
+                        variant="soft"
+                        color={
+                          currentWord.priority === 0
+                            ? "green"
+                            : currentWord.priority === 1
+                              ? "orange"
+                              : "gray"
+                        }
+                        className="cursor-pointer"
+                      >
+                        {getPriorityText(currentWord.priority)}
+                      </Badge>
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Content>
+                      <DropdownMenu.Item
+                        color="green"
+                        onSelect={() => handlePriorityChange("0")}
+                      >
+                        Low
+                      </DropdownMenu.Item>
+                      <DropdownMenu.Item
+                        color="orange"
+                        onSelect={() => handlePriorityChange("1")}
+                      >
+                        Medium
+                      </DropdownMenu.Item>
+                      <DropdownMenu.Item
+                        color="gray"
+                        onSelect={() => handlePriorityChange("2")}
+                      >
+                        High
+                      </DropdownMenu.Item>
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Root>
+                </Flex>
+              </Flex>
 
-                    <Spoiler>
-                      <Box mt="2">
-                        <Markdown>{currentWord.explain}</Markdown>
-                      </Box>
-                    </Spoiler>
-                  </div>
-                </Box>
-              </Card>
+              <Box
+                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden mt-3"
+                style={{ WebkitOverflowScrolling: "touch" }}
+                onPointerDown={(e) => {
+                  // Allow the content area to scroll; prevent the parent Card from starting drag.
+                  e.stopPropagation();
+                }}
+              >
+                <div className="w-full text-left prose prose-sm max-w-none dark:prose-invert">
+                  {currentWord.example && (
+                    <Box className="app-muted-panel mb-2 p-3">
+                      <Markdown>{currentWord.example}</Markdown>
+                    </Box>
+                  )}
+
+                  <Spoiler>
+                    <Box mt="2">
+                      <Markdown>{currentWord.explain}</Markdown>
+                    </Box>
+                  </Spoiler>
+                </div>
+              </Box>
+            </Card>
           </motion.div>
         )}
       </div>
