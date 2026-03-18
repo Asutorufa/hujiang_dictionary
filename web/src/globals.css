@@ -5,6 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @layer base {
+
   *,
   ::after,
   ::before,
@@ -18,6 +19,40 @@ html,
 body,
 #root {
   height: 100%;
+}
+
+:root {
+  --app-bg: #f6f0e5;
+  --app-bg-soft: #efe6d8;
+  --app-bg-raise: #fbf6ee;
+  --app-panel: #fbf7f0;
+  --app-panel-strong: #fffaf4;
+  --app-panel-muted: #f1e7d8;
+  --app-border: rgba(122, 88, 57, 0.18);
+  --app-border-strong: rgba(122, 88, 57, 0.28);
+  --app-text: #2f2823;
+  --app-muted: #6f6257;
+  --app-accent: #9f353a;
+  --app-accent-soft: rgba(159, 53, 58, 0.12);
+  --app-accent-strong: #7b2d31;
+  --app-accent-alt: #355f73;
+}
+
+.dark {
+  --app-bg: #161311;
+  --app-bg-soft: #1f1915;
+  --app-bg-raise: #201915;
+  --app-panel: #211b17;
+  --app-panel-strong: #261f1a;
+  --app-panel-muted: #302720;
+  --app-border: rgba(214, 190, 159, 0.12);
+  --app-border-strong: rgba(214, 190, 159, 0.2);
+  --app-text: #f2e6d4;
+  --app-muted: #b7a58f;
+  --app-accent: #f08a5d;
+  --app-accent-soft: rgba(240, 138, 93, 0.12);
+  --app-accent-strong: #ffb487;
+  --app-accent-alt: #7fb4c7;
 }
 
 body {
@@ -35,38 +70,9 @@ body {
     sans-serif;
   letter-spacing: -0.005em;
 
-  /* Radix Themes provides the core color tokens; we add atmosphere only. */
-  background:
-    radial-gradient(
-      900px 520px at 18% -6%,
-      color-mix(in srgb, var(--blue-a6) 45%, transparent),
-      transparent 60%
-    ),
-    radial-gradient(
-      980px 640px at 96% 8%,
-      color-mix(in srgb, var(--amber-a5) 34%, transparent),
-      transparent 55%
-    ),
-    radial-gradient(
-      900px 700px at 50% 110%,
-      color-mix(in srgb, var(--green-a4) 22%, transparent),
-      transparent 55%
-    ),
-    var(--color-background);
+  background: var(--app-bg);
   position: relative;
-}
-
-/* Soft noise layer to avoid flat gradients. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  opacity: 0.04;
-  mix-blend-mode: soft-light;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  filter: contrast(120%) brightness(100%);
+  color: var(--app-text);
 }
 
 /* ------------------------------------------------------------
@@ -82,12 +88,10 @@ body::before {
 
 /* A consistent translucent surface for fixed/sticky UI. */
 .app-nav-surface {
-  background: var(--color-panel-solid, var(--color-background));
+  background: var(--app-panel);
   backdrop-filter: none;
-  border: 1px solid var(--gray-a6);
-  box-shadow:
-    0 12px 28px color-mix(in srgb, var(--gray-a12) 9%, transparent),
-    0 2px 10px color-mix(in srgb, var(--gray-a12) 7%, transparent);
+  border: 0;
+  box-shadow: none;
 }
 
 /* For sticky headers that should blend with content but remain readable. */
@@ -97,7 +101,92 @@ body::before {
 
 /* For full-screen loading / modal backdrops. */
 .app-overlay {
-  background: color-mix(in srgb, var(--color-background) 80%, transparent);
+  background: color-mix(in srgb, var(--app-bg) 80%, transparent);
+}
+
+.app-hero-card {
+  border-radius: 24px;
+  border: 1px solid var(--app-border);
+  background: var(--app-panel-strong);
+  box-shadow: none;
+}
+
+.app-home-actions {
+  justify-content: flex-end;
+}
+
+.app-primary-action,
+.app-secondary-action,
+.app-control-trigger {
+  min-height: 40px;
+  border-radius: 9999px;
+}
+
+.app-primary-action,
+.app-secondary-action {
+  min-width: 112px;
+}
+
+.app-control-trigger {
+  min-width: 132px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
+  border-color: var(--app-border) !important;
+  background: var(--app-bg-raise) !important;
+  color: var(--app-text) !important;
+}
+
+.app-home-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-control-row {
+  row-gap: 10px;
+}
+
+.app-toolbar-hint {
+  line-height: 1.5;
+}
+
+.app-section-card {
+  background: var(--app-panel);
+  box-shadow: none;
+}
+
+.app-muted-panel {
+  border-radius: 18px;
+  border: 0;
+  background: var(--app-panel-muted);
+}
+
+.app-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  border: 1px solid var(--app-border);
+  background: var(--app-panel-strong);
+  color: var(--app-muted);
+}
+
+.app-textarea textarea {
+  min-height: 96px;
+  border-radius: 18px;
+  background: var(--app-bg-raise);
+}
+
+.app-bottom-actions {
+  border-radius: 22px;
+  border: 0;
+  background: var(--app-panel);
+  box-shadow: none;
 }
 
 /* ------------------------------------------------------------
@@ -130,7 +219,7 @@ body::before {
   gap: 10px;
   padding: 10px 14px;
   border-radius: 9999px;
-  color: var(--gray-a11);
+  color: var(--app-muted);
   transition:
     background-color 180ms ease,
     color 180ms ease,
@@ -138,16 +227,15 @@ body::before {
 }
 
 .app-bottom-nav .rt-TabsTrigger.app-nav-trigger:hover {
-  background: color-mix(in srgb, var(--gray-a4) 75%, transparent);
-  color: var(--gray-a12);
+  background: color-mix(in srgb, var(--app-panel-muted) 85%, transparent);
+  color: var(--app-text);
 }
 
 .app-bottom-nav .rt-TabsTrigger.app-nav-trigger[data-state="active"] {
-  background: color-mix(in srgb, var(--blue-a4) 60%, transparent);
-  color: var(--blue-12);
-  box-shadow:
-    0 8px 18px color-mix(in srgb, var(--blue-a8) 18%, transparent),
-    inset 0 0 0 1px color-mix(in srgb, var(--blue-a7) 40%, transparent);
+  background: var(--app-accent-soft);
+  color: var(--app-accent-strong);
+  box-shadow: none;
+  outline: 1px solid color-mix(in srgb, var(--app-accent) 22%, transparent);
 }
 
 .app-bottom-nav .app-nav-icon {
@@ -157,6 +245,17 @@ body::before {
 }
 
 @media (max-width: 420px) {
+  .app-home-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .app-primary-action,
+  .app-secondary-action,
+  .app-control-trigger {
+    width: 100%;
+  }
+
   .app-bottom-nav .app-nav-label {
     display: none;
   }
@@ -173,7 +272,7 @@ body::before {
    Typography. Keep this lightweight and predictable.
 ------------------------------------------------------------ */
 .prose {
-  color: var(--gray-a12);
+  color: var(--app-text);
   line-height: 1.65;
   font-size: 0.95rem;
 }
@@ -183,7 +282,7 @@ body::before {
 }
 
 .prose :where(h1, h2, h3):not(:where([class~="not-prose"] *)) {
-  color: var(--gray-12);
+  color: var(--app-text);
   line-height: 1.2;
   margin: 1em 0 0.5em;
   letter-spacing: -0.01em;
@@ -192,15 +291,17 @@ body::before {
 .prose :where(h1):not(:where([class~="not-prose"] *)) {
   font-size: 1.5em;
 }
+
 .prose :where(h2):not(:where([class~="not-prose"] *)) {
   font-size: 1.25em;
 }
+
 .prose :where(h3):not(:where([class~="not-prose"] *)) {
   font-size: 1.1em;
 }
 
 .prose :where(a):not(:where([class~="not-prose"] *)) {
-  color: var(--blue-11);
+  color: var(--app-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -212,15 +313,15 @@ body::before {
   font-size: 0.9em;
   padding: 0.12em 0.35em;
   border-radius: 0.4em;
-  background: var(--gray-a3);
+  background: var(--app-panel-muted);
 }
 
 .prose :where(pre):not(:where([class~="not-prose"] *)) {
   margin: 1em 0;
   padding: 0.9em 1em;
   border-radius: 0.8em;
-  background: var(--gray-a3);
-  border: 1px solid var(--gray-a6);
+  background: var(--app-panel-muted);
+  border: 1px solid var(--app-border);
   overflow: auto;
 }
 
@@ -240,14 +341,26 @@ body::before {
 .prose :where(blockquote):not(:where([class~="not-prose"] *)) {
   margin: 1em 0;
   padding: 0.8em 1em;
-  border-left: 3px solid var(--gray-a8);
-  background: var(--gray-a2);
+  border-left: 3px solid var(--app-accent);
+  background: var(--app-panel-muted);
   border-radius: 0.6em;
-  color: var(--gray-a11);
+  color: var(--app-muted);
 }
 
 .dark .prose {
-  color: var(--gray-a12);
+  color: var(--app-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Custom slim scrollbar */
@@ -255,13 +368,16 @@ body::before {
   width: 4px;
   height: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--gray-a6);
+  background: var(--app-border-strong);
   border-radius: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--gray-a8);
+  background: var(--app-muted);
 }

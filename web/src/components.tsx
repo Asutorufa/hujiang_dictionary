@@ -1,16 +1,16 @@
 import { authorizedRequest } from "@/lib/api";
 import {
+  Box,
   Button,
   Dialog,
-  Switch,
-  TextArea,
   Flex,
+  Switch,
   Text,
-  Box,
+  TextArea,
 } from "@radix-ui/themes";
+import { AnimatePresence, motion } from "framer-motion";
 import { FC, ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
 
 export function useDisclosure(initialState = false) {
   const [isOpen, setIsOpen] = useState(initialState);
@@ -86,11 +86,7 @@ export const SaveWordModal: FC<{
   return (
     <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
       <Dialog.Content maxWidth="500px">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
-        >
+        <div>
           <Dialog.Title>Save to Vocabulary</Dialog.Title>
           <Flex direction="column" gap="4" mt="4">
             <Box>
@@ -179,7 +175,7 @@ export const SaveWordModal: FC<{
               Save
             </Button>
           </Flex>
-        </motion.div>
+        </div>
       </Dialog.Content>
     </Dialog.Root>
   );
@@ -401,48 +397,48 @@ export const ConfirmModal: FC<{
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
 }) => {
-  const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
 
-  // Map legacy HeroUI colors to Radix colors, otherwise pass through the given Radix color
-  let radixColor: RadixColor | undefined;
+    // Map legacy HeroUI colors to Radix colors, otherwise pass through the given Radix color
+    let radixColor: RadixColor | undefined;
 
-  if (color === "danger") radixColor = "red";
-  else if (color === "success") radixColor = "green";
-  else if (color === "warning") radixColor = "orange";
-  else if (color === "secondary" || color === "default") radixColor = "gray";
-  else if (color === "primary") radixColor = "blue";
-  else radixColor = color as RadixColor | undefined;
+    if (color === "danger") radixColor = "red";
+    else if (color === "success") radixColor = "green";
+    else if (color === "warning") radixColor = "orange";
+    else if (color === "secondary" || color === "default") radixColor = "gray";
+    else if (color === "primary") radixColor = "blue";
+    else radixColor = color as RadixColor | undefined;
 
-  return (
-    <Dialog.Root open={open} onOpenChange={onChange}>
-      <Dialog.Content maxWidth="400px">
-        <Dialog.Title className="text-center mb-4">{title}</Dialog.Title>
-        <Flex gap="3" mt="4" justify="center">
-          <Button
-            variant="soft"
-            color="gray"
-            disabled={loading}
-            onClick={() => onChange(false)}
-          >
-            {cancelLabel}
-          </Button>
-          <Button
-            loading={loading}
-            color={radixColor}
-            onClick={async () => {
-              setLoading(true);
-              await onConfirm();
-              setLoading(false);
-              onChange(false);
-            }}
-          >
-            {confirmLabel}
-          </Button>
-        </Flex>
-      </Dialog.Content>
-    </Dialog.Root>
-  );
-};
+    return (
+      <Dialog.Root open={open} onOpenChange={onChange}>
+        <Dialog.Content maxWidth="400px">
+          <Dialog.Title className="text-center mb-4">{title}</Dialog.Title>
+          <Flex gap="3" mt="4" justify="center">
+            <Button
+              variant="soft"
+              color="gray"
+              disabled={loading}
+              onClick={() => onChange(false)}
+            >
+              {cancelLabel}
+            </Button>
+            <Button
+              loading={loading}
+              color={radixColor}
+              onClick={async () => {
+                setLoading(true);
+                await onConfirm();
+                setLoading(false);
+                onChange(false);
+              }}
+            >
+              {confirmLabel}
+            </Button>
+          </Flex>
+        </Dialog.Content>
+      </Dialog.Root>
+    );
+  };
 
 export type IconProps = {
   size?: number;
@@ -697,3 +693,4 @@ export function getPriorityText(priority: number) {
 }
 export * from "./AudioPlayer";
 export * from "./Markdown";
+

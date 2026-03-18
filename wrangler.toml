@@ -46,7 +46,8 @@ AUTH_USERNAME = "admin"
 AUTH_PASSWORD = "password"
 AUTH_SECRET = "test"
 AUTH_TOKEN_EXPIRATION = "1" # in days
-
+[env.dev.ai]
+binding = "AI"
 [[env.dev.d1_databases]]
 binding = "DB"
 database_name = "words"

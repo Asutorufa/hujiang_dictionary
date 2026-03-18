@@ -28,8 +28,8 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
   return (
     <Theme
       appearance={theme === "dark" || theme === "light" ? theme : "inherit"}
-      accentColor="blue"
-      grayColor="slate"
+      accentColor="tomato"
+      grayColor="sand"
       radius="large"
       panelBackground="solid"
     >

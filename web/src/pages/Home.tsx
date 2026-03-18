@@ -11,9 +11,9 @@ import {
   Box,
   Select,
 } from "@radix-ui/themes";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   DiskIcon,
   listModel as listModels,
@@ -153,6 +153,7 @@ export default function Home() {
     result: string;
     reasoning?: string;
   }>("result_v2", { result: "" });
+  const [liveResult, setLiveResult] = useState(result);
   const [srcLang, setSrcLang] = useLocalStorage("src_lang", "");
   const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
   const [loading, setLoading] = useState(false);
@@ -168,6 +169,60 @@ export default function Home() {
   const [customModels, setCustomModels] = useLocalStorage<
     Record<string, { name: string; model: string }>
   >("custom_llms_cache", {});
+  const shouldReduceMotion = useReducedMotion();
+  const streamFrameRef = useRef<number | null>(null);
+  const persistTimeoutRef = useRef<number | null>(null);
+  const pendingStreamRef = useRef({ result: "", reasoning: "" });
+  const queryInputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const persistResult = useCallback(
+    (
+      next:
+        | { result: string; reasoning?: string }
+        | ((
+            prev: { result: string; reasoning?: string },
+          ) => { result: string; reasoning?: string }),
+      options?: { debounce?: boolean; delay?: number },
+    ) => {
+      setLiveResult((prev) => {
+        const nextValue = typeof next === "function" ? next(prev) : next;
+
+        if (persistTimeoutRef.current !== null) {
+          window.clearTimeout(persistTimeoutRef.current);
+        }
+
+        if (options?.debounce) {
+          persistTimeoutRef.current = window.setTimeout(() => {
+            setResult(nextValue);
+            persistTimeoutRef.current = null;
+          }, options.delay ?? 260);
+        } else {
+          setResult(nextValue);
+        }
+
+        return nextValue;
+      });
+    },
+    [setResult],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (streamFrameRef.current !== null) {
+        window.cancelAnimationFrame(streamFrameRef.current);
+      }
+      if (persistTimeoutRef.current !== null) {
+        window.clearTimeout(persistTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const textarea = queryInputRef.current;
+    if (!textarea) return;
+    textarea.style.height = "0px";
+    textarea.style.height = `${Math.max(120, textarea.scrollHeight)}px`;
+  }, [query]);
 
   useEffect(() => {
     listModels((models, error) => {
@@ -201,7 +256,8 @@ export default function Home() {
     setLoading(true);
 
     if (stream && modelName === "custom_llm") {
-      setResult({ result: "" });
+      pendingStreamRef.current = { result: "", reasoning: "" };
+      persistResult({ result: "" });
       try {
         const resp = await authorizedRequest("/word/query_stream", {
           method: "POST",
@@ -222,7 +278,7 @@ export default function Home() {
         });
 
         if (!resp.ok) {
-          setResult({ result: `(${resp.status}) ${await resp.text()}` });
+          persistResult({ result: `(${resp.status}) ${await resp.text()}` });
           setLoading(false);
           return;
         }
@@ -230,14 +286,31 @@ export default function Home() {
         await streamRequest<{ result: string; reasoning?: string }>(
           resp,
           (data) => {
-            setResult((prev) => ({
-              result: prev.result + (data.result || ""),
-              reasoning: (prev.reasoning || "") + (data.reasoning || ""),
-            }));
+            pendingStreamRef.current = {
+              result: pendingStreamRef.current.result + (data.result || ""),
+              reasoning:
+                pendingStreamRef.current.reasoning + (data.reasoning || ""),
+            };
+
+            if (streamFrameRef.current !== null) return;
+
+            streamFrameRef.current = window.requestAnimationFrame(() => {
+              streamFrameRef.current = null;
+              const pending = pendingStreamRef.current;
+              pendingStreamRef.current = { result: "", reasoning: "" };
+
+              persistResult(
+                (prev) => ({
+                  result: prev.result + pending.result,
+                  reasoning: (prev.reasoning || "") + pending.reasoning,
+                }),
+                { debounce: true },
+              );
+            });
           },
         );
       } catch (error) {
-        setResult({ result: String(error) });
+        persistResult({ result: String(error) });
       } finally {
         setLoading(false);
       }
@@ -257,11 +330,11 @@ export default function Home() {
         (data, error) => {
           console.log(data);
           if (error) {
-            setResult({ result: error });
+            persistResult({ result: error });
           } else if (data) {
-            setResult(data);
+            persistResult(data);
           } else {
-            setResult({ result: "NOT FOUND" });
+            persistResult({ result: "NOT FOUND" });
           }
           setLoading(false);
         },
@@ -277,7 +350,7 @@ export default function Home() {
     promptMode,
     selected,
     customModels,
-    setResult,
+    persistResult,
     setLoading,
     stream,
   ]);
@@ -308,25 +381,28 @@ export default function Home() {
   }, [setOpen, doQueryWord]);
 
   return (
-    <div className="min-h-dvh">
+    <div className="app-page-shell min-h-dvh">
       <SaveWordModal
         open={open}
         onChange={(p) => setOpen(p)}
         word={query}
-        explain={result.result}
+        explain={liveResult.result}
         type={0}
       />
       <PageContainer className="space-y-6">
         <PageHeader
-          title="HJ Dict"
-          subtitle="Ctrl+Enter to translate · Ctrl+S to save"
           actions={
-            <Flex gap="2" align="center" wrap="wrap">
+            <Flex
+              gap="2"
+              align="center"
+              wrap="wrap"
+              className="app-home-actions"
+            >
               <Tooltip content="Translate (Ctrl+Enter)">
                 <Button
                   variant="solid"
                   color="blue"
-                  className="cursor-pointer"
+                  className="app-primary-action cursor-pointer"
                   loading={loading}
                   onClick={doQueryWord}
                 >
@@ -341,7 +417,7 @@ export default function Home() {
                 <Button
                   variant="surface"
                   color="green"
-                  className="cursor-pointer"
+                  className="app-secondary-action cursor-pointer"
                   onClick={() => setOpen(true)}
                 >
                   <Flex gap="2" align="center">
@@ -353,135 +429,145 @@ export default function Home() {
             </Flex>
           }
         >
-          <Flex gap="2" align="center" wrap="wrap" justify="between">
-            <DropdownMenu.Root>
-              <Tooltip content="Translate Method">
-                <DropdownMenu.Trigger>
-                  <Button
-                    variant="surface"
-                    color="gray"
-                    className="capitalize cursor-pointer"
-                  >
-                    {translationMap[selected] ||
-                      customModels?.[selected]?.model ||
-                      "Select"}
-                  </Button>
-                </DropdownMenu.Trigger>
-              </Tooltip>
-              <DropdownMenu.Content>
-                <DropdownMenu.Group>
-                  {translationSources.map((source) => (
-                    <DropdownMenu.Item
-                      key={source.key}
-                      onSelect={() => setSelected(source.key)}
+          <div className="app-home-toolbar">
+            <Text size="1" color="gray" className="app-toolbar-hint">
+              Ctrl+Enter to translate. Ctrl+S to save.
+            </Text>
+
+            <Flex gap="2" align="center" wrap="wrap" className="app-control-row">
+              <DropdownMenu.Root>
+                <Tooltip content="Translate Method">
+                  <DropdownMenu.Trigger>
+                    <Button
+                      variant="surface"
+                      color="gray"
+                      className="app-control-trigger capitalize cursor-pointer"
                     >
-                      {source.name}
-                    </DropdownMenu.Item>
-                  ))}
-                </DropdownMenu.Group>
-
-                {dictSources.length > 0 && <DropdownMenu.Separator />}
-
-                <DropdownMenu.Group>
-                  {dictSources.map((source) => (
-                    <DropdownMenu.Item
-                      key={source.key}
-                      onSelect={() => setSelected(source.key)}
-                    >
-                      <Flex justify="between" width="100%" gap="4">
-                        <Text>{source.name}</Text>
-                        {source.tag && (
-                          <Text color="gray" size="1">
-                            {source.tag}
-                          </Text>
-                        )}
-                      </Flex>
-                    </DropdownMenu.Item>
-                  ))}
-                </DropdownMenu.Group>
-
-                {Object.keys(customModels || {}).length > 0 && (
-                  <DropdownMenu.Separator />
-                )}
-
-                {Object.keys(customModels || {}).length > 0 && (
+                      {translationMap[selected] ||
+                        customModels?.[selected]?.model ||
+                        "Select"}
+                    </Button>
+                  </DropdownMenu.Trigger>
+                </Tooltip>
+                <DropdownMenu.Content>
                   <DropdownMenu.Group>
-                    {Object.keys(customModels || {}).map((key) => (
+                    {translationSources.map((source) => (
                       <DropdownMenu.Item
-                        key={key}
-                        onSelect={() => setSelected(key)}
+                        key={source.key}
+                        onSelect={() => setSelected(source.key)}
+                      >
+                        {source.name}
+                      </DropdownMenu.Item>
+                    ))}
+                  </DropdownMenu.Group>
+
+                  {dictSources.length > 0 && <DropdownMenu.Separator />}
+
+                  <DropdownMenu.Group>
+                    {dictSources.map((source) => (
+                      <DropdownMenu.Item
+                        key={source.key}
+                        onSelect={() => setSelected(source.key)}
                       >
                         <Flex justify="between" width="100%" gap="4">
-                          <Text>{customModels[key].model}</Text>
-                          <Text color="gray" size="1">
-                            {customModels[key].name}
-                          </Text>
+                          <Text>{source.name}</Text>
+                          {source.tag && (
+                            <Text color="gray" size="1">
+                              {source.tag}
+                            </Text>
+                          )}
                         </Flex>
                       </DropdownMenu.Item>
                     ))}
                   </DropdownMenu.Group>
-                )}
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
 
-            {showSelectLang(selected) && (
-              <Flex gap="2" align="center" wrap="wrap">
-                <DropdownMenu.Root>
-                  <Tooltip content="Source Language">
-                    <DropdownMenu.Trigger>
-                      <Button
-                        variant="surface"
-                        color="gray"
-                        className="cursor-pointer"
-                      >
-                        {languageMap[srcLang]?.name || "Auto"}
-                      </Button>
-                    </DropdownMenu.Trigger>
-                  </Tooltip>
-                  <DropdownMenu.Content>
-                    {languages.map((lang) => (
-                      <DropdownMenu.Item
-                        key={lang.key}
-                        onSelect={() => setSrcLang(lang.key)}
-                      >
-                        {lang.name}
-                      </DropdownMenu.Item>
-                    ))}
-                  </DropdownMenu.Content>
-                </DropdownMenu.Root>
+                  {Object.keys(customModels || {}).length > 0 && (
+                    <DropdownMenu.Separator />
+                  )}
 
-                <DropdownMenu.Root>
-                  <Tooltip content="Target Language">
-                    <DropdownMenu.Trigger>
-                      <Button
-                        variant="surface"
-                        color="gray"
-                        className="cursor-pointer"
-                      >
-                        {languageMap[dstLang]?.name || "Auto"}
-                      </Button>
-                    </DropdownMenu.Trigger>
-                  </Tooltip>
-                  <DropdownMenu.Content>
-                    {languages
-                      .filter((lang) => lang.key !== "")
-                      .map((lang) => (
+                  {Object.keys(customModels || {}).length > 0 && (
+                    <DropdownMenu.Group>
+                      {Object.keys(customModels || {}).map((key) => (
+                        <DropdownMenu.Item
+                          key={key}
+                          onSelect={() => setSelected(key)}
+                        >
+                          <Flex justify="between" width="100%" gap="4">
+                            <Text>{customModels[key].model}</Text>
+                            <Text color="gray" size="1">
+                              {customModels[key].name}
+                            </Text>
+                          </Flex>
+                        </DropdownMenu.Item>
+                      ))}
+                    </DropdownMenu.Group>
+                  )}
+                </DropdownMenu.Content>
+              </DropdownMenu.Root>
+
+              {showSelectLang(selected) && (
+                <>
+                  <DropdownMenu.Root>
+                    <Tooltip content="Source Language">
+                      <DropdownMenu.Trigger>
+                        <Button
+                          variant="surface"
+                          color="gray"
+                          className="app-control-trigger cursor-pointer"
+                        >
+                          {languageMap[srcLang]?.name || "Auto"}
+                        </Button>
+                      </DropdownMenu.Trigger>
+                    </Tooltip>
+                    <DropdownMenu.Content>
+                      {languages.map((lang) => (
                         <DropdownMenu.Item
                           key={lang.key}
-                          onSelect={() => setDstLang(lang.key)}
+                          onSelect={() => setSrcLang(lang.key)}
                         >
                           {lang.name}
                         </DropdownMenu.Item>
                       ))}
-                  </DropdownMenu.Content>
-                </DropdownMenu.Root>
-              </Flex>
-            )}
-          </Flex>
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Root>
+
+                  <DropdownMenu.Root>
+                    <Tooltip content="Target Language">
+                      <DropdownMenu.Trigger>
+                        <Button
+                          variant="surface"
+                          color="gray"
+                          className="app-control-trigger cursor-pointer"
+                        >
+                          {languageMap[dstLang]?.name || "Auto"}
+                        </Button>
+                      </DropdownMenu.Trigger>
+                    </Tooltip>
+                    <DropdownMenu.Content>
+                      {languages
+                        .filter((lang) => lang.key !== "")
+                        .map((lang) => (
+                          <DropdownMenu.Item
+                            key={lang.key}
+                            onSelect={() => setDstLang(lang.key)}
+                          >
+                            {lang.name}
+                          </DropdownMenu.Item>
+                        ))}
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Root>
+                </>
+              )}
+            </Flex>
+          </div>
         </PageHeader>
 
-        <motion.div variants={itemVariants} initial="hidden" animate="visible">
-          <Card>
+        <motion.div
+          variants={shouldReduceMotion ? undefined : itemVariants}
+          initial={shouldReduceMotion ? false : "hidden"}
+          animate={shouldReduceMotion ? undefined : "visible"}
+        >
+          <Card className="app-section-card">
             <Box>
               <Text
                 as="label"
@@ -493,11 +579,12 @@ export default function Home() {
                 Input
               </Text>
               <TextArea
+                ref={queryInputRef}
                 color={query.length === 0 ? "red" : undefined}
                 value={query}
                 placeholder="Type or paste text to translate..."
                 variant="soft"
-                className="min-h-[80px]"
+                className="app-textarea"
                 onChange={(e) => setQuery(e.target.value)}
               />
             </Box>
@@ -505,20 +592,24 @@ export default function Home() {
         </motion.div>
 
         {selected.startsWith("custom-") && (
-          <Card>
-            <Flex justify="between" align="center" gap="3" wrap="wrap">
-              <Box>
-                <Text size="2" weight="bold">
+          <Card className="app-section-card">
+            <Flex justify="between" align="start" gap="4" wrap="wrap">
+              <Box className="min-w-0 space-y-1">
+                <Text size="2" weight="bold" className="block leading-tight">
                   Advanced
                 </Text>
-                <Text size="1" color="gray">
+                <Text
+                  size="1"
+                  color="gray"
+                  className="block max-w-[28rem] leading-relaxed"
+                >
                   Options for custom LLM queries
                 </Text>
               </Box>
               <Button
                 variant="soft"
                 color="gray"
-                className="cursor-pointer"
+                className="cursor-pointer shrink-0"
                 onClick={() => setShowAdvanced((v) => !v)}
               >
                 {showAdvanced ? "Hide" : "Show"}
@@ -528,10 +619,20 @@ export default function Home() {
             <AnimatePresence initial={false}>
               {showAdvanced && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.25 }}
+                  initial={
+                    shouldReduceMotion ? false : { opacity: 0, height: 0, y: -6 }
+                  }
+                  animate={
+                    shouldReduceMotion
+                      ? undefined
+                      : { opacity: 1, height: "auto", y: 0 }
+                  }
+                  exit={
+                    shouldReduceMotion
+                      ? undefined
+                      : { opacity: 0, height: 0, y: -6 }
+                  }
+                  transition={{ duration: 0.18, ease: "easeOut" }}
                   className="mt-4 space-y-4 overflow-hidden"
                 >
                   <Flex gap="6" wrap="wrap" align="center">
@@ -628,7 +729,7 @@ export default function Home() {
                       <TextArea
                         value={instruction}
                         placeholder="e.g. Translate to natural spoken Japanese..."
-                        className="min-h-[60px]"
+                        className="app-textarea min-h-[60px]"
                         onChange={(e) => setInstruction(e.target.value)}
                       />
                     </Box>
@@ -639,49 +740,48 @@ export default function Home() {
           </Card>
         )}
 
-        <AnimatePresence mode="wait">
-          {result.reasoning && (
-            <motion.div
-              key="reasoning"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-            >
-              <Text
-                size="1"
-                weight="bold"
-                color="blue"
-                className="mb-2 ml-1 block uppercase tracking-widest"
-              >
-                Thinking Process
-              </Text>
-              <Card variant="surface">
-                <Box className="prose prose-sm dark:prose-invert max-w-none opacity-80">
-                  <Markdown>{result.reasoning}</Markdown>
-                </Box>
-              </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence mode="wait">
+        {liveResult.reasoning && (
           <motion.div
-            key="result"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
           >
             <Text
               size="1"
               weight="bold"
-              color="gray"
+              color="blue"
               className="mb-2 ml-1 block uppercase tracking-widest"
+            >
+              Thinking Process
+            </Text>
+            <Card variant="surface" className="app-section-card">
+              <Box className="prose prose-sm dark:prose-invert max-w-none opacity-80">
+                <Markdown>{liveResult.reasoning}</Markdown>
+              </Box>
+            </Card>
+          </motion.div>
+        )}
+
+        <motion.div
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
+          animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
+        >
+          <Flex justify="between" align="center" wrap="wrap" gap="3" className="mb-2 px-1">
+            <Text
+              size="1"
+              weight="bold"
+              color="gray"
+              className="block uppercase tracking-widest"
             >
               Result
             </Text>
-            <Card>
-              {result.result ? (
+            <div className="app-stat-chip text-xs">
+              {loading ? "Translating..." : `${selected.startsWith("custom-") ? "Custom LLM" : "Dictionary"} output`}
+            </div>
+          </Flex>
+          <Card className="app-section-card">
+              {liveResult.result ? (
                 <Box className="prose prose-sm dark:prose-invert max-w-none">
-                  <Markdown>{result.result}</Markdown>
+                  <Markdown>{liveResult.result}</Markdown>
                 </Box>
               ) : (
                 <Flex
@@ -691,27 +791,16 @@ export default function Home() {
                   direction="column"
                   gap="3"
                 >
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.08, 1],
-                      opacity: [0.15, 0.3, 0.15],
-                    }}
-                    transition={{
-                      repeat: Infinity,
-                      duration: 3,
-                      ease: "easeInOut",
-                    }}
-                  >
-                    <PlayIcon size={40} />
-                  </motion.div>
+                  <div className="rounded-full border border-[var(--gray-a6)] bg-[var(--gray-a2)] p-4 text-[var(--gray-a10)]">
+                    <PlayIcon size={34} />
+                  </div>
                   <Text color="gray" size="2" className="italic">
                     Waiting for input...
                   </Text>
                 </Flex>
               )}
-            </Card>
-          </motion.div>
-        </AnimatePresence>
+          </Card>
+        </motion.div>
       </PageContainer>
     </div>
   );

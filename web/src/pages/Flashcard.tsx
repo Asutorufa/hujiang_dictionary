@@ -23,12 +23,12 @@ import {
   Box,
 } from "@radix-ui/themes";
 import {
-  AnimatePresence,
   motion,
   PanInfo,
   useAnimation,
   useDragControls,
   useMotionValue,
+  useReducedMotion,
   useTransform,
 } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -91,6 +91,7 @@ export default function Flashcard() {
   const [loading, setLoading] = useState(false);
   const loadedChunksRef = useRef<Set<number>>(new Set());
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   const CHUNK_SIZE = 10;
 
@@ -158,9 +159,13 @@ export default function Flashcard() {
   const controls = useAnimation();
   const dragControls = useDragControls();
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-10, 10]);
-  const opacityRight = useTransform(x, [50, 150], [0, 1]);
-  const opacityLeft = useTransform(x, [-150, -50], [1, 0]);
+  const rotate = useTransform(
+    x,
+    [-200, 200],
+    shouldReduceMotion ? [0, 0] : [-7, 7],
+  );
+  const opacityRight = useTransform(x, [60, 150], [0, 0.85]);
+  const opacityLeft = useTransform(x, [-150, -60], [0.85, 0]);
 
   const handleSwipe = useCallback(
     async (action: "know" | "skip") => {
@@ -215,15 +220,15 @@ export default function Flashcard() {
   };
 
   return (
-    <div className="flex flex-col min-h-dvh overflow-hidden items-center relative p-4 pb-[calc(env(safe-area-inset-bottom)+112px)]">
+    <div className="app-page-shell flex min-h-dvh flex-col items-center overflow-hidden p-4 pb-[calc(env(safe-area-inset-bottom)+112px)] relative">
       {/* Header / Filter Bar */}
-      <div className="flex gap-2 mb-4 z-10 w-full justify-center">
+      <div className="app-bottom-actions mb-4 flex w-full max-w-md flex-wrap items-center justify-center gap-2 px-3 py-3 z-10">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger disabled={loading && wordsMap.size === 0}>
             <Button
               variant="surface"
               color="gray"
-              className="shadow-md backdrop-blur-sm capitalize"
+              className="capitalize"
             >
               <FilterIcon /> {orderBy.replace("_", " ")}
             </Button>
@@ -279,7 +284,7 @@ export default function Flashcard() {
             <Button
               variant="surface"
               color="gray"
-              className="shadow-md backdrop-blur-sm capitalize"
+              className="capitalize"
             >
               <BookIcon /> {grammar ? "Grammar" : "Word"}
             </Button>
@@ -305,7 +310,7 @@ export default function Flashcard() {
           ml="2"
           px="3"
           py="1"
-          className="bg-[var(--gray-a3)] rounded-lg"
+          className="app-stat-chip"
         >
           <Text size="2">
             {page} / {total}
@@ -327,45 +332,43 @@ export default function Flashcard() {
           />
         )}
 
-        <AnimatePresence mode="wait">
-          {currentWord && (
-            <motion.div
-              key={page}
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 0 }}
-              transition={{ duration: 0.2 }}
-              drag="x"
-              dragListener={false}
-              dragControls={dragControls}
-              dragConstraints={{ left: 0, right: 0 }}
-              dragDirectionLock
-              dragElastic={0.9}
-              onDragEnd={handleDragEnd}
-              style={{ x, rotate, touchAction: "pan-y" }}
-              className="w-full absolute inset-0 cursor-grab active:cursor-grabbing flex flex-col min-h-0"
-              onTapStart={() => {
-                longPressTimer.current = setTimeout(handleLongPress, 800);
-              }}
-              onTapCancel={() => {
-                if (longPressTimer.current)
-                  clearTimeout(longPressTimer.current);
-              }}
-              onTap={() => {
-                if (longPressTimer.current)
-                  clearTimeout(longPressTimer.current);
-              }}
-              onDragStart={() => {
-                if (longPressTimer.current)
-                  clearTimeout(longPressTimer.current);
-              }}
-            >
+        {currentWord && (
+          <motion.div
+            key={page}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }}
+            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.16 }}
+            drag="x"
+            dragListener={false}
+            dragControls={dragControls}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragDirectionLock
+            dragElastic={shouldReduceMotion ? 0.15 : 0.45}
+            onDragEnd={handleDragEnd}
+            style={{ x, rotate, touchAction: "pan-y" }}
+            className="w-full absolute inset-0 cursor-grab active:cursor-grabbing flex flex-col min-h-0"
+            onTapStart={() => {
+              longPressTimer.current = setTimeout(handleLongPress, 800);
+            }}
+            onTapCancel={() => {
+              if (longPressTimer.current)
+                clearTimeout(longPressTimer.current);
+            }}
+            onTap={() => {
+              if (longPressTimer.current)
+                clearTimeout(longPressTimer.current);
+            }}
+            onDragStart={() => {
+              if (longPressTimer.current)
+                clearTimeout(longPressTimer.current);
+            }}
+          >
               {/* Visual Feedback Overlays */}
               <motion.div
                 className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
                 style={{ opacity: opacityRight }}
               >
-                <div className="text-green-500 p-6 rounded-full border-4 border-green-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_86%,transparent)] backdrop-blur-sm">
+                <div className="text-green-500 p-6 rounded-full border-4 border-green-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_92%,transparent)]">
                   <CheckIcon />
                 </div>
               </motion.div>
@@ -374,13 +377,13 @@ export default function Flashcard() {
                 className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
                 style={{ opacity: opacityLeft }}
               >
-                <div className="text-red-500 p-6 rounded-full border-4 border-red-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_86%,transparent)] backdrop-blur-sm">
+                <div className="text-red-500 p-6 rounded-full border-4 border-red-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_92%,transparent)]">
                   <CrossIcon />
                 </div>
               </motion.div>
 
               <Card
-                className="flex-1 min-h-0 flex flex-col overflow-hidden"
+                className="app-section-card flex-1 min-h-0 flex flex-col overflow-hidden"
                 onPointerDown={(e) => {
                   const target = e.target as HTMLElement;
                   // Don't start swipe-drag from interactive elements.
@@ -464,7 +467,7 @@ export default function Flashcard() {
                 >
                   <div className="w-full text-left prose prose-sm max-w-none dark:prose-invert">
                     {currentWord.example && (
-                      <Box className="rounded-lg bg-[var(--gray-a3)] p-3 mb-2">
+                      <Box className="app-muted-panel mb-2 p-3">
                         <Markdown>{currentWord.example}</Markdown>
                       </Box>
                     )}
@@ -477,14 +480,13 @@ export default function Flashcard() {
                   </div>
                 </Box>
               </Card>
-            </motion.div>
-          )}
-        </AnimatePresence>
+          </motion.div>
+        )}
       </div>
 
       {/* Fixed Bottom Buttons — always visible */}
       {currentWord && (
-        <div className="w-full max-w-md py-3 flex items-center justify-between gap-3 z-10">
+        <div className="app-bottom-actions w-full max-w-md py-3 px-3 flex items-center justify-between gap-3 z-10">
           <Button
             color="red"
             variant="soft"

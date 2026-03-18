@@ -3,6 +3,8 @@ import { useEffect, useState, useRef } from "react";
 export function useScrollDirection() {
   const [direction, setDirection] = useState<"up" | "down" | null>(null);
   const lastScrollY = useRef(0);
+  const directionRef = useRef<"up" | "down" | null>(null);
+  const tickingRef = useRef(false);
   const threshold = 15; // increased threshold to reduce jitter and state updates
 
   useEffect(() => {
@@ -14,7 +16,10 @@ export function useScrollDirection() {
 
       // Ensure nav is always visible at the very top
       if (scrollY <= threshold) {
-        if (direction !== "up") setDirection("up");
+        if (directionRef.current !== "up") {
+          directionRef.current = "up";
+          setDirection("up");
+        }
         lastScrollY.current = scrollY;
         return;
       }
@@ -22,16 +27,26 @@ export function useScrollDirection() {
       // Check if scroll delta exceeded threshold
       if (Math.abs(diff) > threshold) {
         const newDirection = diff > 0 ? "down" : "up";
-        if (newDirection !== direction) {
+        if (newDirection !== directionRef.current) {
+          directionRef.current = newDirection;
           setDirection(newDirection);
         }
         lastScrollY.current = scrollY;
       }
     };
 
-    window.addEventListener("scroll", updateScrollDirection, { passive: true });
-    return () => window.removeEventListener("scroll", updateScrollDirection);
-  }, [direction]);
+    const onScroll = () => {
+      if (tickingRef.current) return;
+      tickingRef.current = true;
+      window.requestAnimationFrame(() => {
+        updateScrollDirection();
+        tickingRef.current = false;
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return direction;
 }

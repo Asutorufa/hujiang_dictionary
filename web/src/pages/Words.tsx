@@ -118,7 +118,7 @@ export default function Words() {
   };
 
   return (
-    <>
+    <div className="app-page-shell min-h-dvh">
       <ConfirmModal
         title={`Are you sure you want to delete ${removeWord}?`}
         open={confirmOpen}
@@ -283,17 +283,17 @@ export default function Words() {
                 <WordCard
                   word={w}
                   onEdit={() => {
-                  setNewWord({
-                    origin: w.word,
-                    new: w,
-                  });
-                  setOpen(true);
-                }}
-                onDelete={() => {
-                  setRemoveWord(w.word);
-                  setConfirmOpen(true);
-                }}
-                onWordUpdate={(updated) => handleWordUpdate(i, updated)}
+                    setNewWord({
+                      origin: w.word,
+                      new: w,
+                    });
+                    setOpen(true);
+                  }}
+                  onDelete={() => {
+                    setRemoveWord(w.word);
+                    setConfirmOpen(true);
+                  }}
+                  onWordUpdate={(updated) => handleWordUpdate(i, updated)}
                 />
               </div>
             ))}
@@ -311,6 +311,6 @@ export default function Words() {
           )}
         </div>
       </PageContainer>
-    </>
+    </div>
   );
 }

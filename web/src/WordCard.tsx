@@ -22,7 +22,6 @@ import {
   Box,
 } from "@radix-ui/themes";
 import { useState } from "react";
-import { motion } from "framer-motion";
 
 interface WordCardProps {
   word: ListWordResponse;
@@ -64,15 +63,8 @@ export default function WordCard({
   };
 
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.2 }}
-      className="w-full"
-    >
-      <Card>
+    <div className="w-full">
+      <Card className="app-section-card">
         <Flex justify="between" align="start" gap="3">
           <Flex direction="column" className="max-w-[70%]">
             <Text size="5" weight="bold" className="break-words">
@@ -156,7 +148,7 @@ export default function WordCard({
 
         <Box mt="3">
           {word.example && (
-            <Box mb="3" p="3" className="rounded-lg bg-[var(--gray-a3)]">
+            <Box mb="3" p="3" className="app-muted-panel">
               <Text
                 size="1"
                 weight="bold"
@@ -206,6 +198,6 @@ export default function WordCard({
           </Flex>
         </Box>
       </Card>
-    </motion.div>
+    </div>
   );
 }
