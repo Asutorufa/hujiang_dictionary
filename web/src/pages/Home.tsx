@@ -179,9 +179,10 @@ export default function Home() {
     (
       next:
         | { result: string; reasoning?: string }
-        | ((
-            prev: { result: string; reasoning?: string },
-          ) => { result: string; reasoning?: string }),
+        | ((prev: { result: string; reasoning?: string }) => {
+            result: string;
+            reasoning?: string;
+          }),
       options?: { debounce?: boolean; delay?: number },
     ) => {
       setLiveResult((prev) => {
@@ -434,7 +435,12 @@ export default function Home() {
               Ctrl+Enter to translate. Ctrl+S to save.
             </Text>
 
-            <Flex gap="2" align="center" wrap="wrap" className="app-control-row">
+            <Flex
+              gap="2"
+              align="center"
+              wrap="wrap"
+              className="app-control-row"
+            >
               <DropdownMenu.Root>
                 <Tooltip content="Translate Method">
                   <DropdownMenu.Trigger>
@@ -620,7 +626,9 @@ export default function Home() {
               {showAdvanced && (
                 <motion.div
                   initial={
-                    shouldReduceMotion ? false : { opacity: 0, height: 0, y: -6 }
+                    shouldReduceMotion
+                      ? false
+                      : { opacity: 0, height: 0, y: -6 }
                   }
                   animate={
                     shouldReduceMotion
@@ -765,7 +773,13 @@ export default function Home() {
           initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
           animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
         >
-          <Flex justify="between" align="center" wrap="wrap" gap="3" className="mb-2 px-1">
+          <Flex
+            justify="between"
+            align="center"
+            wrap="wrap"
+            gap="3"
+            className="mb-2 px-1"
+          >
             <Text
               size="1"
               weight="bold"
@@ -775,30 +789,32 @@ export default function Home() {
               Result
             </Text>
             <div className="app-stat-chip text-xs">
-              {loading ? "Translating..." : `${selected.startsWith("custom-") ? "Custom LLM" : "Dictionary"} output`}
+              {loading
+                ? "Translating..."
+                : `${selected.startsWith("custom-") ? "Custom LLM" : "Dictionary"} output`}
             </div>
           </Flex>
           <Card className="app-section-card">
-              {liveResult.result ? (
-                <Box className="prose prose-sm dark:prose-invert max-w-none">
-                  <Markdown>{liveResult.result}</Markdown>
-                </Box>
-              ) : (
-                <Flex
-                  className="min-h-[150px]"
-                  align="center"
-                  justify="center"
-                  direction="column"
-                  gap="3"
-                >
-                  <div className="rounded-full border border-[var(--gray-a6)] bg-[var(--gray-a2)] p-4 text-[var(--gray-a10)]">
-                    <PlayIcon size={34} />
-                  </div>
-                  <Text color="gray" size="2" className="italic">
-                    Waiting for input...
-                  </Text>
-                </Flex>
-              )}
+            {liveResult.result ? (
+              <Box className="prose prose-sm dark:prose-invert max-w-none">
+                <Markdown>{liveResult.result}</Markdown>
+              </Box>
+            ) : (
+              <Flex
+                className="min-h-[150px]"
+                align="center"
+                justify="center"
+                direction="column"
+                gap="3"
+              >
+                <div className="rounded-full border border-[var(--gray-a6)] bg-[var(--gray-a2)] p-4 text-[var(--gray-a10)]">
+                  <PlayIcon size={34} />
+                </div>
+                <Text color="gray" size="2" className="italic">
+                  Waiting for input...
+                </Text>
+              </Flex>
+            )}
           </Card>
         </motion.div>
       </PageContainer>
