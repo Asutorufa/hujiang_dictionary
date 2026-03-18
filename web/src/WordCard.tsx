@@ -165,14 +165,14 @@ export default function WordCard({
               >
                 Example
               </Text>
-              <div className="prose prose-sm dark:prose-invert max-w-none italic opacity-80">
+              <div className="prose prose-sm dark:prose-invert max-w-none italic opacity-80 max-h-32 overflow-y-auto custom-scrollbar pr-1">
                 <Markdown>{word.example}</Markdown>
               </div>
             </Box>
           )}
 
           <Spoiler>
-            <div className="prose prose-sm dark:prose-invert max-w-none">
+            <div className="prose prose-sm dark:prose-invert max-w-none max-h-64 overflow-y-auto custom-scrollbar pr-1">
               <Markdown>{word.explain}</Markdown>
             </div>
           </Spoiler>

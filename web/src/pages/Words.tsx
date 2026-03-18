@@ -274,15 +274,15 @@ export default function Words() {
           }
         />
 
-        {/* Grid Layout (more stable than CSS columns for cards) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {/* Masonry Layout using CSS columns */}
+        <div className="columns-1 lg:columns-2 2xl:columns-3 gap-4">
           {words
             .filter((w) => w.word && w.word.length > 0)
             .map((w, i) => (
-              <WordCard
-                key={w.word + i}
-                word={w}
-                onEdit={() => {
+              <div key={w.word + i} className="break-inside-avoid mb-4">
+                <WordCard
+                  word={w}
+                  onEdit={() => {
                   setNewWord({
                     origin: w.word,
                     new: w,
@@ -294,7 +294,8 @@ export default function Words() {
                   setConfirmOpen(true);
                 }}
                 onWordUpdate={(updated) => handleWordUpdate(i, updated)}
-              />
+                />
+              </div>
             ))}
 
           {!loading && words.length === 0 && (
