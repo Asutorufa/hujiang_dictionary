@@ -411,8 +411,8 @@ export default function Home() {
               <Tooltip content="Translate (Ctrl+Enter)">
                 <Button
                   variant="solid"
-                  color="blue"
-                  className="app-primary-action cursor-pointer"
+                  color="gray"
+                  className="app-primary-action"
                   loading={loading}
                   onClick={doQueryWord}
                 >
@@ -426,8 +426,8 @@ export default function Home() {
               <Tooltip content="Save Word (Ctrl+S)">
                 <Button
                   variant="surface"
-                  color="green"
-                  className="app-secondary-action cursor-pointer"
+                  color="gray"
+                  className="app-secondary-action"
                   onClick={() => setOpen(true)}
                 >
                   <Flex gap="2" align="center">

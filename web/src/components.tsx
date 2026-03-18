@@ -145,14 +145,14 @@ export const SaveWordModal: FC<{
             <Button
               variant="soft"
               color="gray"
-              className="cursor-pointer"
+              className="app-secondary-action"
               disabled={saving}
               onClick={() => handleOpenChange(false)}
             >
               Cancel
             </Button>
             <Button
-              className="cursor-pointer"
+              className="app-primary-action"
               loading={saving}
               onClick={() => {
                 if (newWord.length === 0 || newExplain.length === 0) return;
@@ -597,21 +597,18 @@ export const Spoiler: FC<{ children: ReactNode; className?: string }> = ({
   const [hide, setHide] = useState(true);
   return (
     <div
-      className={`relative rounded-xl overflow-hidden transition-all duration-300 ${hide ? "bg-slate-100/50 dark:bg-slate-800/30" : ""} ${className || ""}`}
+      className={`app-spoiler relative transition-all duration-300 ${className || ""}`}
     >
       <motion.div
         animate={{
-          filter: hide ? "blur(8px)" : "blur(0px)",
-          opacity: hide ? 0.3 : 1,
-          scale: hide ? 0.98 : 1,
+          filter: hide ? "blur(7px)" : "blur(0px)",
+          opacity: hide ? 0.4 : 1,
+          scale: hide ? 0.985 : 1,
         }}
-        transition={{ duration: 0.4, ease: "easeInOut" }}
-        className={hide ? "select-none pointer-events-none grayscale" : ""}
-        onClick={() => {
-          if (!hide) return;
-        }}
+        transition={{ duration: 0.28, ease: "easeInOut" }}
+        className={hide ? "select-none pointer-events-none" : ""}
       >
-        <div className="p-1">{children}</div>
+        <div className="p-3">{children}</div>
       </motion.div>
 
       <AnimatePresence>
@@ -620,11 +617,11 @@ export const Spoiler: FC<{ children: ReactNode; className?: string }> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center z-10 cursor-pointer group"
+            className="app-spoiler-overlay absolute inset-[1px] rounded-[15px] flex items-center justify-center z-10 group"
             onClick={() => setHide(false)}
           >
-            <span className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200 dark:border-slate-700 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-all shadow-sm group-hover:scale-105 active:scale-95">
-              Click to Reveal
+            <span className="app-spoiler-reveal-btn px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all shadow-sm group-hover:scale-105 active:scale-95">
+              Show Translation
             </span>
           </motion.div>
         )}
@@ -638,9 +635,9 @@ export const Spoiler: FC<{ children: ReactNode; className?: string }> = ({
         >
           <button
             onClick={() => setHide(true)}
-            className="text-[10px] text-slate-400 hover:text-blue-500 uppercase tracking-wider font-bold cursor-pointer transition-colors"
+            className="app-spoiler-hide-btn px-2 pb-2 text-[10px] uppercase tracking-wider font-bold transition-colors"
           >
-            Hide again
+            Hide
           </button>
         </motion.div>
       )}

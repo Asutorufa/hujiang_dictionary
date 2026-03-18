@@ -220,12 +220,19 @@ export default function Flashcard() {
   };
 
   return (
-    <div className="app-page-shell flex min-h-dvh flex-col items-center overflow-hidden p-4 pb-[calc(env(safe-area-inset-bottom)+112px)] relative">
+    <div className="app-page-shell relative flex min-h-dvh flex-col items-center overflow-x-visible overflow-y-hidden p-4 pb-[calc(env(safe-area-inset-bottom)+112px)]">
       {/* Header / Filter Bar */}
-      <div className="app-bottom-actions mb-4 flex w-full max-w-md flex-wrap items-center justify-center gap-2 px-3 py-3 z-10">
+      <div className="app-bottom-actions mb-4 flex w-full max-w-md flex-wrap items-center justify-between gap-2 px-3 py-3 z-10">
         <DropdownMenu.Root>
-          <DropdownMenu.Trigger disabled={loading && wordsMap.size === 0}>
-            <Button variant="surface" color="gray" className="capitalize">
+          <DropdownMenu.Trigger
+            disabled={loading && wordsMap.size === 0}
+            className="cursor-pointer"
+          >
+            <Button
+              variant="surface"
+              color="gray"
+              className="app-control-trigger capitalize"
+            >
               <FilterIcon /> {orderBy.replace("_", " ")}
             </Button>
           </DropdownMenu.Trigger>
@@ -276,8 +283,15 @@ export default function Flashcard() {
         </DropdownMenu.Root>
 
         <DropdownMenu.Root>
-          <DropdownMenu.Trigger disabled={loading && wordsMap.size === 0}>
-            <Button variant="surface" color="gray" className="capitalize">
+          <DropdownMenu.Trigger
+            disabled={loading && wordsMap.size === 0}
+            className="cursor-pointer"
+          >
+            <Button
+              variant="surface"
+              color="gray"
+              className="app-control-trigger capitalize"
+            >
               <BookIcon /> {grammar ? "Grammar" : "Word"}
             </Button>
           </DropdownMenu.Trigger>
@@ -305,7 +319,7 @@ export default function Flashcard() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 min-h-0 w-full max-w-md flex items-center justify-center relative overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 w-full max-w-md items-center justify-center overflow-visible">
         {loading && wordsMap.size === 0 && <Spinner size="3" />}
 
         {!loading && wordsMap.size === 0 && (
@@ -404,7 +418,7 @@ export default function Flashcard() {
                     ).toLocaleDateString()}
                   </Text>
                   <DropdownMenu.Root>
-                    <DropdownMenu.Trigger>
+                    <DropdownMenu.Trigger className="cursor-pointer">
                       <Badge
                         size="1"
                         variant="soft"
@@ -416,6 +430,7 @@ export default function Flashcard() {
                               : "gray"
                         }
                         className="cursor-pointer"
+                        style={{ cursor: "pointer" }}
                       >
                         {getPriorityText(currentWord.priority)}
                       </Badge>
@@ -445,7 +460,7 @@ export default function Flashcard() {
               </Flex>
 
               <Box
-                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden mt-3"
+                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden mt-3 overscroll-contain"
                 style={{ WebkitOverflowScrolling: "touch" }}
                 onPointerDown={(e) => {
                   // Allow the content area to scroll; prevent the parent Card from starting drag.
@@ -461,7 +476,9 @@ export default function Flashcard() {
 
                   <Spoiler>
                     <Box mt="2">
-                      <Markdown>{currentWord.explain}</Markdown>
+                      <div className="max-h-[40vh] overflow-y-auto custom-scrollbar pr-1">
+                        <Markdown>{currentWord.explain}</Markdown>
+                      </div>
                     </Box>
                   </Spoiler>
                 </div>
@@ -475,9 +492,9 @@ export default function Flashcard() {
       {currentWord && (
         <div className="app-bottom-actions w-full max-w-md py-3 px-3 flex items-center justify-between gap-3 z-10">
           <Button
-            color="red"
+            color="gray"
             variant="soft"
-            className="flex-1 cursor-pointer"
+            className="app-secondary-action flex-1"
             onClick={() => handleSwipe("skip")}
           >
             Skip
@@ -487,16 +504,16 @@ export default function Flashcard() {
             variant="ghost"
             color="gray"
             disabled={page <= 1}
-            className="cursor-pointer"
+            className="app-icon-chip"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
             <LeftArrowIcon />
           </IconButton>
 
           <Button
-            color="green"
-            variant="soft"
-            className="flex-1 cursor-pointer"
+            color="gray"
+            variant="solid"
+            className="app-primary-action flex-1"
             onClick={() => handleSwipe("know")}
           >
             Know

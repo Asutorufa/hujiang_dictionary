@@ -169,7 +169,7 @@ export default function Words() {
                   <IconButton
                     variant="ghost"
                     color="gray"
-                    className="cursor-pointer"
+                    className="app-icon-chip"
                   >
                     <FilterIcon size={18} />
                   </IconButton>
@@ -235,9 +235,9 @@ export default function Words() {
               <Tooltip content="Add Word">
                 <IconButton
                   size="1"
-                  color="blue"
+                  color="gray"
                   variant="solid"
-                  className="cursor-pointer"
+                  className="app-icon-primary"
                   onClick={() => {
                     setNewWord({
                       new: {
@@ -264,7 +264,7 @@ export default function Words() {
                   size="1"
                   variant="ghost"
                   color="gray"
-                  className="cursor-pointer"
+                  className="app-icon-chip"
                   onClick={() => setRefresh((r) => r + 1)}
                 >
                   <RefreshIcon size={16} />

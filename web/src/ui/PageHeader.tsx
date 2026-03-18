@@ -1,7 +1,9 @@
-import { Flex } from "@radix-ui/themes";
+import { Flex, Text, Box } from "@radix-ui/themes";
 import { PropsWithChildren, ReactNode } from "react";
 
 export function PageHeader({
+  title,
+  subtitle,
   actions,
   sticky = false,
   density = "default",
@@ -22,11 +24,37 @@ export function PageHeader({
         sticky ? { top: "calc(env(safe-area-inset-top) + 0.75rem)" } : undefined
       }
     >
-      <div className={`app-hero-card px-4 sm:px-5 ${padY}`}>
-        <Flex justify="between" align="center" gap="4" wrap="wrap">
-          {actions && <div className="shrink-0">{actions}</div>}
-        </Flex>
-        {children && <div className={childrenMt}>{children}</div>}
+      <div className={`app-hero-card app-header-root px-4 sm:px-5 ${padY}`}>
+        <div className="app-header-inner">
+          <Flex justify="between" align="start" gap="4" wrap="wrap">
+            {(title || subtitle) && (
+              <Box className="min-w-0 flex-1">
+                {title && (
+                  <Text
+                    as="h1"
+                    size={density === "compact" ? "5" : "6"}
+                    weight="bold"
+                    className="app-header-title block"
+                  >
+                    {title}
+                  </Text>
+                )}
+                {subtitle && (
+                  <Text
+                    as="p"
+                    size="2"
+                    color="gray"
+                    className="app-header-subtitle mt-1 block"
+                  >
+                    {subtitle}
+                  </Text>
+                )}
+              </Box>
+            )}
+            {actions && <div className="shrink-0">{actions}</div>}
+          </Flex>
+          {children && <div className={childrenMt}>{children}</div>}
+        </div>
       </div>
     </div>
   );

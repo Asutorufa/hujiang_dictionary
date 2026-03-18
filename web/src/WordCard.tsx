@@ -81,7 +81,10 @@ export default function WordCard({
 
           <Flex align="center" gap="2">
             <DropdownMenu.Root>
-              <DropdownMenu.Trigger disabled={loading}>
+              <DropdownMenu.Trigger
+                disabled={loading}
+                className="cursor-pointer"
+              >
                 <Badge
                   size="1"
                   variant="soft"
@@ -93,6 +96,7 @@ export default function WordCard({
                         : "red"
                   }
                   className="cursor-pointer"
+                  style={{ cursor: "pointer" }}
                 >
                   {getPriorityText(word.priority)}
                 </Badge>
@@ -120,7 +124,7 @@ export default function WordCard({
             </DropdownMenu.Root>
 
             <DropdownMenu.Root>
-              <DropdownMenu.Trigger>
+              <DropdownMenu.Trigger className="cursor-pointer">
                 <IconButton
                   size="1"
                   variant="ghost"
@@ -178,17 +182,23 @@ export default function WordCard({
             <Tooltip content="Learned times">
               <Button
                 size="1"
-                variant="surface"
-                color="blue"
+                variant="soft"
+                color="gray"
                 radius="full"
-                className="cursor-pointer"
+                className="app-icon-chip"
                 onClick={handleIncrement}
                 loading={isIncrementing}
               >
                 {!isIncrementing && (
                   <Text size="1" weight="bold">
-                    +
+                    +1
                   </Text>
+                )}
+                {!isIncrementing && (
+                  <span
+                    aria-hidden="true"
+                    className="mx-1 h-3.5 w-px bg-[color-mix(in_srgb,var(--app-border-strong)_80%,transparent)]"
+                  />
                 )}
                 <Text size="2" weight="bold">
                   {word.anki_count}

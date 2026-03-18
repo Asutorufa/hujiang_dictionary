@@ -295,12 +295,24 @@ export default function Config() {
           <Flex gap="2" align="center">
             <Button
               variant={activeTab === "llm" ? "solid" : "soft"}
+              color="gray"
+              className={
+                activeTab === "llm"
+                  ? "app-primary-action"
+                  : "app-secondary-action"
+              }
               onClick={() => setActiveTab("llm")}
             >
               LLM Providers
             </Button>
             <Button
               variant={activeTab === "config" ? "solid" : "soft"}
+              color="gray"
+              className={
+                activeTab === "config"
+                  ? "app-primary-action"
+                  : "app-secondary-action"
+              }
               onClick={() => setActiveTab("config")}
             >
               General
@@ -315,7 +327,11 @@ export default function Config() {
             <Text size="6" weight="bold">
               LLM Providers
             </Text>
-            <Button color="blue" onClick={openAddModal}>
+            <Button
+              color="gray"
+              className="app-primary-action"
+              onClick={openAddModal}
+            >
               Add Provider
             </Button>
           </Flex>
@@ -427,10 +443,7 @@ export default function Config() {
               </Flex>
 
               <Box mt="4">
-                <Card
-                  variant="surface"
-                  className="border-l-4 border-l-blue-500"
-                >
+                <Card variant="surface" className="app-accent-panel">
                   <Flex direction="column" gap="4" p="1">
                     <Text size="3" weight="bold">
                       Google Search Grounding
@@ -469,7 +482,12 @@ export default function Config() {
               </Box>
 
               <Flex justify="end" mt="4">
-                <Button color="blue" type="submit" size="3">
+                <Button
+                  color="gray"
+                  className="app-primary-action"
+                  type="submit"
+                  size="3"
+                >
                   Save Configurations
                 </Button>
               </Flex>
@@ -598,12 +616,13 @@ export default function Config() {
               <Button
                 color="gray"
                 variant="soft"
+                className="app-secondary-action"
                 type="button"
                 onClick={() => onOpenChange(false)}
               >
                 Cancel
               </Button>
-              <Button color="blue" type="submit">
+              <Button color="gray" className="app-primary-action" type="submit">
                 Save
               </Button>
             </Flex>

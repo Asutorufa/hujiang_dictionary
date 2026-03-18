@@ -74,6 +74,22 @@ body {
   color: var(--app-text);
 }
 
+/* Make interactive controls consistently show pointer cursor. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+[role="menuitem"]:not([aria-disabled="true"]),
+[role="menuitemradio"]:not([aria-disabled="true"]),
+[role="menuitemcheckbox"]:not([aria-disabled="true"]),
+[data-radix-collection-item]:not([aria-disabled="true"]),
+summary {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 /* ------------------------------------------------------------
    App-level utilities
    We use Radix Themes as the design-token source; Tailwind is
@@ -124,6 +140,39 @@ body {
 .app-primary-action,
 .app-secondary-action {
   min-width: 112px;
+  border: 1px solid transparent !important;
+  transition:
+    transform 140ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.app-primary-action {
+  background: color-mix(in srgb, var(--app-accent) 92%, #fff) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--app-accent) 42%,
+    transparent
+  ) !important;
+  color: #fff !important;
+}
+
+.app-primary-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--app-accent) 24%, transparent);
+}
+
+.app-secondary-action {
+  background: var(--app-panel-strong) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+.app-secondary-action:hover {
+  background: var(--app-bg-raise) !important;
+  transform: translateY(-1px);
 }
 
 .app-control-trigger {
@@ -136,6 +185,15 @@ body {
   border-color: var(--app-border) !important;
   background: var(--app-bg-raise) !important;
   color: var(--app-text) !important;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.app-control-trigger:hover {
+  border-color: var(--app-border-strong) !important;
+  background: var(--app-panel-strong) !important;
 }
 
 .app-language-pill {
@@ -178,6 +236,12 @@ body {
   background: var(--app-panel-muted);
 }
 
+.app-accent-panel {
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 18%, var(--app-border));
+  background: color-mix(in srgb, var(--app-accent-soft) 52%, var(--app-panel));
+}
+
 .app-stat-chip {
   display: inline-flex;
   align-items: center;
@@ -203,6 +267,88 @@ body {
   box-shadow: none;
 }
 
+.app-icon-chip {
+  border-radius: 9999px !important;
+  border: 1px solid var(--app-border) !important;
+  background: var(--app-panel-strong) !important;
+  color: var(--app-text) !important;
+}
+
+.app-icon-primary {
+  border-radius: 9999px !important;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 40%, transparent) !important;
+  background: color-mix(in srgb, var(--app-accent) 90%, #fff) !important;
+  color: #fff !important;
+}
+
+.app-header-root {
+  position: relative;
+  overflow: hidden;
+}
+
+.app-header-root::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 120% at 0% -10%,
+      color-mix(in srgb, var(--app-accent-soft) 58%, transparent) 0%,
+      transparent 62%
+    ),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--app-bg-raise) 85%, transparent),
+      transparent
+    );
+}
+
+.app-header-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.app-header-title {
+  letter-spacing: 0.01em;
+}
+
+.app-header-subtitle {
+  line-height: 1.45;
+}
+
+.app-spoiler {
+  border-radius: 16px;
+  border: 1px dashed
+    color-mix(in srgb, var(--app-accent) 26%, var(--app-border));
+  background: color-mix(in srgb, var(--app-panel-strong) 82%, var(--app-bg));
+}
+
+.app-spoiler-overlay {
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--app-panel) 72%, transparent),
+    color-mix(in srgb, var(--app-bg) 92%, transparent)
+  );
+  cursor: pointer;
+}
+
+.app-spoiler-reveal-btn {
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--app-panel-strong) 92%, transparent);
+  color: var(--app-accent-strong);
+  cursor: pointer;
+}
+
+.app-spoiler-hide-btn {
+  color: var(--app-muted);
+}
+
+.app-spoiler-hide-btn:hover {
+  color: var(--app-accent);
+}
+
 /* ------------------------------------------------------------
    Bottom nav styling (Radix Themes Tabs)
 ------------------------------------------------------------ */
@@ -214,10 +360,6 @@ body {
 .app-bottom-nav :where(.rt-TabsList) {
   box-shadow: none !important;
   border: 0 !important;
-}
-
-.app-bottom-nav :where(.rt-TabsTrigger, [role="tab"]) {
-  border-bottom: 0 !important;
 }
 
 .app-bottom-nav :where(.rt-TabsTrigger, [role="tab"])::before,
@@ -233,11 +375,21 @@ body {
   gap: 10px;
   padding: 10px 14px;
   border-radius: 9999px;
+  border: 1px solid transparent;
   color: var(--app-muted);
   transition:
     background-color 180ms ease,
+    border-color 180ms ease,
     color 180ms ease,
     transform 180ms ease;
+}
+
+/* Radix Tabs has an inner hover background; keep only our outer pill effect. */
+.app-bottom-nav
+  .rt-TabsTrigger.app-nav-trigger
+  :where(.rt-BaseTabListTriggerInner) {
+  padding: 0 !important;
+  background: transparent !important;
 }
 
 .app-bottom-nav .rt-TabsTrigger.app-nav-trigger:hover {
@@ -245,11 +397,19 @@ body {
   color: var(--app-text);
 }
 
+@media (hover: hover) {
+  .app-bottom-nav
+    .rt-TabsTrigger.app-nav-trigger:where(:hover, :focus-visible:hover)
+    :where(.rt-BaseTabListTriggerInner) {
+    background: transparent !important;
+  }
+}
+
 .app-bottom-nav .rt-TabsTrigger.app-nav-trigger[data-state="active"] {
   background: var(--app-accent-soft);
   color: var(--app-accent-strong);
   box-shadow: none;
-  outline: 1px solid color-mix(in srgb, var(--app-accent) 22%, transparent);
+  border-color: color-mix(in srgb, var(--app-accent) 30%, transparent);
 }
 
 .app-bottom-nav .app-nav-icon {
