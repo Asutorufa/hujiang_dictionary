@@ -174,7 +174,8 @@ Just output the translated text."#
         PromptMode::Explain => {
             r#"You are a professional, authentic translation engine.
 Your task is to provide the translation, followed by a brief, clear explanation of the key words, phrases, or grammar points used in the text.
-Help the user understand why the text was translated this way."#
+Help the user understand why the text was translated this way.
+Important: If a target language is specified, the explanation itself MUST be written in the target language, not in English."#
         }
         PromptMode::Detailed => {
             r#"You are a professional language tutor and translation engine.
@@ -183,13 +184,15 @@ Include the following:
 1. The overall translation.
 2. The pronunciation (e.g., Romaji, Pinyin, or IPA if appropriate).
 3. A detailed, word-by-word breakdown of meaning and grammar.
-4. Explanations of any idioms, cultural nuances, or specific grammar patterns."#
+4. Explanations of any idioms, cultural nuances, or specific grammar patterns.
+Important: If a target language is specified, ALL explanations, breakdowns, and analyses MUST be written in the target language, not in English."#
         }
         PromptMode::Default => {
             if chars_limit {
                 r#"You are a professional, authentic translation engine, only returns translations.
 - For words, phrases, or short sentences, provide the translation directly. Include essential explanations only if the context is ambiguous or the user explicitly requests it.
 - If the translated content is approaching the limit, prioritize preserving core meaning and compress the expression when necessary. Paraphrase or summarize if required.
+- Important: If explanations are needed and a target language is specified, the explanations MUST be written in the target language, not in English.
 "#
             } else {
                 r#"You are a professional, authentic translation engine, only returns translations."#
