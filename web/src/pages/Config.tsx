@@ -3,7 +3,6 @@ import {
   Button,
   Card,
   TextField,
-  Select,
   Dialog,
   Flex,
   Text,
@@ -518,19 +517,24 @@ export default function Config() {
                 <Text as="label" size="2" weight="bold">
                   Provider Type
                 </Text>
-                <Select.Root
-                  name="provider"
-                  value={selectedProviderType}
-                  onValueChange={setSelectedProviderType}
-                >
-                  <Select.Trigger />
-                  <Select.Content>
-                    <Select.Item value="openai">OpenAI</Select.Item>
-                    <Select.Item value="gemini">Gemini</Select.Item>
-                    <Select.Item value="vertexai">VertexAI</Select.Item>
-                    <Select.Item value="workersai">Workers AI</Select.Item>
-                  </Select.Content>
-                </Select.Root>
+                <Box className="relative">
+                  <select
+                    name="provider"
+                    value={selectedProviderType}
+                    onChange={(event) =>
+                      setSelectedProviderType(event.target.value)
+                    }
+                    className="app-native-select w-full pr-10"
+                  >
+                    <option value="openai">OpenAI</option>
+                    <option value="gemini">Gemini</option>
+                    <option value="vertexai">VertexAI</option>
+                    <option value="workersai">Workers AI</option>
+                  </select>
+                  <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[var(--app-muted)]">
+                    ▾
+                  </span>
+                </Box>
               </Flex>
               <Flex direction="column" gap="1">
                 <Text as="label" size="2" weight="bold">

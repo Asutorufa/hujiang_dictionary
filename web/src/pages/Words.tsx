@@ -164,7 +164,7 @@ export default function Words() {
                 onPageChange={(p) => setPage(p)}
               />
 
-              <DropdownMenu.Root>
+              <DropdownMenu.Root modal={false}>
                 <DropdownMenu.Trigger>
                   <IconButton
                     variant="ghost"

@@ -590,14 +590,16 @@ export function BookIcon({ size = 24, width, height, ...props }: IconProps) {
   );
 }
 
-export const Spoiler: FC<{ children: ReactNode; className?: string }> = ({
-  children,
-  className,
-}) => {
+export const Spoiler: FC<{
+  children: ReactNode;
+  className?: string;
+  containerClassName?: string;
+  flex?: boolean;
+}> = ({ children, className, containerClassName, flex }) => {
   const [hide, setHide] = useState(true);
   return (
     <div
-      className={`app-spoiler relative transition-all duration-300 ${className || ""}`}
+      className={`app-spoiler relative transition-all duration-300 ${flex ? "flex-1 flex flex-col min-h-0" : ""} ${className || ""}`}
     >
       <motion.div
         animate={{
@@ -606,9 +608,13 @@ export const Spoiler: FC<{ children: ReactNode; className?: string }> = ({
           scale: hide ? 0.985 : 1,
         }}
         transition={{ duration: 0.28, ease: "easeInOut" }}
-        className={hide ? "select-none pointer-events-none" : ""}
+        className={`${flex ? "flex-1 flex flex-col min-h-0" : ""} ${hide ? "select-none pointer-events-none" : ""}`}
       >
-        <div className="p-3">{children}</div>
+        <div
+          className={`p-3 ${flex ? "flex-1 flex flex-col min-h-0" : ""} ${containerClassName || ""}`}
+        >
+          {children}
+        </div>
       </motion.div>
 
       <AnimatePresence>
@@ -628,18 +634,14 @@ export const Spoiler: FC<{ children: ReactNode; className?: string }> = ({
       </AnimatePresence>
 
       {!hide && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex justify-end p-2"
-        >
+        <div className="shrink-0 flex justify-end px-2 pb-1">
           <button
             onClick={() => setHide(true)}
-            className="app-spoiler-hide-btn px-2 pb-2 text-[10px] uppercase tracking-wider font-bold transition-colors"
+            className="app-spoiler-hide-btn px-2 py-1 text-[10px] uppercase tracking-wider font-bold transition-colors"
           >
             Hide
           </button>
-        </motion.div>
+        </div>
       )}
     </div>
   );

@@ -220,10 +220,10 @@ export default function Flashcard() {
   };
 
   return (
-    <div className="app-page-shell relative flex min-h-dvh flex-col items-center overflow-x-visible overflow-y-hidden p-4 pb-[calc(env(safe-area-inset-bottom)+112px)]">
+    <div className="app-page-shell relative flex h-[100dvh] flex-col items-center overflow-x-visible overflow-y-hidden p-4 pb-[calc(env(safe-area-inset-bottom)+112px)]">
       {/* Header / Filter Bar */}
       <div className="app-bottom-actions mb-4 flex w-full max-w-md flex-wrap items-center justify-between gap-2 px-3 py-3 z-10">
-        <DropdownMenu.Root>
+        <DropdownMenu.Root modal={false}>
           <DropdownMenu.Trigger
             disabled={loading && wordsMap.size === 0}
             className="cursor-pointer"
@@ -282,7 +282,7 @@ export default function Flashcard() {
           </DropdownMenu.Content>
         </DropdownMenu.Root>
 
-        <DropdownMenu.Root>
+        <DropdownMenu.Root modal={false}>
           <DropdownMenu.Trigger
             disabled={loading && wordsMap.size === 0}
             className="cursor-pointer"
@@ -384,10 +384,10 @@ export default function Flashcard() {
             </motion.div>
 
             <Card
-              className="app-section-card flex-1 min-h-0 flex flex-col overflow-hidden"
+              className="app-section-card w-full h-full overflow-hidden relative"
+              style={{ padding: 0 }}
               onPointerDown={(e) => {
                 const target = e.target as HTMLElement;
-                // Don't start swipe-drag from interactive elements.
                 if (
                   target.closest(
                     "a,button,input,textarea,select,[role='menuitem'],[data-radix-collection-item]",
@@ -398,91 +398,93 @@ export default function Flashcard() {
                 dragControls.start(e);
               }}
             >
-              <Flex justify="between" align="start">
-                <Flex direction="column">
-                  <Text size="5" weight="bold" className="break-words">
-                    {currentWord.word}
-                  </Text>
-                  <Text size="1" color="gray">
-                    {new Date(
-                      currentWord.update_time * 1000,
-                    ).toLocaleDateString()}
-                  </Text>
+              <div className="absolute inset-0 flex flex-col p-4">
+                {/* Header */}
+                <Flex justify="between" align="start" flexShrink="0">
+                  <Flex direction="column">
+                    <Text size="5" weight="bold" className="break-words">
+                      {currentWord.word}
+                    </Text>
+                    <Text size="1" color="gray">
+                      {new Date(
+                        currentWord.update_time * 1000,
+                      ).toLocaleDateString()}
+                    </Text>
+                  </Flex>
+
+                  <Flex align="center" gap="2">
+                    <Text size="1" color="gray">
+                      Review:{" "}
+                      {new Date(
+                        currentWord.reminder_time * 1000,
+                      ).toLocaleDateString()}
+                    </Text>
+                    <DropdownMenu.Root modal={false}>
+                      <DropdownMenu.Trigger className="cursor-pointer">
+                        <Badge
+                          size="1"
+                          variant="soft"
+                          color={
+                            currentWord.priority === 0
+                              ? "green"
+                              : currentWord.priority === 1
+                                ? "orange"
+                                : "gray"
+                          }
+                        >
+                          {getPriorityText(currentWord.priority)}
+                        </Badge>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Content>
+                        <DropdownMenu.Item
+                          color="green"
+                          onSelect={() => handlePriorityChange("0")}
+                        >
+                          Low
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          color="orange"
+                          onSelect={() => handlePriorityChange("1")}
+                        >
+                          Medium
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          color="gray"
+                          onSelect={() => handlePriorityChange("2")}
+                        >
+                          High
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+                  </Flex>
                 </Flex>
 
-                <Flex align="center" gap="2">
-                  <Text size="1" color="gray">
-                    Review:{" "}
-                    {new Date(
-                      currentWord.reminder_time * 1000,
-                    ).toLocaleDateString()}
-                  </Text>
-                  <DropdownMenu.Root>
-                    <DropdownMenu.Trigger className="cursor-pointer">
-                      <Badge
-                        size="1"
-                        variant="soft"
-                        color={
-                          currentWord.priority === 0
-                            ? "green"
-                            : currentWord.priority === 1
-                              ? "orange"
-                              : "gray"
-                        }
-                        className="cursor-pointer"
-                        style={{ cursor: "pointer" }}
-                      >
-                        {getPriorityText(currentWord.priority)}
-                      </Badge>
-                    </DropdownMenu.Trigger>
-                    <DropdownMenu.Content>
-                      <DropdownMenu.Item
-                        color="green"
-                        onSelect={() => handlePriorityChange("0")}
-                      >
-                        Low
-                      </DropdownMenu.Item>
-                      <DropdownMenu.Item
-                        color="orange"
-                        onSelect={() => handlePriorityChange("1")}
-                      >
-                        Medium
-                      </DropdownMenu.Item>
-                      <DropdownMenu.Item
-                        color="gray"
-                        onSelect={() => handlePriorityChange("2")}
-                      >
-                        High
-                      </DropdownMenu.Item>
-                    </DropdownMenu.Content>
-                  </DropdownMenu.Root>
-                </Flex>
-              </Flex>
-
-              <Box
-                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden mt-3 overscroll-contain"
-                style={{ WebkitOverflowScrolling: "touch" }}
-                onPointerDown={(e) => {
-                  // Allow the content area to scroll; prevent the parent Card from starting drag.
-                  e.stopPropagation();
-                }}
-              >
-                <div className="w-full text-left prose prose-sm max-w-none dark:prose-invert">
+                {/* Content Area */}
+                <div
+                  className="flex-1 flex flex-col min-h-0 mt-3 overscroll-contain"
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
                   {currentWord.example && (
-                    <Box className="app-muted-panel mb-2 p-3">
+                    <Box className="app-muted-panel mb-3 p-3 shrink-0 prose prose-sm max-w-none dark:prose-invert">
                       <Markdown>{currentWord.example}</Markdown>
                     </Box>
                   )}
 
-                  <Spoiler>
-                    <Box mt="2">
-                      <div className="max-h-[40vh] overflow-y-auto custom-scrollbar pr-1">
+                  <Spoiler
+                    flex
+                    className="flex-1 min-h-0"
+                    containerClassName="!p-0"
+                  >
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 prose prose-sm max-w-none dark:prose-invert">
                         <Markdown>{currentWord.explain}</Markdown>
                       </div>
-                    </Box>
+                    </div>
                   </Spoiler>
                 </div>
-              </Box>
+              </div>
             </Card>
           </motion.div>
         )}

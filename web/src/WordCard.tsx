@@ -80,7 +80,7 @@ export default function WordCard({
           </Flex>
 
           <Flex align="center" gap="2">
-            <DropdownMenu.Root>
+            <DropdownMenu.Root modal={false}>
               <DropdownMenu.Trigger
                 disabled={loading}
                 className="cursor-pointer"
@@ -123,7 +123,7 @@ export default function WordCard({
               </DropdownMenu.Content>
             </DropdownMenu.Root>
 
-            <DropdownMenu.Root>
+            <DropdownMenu.Root modal={false}>
               <DropdownMenu.Trigger className="cursor-pointer">
                 <IconButton
                   size="1"

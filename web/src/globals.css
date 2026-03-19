@@ -20,6 +20,10 @@ body,
   height: 100%;
 }
 
+html {
+  scrollbar-gutter: stable both-edges;
+}
+
 :root {
   --app-bg: #f6f0e5;
   --app-bg-soft: #efe6d8;
@@ -72,6 +76,91 @@ body {
   background: var(--app-bg);
   position: relative;
   color: var(--app-text);
+  overflow-y: scroll;
+  scrollbar-width: auto;
+  scrollbar-color: color-mix(in srgb, var(--app-accent) 34%, var(--app-muted))
+    color-mix(in srgb, var(--app-panel-muted) 82%, transparent);
+}
+
+/* Radix/RemoveScroll toggles body scroll locking for popup layers.
+   Keep layout width stable and avoid the fixed nav "jumping" horizontally. */
+body[data-scroll-locked] {
+  overflow: hidden auto !important;
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--app-bg-soft) 42%, transparent);
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--app-accent) 62%, #fff),
+    color-mix(in srgb, var(--app-accent-alt) 58%, var(--app-accent))
+  );
+  min-height: 24px;
+}
+
+html::-webkit-scrollbar-thumb:hover,
+body::-webkit-scrollbar-thumb:hover,
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--app-accent) 78%, #fff),
+    color-mix(in srgb, var(--app-accent-alt) 72%, var(--app-accent))
+  );
+}
+
+html::-webkit-scrollbar-corner,
+body::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.app-native-select {
+  min-height: 40px;
+  min-width: 132px;
+  padding: 0 36px 0 14px;
+  border-radius: 9999px;
+  border: 1px solid var(--app-border);
+  background:
+    linear-gradient(180deg, transparent, transparent), var(--app-bg-raise);
+  color: var(--app-text);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.app-native-select:hover {
+  border-color: var(--app-border-strong);
+  background: var(--app-panel-strong);
+}
+
+.app-native-select:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--app-accent) 45%, transparent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--app-accent-soft) 55%, transparent);
 }
 
 /* Make interactive controls consistently show pointer cursor. */
@@ -105,8 +194,10 @@ button:disabled,
 .app-nav-surface {
   background: var(--app-panel);
   backdrop-filter: none;
-  border: 0;
-  box-shadow: none;
+  border: 1px solid var(--app-border);
+  box-shadow:
+    0 12px 32px -4px rgba(0, 0, 0, 0.12),
+    0 4px 12px -2px rgba(0, 0, 0, 0.06);
 }
 
 /* For sticky headers that should blend with content but remain readable. */

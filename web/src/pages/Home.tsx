@@ -9,7 +9,6 @@ import {
   Flex,
   Text,
   Box,
-  Select,
 } from "@radix-ui/themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
@@ -450,7 +449,7 @@ export default function Home() {
               wrap="wrap"
               className="app-control-row"
             >
-              <DropdownMenu.Root>
+              <DropdownMenu.Root modal={false}>
                 <Tooltip content="Translate Method">
                   <DropdownMenu.Trigger>
                     <Button
@@ -522,7 +521,7 @@ export default function Home() {
 
               {showSelectLang(selected) && (
                 <>
-                  <DropdownMenu.Root>
+                  <DropdownMenu.Root modal={false}>
                     <Tooltip content="Source Language">
                       <DropdownMenu.Trigger>
                         <Button
@@ -562,7 +561,7 @@ export default function Home() {
                     </DropdownMenu.Content>
                   </DropdownMenu.Root>
 
-                  <DropdownMenu.Root>
+                  <DropdownMenu.Root modal={false}>
                     <Tooltip content="Target Language">
                       <DropdownMenu.Trigger>
                         <Button
@@ -696,28 +695,22 @@ export default function Home() {
                     </Text>
 
                     {googleSearch && (
-                      <Flex gap="2" align="center" className="cursor-pointer">
-                        <Select.Root
+                      <Box className="relative">
+                        <select
                           value={searchEngine}
-                          onValueChange={setSearchEngine}
+                          onChange={(event) =>
+                            setSearchEngine(event.target.value)
+                          }
+                          className="app-native-select pr-10"
                         >
-                          <Select.Trigger />
-                          <Select.Content>
-                            <Select.Group>
-                              <Select.Label>Search Engine</Select.Label>
-                              <Select.Item value="duckduckgo">
-                                DuckDuckGo
-                              </Select.Item>
-                              <Select.Item value="google">
-                                Google HTML
-                              </Select.Item>
-                              <Select.Item value="google_api">
-                                Google API
-                              </Select.Item>
-                            </Select.Group>
-                          </Select.Content>
-                        </Select.Root>
-                      </Flex>
+                          <option value="duckduckgo">DuckDuckGo</option>
+                          <option value="google">Google HTML</option>
+                          <option value="google_api">Google API</option>
+                        </select>
+                        <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[var(--app-muted)]">
+                          ▾
+                        </span>
+                      </Box>
                     )}
 
                     <Text as="label" size="2" weight="medium">
@@ -741,7 +734,7 @@ export default function Home() {
                     >
                       Prompt Mode
                     </Text>
-                    <DropdownMenu.Root>
+                    <DropdownMenu.Root modal={false}>
                       <DropdownMenu.Trigger>
                         <Button
                           variant="surface"
