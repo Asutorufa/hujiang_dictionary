@@ -48,6 +48,9 @@ export default function Config() {
   const [geminiSearch, setGeminiSearch] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<string>("");
   const [vertexLocation, setVertexLocation] = useState<string>("");
+  const [anthropicVersion, setAnthropicVersion] = useState<string>("2023-06-01");
+  const [thinkingEnabled, setThinkingEnabled] = useState<boolean>(false);
+  const [thinkingBudget, setThinkingBudget] = useState<string>("1024");
 
   const fetchProviders = async () => {
     try {
@@ -139,6 +142,21 @@ export default function Config() {
       delete featuresObj.location;
     }
 
+    if (data.provider === "claude") {
+      const formDataVersion = formData.get("anthropic_version") as string;
+      if (formDataVersion) featuresObj.anthropic_version = formDataVersion;
+      if (thinkingEnabled) {
+        featuresObj.thinking = {
+          budget_tokens: parseInt(thinkingBudget, 10) || 1024,
+        };
+      } else {
+        delete featuresObj.thinking;
+      }
+    } else {
+      delete featuresObj.anthropic_version;
+      delete featuresObj.thinking;
+    }
+
     data.features = JSON.stringify(featuresObj);
 
     try {
@@ -165,6 +183,9 @@ export default function Config() {
     setGeminiSearch(false);
     setProjectId("");
     setVertexLocation("");
+    setAnthropicVersion("2023-06-01");
+    setThinkingEnabled(false);
+    setThinkingBudget("1024");
     onOpenChange(true);
   };
 
@@ -231,10 +252,24 @@ export default function Config() {
       setGeminiSearch(features?.gemini_search === true);
       setProjectId((features?.project_id as string) || "");
       setVertexLocation((features?.location as string) || "");
+      setAnthropicVersion(
+        (features?.anthropic_version as string) || "2023-06-01",
+      );
+      setThinkingEnabled(!!features?.thinking);
+      if (features?.thinking && typeof features.thinking === "object") {
+        setThinkingBudget(
+          String((features.thinking as { budget_tokens?: number }).budget_tokens || "1024"),
+        );
+      } else {
+        setThinkingBudget("1024");
+      }
     } catch {
       setGeminiSearch(false);
       setProjectId("");
       setVertexLocation("");
+      setAnthropicVersion("2023-06-01");
+      setThinkingEnabled(false);
+      setThinkingBudget("1024");
     }
     onOpenChange(true);
   };
@@ -530,6 +565,7 @@ export default function Config() {
                     <option value="gemini">Gemini</option>
                     <option value="vertexai">VertexAI</option>
                     <option value="workersai">Workers AI</option>
+                    <option value="claude">Claude</option>
                   </select>
                   <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[var(--app-muted)]">
                     ▾
@@ -565,6 +601,53 @@ export default function Config() {
                   required
                 />
               </Flex>
+              {selectedProviderType === "claude" && (
+                <>
+                  <Flex direction="column" gap="1">
+                    <Text as="label" size="2" weight="bold">
+                      Anthropic Version
+                    </Text>
+                    <TextField.Root
+                      name="anthropic_version"
+                      value={anthropicVersion}
+                      onChange={(e) => setAnthropicVersion(e.target.value)}
+                    />
+                  </Flex>
+                  <Flex direction="column" gap="1">
+                    <Text as="label" size="2" weight="bold">
+                      Extended Thinking
+                    </Text>
+                    <Flex align="center" gap="2">
+                      <Switch
+                        id="thinking_enabled"
+                        checked={thinkingEnabled}
+                        onCheckedChange={setThinkingEnabled}
+                      />
+                      <Text
+                        as="label"
+                        size="2"
+                        htmlFor="thinking_enabled"
+                        className="cursor-pointer"
+                      >
+                        Enable Extended Thinking
+                      </Text>
+                    </Flex>
+                    {thinkingEnabled && (
+                      <Flex direction="column" gap="1" mt="2">
+                        <Text as="label" size="2" weight="bold">
+                          Budget Tokens (min 1024)
+                        </Text>
+                        <TextField.Root
+                          type="number"
+                          value={thinkingBudget}
+                          onChange={(e) => setThinkingBudget(e.target.value)}
+                          min="1024"
+                        />
+                      </Flex>
+                    )}
+                  </Flex>
+                </>
+              )}
               {selectedProviderType === "vertexai" && (
                 <>
                   <Flex direction="column" gap="1">
