@@ -149,15 +149,14 @@ impl Claude {
     fn get_thinking_config(&self) -> Option<ThinkingConfig> {
         let features = self.features.as_deref()?;
         let features_json: serde_json::Value = serde_json::from_str(features).ok()?;
-        if let Some(thinking) = features_json.get("thinking") {
-            if let Some(budget) = thinking.get("budget_tokens").and_then(|v| v.as_u64()) {
-                return Some(ThinkingConfig {
-                    thinking_type: ThinkingType::Enabled,
-                    budget_tokens: budget as u32,
-                });
-            }
-        }
-        None
+        features_json
+            .get("thinking")
+            .and_then(|thinking| thinking.get("budget_tokens"))
+            .and_then(|v| v.as_u64())
+            .map(|budget| ThinkingConfig {
+                thinking_type: ThinkingType::Enabled,
+                budget_tokens: budget as u32,
+            })
     }
 
     pub async fn create_completion_stream(
