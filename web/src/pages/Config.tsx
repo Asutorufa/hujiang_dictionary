@@ -48,7 +48,8 @@ export default function Config() {
   const [geminiSearch, setGeminiSearch] = useState<boolean>(false);
   const [projectId, setProjectId] = useState<string>("");
   const [vertexLocation, setVertexLocation] = useState<string>("");
-  const [anthropicVersion, setAnthropicVersion] = useState<string>("2023-06-01");
+  const [anthropicVersion, setAnthropicVersion] =
+    useState<string>("2023-06-01");
   const [thinkingEnabled, setThinkingEnabled] = useState<boolean>(false);
   const [thinkingBudget, setThinkingBudget] = useState<string>("1024");
 
@@ -258,7 +259,10 @@ export default function Config() {
       setThinkingEnabled(!!features?.thinking);
       if (features?.thinking && typeof features.thinking === "object") {
         setThinkingBudget(
-          String((features.thinking as { budget_tokens?: number }).budget_tokens || "1024"),
+          String(
+            (features.thinking as { budget_tokens?: number }).budget_tokens ||
+              "1024",
+          ),
         );
       } else {
         setThinkingBudget("1024");
