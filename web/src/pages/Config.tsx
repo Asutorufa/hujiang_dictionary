@@ -148,7 +148,7 @@ export default function Config() {
       if (formDataVersion) featuresObj.anthropic_version = formDataVersion;
       if (thinkingEnabled) {
         featuresObj.thinking = {
-          budget_tokens: parseInt(thinkingBudget, 10) || 1024,
+          budget_tokens: Math.max(1024, parseInt(thinkingBudget, 10) || 1024),
         };
       } else {
         delete featuresObj.thinking;
