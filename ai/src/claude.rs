@@ -246,7 +246,10 @@ impl Claude {
                                 }
                                 Ok(StreamEvent::MessageStop) => return None,
                                 Ok(_) => continue,
-                                Err(_) => continue,
+                                Err(e) => {
+                                    log::warn!("Failed to parse Claude stream event: {}", e);
+                                    continue;
+                                }
                             }
                         }
                         continue;
