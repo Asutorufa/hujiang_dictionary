@@ -133,17 +133,22 @@ impl Claude {
         &self,
         messages: Vec<Message>,
     ) -> (Option<String>, Vec<Message>) {
-        let mut system = None;
-        let mut filtered_messages = Vec::new();
+        let (system_messages, other_messages): (Vec<_>, Vec<_>) =
+            messages.into_iter().partition(|m| m.role == "system");
 
-        for msg in messages {
-            if msg.role == "system" {
-                system = Some(msg.content);
-            } else {
-                filtered_messages.push(msg);
-            }
-        }
-        (system, filtered_messages)
+        let system = if system_messages.is_empty() {
+            None
+        } else {
+            Some(
+                system_messages
+                    .into_iter()
+                    .map(|m| m.content)
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            )
+        };
+
+        (system, other_messages)
     }
 
     fn get_thinking_config(&self) -> Option<ThinkingConfig> {
