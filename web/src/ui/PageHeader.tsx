@@ -31,7 +31,7 @@ export function PageHeader({
               <Box className="min-w-0 flex-1">
                 {title && (
                   <Text
-                    as="h1"
+                    as="div"
                     size={density === "compact" ? "5" : "6"}
                     weight="bold"
                     className="app-header-title block"
