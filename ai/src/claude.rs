@@ -158,9 +158,11 @@ impl Claude {
             .get("thinking")
             .and_then(|thinking| thinking.get("budget_tokens"))
             .and_then(|v| v.as_u64())
-            .map(|budget| ThinkingConfig {
-                thinking_type: ThinkingType::Enabled,
-                budget_tokens: budget as u32,
+            .and_then(|budget| {
+                budget.try_into().ok().map(|budget_tokens| ThinkingConfig {
+                    thinking_type: ThinkingType::Enabled,
+                    budget_tokens,
+                })
             })
     }
 
