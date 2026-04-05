@@ -6,6 +6,7 @@ use serde::Deserialize;
 struct StreamCompletionResponse {
     response: Option<String>,
     choices: Option<Vec<Choice>>,
+    thought: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -17,6 +18,7 @@ struct Choice {
 struct Delta {
     content: Option<String>,
     reasoning_content: Option<String>,
+    thought: Option<String>,
 }
 
 pub fn parse_stream<S, E>(
@@ -47,7 +49,7 @@ where
                             match serde_json::from_str::<StreamCompletionResponse>(&data) {
                                 Ok(response) => {
                                     let mut content = response.response.unwrap_or_default();
-                                    let mut thinking = None;
+                                    let mut thinking = response.thought;
 
                                     if let Some(choice) =
                                         response.choices.and_then(|c| c.into_iter().next())
@@ -55,8 +57,14 @@ where
                                         if let Some(c) = choice.delta.content {
                                             content.push_str(&c);
                                         }
-                                        if let Some(t) = choice.delta.reasoning_content {
-                                            thinking = Some(t);
+                                        if let Some(t) =
+                                            choice.delta.reasoning_content.or(choice.delta.thought)
+                                        {
+                                            if thinking.is_none() {
+                                                thinking = Some(t);
+                                            } else if let Some(think) = thinking.as_mut() {
+                                                think.push_str(&t);
+                                            }
                                         }
                                     }
 
@@ -229,5 +237,34 @@ mod tests {
             results[1].as_ref().unwrap().thinking,
             Some("Thinking...".to_string())
         );
+    }
+
+    #[tokio::test]
+    async fn test_parse_stream_thought_format() {
+        let chunks = vec![
+            Ok::<_, std::io::Error>(Bytes::from("data: {\"thought\": \"Initial thought\"}\n\n")),
+            Ok::<_, std::io::Error>(Bytes::from(
+                "data: {\"choices\": [{\"delta\": {\"thought\": \" more thought\"}}]}\n\n",
+            )),
+            Ok::<_, std::io::Error>(Bytes::from(
+                "data: {\"choices\": [{\"delta\": {\"content\": \"Result content\"}}]}\n\n",
+            )),
+        ];
+
+        let mock_stream = stream::iter(chunks);
+        let parsed_stream = parse_stream(mock_stream);
+
+        let results: Vec<_> = parsed_stream.collect().await;
+
+        assert_eq!(results.len(), 3);
+        assert_eq!(
+            results[0].as_ref().unwrap().thinking,
+            Some("Initial thought".to_string())
+        );
+        assert_eq!(
+            results[1].as_ref().unwrap().thinking,
+            Some(" more thought".to_string())
+        );
+        assert_eq!(results[2].as_ref().unwrap().content, "Result content");
     }
 }
