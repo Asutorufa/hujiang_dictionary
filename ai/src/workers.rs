@@ -73,6 +73,7 @@ struct AiResponse {
     #[serde(default)]
     choices: Vec<Choice>,
     thought: Option<String>,
+    reasoning: Option<String>,
 }
 
 #[cfg(feature = "worker")]
@@ -86,6 +87,7 @@ struct Choice {
 struct ChoiceMessage {
     content: String,
     reasoning_content: Option<String>,
+    reasoning: Option<String>,
 }
 
 impl Completion for WorkersAI {
@@ -108,13 +110,17 @@ impl Completion for WorkersAI {
                     .await
                     .map_err(|e| Error::Internal(e.to_string()))?;
 
-                let mut thinking = res.thought;
+                let mut thinking = res.thought.or(res.reasoning);
                 let mut content = res.response.unwrap_or_default();
 
                 if let Some(choice) = res.choices.first() {
                     content = choice.message.content.clone();
                     if thinking.is_none() {
-                        thinking = choice.message.reasoning_content.clone();
+                        thinking = choice
+                            .message
+                            .reasoning_content
+                            .clone()
+                            .or(choice.message.reasoning.clone());
                     }
                 }
 

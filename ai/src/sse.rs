@@ -7,6 +7,7 @@ struct StreamCompletionResponse {
     response: Option<String>,
     choices: Option<Vec<Choice>>,
     thought: Option<String>,
+    reasoning: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -19,6 +20,7 @@ struct Delta {
     content: Option<String>,
     reasoning_content: Option<String>,
     thought: Option<String>,
+    reasoning: Option<String>,
 }
 
 pub fn parse_stream<S, E>(
@@ -49,7 +51,7 @@ where
                             match serde_json::from_str::<StreamCompletionResponse>(&data) {
                                 Ok(response) => {
                                     let mut content = response.response.unwrap_or_default();
-                                    let mut thinking = response.thought;
+                                    let mut thinking = response.thought.or(response.reasoning);
 
                                     if let Some(choice) =
                                         response.choices.and_then(|c| c.into_iter().next())
@@ -57,8 +59,11 @@ where
                                         if let Some(c) = choice.delta.content {
                                             content.push_str(&c);
                                         }
-                                        if let Some(t) =
-                                            choice.delta.reasoning_content.or(choice.delta.thought)
+                                        if let Some(t) = choice
+                                            .delta
+                                            .reasoning_content
+                                            .or(choice.delta.reasoning)
+                                            .or(choice.delta.thought)
                                         {
                                             if thinking.is_none() {
                                                 thinking = Some(t);
@@ -247,6 +252,9 @@ mod tests {
                 "data: {\"choices\": [{\"delta\": {\"thought\": \" more thought\"}}]}\n\n",
             )),
             Ok::<_, std::io::Error>(Bytes::from(
+                "data: {\"choices\": [{\"delta\": {\"reasoning\": \" even more\"}}]}\n\n",
+            )),
+            Ok::<_, std::io::Error>(Bytes::from(
                 "data: {\"choices\": [{\"delta\": {\"content\": \"Result content\"}}]}\n\n",
             )),
         ];
@@ -256,7 +264,7 @@ mod tests {
 
         let results: Vec<_> = parsed_stream.collect().await;
 
-        assert_eq!(results.len(), 3);
+        assert_eq!(results.len(), 4);
         assert_eq!(
             results[0].as_ref().unwrap().thinking,
             Some("Initial thought".to_string())
@@ -265,6 +273,10 @@ mod tests {
             results[1].as_ref().unwrap().thinking,
             Some(" more thought".to_string())
         );
-        assert_eq!(results[2].as_ref().unwrap().content, "Result content");
+        assert_eq!(
+            results[2].as_ref().unwrap().thinking,
+            Some(" even more".to_string())
+        );
+        assert_eq!(results[3].as_ref().unwrap().content, "Result content");
     }
 }
