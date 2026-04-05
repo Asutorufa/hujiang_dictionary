@@ -120,6 +120,7 @@ async fn google_search(
 #[derive(Clone, Copy, Debug)]
 pub enum Models {
     Gemma3_12bIt,
+    Gemma4_26bA4bIt,
     Llama4Scout17B16EInstruct,
     DeepSeekR1DistillQwen32b,
     GPTOss20B,
@@ -135,6 +136,7 @@ impl Models {
     pub fn as_str(&self) -> &str {
         match self {
             Models::Gemma3_12bIt => "@cf/google/gemma-3-12b-it",
+            Models::Gemma4_26bA4bIt => "@cf/google/gemma-4-26b-a4b-it",
             Models::Llama4Scout17B16EInstruct => "@cf/meta/llama-3.1-8b-instruct", // mapping placeholder
             Models::DeepSeekR1DistillQwen32b => "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
             Models::GPTOss20B => "gpt-oss-20b",
@@ -144,6 +146,7 @@ impl Models {
     pub fn from_model_name(model_name: &str) -> Option<Self> {
         match model_name {
             "@cf/google/gemma-3-12b-it" => Some(Models::Gemma3_12bIt),
+            "@cf/google/gemma-4-26b-a4b-it" => Some(Models::Gemma4_26bA4bIt),
             "@cf/meta/llama-3.1-8b-instruct" => Some(Models::Llama4Scout17B16EInstruct),
             "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b" => {
                 Some(Models::DeepSeekR1DistillQwen32b)
@@ -156,6 +159,7 @@ impl Models {
     pub fn llms() -> Vec<String> {
         vec![
             Models::Gemma3_12bIt.to_string(),
+            Models::Gemma4_26bA4bIt.to_string(),
             Models::Llama4Scout17B16EInstruct.to_string(),
             Models::DeepSeekR1DistillQwen32b.to_string(),
             Models::GPTOss20B.to_string(),

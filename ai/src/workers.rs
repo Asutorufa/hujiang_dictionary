@@ -55,12 +55,39 @@ struct AiRequest {
     max_tokens: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     reasoning_effort: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    chat_template_kwargs: Option<ChatTemplateKwargs>,
+}
+
+#[cfg(feature = "worker")]
+#[derive(Serialize)]
+struct ChatTemplateKwargs {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enable_thinking: Option<bool>,
 }
 
 #[cfg(feature = "worker")]
 #[derive(Deserialize)]
 struct AiResponse {
-    response: String,
+    response: Option<String>,
+    #[serde(default)]
+    choices: Vec<Choice>,
+    thought: Option<String>,
+    reasoning: Option<String>,
+}
+
+#[cfg(feature = "worker")]
+#[derive(Deserialize)]
+struct Choice {
+    message: ChoiceMessage,
+}
+
+#[cfg(feature = "worker")]
+#[derive(Deserialize)]
+struct ChoiceMessage {
+    content: String,
+    reasoning_content: Option<String>,
+    reasoning: Option<String>,
 }
 
 impl Completion for WorkersAI {
@@ -74,16 +101,30 @@ impl Completion for WorkersAI {
                     stream: false,
                     max_tokens: 4096,
                     reasoning_effort: self.reasoning_effort.clone(),
+                    chat_template_kwargs: Some(ChatTemplateKwargs {
+                        enable_thinking: Some(true),
+                    }),
                 };
                 let res: AiResponse = ai
                     .run(&self.model, req)
                     .await
                     .map_err(|e| Error::Internal(e.to_string()))?;
 
-                return Ok(CompletionResponse {
-                    content: res.response,
-                    thinking: None,
-                });
+                let mut thinking = res.thought.or(res.reasoning);
+                let mut content = res.response.unwrap_or_default();
+
+                if let Some(choice) = res.choices.first() {
+                    content = choice.message.content.clone();
+                    if thinking.is_none() {
+                        thinking = choice
+                            .message
+                            .reasoning_content
+                            .clone()
+                            .or(choice.message.reasoning.clone());
+                    }
+                }
+
+                return Ok(CompletionResponse { content, thinking });
             }
         }
 
@@ -105,6 +146,9 @@ impl Completion for WorkersAI {
                     stream: true,
                     max_tokens: 4096,
                     reasoning_effort: self.reasoning_effort.clone(),
+                    chat_template_kwargs: Some(ChatTemplateKwargs {
+                        enable_thinking: Some(true),
+                    }),
                 };
                 let stream = ai
                     .run_bytes(&self.model, req)
