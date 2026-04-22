@@ -25,7 +25,7 @@ getrandom = { version = "0.4", features = ["wasm_js"] }
 getrandom_02 = { package = "getrandom", version = "0.2", features = ["js"] }
 
 hjcommon = { path = "../common" }
-d1-orm = { version = "0.1.1", features = ["d1"] }
+d1-orm = { version = "0.1.1" }
 async-trait = "0.1.89"
 futures-util = "0.3"
 bytes = "1.0"
