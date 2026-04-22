@@ -46,8 +46,8 @@ ego-tree = "^0.11"
 html2text = { version = "^0.16", default-features = false }
 dom_smoothie = { version = "0.16", features = ["aho-corasick"] }
 rust-embed = "8.11"
-worker = { version = "^0.7", features = ["d1"] }
-worker-macros = "^0.7"
+worker = { version = "0.8.1", features = ["d1"] }
+worker-macros = "0.8.1"
 console_error_panic_hook = "^0.1"
 wasm-bindgen = "^0.2"
 web-sys = { version = "^0.3", features = ["console"] }
