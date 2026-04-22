@@ -1,4 +1,6 @@
 import { cjk } from "@streamdown/cjk";
+import { createMathPlugin } from "@streamdown/math";
+import "katex/dist/katex.min.css";
 import { FC } from "react";
 import rehypeRaw from "rehype-raw";
 import { Streamdown } from "streamdown";
@@ -16,7 +18,10 @@ export const Markdown: FC<{
     <Streamdown
       className={className}
       rehypePlugins={[rehypeRaw]}
-      plugins={{ cjk: cjk }}
+      plugins={{
+        cjk: cjk,
+        math: createMathPlugin({ singleDollarTextMath: true }),
+      }}
       components={{
         audio: AudioPlayer,
       }}
