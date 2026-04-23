@@ -162,8 +162,8 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
                 }
             };
             r = r.with_status(resp.status);
-            for (k, v) in resp.headers {
-                r.headers_mut().set(&k, &v)?;
+            for header in resp.headers {
+                r.headers_mut().set(&header.0, &header.1)?;
             }
             Ok(r)
         }

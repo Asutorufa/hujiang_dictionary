@@ -15,7 +15,7 @@ cloudflare = { workspace = true }
 value2struct = { path = "../value2struct" }
 hjcommon = { path = "../common" }
 hjdict = { path = "../dict" }
-d1-orm = "0.1.1"
+d1-orm = "0.1.2"
 async-trait = "0.1.89"
 hj_ai = { path = "../ai" }
 futures = "0.3.32"
