@@ -88,7 +88,7 @@ function Main() {
 
   return (
     <>
-      <Toaster position="bottom-right" richColors />
+      <Toaster position="bottom-right" richColors closeButton />
       {location !== ROUTE_LOGIN && (
         <BottomNav
           value={location}
