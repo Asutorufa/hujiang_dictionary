@@ -625,13 +625,15 @@ dependencies = [
 
 [[package]]
 name = "d1-orm"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c46b9dd91591d3fef799c5f7aad7ba2418d8f36393db0682d0b2b9cfb12e5767"
+checksum = "cf9540c07fff4a54da728dd60eaad5c7e0eedd3c3ad52ecac4fe4b57887a6972"
 dependencies = [
  "async-trait",
+ "js-sys",
  "serde",
  "serde_json",
+ "worker",
 ]
 
 [[package]]

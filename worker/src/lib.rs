@@ -2,8 +2,6 @@ pub mod ai;
 pub mod consolelog;
 
 use crate::ai::WasmAI;
-use async_trait::async_trait;
-use d1_orm::{DatabaseExecutor, Query, QueryExt, SqlBackend};
 use hjcommon::d1::migrations;
 use hjcommon::opts::{ConfigCache, RunOpt};
 use hjcommon::tg::send_random_word;
@@ -51,107 +49,7 @@ fn get_string_from_env(env: &Env, key: &str) -> String {
     }
 }
 
-pub struct WasmBackend;
-impl SqlBackend for WasmBackend {
-    type Param = worker::wasm_bindgen::JsValue;
-    fn convert(value: d1_orm::types::DatabaseValue) -> Self::Param {
-        match value {
-            d1_orm::types::DatabaseValue::Text(s) => worker::wasm_bindgen::JsValue::from_str(&s),
-            d1_orm::types::DatabaseValue::Int(i) => {
-                worker::wasm_bindgen::JsValue::from_f64(i as f64)
-            }
-            d1_orm::types::DatabaseValue::UInt(u) => {
-                worker::wasm_bindgen::JsValue::from_f64(u as f64)
-            }
-            d1_orm::types::DatabaseValue::Real(r) => worker::wasm_bindgen::JsValue::from_f64(r),
-            d1_orm::types::DatabaseValue::Bool(b) => worker::wasm_bindgen::JsValue::from_bool(b),
-            d1_orm::types::DatabaseValue::Blob(b) => js_sys::Uint8Array::from(&b[..]).into(),
-            d1_orm::types::DatabaseValue::Null => worker::wasm_bindgen::JsValue::NULL,
-        }
-    }
-}
-
-pub struct D1(worker::D1Database);
-
-#[async_trait(?Send)]
-impl DatabaseExecutor for D1 {
-    async fn query_all<T, Q>(&self, sql: Q) -> std::result::Result<Vec<T>, d1_orm::error::Error>
-    where
-        T: serde::de::DeserializeOwned,
-        Q: Query + 'async_trait,
-    {
-        let (sql_str, params) = sql.build_params::<WasmBackend>()?;
-        let sql_str: String = sql_str.into_owned();
-        self.0
-            .prepare(sql_str)
-            .bind(&params)
-            .map_err(|e| d1_orm::error::Error::Other(e.to_string()))?
-            .all()
-            .await
-            .map_err(|e| d1_orm::error::Error::Other(e.to_string()))?
-            .results()
-            .map_err(|e| d1_orm::error::Error::Other(e.to_string()))
-    }
-
-    async fn query_first<T, Q>(
-        &self,
-        sql: Q,
-    ) -> std::result::Result<Option<T>, d1_orm::error::Error>
-    where
-        T: serde::de::DeserializeOwned,
-        Q: Query + 'async_trait,
-    {
-        let (sql_str, params) = sql.build_params::<WasmBackend>()?;
-        let sql_str: String = sql_str.into_owned();
-        self.0
-            .prepare(sql_str)
-            .bind(&params)
-            .map_err(|e| d1_orm::error::Error::Other(e.to_string()))?
-            .first(None)
-            .await
-            .map_err(|e| d1_orm::error::Error::Other(e.to_string()))
-    }
-
-    async fn execute<Q>(&self, sql: Q) -> std::result::Result<(), d1_orm::error::Error>
-    where
-        Q: Query + 'async_trait,
-    {
-        let (sql_str, params) = sql.build_params::<WasmBackend>()?;
-        let sql_str: String = sql_str.into_owned();
-        self.0
-            .prepare(sql_str)
-            .bind(&params)
-            .map_err(|e| d1_orm::error::Error::Other(e.to_string()))?
-            .run()
-            .await
-            .map_err(|e| d1_orm::error::Error::Other(e.to_string()))?;
-        Ok(())
-    }
-
-    async fn execute_batch<Q>(&self, sqls: Vec<Q>) -> std::result::Result<(), d1_orm::error::Error>
-    where
-        Q: Query + 'async_trait,
-    {
-        let mut statements = Vec::with_capacity(sqls.len());
-        for sql in sqls {
-            let (sql_str, params) = sql.build_params::<WasmBackend>()?;
-            let sql_str: String = sql_str.into_owned();
-            statements.push(
-                self.0
-                    .prepare(sql_str)
-                    .bind(&params)
-                    .map_err(|e| d1_orm::error::Error::Other(e.to_string()))?,
-            );
-        }
-        self.0
-            .batch(statements)
-            .await
-            .map_err(|e| d1_orm::error::Error::Other(e.to_string()))?;
-        Ok(())
-    }
-}
-
-async fn get_opt(env: Env) -> Result<Arc<RunOpt<D1, WasmAI>>> {
+async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
     console_error_panic_hook::set_once();
     INIT.call_once(|| {
         match consolelog::init_with_level(log::Level::Info) {
@@ -174,7 +72,7 @@ async fn get_opt(env: Env) -> Result<Arc<RunOpt<D1, WasmAI>>> {
     }
 
     Ok(Arc::new(RunOpt {
-        d1: D1(env.d1("DB").expect("D1 binding not found")),
+        d1: env.d1("DB").expect("D1 binding not found"),
         translator: WasmAI::new(&env, "AI"),
         workers_ai: if env.ai("AI").is_ok() {
             Some(hj_ai::provider::Provider::WorkersAI(
