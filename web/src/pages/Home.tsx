@@ -103,7 +103,7 @@ const languages = [
 
 const languageMap = Object.fromEntries(
   languages.map(({ key, name, flag }) => [key, { name, flag }]),
-) as Record<(typeof languages)[number]["key"], { name: string; flag: string }>;
+);
 
 type TranslationSource = {
   key: string;
@@ -127,7 +127,7 @@ const dictSources = [
 
 const translationMap = Object.fromEntries(
   [...translationSources, ...dictSources].map(({ key, name }) => [key, name]),
-) as Record<(typeof translationSources)[number]["key"], string>;
+);
 
 const promptModes = [
   { key: "default", label: "Default" },

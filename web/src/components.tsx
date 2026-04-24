@@ -407,7 +407,7 @@ export const ConfirmModal: FC<{
   else if (color === "warning") radixColor = "orange";
   else if (color === "secondary" || color === "default") radixColor = "gray";
   else if (color === "primary") radixColor = "blue";
-  else radixColor = color as RadixColor | undefined;
+  else radixColor = color;
 
   return (
     <Dialog.Root open={open} onOpenChange={onChange}>
