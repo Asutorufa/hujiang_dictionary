@@ -369,7 +369,44 @@ pub fn parse(text: &str) -> Vec<Word> {
 mod tes {
     use std::fs;
 
-    use crate::en::{get, parse};
+    use crate::en::{get, parse, Pronounce};
+
+    #[test]
+    fn test_pronounce() {
+        let p = Pronounce {
+            pronounce: "".to_string(),
+            audio_en_url: "[mεsɪdʒ] https://example.com/en.mp3".to_string(),
+            audio_us_url: "[ˈmesɪdʒ] https://example.com/us.mp3".to_string(),
+        };
+        assert_eq!(p.en_pronounce(), "[mεsɪdʒ]");
+        assert_eq!(p.en_url(), "https://example.com/en.mp3");
+        assert_eq!(p.us_pronounce(), "[ˈmesɪdʒ]");
+        assert_eq!(p.us_url(), "https://example.com/us.mp3");
+
+        let p_only_url = Pronounce {
+            pronounce: "".to_string(),
+            audio_en_url: "https://example.com/en.mp3".to_string(),
+            audio_us_url: "https://example.com/us.mp3".to_string(),
+        };
+        assert_eq!(p_only_url.en_pronounce(), "https://example.com/en.mp3");
+        assert_eq!(p_only_url.en_url(), "https://example.com/en.mp3");
+
+        let p_only_pron = Pronounce {
+            pronounce: "".to_string(),
+            audio_en_url: "[mεsɪdʒ]".to_string(),
+            audio_us_url: "[ˈmesɪdʒ]".to_string(),
+        };
+        assert_eq!(p_only_pron.en_pronounce(), "[mεsɪdʒ]");
+        assert_eq!(p_only_pron.en_url(), "");
+
+        let p_empty = Pronounce {
+            pronounce: "".to_string(),
+            audio_en_url: "".to_string(),
+            audio_us_url: "".to_string(),
+        };
+        assert_eq!(p_empty.en_pronounce(), "");
+        assert_eq!(p_empty.en_url(), "");
+    }
 
     #[tokio::test]
     async fn run_parse() {
