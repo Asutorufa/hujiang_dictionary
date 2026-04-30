@@ -592,6 +592,7 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                 "gemini" => Some(crate::ai::ProviderType::Gemini),
                 "vertexai" => Some(crate::ai::ProviderType::VertexAI),
                 "workersai" => Some(crate::ai::ProviderType::WorkersAI),
+                "anthropic" | "claude" => Some(crate::ai::ProviderType::Anthropic),
                 _ => Some(crate::ai::ProviderType::OpenAI),
             },
             models: p
@@ -607,6 +608,24 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
             },
         };
         hj_ai::provider::Provider::from(config)
+    }
+
+    async fn custom_llm_provider(
+        &self,
+        custom_llm: Option<&CustomLLM>,
+    ) -> Result<(hj_ai::provider::Provider, String), Error> {
+        let llm = custom_llm.ok_or_else(|| Error::Internal("custom llm is empty".to_string()))?;
+
+        let mut provider = if llm.name == "workers-ai" {
+            self.workers_ai.as_ref().cloned().ok_or_else(|| {
+                Error::Internal("workers-ai provider is not available".to_string())
+            })?
+        } else {
+            self.get_llm_provider_by_name(&llm.name).await?
+        };
+
+        provider.set_model(&llm.model);
+        Ok((provider, llm.model.clone()))
     }
 
     pub async fn custom_llms(&self) -> Result<Vec<u8>, Error> {
@@ -639,63 +658,25 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
 
         let response = match req.method.as_str() {
             "custom_llm" => {
-                let (name, model) = match req.custom_llm.as_ref() {
-                    Some(llm) => (&llm.name, &llm.model),
-                    None => return Err(Error::Internal("custom llm is empty".to_string())),
-                };
-
-                match name.as_str() {
-                    "workers-ai" => {
-                        let mut provider = self.workers_ai.as_ref().unwrap().clone();
-                        if let hj_ai::provider::Provider::WorkersAI(ref mut w) = provider {
-                            w.model = model.to_string();
-                        }
-                        Some(
-                            crate::ai::explain(
-                                &provider,
-                                req.google_search.unwrap_or(false),
-                                crate::ai::TranslateRequest {
-                                    model,
-                                    chars_limit: false,
-                                    query: &req.word,
-                                    instruction: req.instruction().as_deref(),
-                                    prompt_mode: req.prompt_mode,
-                                    dst_lang: req.dst_lang.as_deref(),
-                                    search_engine: req.search_engine.as_deref(),
-                                    google_search_api_key: Some(
-                                        config.google_search_api_key.clone(),
-                                    ),
-                                    google_search_cx: Some(config.google_search_cx.clone()),
-                                },
-                            )
-                            .await?,
-                        )
-                    }
-                    _ => {
-                        let mut provider = self.get_llm_provider_by_name(name).await?;
-                        provider.set_model(model);
-                        Some(
-                            crate::ai::explain(
-                                &provider,
-                                req.google_search.unwrap_or(false),
-                                crate::ai::TranslateRequest {
-                                    model,
-                                    chars_limit: false,
-                                    query: &req.word,
-                                    instruction: req.instruction().as_deref(),
-                                    prompt_mode: req.prompt_mode,
-                                    dst_lang: req.dst_lang.as_deref(),
-                                    search_engine: req.search_engine.as_deref(),
-                                    google_search_api_key: Some(
-                                        config.google_search_api_key.clone(),
-                                    ),
-                                    google_search_cx: Some(config.google_search_cx.clone()),
-                                },
-                            )
-                            .await?,
-                        )
-                    }
-                }
+                let (provider, model) = self.custom_llm_provider(req.custom_llm.as_ref()).await?;
+                Some(
+                    crate::ai::explain(
+                        &provider,
+                        req.google_search.unwrap_or(false),
+                        crate::ai::TranslateRequest {
+                            model: &model,
+                            chars_limit: false,
+                            query: &req.word,
+                            instruction: req.instruction().as_deref(),
+                            prompt_mode: req.prompt_mode,
+                            dst_lang: req.dst_lang.as_deref(),
+                            search_engine: req.search_engine.as_deref(),
+                            google_search_api_key: Some(config.google_search_api_key.clone()),
+                            google_search_cx: Some(config.google_search_cx.clone()),
+                        },
+                    )
+                    .await?,
+                )
             }
             _ => None,
         };
@@ -797,55 +778,23 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
 
         let stream = match req.method.as_str() {
             "custom_llm" => {
-                let (name, model) = match req.custom_llm.as_ref() {
-                    Some(llm) => (&llm.name, &llm.model),
-                    None => return Err(Error::Internal("custom llm is empty".to_string())),
-                };
-
-                match name.as_str() {
-                    "workers-ai" => {
-                        let mut provider = self.workers_ai.as_ref().unwrap().clone();
-                        if let hj_ai::provider::Provider::WorkersAI(ref mut w) = provider {
-                            w.model = model.to_string();
-                        }
-                        crate::ai::explain_stream(
-                            &provider,
-                            req.google_search.unwrap_or(false),
-                            crate::ai::TranslateRequest {
-                                model,
-                                chars_limit: false,
-                                query: &req.word,
-                                instruction: req.instruction().as_deref(),
-                                prompt_mode: req.prompt_mode,
-                                dst_lang: req.dst_lang.as_deref(),
-                                search_engine: req.search_engine.as_deref(),
-                                google_search_api_key: Some(config.google_search_api_key.clone()),
-                                google_search_cx: Some(config.google_search_cx.clone()),
-                            },
-                        )
-                        .await?
-                    }
-                    _ => {
-                        let mut provider = self.get_llm_provider_by_name(name).await?;
-                        provider.set_model(model);
-                        crate::ai::explain_stream(
-                            &provider,
-                            req.google_search.unwrap_or(false),
-                            crate::ai::TranslateRequest {
-                                model,
-                                chars_limit: false,
-                                query: &req.word,
-                                instruction: req.instruction().as_deref(),
-                                prompt_mode: req.prompt_mode,
-                                dst_lang: req.dst_lang.as_deref(),
-                                search_engine: req.search_engine.as_deref(),
-                                google_search_api_key: Some(config.google_search_api_key.clone()),
-                                google_search_cx: Some(config.google_search_cx.clone()),
-                            },
-                        )
-                        .await?
-                    }
-                }
+                let (provider, model) = self.custom_llm_provider(req.custom_llm.as_ref()).await?;
+                crate::ai::explain_stream(
+                    &provider,
+                    req.google_search.unwrap_or(false),
+                    crate::ai::TranslateRequest {
+                        model: &model,
+                        chars_limit: false,
+                        query: &req.word,
+                        instruction: req.instruction().as_deref(),
+                        prompt_mode: req.prompt_mode,
+                        dst_lang: req.dst_lang.as_deref(),
+                        search_engine: req.search_engine.as_deref(),
+                        google_search_api_key: Some(config.google_search_api_key.clone()),
+                        google_search_cx: Some(config.google_search_cx.clone()),
+                    },
+                )
+                .await?
             }
             _ => return Err(Error::Internal("method not support stream".to_string())),
         };

@@ -59,7 +59,7 @@ async fn test_openai_completion_success() {
 }
 
 #[tokio::test]
-async fn test_claude_completion_success() {
+async fn test_anthropic_completion_success() {
     let mut server = Server::new_async().await;
 
     let mock_response = r#"{
@@ -86,14 +86,16 @@ async fn test_claude_completion_success() {
     }"#;
 
     let mock = server
-        .mock("POST", "/messages")
+        .mock("POST", "/v1/messages")
+        .match_header("x-api-key", "test_key")
+        .match_header("anthropic-version", "2023-06-01")
         .with_status(200)
         .with_header("content-type", "application/json")
         .with_body(mock_response)
         .create_async()
         .await;
 
-    let claude = crate::claude::Claude {
+    let anthropic = crate::anthropic::Anthropic {
         name: "test".to_string(),
         base_url: server.url(),
         api_key: "test_key".to_string(),
@@ -112,7 +114,7 @@ async fn test_claude_completion_success() {
         },
     ];
 
-    let response = claude.completion(messages).await.unwrap();
+    let response = anthropic.completion(messages).await.unwrap();
 
     assert_eq!(response.content, "Hello!");
     assert_eq!(response.thinking, Some("Thinking...".to_string()));
@@ -121,30 +123,97 @@ async fn test_claude_completion_success() {
 }
 
 #[tokio::test]
-async fn test_claude_completion_stream_success() {
+async fn test_anthropic_completion_supports_versioned_base_url() {
     let mut server = Server::new_async().await;
 
-    let mock_response = "data: {\"type\": \"message_start\", \"message\": {\"id\": \"msg_123\", \"type\": \"message\", \"role\": \"assistant\", \"model\": \"claude-3-5-sonnet-20240620\", \"content\": [], \"stop_reason\": null, \"stop_sequence\": null, \"usage\": {\"input_tokens\": 10, \"output_tokens\": 1}}}\n\n\
+    let mock_response = r#"{
+        "id": "msg_123",
+        "type": "message",
+        "role": "assistant",
+        "model": "claude-3-5-sonnet-20240620",
+        "content": [
+            {
+                "type": "text",
+                "text": "Hello from /v1!"
+            }
+        ],
+        "stop_reason": "end_turn",
+        "stop_sequence": null,
+        "usage": {
+            "input_tokens": 10,
+            "output_tokens": 20
+        }
+    }"#;
+
+    let mock = server
+        .mock("POST", "/v1/messages")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(mock_response)
+        .create_async()
+        .await;
+
+    let anthropic = crate::anthropic::Anthropic {
+        name: "test".to_string(),
+        base_url: format!("{}/v1", server.url()),
+        api_key: "test_key".to_string(),
+        model: "claude-3-5-sonnet".to_string(),
+        ..Default::default()
+    };
+
+    let messages = vec![Message {
+        role: "user".to_string(),
+        content: "Hi".to_string(),
+    }];
+
+    let response = anthropic.completion(messages).await.unwrap();
+
+    assert_eq!(response.content, "Hello from /v1!");
+
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_anthropic_completion_stream_success() {
+    let mut server = Server::new_async().await;
+
+    let mock_response = "event: message_start\n\
+                         data: {\"type\": \"message_start\", \"message\": {\"id\": \"msg_123\", \"type\": \"message\", \"role\": \"assistant\", \"model\": \"claude-3-5-sonnet-20240620\", \"content\": [], \"stop_reason\": null, \"stop_sequence\": null, \"usage\": {\"input_tokens\": 10, \"output_tokens\": 1}}}\n\n\
+                         event: content_block_start\n\
                          data: {\"type\": \"content_block_start\", \"index\": 0, \"content_block\": {\"type\": \"thinking\", \"thinking\": \"\"}}\n\n\
+                         event: content_block_delta\n\
                          data: {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"thinking_delta\", \"thinking\": \"Thin\"}}\n\n\
+                         event: content_block_delta\n\
                          data: {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"thinking_delta\", \"thinking\": \"king\"}}\n\n\
+                         event: content_block_delta\n\
+                         data: {\"type\": \"content_block_delta\", \"index\": 0, \"delta\": {\"type\": \"signature_delta\", \"signature\": \"sig_123\"}}\n\n\
+                         event: content_block_stop\n\
                          data: {\"type\": \"content_block_stop\", \"index\": 0}\n\n\
+                         event: ping\n\
+                         data: {\"type\": \"ping\"}\n\n\
+                         event: content_block_start\n\
                          data: {\"type\": \"content_block_start\", \"index\": 1, \"content_block\": {\"type\": \"text\", \"text\": \"\"}}\n\n\
+                         event: content_block_delta\n\
                          data: {\"type\": \"content_block_delta\", \"index\": 1, \"delta\": {\"type\": \"text_delta\", \"text\": \"Hello\"}}\n\n\
+                         event: content_block_delta\n\
                          data: {\"type\": \"content_block_delta\", \"index\": 1, \"delta\": {\"type\": \"text_delta\", \"text\": \"!\"}}\n\n\
+                         event: content_block_stop\n\
                          data: {\"type\": \"content_block_stop\", \"index\": 1}\n\n\
+                         event: message_delta\n\
                          data: {\"type\": \"message_delta\", \"delta\": {\"stop_reason\": \"end_turn\", \"stop_sequence\": null}, \"usage\": {\"output_tokens\": 15}}\n\n\
+                         event: message_stop\n\
                          data: {\"type\": \"message_stop\"}\n\n";
 
     let mock = server
-        .mock("POST", "/messages")
+        .mock("POST", "/v1/messages")
+        .match_header("accept", "text/event-stream")
         .with_status(200)
         .with_header("content-type", "text/event-stream")
         .with_body(mock_response)
         .create_async()
         .await;
 
-    let claude = crate::claude::Claude {
+    let anthropic = crate::anthropic::Anthropic {
         name: "test".to_string(),
         base_url: server.url(),
         api_key: "test_key".to_string(),
@@ -157,7 +226,7 @@ async fn test_claude_completion_stream_success() {
         content: "Hi".to_string(),
     }];
 
-    let stream = claude.completion_stream(messages).await.unwrap();
+    let stream = anthropic.completion_stream(messages).await.unwrap();
     futures_util::pin_mut!(stream);
 
     let mut full_content = String::new();
@@ -278,7 +347,7 @@ async fn test_openai_responses_completion_success() {
                         "text": "Thinking..."
                     },
                     {
-                        "type": "text",
+                        "type": "output_text",
                         "text": "Hello world"
                     }
                 ]
@@ -318,14 +387,24 @@ async fn test_openai_responses_completion_success() {
 async fn test_openai_responses_completion_stream_success() {
     let mut server = Server::new_async().await;
 
-    let mock_response = "data: {\"output\": [{\"content\": [{\"type\": \"reasoning\", \"text\": \"Thin\"}]}]}\n\n\
-                         data: {\"output\": [{\"content\": [{\"type\": \"reasoning\", \"text\": \"king\"}]}]}\n\n\
-                         data: {\"output\": [{\"content\": [{\"type\": \"text\", \"text\": \"Hello\"}]}]}\n\n\
-                         data: {\"output\": [{\"content\": [{\"type\": \"text\", \"text\": \" world\"}]}]}\n\n\
-                         data: [DONE]\n\n";
+    let mock_response = "event: response.created\n\
+                         data: {\"type\":\"response.created\",\"response\":{\"id\":\"resp_123\",\"status\":\"in_progress\",\"output\":[]}}\n\n\
+                         event: response.output_item.added\n\
+                         data: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"msg_123\",\"type\":\"message\",\"status\":\"in_progress\",\"role\":\"assistant\",\"content\":[]}}\n\n\
+                         event: response.content_part.added\n\
+                         data: {\"type\":\"response.content_part.added\",\"item_id\":\"msg_123\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"\",\"annotations\":[]}}\n\n\
+                         event: response.output_text.delta\n\
+                         data: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_123\",\"output_index\":0,\"content_index\":0,\"delta\":\"Hello\"}\n\n\
+                         event: response.output_text.delta\n\
+                         data: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_123\",\"output_index\":0,\"content_index\":0,\"delta\":\" world\"}\n\n\
+                         event: response.output_text.done\n\
+                         data: {\"type\":\"response.output_text.done\",\"item_id\":\"msg_123\",\"output_index\":0,\"content_index\":0,\"text\":\"Hello world\"}\n\n\
+                         event: response.completed\n\
+                         data: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_123\",\"status\":\"completed\",\"output\":[{\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"Hello world\",\"annotations\":[]}]}]}}\n\n";
 
     let mock = server
         .mock("POST", "/responses")
+        .match_header("accept", "text/event-stream")
         .with_status(200)
         .with_header("content-type", "text/event-stream")
         .with_body(mock_response)
@@ -359,7 +438,7 @@ async fn test_openai_responses_completion_stream_success() {
     }
 
     assert_eq!(full_content, "Hello world");
-    assert_eq!(full_thinking, "Thinking");
+    assert_eq!(full_thinking, "");
 
     mock.assert_async().await;
 }

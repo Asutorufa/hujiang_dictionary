@@ -164,7 +164,7 @@ export const handlers = [
 
   http.post("/word/ai_custom", () => {
     return HttpResponse.json([
-      { name: "Mock LLM", models: ["gpt-4-mock", "claude-mock"] },
+      { name: "Mock LLM", models: ["gpt-4-mock", "anthropic-mock"] },
     ]);
   }),
 
@@ -175,7 +175,7 @@ export const handlers = [
         base_url: "https://api.openai.com",
         api_key: "sk-...",
         provider: "openai",
-        models: "gpt-4-mock,claude-mock",
+        models: "gpt-4-mock,anthropic-mock",
         project_id: "",
         location: "",
       },

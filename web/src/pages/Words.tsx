@@ -58,7 +58,7 @@ const PlusIcon = ({
 export default function Words() {
   const [words, setWords] = useState<ListWordResponse[]>([]);
   const [page, setPage] = useLocalStorage<number>("page", 1);
-  const [total, setTotal] = useLocalStorage<number>("total_page", 100); // 100 is just default
+  const [total, setTotal] = useLocalStorage<number>("words_total_pages", 1);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -83,17 +83,13 @@ export default function Words() {
   const [orderBy, setOrderBy] = useLocalStorage("order_by", "word");
   const [grammar, setGrammar] = useLocalStorage("grammar", false);
 
-  // Note: The original code fetched 'count' to set 'total', but it seemed to rely on a separate effect.
-  // I'll keep the logic simple: queryWord returns list. countWord returns size.
-  // The original code had two useEffects.
-
-  // Effect to get total count
   useEffect(() => {
     countWord(grammar, (size) => {
-      if (size) {
+      if (size !== undefined) {
         const totalPages = Math.ceil(size / 10);
-        setTotal(totalPages || 1);
-        if (page > totalPages && totalPages > 0) setPage(totalPages);
+        const safeTotalPages = Math.max(totalPages, 1);
+        setTotal(safeTotalPages);
+        if (page > safeTotalPages) setPage(safeTotalPages);
       }
     });
   }, [refresh, grammar, page, setPage, setTotal]);

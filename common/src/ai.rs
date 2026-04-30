@@ -477,7 +477,8 @@ pub enum ProviderType {
     Gemini,
     VertexAI,
     WorkersAI,
-    Claude,
+    #[serde(alias = "claude")]
+    Anthropic,
 }
 
 #[derive(serde::Deserialize)]
@@ -539,7 +540,7 @@ impl From<ConfigProvider> for hj_ai::provider::Provider {
                     ..Default::default()
                 })
             }
-            ProviderType::Claude => {
+            ProviderType::Anthropic => {
                 let anthropic_version = v
                     .features
                     .as_ref()
@@ -548,12 +549,12 @@ impl From<ConfigProvider> for hj_ai::provider::Provider {
                     .unwrap_or("2023-06-01")
                     .to_string();
 
-                hj_ai::provider::Provider::Claude(hj_ai::claude::Claude {
+                hj_ai::provider::Provider::Anthropic(hj_ai::anthropic::Anthropic {
                     name: v.name,
                     base_url: v
                         .base_url
                         .filter(|b| !b.is_empty())
-                        .unwrap_or_else(|| "https://api.anthropic.com/v1".to_string()),
+                        .unwrap_or_else(|| "https://api.anthropic.com".to_string()),
                     api_key: v.api_key.unwrap_or_default(),
                     model: v.models.first().cloned().unwrap_or_default(),
                     models: HashSet::from_iter(v.models),

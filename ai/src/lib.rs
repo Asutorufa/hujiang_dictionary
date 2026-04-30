@@ -1,4 +1,4 @@
-pub mod claude;
+pub mod anthropic;
 pub mod completion;
 pub mod error;
 pub mod gemini;

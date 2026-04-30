@@ -2,7 +2,7 @@ use futures_util::Stream;
 use std::pin::Pin;
 
 use crate::{
-    Completion, CompletionResponse, Error, Message, claude, gemini, openai, openai_responses,
+    Completion, CompletionResponse, Error, Message, anthropic, gemini, openai, openai_responses,
     workers,
 };
 
@@ -12,7 +12,7 @@ pub enum Provider {
     WorkersAI(workers::WorkersAI),
     Gemini(gemini::Gemini),
     OpenAIResponses(openai_responses::OpenAIResponses),
-    Claude(claude::Claude),
+    Anthropic(anthropic::Anthropic),
 }
 
 fn box_stream<S>(stream: S) -> Pin<Box<dyn Stream<Item = Result<CompletionResponse, Error>>>>
@@ -29,7 +29,7 @@ impl Completion for Provider {
             Provider::WorkersAI(provider) => provider.completion(messages).await,
             Provider::Gemini(provider) => provider.completion(messages).await,
             Provider::OpenAIResponses(provider) => provider.completion(messages).await,
-            Provider::Claude(provider) => provider.completion(messages).await,
+            Provider::Anthropic(provider) => provider.completion(messages).await,
         }
     }
 
@@ -50,7 +50,7 @@ impl Completion for Provider {
             Provider::OpenAIResponses(provider) => {
                 Ok(box_stream(provider.completion_stream(messages).await?))
             }
-            Provider::Claude(provider) => {
+            Provider::Anthropic(provider) => {
                 Ok(box_stream(provider.completion_stream(messages).await?))
             }
         }
@@ -64,7 +64,7 @@ impl Provider {
             Provider::WorkersAI(provider) => provider.models.clone(),
             Provider::Gemini(provider) => provider.models.clone(),
             Provider::OpenAIResponses(_) => vec![],
-            Provider::Claude(provider) => provider.models.iter().cloned().collect(),
+            Provider::Anthropic(provider) => provider.models.iter().cloned().collect(),
         }
     }
 
@@ -74,7 +74,7 @@ impl Provider {
             Provider::WorkersAI(provider) => provider.model = model.to_string(),
             Provider::Gemini(provider) => provider.set_model(model),
             Provider::OpenAIResponses(provider) => provider.model = model.to_string(),
-            Provider::Claude(provider) => provider.model = model.to_string(),
+            Provider::Anthropic(provider) => provider.model = model.to_string(),
         }
     }
 
@@ -90,7 +90,7 @@ impl Provider {
             Provider::Gemini(provider) => provider.features.as_deref().unwrap_or("{}"),
             Provider::WorkersAI(_) => "{}",
             Provider::OpenAIResponses(_) => "{}",
-            Provider::Claude(provider) => provider.features.as_deref().unwrap_or("{}"),
+            Provider::Anthropic(provider) => provider.features.as_deref().unwrap_or("{}"),
         }
     }
 
@@ -100,7 +100,7 @@ impl Provider {
             Provider::Gemini(provider) => provider.features = features,
             Provider::WorkersAI(_) => {}
             Provider::OpenAIResponses(_) => {}
-            Provider::Claude(provider) => provider.features = features,
+            Provider::Anthropic(provider) => provider.features = features,
         }
     }
 }

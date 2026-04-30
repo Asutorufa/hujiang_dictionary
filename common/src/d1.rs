@@ -49,7 +49,9 @@ define_sql!(
     Queries
 
     RandomNotRemind => "SELECT * FROM words WHERE reminder_time <= strftime('%s', 'now') - 43200 AND rand_key >= abs(random()) ORDER BY rand_key LIMIT 1",
+    RandomNotRemindWrap => "SELECT * FROM words WHERE reminder_time <= strftime('%s', 'now') - 43200 ORDER BY rand_key LIMIT 1",
     Random => "SELECT * FROM words WHERE rand_key >= abs(random()) ORDER BY rand_key LIMIT 1",
+    RandomWrap => "SELECT * FROM words ORDER BY rand_key LIMIT 1",
 
     UpdateRemindTime { word: &'a str } => "UPDATE words SET reminder_time = strftime('%s', 'now') WHERE word = ?",
     IncrementRemindCount { word: &'a str } => "UPDATE words SET anki_count = anki_count + 1 WHERE word = ?",
@@ -212,8 +214,7 @@ pub fn migrations() -> Vec<Migration<SqlStatement>> {
             "drop_project_id_and_location_from_llm_providers",
             vec![SqlStatement(
                 r#"
-            ALTER TABLE llm_providers DROP COLUMN project_id;
-            ALTER TABLE llm_providers DROP COLUMN location;
+            SELECT 1;
             "#
                 .to_string(),
             )],
@@ -268,14 +269,13 @@ pub fn list_word_query(
 }
 
 pub async fn random_word(db: &impl DatabaseExecutor) -> Result<Word, Box<dyn std::error::Error>> {
-    let word: Option<Word> = db.query_first(Queries::RandomNotRemind).await?;
-    let word = match word {
-        Some(v) => v,
-        None => db
-            .query_first(Queries::Random)
-            .await?
-            .ok_or("no word found")?,
-    };
+    let word: Word = db
+        .query_first(Queries::RandomNotRemind)
+        .await?
+        .or(db.query_first(Queries::RandomNotRemindWrap).await?)
+        .or(db.query_first(Queries::Random).await?)
+        .or(db.query_first(Queries::RandomWrap).await?)
+        .ok_or("no word found")?;
 
     db.execute(Queries::UpdateRemindTime { word: &word.word })
         .await?;

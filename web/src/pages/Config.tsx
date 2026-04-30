@@ -32,6 +32,9 @@ export type Configuration = {
   value: string;
 };
 
+const normalizeProviderType = (provider: string) =>
+  provider === "claude" ? "anthropic" : provider;
+
 export default function Config() {
   const [, setLocation] = useLocation();
   const [providers, setProviders] = useState<LlmProvider[]>([]);
@@ -95,6 +98,12 @@ export default function Config() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const ensureOk = async (res: Response, action: string) => {
+    if (!res.ok) {
+      throw new Error(`${action} failed (${res.status}): ${await res.text()}`);
+    }
+  };
+
   const handleDelete = (name: string) => {
     setDeleteTarget(name);
   };
@@ -143,7 +152,7 @@ export default function Config() {
       delete featuresObj.location;
     }
 
-    if (data.provider === "claude") {
+    if (data.provider === "anthropic") {
       const formDataVersion = formData.get("anthropic_version") as string;
       if (formDataVersion) featuresObj.anthropic_version = formDataVersion;
       if (thinkingEnabled) {
@@ -161,13 +170,14 @@ export default function Config() {
     data.features = JSON.stringify(featuresObj);
 
     try {
-      await authorizedRequest("/llm/save", {
+      const res = await authorizedRequest("/llm/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      await ensureOk(res, "Save provider");
       onOpenChange(false);
-      fetchProviders();
+      await fetchProviders();
     } catch (err) {
       console.error(err);
       addToast({
@@ -218,15 +228,16 @@ export default function Config() {
 
     try {
       await Promise.all(
-        updates.map((config) =>
-          authorizedRequest("/config/save", {
+        updates.map(async (config) => {
+          const res = await authorizedRequest("/config/save", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(config),
-          }),
-        ),
+          });
+          await ensureOk(res, `Save ${config.key}`);
+        }),
       );
-      fetchConfigurations();
+      await fetchConfigurations();
       addToast({
         title: "Configurations saved",
         color: "success",
@@ -244,7 +255,7 @@ export default function Config() {
 
   const openEditModal = (provider: LlmProvider) => {
     setEditingProvider(provider);
-    setSelectedProviderType(provider.provider);
+    setSelectedProviderType(normalizeProviderType(provider.provider));
     try {
       const features = JSON.parse(provider.features || "{}") as Record<
         string,
@@ -383,7 +394,7 @@ export default function Config() {
                       {p.name}
                     </Text>
                     <Text size="2" color="gray" as="div">
-                      {p.provider}
+                      {normalizeProviderType(p.provider)}
                     </Text>
                     {p.base_url && (
                       <Text size="1" className="truncate" as="div">
@@ -569,7 +580,7 @@ export default function Config() {
                     <option value="gemini">Gemini</option>
                     <option value="vertexai">VertexAI</option>
                     <option value="workersai">Workers AI</option>
-                    <option value="claude">Claude</option>
+                    <option value="anthropic">Anthropic</option>
                   </select>
                   <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[var(--app-muted)]">
                     ▾
@@ -605,7 +616,7 @@ export default function Config() {
                   required
                 />
               </Flex>
-              {selectedProviderType === "claude" && (
+              {selectedProviderType === "anthropic" && (
                 <>
                   <Flex direction="column" gap="1">
                     <Text as="label" size="2" weight="bold">

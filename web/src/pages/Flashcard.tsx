@@ -81,7 +81,7 @@ const LeftArrowIcon = () => (
 
 export default function Flashcard() {
   const [page, setPage] = useLocalStorage<number>("flashcard_page_v2", 1);
-  const [total, setTotal] = useLocalStorage<number>("total_page", 100);
+  const [total, setTotal] = useLocalStorage<number>("flashcard_total_words", 0);
   const [orderBy, setOrderBy] = useLocalStorage("order_by", "word");
   const [grammar, setGrammar] = useLocalStorage("grammar", false);
 
@@ -150,9 +150,16 @@ export default function Flashcard() {
   useEffect(() => {
     fetchChunksIfNeeded(page);
     countWord(grammar, (size) => {
-      if (size) setTotal(size);
+      if (size !== undefined) {
+        setTotal(size);
+        if (size === 0 && page !== 1) {
+          setPage(1);
+        } else if (size > 0 && page > size) {
+          setPage(size);
+        }
+      }
     });
-  }, [page, grammar, orderBy, fetchChunksIfNeeded, setTotal]);
+  }, [page, grammar, orderBy, fetchChunksIfNeeded, setPage, setTotal]);
 
   const currentWord = wordsMap.get(page);
 
@@ -167,19 +174,39 @@ export default function Flashcard() {
   const opacityRight = useTransform(x, [60, 150], [0, 0.85]);
   const opacityLeft = useTransform(x, [-150, -60], [0.85, 0]);
 
+  useEffect(() => {
+    if (!currentWord) return;
+    x.set(0);
+    controls.start(
+      shouldReduceMotion
+        ? { opacity: 1, scale: 1 }
+        : { opacity: 1, y: 0, scale: 1 },
+    );
+  }, [controls, currentWord, page, shouldReduceMotion, x]);
+
   const handleSwipe = useCallback(
     async (action: "know" | "skip") => {
+      const canAdvance = page < total;
+      const exitX = action === "know" ? 500 : -500;
+
+      if (canAdvance) {
+        await controls.start({ x: exitX, opacity: 0 });
+      } else {
+        await controls.start({ x: exitX > 0 ? 56 : -56, opacity: 0.85 });
+        await controls.start({ x: 0, opacity: 1 });
+      }
+
       if (action === "know") {
-        await controls.start({ x: 500, opacity: 0 });
         if (currentWord) {
           await incrementRemindCount(currentWord.word, () => {});
         }
-      } else {
-        await controls.start({ x: -500, opacity: 0 });
       }
-      setPage((p) => Math.min(p + 1, total));
+
+      if (canAdvance) {
+        setPage((p) => Math.min(p + 1, total));
+      }
     },
-    [controls, currentWord, setPage, total],
+    [controls, currentWord, page, setPage, total],
   );
 
   const handleDragEnd = async (
@@ -338,9 +365,7 @@ export default function Flashcard() {
             initial={
               shouldReduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }
             }
-            animate={
-              shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }
-            }
+            animate={controls}
             transition={{ duration: 0.16 }}
             drag="x"
             dragListener={false}
