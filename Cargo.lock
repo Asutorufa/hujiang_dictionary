@@ -756,6 +756,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "dictdeck"
+version = "0.1.0"
+dependencies = [
+ "aws_lambda_events",
+ "base64 0.22.1",
+ "d1-orm",
+ "env_logger",
+ "frankenstein",
+ "hjcommon",
+ "hjdict",
+ "hjnative",
+ "http",
+ "lambda_runtime",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1302,26 +1322,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "hj-rust"
-version = "0.1.0"
-dependencies = [
- "aws_lambda_events",
- "base64 0.22.1",
- "d1-orm",
- "env_logger",
- "frankenstein",
- "hjcommon",
- "hjdict",
- "hjnative",
- "http",
- "lambda_runtime",
- "log",
- "serde",
- "serde_json",
- "tokio",
-]
 
 [[package]]
 name = "hj_ai"

@@ -79,7 +79,7 @@ export default function Login() {
         <Flex direction="column" gap="4">
           <Box className="flex justify-center pb-0">
             <Text size="6" weight="bold">
-              Login
+              DictDeck
             </Text>
           </Box>
           <Flex direction="column" gap="3">

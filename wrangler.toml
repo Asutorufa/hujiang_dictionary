@@ -1,4 +1,4 @@
-name = "hj-dict"
+name = "dictdeck"
 main = "worker/build/worker/shim.mjs"
 compatibility_date = "2023-03-22"
 
@@ -54,7 +54,7 @@ database_name = "words"
 database_id = "e157547e-8649-496c-8abb-bd3c07835cf6"
 
 [env.production]
-name = "hj-dict"
+name = "dictdeck"
 [env.production.ai]
 binding = "AI"
 [env.production.observability.logs]
@@ -70,7 +70,7 @@ database_id = "e157547e-8649-496c-8abb-bd3c07835cf6"
 
 
 [env.ci]
-name = "hj-dict"
+name = "dictdeck"
 [env.ci.ai]
 binding = "AI"
 [env.ci.observability.logs]

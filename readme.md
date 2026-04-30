@@ -1,4 +1,8 @@
-# Hujiang Dictionary
+# DictDeck
+
+DictDeck is a self-hosted AI dictionary, translator, and vocabulary flashcard app.
+It supports multiple dictionary sources, LLM-powered explanations, saved words,
+review cards, Telegram bot workflows, and Cloudflare Workers deployment.
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Asutorufa/hujiang_dictionary)
 
@@ -61,7 +65,7 @@ export ALLOW_USERS=312321312,232133424,123131243
 export CLOUDFLARE_ACCOUNT_ID=dksaodjasopdjpadjapd
 export CLOUDFLARE_API_TOKEN=dkapdpaksdpaspdnsknszcl
 export CLOUDFLARE_D1_DATABASE_ID=231331-adae-3123-vdfsf-1313adssaeqewq
-export CLOUDFLARE_D1_DATABASE_NAME=hujiang_dictionary
+export CLOUDFLARE_D1_DATABASE_NAME=dictdeck
 
 ./target/release/tg
 ```
@@ -82,7 +86,7 @@ set blow env in lambda
     **cloudflare api token**
 - CLOUDFLARE_D1_DATABASE_ID=231331-adae-3123-vdfsf-1313adssaeqewq  
     **cloudflare d1 database id**
-- CLOUDFLARE_D1_DATABASE_NAME=hujiang_dictionary  
+- CLOUDFLARE_D1_DATABASE_NAME=dictdeck  
     **cloudflare d1 database name**
 
 build and deploy lambda
@@ -117,7 +121,7 @@ D1_DATABASE_ID="57ccd046-bd5c-42a3-90a3-21da43bc119d" # d1 database id
 TELEGRAM_TOKEN="****:*****" # telegram bot token
 ALLOW_USERS="12345678,-23456789,34567890" # allow telegram user id, split by comma
 MAINTAINER_ID="12345678" # send random word to the chat id when cron job run
-WORKER_NAME="hj-dict" # cloudflare workers name
+WORKER_NAME="dictdeck" # cloudflare workers name
 SCHEDULE="*/20 0-15 * * *" # cron schedule
 ```
 
