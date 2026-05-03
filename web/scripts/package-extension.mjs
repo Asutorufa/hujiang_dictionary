@@ -94,6 +94,23 @@ function commandExists(command, args = ["--version"]) {
   return result.status === 0;
 }
 
+function findSafariPackagingTool() {
+  for (const tool of [
+    "safari-web-extension-packager",
+    "safari-web-extension-converter",
+  ]) {
+    const result = spawnSync("xcrun", ["--find", tool], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    if (result.status === 0) {
+      return tool;
+    }
+  }
+
+  return null;
+}
+
 function executableExists(command) {
   return !spawnSync(command, [], { stdio: "ignore" }).error;
 }
@@ -320,6 +337,13 @@ async function buildSafariApp() {
     );
   }
 
+  const safariPackagingTool = findSafariPackagingTool();
+  if (!safariPackagingTool) {
+    throw new Error(
+      "Could not find Safari Web Extension packaging tool. Install full Xcode and make sure either safari-web-extension-packager or safari-web-extension-converter is available via xcrun.",
+    );
+  }
+
   const tempRoot = await mkdtemp(path.join(tmpdir(), "dictdeck-safari-"));
   const tempExtensionDir = path.join(tempRoot, "extension");
   const tempSafariDir = path.join(tempRoot, "safari");
@@ -331,7 +355,7 @@ async function buildSafariApp() {
     const result = spawnSync(
       "xcrun",
       [
-        "safari-web-extension-packager",
+        safariPackagingTool,
         tempExtensionDir,
         "--project-location",
         tempSafariDir,
@@ -350,7 +374,7 @@ async function buildSafariApp() {
 
     if (result.status !== 0) {
       throw new Error(
-        "Safari app generation failed. The Safari package is not considered valid.",
+        `Safari app generation failed using ${safariPackagingTool}. The Safari package is not considered valid.`,
       );
     }
 
