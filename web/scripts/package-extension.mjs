@@ -127,18 +127,23 @@ function getSafariSigningConfig() {
     };
   }
 
-  const result = spawnSync("security", ["find-identity", "-v", "-p", "codesigning"], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
-  });
+  const result = spawnSync(
+    "security",
+    ["find-identity", "-v", "-p", "codesigning"],
+    {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    },
+  );
   if (result.status !== 0) return null;
 
   const identity = result.stdout
     .split("\n")
-    .map((line) =>
-      line.match(
-        /"([^"]*(?:Apple Development|Developer ID Application|Mac Developer)[^"]*)"/,
-      )?.[1],
+    .map(
+      (line) =>
+        line.match(
+          /"([^"]*(?:Apple Development|Developer ID Application|Mac Developer)[^"]*)"/,
+        )?.[1],
     )
     .find(Boolean);
   if (!identity) return null;
@@ -150,9 +155,13 @@ function getSafariSigningConfig() {
 }
 
 function hasAppleDevelopmentCertificate() {
-  const result = spawnSync("security", ["find-certificate", "-a", "-c", "Apple Development"], {
-    stdio: "ignore",
-  });
+  const result = spawnSync(
+    "security",
+    ["find-certificate", "-a", "-c", "Apple Development"],
+    {
+      stdio: "ignore",
+    },
+  );
   return result.status === 0;
 }
 
@@ -169,7 +178,9 @@ async function findFilesByExtension(dir, extension, depth = 8) {
       continue;
     }
     if (entry.isDirectory()) {
-      matches.push(...(await findFilesByExtension(fullPath, extension, depth - 1)));
+      matches.push(
+        ...(await findFilesByExtension(fullPath, extension, depth - 1)),
+      );
     }
   }
 
@@ -178,7 +189,9 @@ async function findFilesByExtension(dir, extension, depth = 8) {
 
 async function signSafariAppAdhoc(app) {
   if (!executableExists("codesign")) {
-    console.warn("codesign not found. Safari app was built, but not explicitly signed.");
+    console.warn(
+      "codesign not found. Safari app was built, but not explicitly signed.",
+    );
     return;
   }
 
@@ -205,9 +218,13 @@ async function signSafariAppAdhoc(app) {
 }
 
 function registerSafariApp(app) {
-  const result = spawnSync(launchServicesRegister, ["-f", "-R", "-trusted", app], {
-    stdio: "ignore",
-  });
+  const result = spawnSync(
+    launchServicesRegister,
+    ["-f", "-R", "-trusted", app],
+    {
+      stdio: "ignore",
+    },
+  );
   if (result.status !== 0) {
     console.warn(
       "Could not register Safari macOS app with LaunchServices. Open the app once from Finder.",
@@ -221,7 +238,9 @@ async function registerSafariExtensions(app) {
   const extensions = await findFilesByExtension(app, ".appex", 5);
   for (const extension of extensions) {
     spawnSync("pluginkit", ["-r", extension], { stdio: "ignore" });
-    const result = spawnSync("pluginkit", ["-a", extension], { stdio: "ignore" });
+    const result = spawnSync("pluginkit", ["-a", extension], {
+      stdio: "ignore",
+    });
     if (result.status !== 0) {
       console.warn(
         `Could not register Safari extension bundle with pluginkit: ${extension}`,
@@ -286,7 +305,9 @@ async function buildSafariMacApp(projectDir) {
   const apps = await findFilesByExtension(buildDir, ".app");
   const app = apps.find((value) => value.includes("Release")) ?? apps[0];
   if (!app) {
-    throw new Error("Safari macOS app build completed, but no .app bundle was found.");
+    throw new Error(
+      "Safari macOS app build completed, but no .app bundle was found.",
+    );
   }
 
   if (!signing) {
@@ -392,7 +413,9 @@ async function buildSafariApp() {
     const projects = await findFilesByExtension(safariDir, ".xcodeproj", 4);
     const project = projects[0];
     if (!project) {
-      throw new Error("Safari converter completed, but no Xcode project was found.");
+      throw new Error(
+        "Safari converter completed, but no Xcode project was found.",
+      );
     }
 
     const projectDir = path.dirname(project);

@@ -27,7 +27,10 @@ const api = getExtensionApi();
 
 type StoredSettings = Record<typeof STORAGE_KEY, Partial<ExtensionSettings>>;
 type StoredHistory = Record<typeof HISTORY_KEY, TranslationHistoryRecord[]>;
-type StoredPasswordKey = Record<typeof PASSWORD_RAW_KEY_STORAGE_KEY, string | undefined>;
+type StoredPasswordKey = Record<
+  typeof PASSWORD_RAW_KEY_STORAGE_KEY,
+  string | undefined
+>;
 type LoginCredentials = {
   baseUrl: string;
   username: string;
@@ -41,7 +44,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+) {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<T>((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
@@ -55,7 +62,9 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
 }
 
 async function getStoragePasswordKey() {
-  const stored = (await api.storage.local.get(PASSWORD_RAW_KEY_STORAGE_KEY)) as StoredPasswordKey;
+  const stored = (await api.storage.local.get(
+    PASSWORD_RAW_KEY_STORAGE_KEY,
+  )) as StoredPasswordKey;
   const existingKey = stored?.[PASSWORD_RAW_KEY_STORAGE_KEY];
   if (existingKey) {
     return crypto.subtle.importKey(
@@ -323,7 +332,9 @@ async function addHistory(
     id: `${Date.now()}-${crypto.randomUUID()}`,
     text: truncate(payload.text, 2000),
     result: truncate(response.result, 4000),
-    reasoning: response.reasoning ? truncate(response.reasoning, 2000) : undefined,
+    reasoning: response.reasoning
+      ? truncate(response.reasoning, 2000)
+      : undefined,
     method,
     wordType,
     title: payload.title || "",
@@ -346,13 +357,21 @@ async function translate(payload: TranslationPayload) {
     "/word/query",
     buildTranslationQueryBody(buildQueryOptions(settings, text, payload)),
   );
-  await addHistory(selectedMethod, settings.defaultWordType, payload, response).catch((error: unknown) => {
+  await addHistory(
+    selectedMethod,
+    settings.defaultWordType,
+    payload,
+    response,
+  ).catch((error: unknown) => {
     console.warn("Failed to save translation history", error);
   });
   return response;
 }
 
-async function streamTranslate(port: ExtensionPort, payload: TranslationPayload) {
+async function streamTranslate(
+  port: ExtensionPort,
+  payload: TranslationPayload,
+) {
   const settings = await readSettings();
   const text = payload.text.trim();
   const selectedMethod = payload.method?.trim() || settings.method;
@@ -404,12 +423,10 @@ async function streamTranslate(port: ExtensionPort, payload: TranslationPayload)
     result,
     reasoning,
   } satisfies QueryPortResponse);
-  await addHistory(
-    selectedMethod,
-    settings.defaultWordType,
-    payload,
-    { result, reasoning },
-  ).catch((error: unknown) => {
+  await addHistory(selectedMethod, settings.defaultWordType, payload, {
+    result,
+    reasoning,
+  }).catch((error: unknown) => {
     console.warn("Failed to save translation history", error);
   });
 }
@@ -440,7 +457,9 @@ async function login(message: Extract<RuntimeRequest, { type: "login" }>) {
   });
 }
 
-async function saveSettings(message: Extract<RuntimeRequest, { type: "saveSettings" }>) {
+async function saveSettings(
+  message: Extract<RuntimeRequest, { type: "saveSettings" }>,
+) {
   const nextSettings: Partial<ExtensionSettings> = { ...message.settings };
   if (message.password) {
     nextSettings.encryptedPassword = await encryptPassword(message.password);
@@ -465,7 +484,9 @@ async function loadCustomLLMs() {
   return writeSettings({ customLLMs });
 }
 
-async function saveWord(payload: Extract<RuntimeRequest, { type: "saveWord" }>["payload"]) {
+async function saveWord(
+  payload: Extract<RuntimeRequest, { type: "saveWord" }>["payload"],
+) {
   const settings = await readSettings();
   await request<object>(settings, "/word/save", {
     word: payload.word,

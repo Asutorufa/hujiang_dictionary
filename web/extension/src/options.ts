@@ -38,7 +38,11 @@ let pendingAction = "";
 let renderedShell = false;
 let renderedHistorySignature = "";
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string) {
+function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+) {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<T>((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
@@ -147,7 +151,8 @@ function historyItems() {
 
 function historySignature() {
   const first = history[0]?.createdAt ?? 0;
-  const last = history.length > 0 ? history[history.length - 1]?.createdAt ?? 0 : 0;
+  const last =
+    history.length > 0 ? (history[history.length - 1]?.createdAt ?? 0) : 0;
   return `${history.length}:${first}:${last}`;
 }
 
@@ -599,18 +604,23 @@ function updateDynamicParts() {
   const status = document.querySelector<HTMLElement>(".status-banner");
   if (status) {
     status.className = `status status-banner ${statusKind}`;
-    status.textContent = statusText || "Settings changes will show a confirmation here.";
+    status.textContent =
+      statusText || "Settings changes will show a confirmation here.";
   }
 
-  document.querySelectorAll<HTMLButtonElement>(".save-settings").forEach((button) => {
-    button.disabled = Boolean(pendingAction);
-    button.textContent = pendingAction === "save" ? "Saving..." : "Save settings";
-  });
+  document
+    .querySelectorAll<HTMLButtonElement>(".save-settings")
+    .forEach((button) => {
+      button.disabled = Boolean(pendingAction);
+      button.textContent =
+        pendingAction === "save" ? "Saving..." : "Save settings";
+    });
 
   const loginButton = document.querySelector<HTMLButtonElement>(".login");
   if (loginButton) {
     loginButton.disabled = Boolean(pendingAction);
-    loginButton.textContent = pendingAction === "login" ? "Logging in..." : "Log in";
+    loginButton.textContent =
+      pendingAction === "login" ? "Logging in..." : "Log in";
   }
 
   const password = document.querySelector<HTMLInputElement>("#password");
@@ -644,9 +654,9 @@ function updateDynamicParts() {
 
 function formSettings(): Partial<ExtensionSettings> {
   const value = (id: string) =>
-    document.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-      `#${id}`,
-    )?.value ?? "";
+    document.querySelector<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >(`#${id}`)?.value ?? "";
   const checked = (id: string) =>
     document.querySelector<HTMLInputElement>(`#${id}`)?.checked ?? false;
 
@@ -670,61 +680,79 @@ function passwordValue() {
 }
 
 function bindEvents() {
-  document.querySelectorAll<HTMLButtonElement>(".save-settings").forEach((button) => {
-    button.addEventListener("click", () => {
-      void saveSettings();
+  document
+    .querySelectorAll<HTMLButtonElement>(".save-settings")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        void saveSettings();
+      });
     });
-  });
 
-  document.querySelector<HTMLButtonElement>(".login")?.addEventListener("click", () => {
-    void login();
-  });
+  document
+    .querySelector<HTMLButtonElement>(".login")
+    ?.addEventListener("click", () => {
+      void login();
+    });
 
-  document.querySelector<HTMLButtonElement>(".load-custom")?.addEventListener("click", () => {
-    void loadCustomLLMs();
-  });
+  document
+    .querySelector<HTMLButtonElement>(".load-custom")
+    ?.addEventListener("click", () => {
+      void loadCustomLLMs();
+    });
 
-  document.querySelector<HTMLButtonElement>(".forget-password")?.addEventListener("click", () => {
-    void forgetPassword();
-  });
+  document
+    .querySelector<HTMLButtonElement>(".forget-password")
+    ?.addEventListener("click", () => {
+      void forgetPassword();
+    });
 
-  document.querySelector<HTMLButtonElement>(".clear-history")?.addEventListener("click", () => {
-    void clearHistory();
-  });
+  document
+    .querySelector<HTMLButtonElement>(".clear-history")
+    ?.addEventListener("click", () => {
+      void clearHistory();
+    });
 
-  document.querySelector<HTMLButtonElement>(".refresh-history")?.addEventListener("click", () => {
-    void refreshHistory();
-  });
+  document
+    .querySelector<HTMLButtonElement>(".refresh-history")
+    ?.addEventListener("click", () => {
+      void refreshHistory();
+    });
 
-  document.querySelector<HTMLElement>(".history-list")?.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
+  document
+    .querySelector<HTMLElement>(".history-list")
+    ?.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
 
-    const toggle = target.closest<HTMLButtonElement>(".history-save-toggle");
-    if (toggle?.dataset.historyId) {
-      toggleHistorySavePicker(toggle.dataset.historyId, true);
-      return;
-    }
+      const toggle = target.closest<HTMLButtonElement>(".history-save-toggle");
+      if (toggle?.dataset.historyId) {
+        toggleHistorySavePicker(toggle.dataset.historyId, true);
+        return;
+      }
 
-    const cancel = target.closest<HTMLButtonElement>(".history-save-cancel");
-    if (cancel?.dataset.historyId) {
-      toggleHistorySavePicker(cancel.dataset.historyId, false);
-      return;
-    }
+      const cancel = target.closest<HTMLButtonElement>(".history-save-cancel");
+      if (cancel?.dataset.historyId) {
+        toggleHistorySavePicker(cancel.dataset.historyId, false);
+        return;
+      }
 
-    const saveOption = target.closest<HTMLButtonElement>(".history-save-option");
-    if (saveOption?.dataset.historyId) {
-      const wordType = saveOption.dataset.wordType === "1" ? 1 : 0;
-      toggleHistorySavePicker(saveOption.dataset.historyId, false);
-      void saveHistoryItem(saveOption.dataset.historyId, wordType);
-    }
-  });
+      const saveOption = target.closest<HTMLButtonElement>(
+        ".history-save-option",
+      );
+      if (saveOption?.dataset.historyId) {
+        const wordType = saveOption.dataset.wordType === "1" ? 1 : 0;
+        toggleHistorySavePicker(saveOption.dataset.historyId, false);
+        void saveHistoryItem(saveOption.dataset.historyId, wordType);
+      }
+    });
 }
 
 function toggleHistorySavePicker(historyId: string, visible: boolean) {
-  document.querySelectorAll<HTMLElement>(".history-save-picker").forEach((picker) => {
-    picker.hidden = picker.dataset.historyPicker !== historyId || !visible;
-  });
+  document
+    .querySelectorAll<HTMLElement>(".history-save-picker")
+    .forEach((picker) => {
+      picker.hidden = picker.dataset.historyPicker !== historyId || !visible;
+    });
 }
 
 function historySaveExample(item: TranslationHistoryRecord) {
@@ -809,7 +837,9 @@ async function forgetPassword() {
 
 async function clearHistory() {
   try {
-    history = await sendMessage<TranslationHistoryRecord[]>({ type: "clearHistory" });
+    history = await sendMessage<TranslationHistoryRecord[]>({
+      type: "clearHistory",
+    });
     setStatus("Translation history cleared.", "success");
   } catch (error) {
     setStatus(error instanceof Error ? error.message : String(error), "danger");
@@ -818,7 +848,9 @@ async function clearHistory() {
 
 async function refreshHistory() {
   try {
-    history = await sendMessage<TranslationHistoryRecord[]>({ type: "getHistory" });
+    history = await sendMessage<TranslationHistoryRecord[]>({
+      type: "getHistory",
+    });
     setStatus("Translation history refreshed.", "success");
   } catch (error) {
     setStatus(error instanceof Error ? error.message : String(error), "danger");
@@ -838,7 +870,11 @@ async function loadCustomLLMs() {
   }
 }
 
-function setStatus(text: string, kind: "idle" | "success" | "danger", rebuild = false) {
+function setStatus(
+  text: string,
+  kind: "idle" | "success" | "danger",
+  rebuild = false,
+) {
   pendingAction = "";
   statusText = text;
   statusKind = kind;
@@ -862,7 +898,9 @@ function setPendingStatus(
 async function init() {
   try {
     settings = await sendMessage<ExtensionSettings>({ type: "getSettings" });
-    history = await sendMessage<TranslationHistoryRecord[]>({ type: "getHistory" });
+    history = await sendMessage<TranslationHistoryRecord[]>({
+      type: "getHistory",
+    });
   } catch (error) {
     statusText = error instanceof Error ? error.message : String(error);
     statusKind = "danger";

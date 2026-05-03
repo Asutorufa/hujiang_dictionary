@@ -337,7 +337,9 @@ function styles() {
 }
 
 async function sendMessage<T>(message: RuntimeRequest) {
-  const response = (await api.runtime.sendMessage(message)) as RuntimeResponse<T>;
+  const response = (await api.runtime.sendMessage(
+    message,
+  )) as RuntimeResponse<T>;
   if (!response.ok) {
     throw new Error(response.error);
   }
@@ -412,7 +414,8 @@ function setPinned(nextPinned: boolean) {
 function setReasoningCollapsed(collapsed: boolean) {
   reasoningCollapsed = collapsed;
   const wrap = shadowRootRef?.querySelector<HTMLElement>(".reasoning-wrap");
-  const button = shadowRootRef?.querySelector<HTMLButtonElement>(".reasoning-toggle");
+  const button =
+    shadowRootRef?.querySelector<HTMLButtonElement>(".reasoning-toggle");
   if (!wrap || !button) return;
   wrap.classList.toggle("collapsed", collapsed);
   button.setAttribute("aria-expanded", String(!collapsed));
@@ -430,7 +433,8 @@ function setResult(result: string, reasoning?: string) {
   currentResult = result;
   currentReasoning = reasoning || "";
   const resultEl = shadowRootRef?.querySelector<HTMLElement>(".result");
-  const reasoningWrap = shadowRootRef?.querySelector<HTMLElement>(".reasoning-wrap");
+  const reasoningWrap =
+    shadowRootRef?.querySelector<HTMLElement>(".reasoning-wrap");
   const reasoningEl = shadowRootRef?.querySelector<HTMLElement>(".reasoning");
   const saveButton = shadowRootRef?.querySelector<HTMLButtonElement>(".save");
 
@@ -444,7 +448,12 @@ function setResult(result: string, reasoning?: string) {
   if (currentReasoning && !currentResult && !reasoningAutoCollapsed) {
     setReasoningCollapsed(false);
   }
-  if (!previousResult && currentResult && currentReasoning && !reasoningAutoCollapsed) {
+  if (
+    !previousResult &&
+    currentResult &&
+    currentReasoning &&
+    !reasoningAutoCollapsed
+  ) {
     reasoningAutoCollapsed = true;
     setReasoningCollapsed(true);
   }
@@ -460,11 +469,13 @@ function setTranslateBusy(isBusy: boolean) {
 
 function setWordType(wordType: 0 | 1) {
   currentWordType = wordType;
-  shadowRootRef?.querySelectorAll<HTMLButtonElement>("[data-word-type]").forEach((button) => {
-    const active = button.dataset.wordType === String(wordType);
-    button.classList.toggle("active", active);
-    button.setAttribute("aria-pressed", String(active));
-  });
+  shadowRootRef
+    ?.querySelectorAll<HTMLButtonElement>("[data-word-type]")
+    .forEach((button) => {
+      const active = button.dataset.wordType === String(wordType);
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
 }
 
 function option(value: string, label: string, selected: string) {
@@ -478,7 +489,9 @@ function languageOptions(selected: string) {
 }
 
 function promptModeOptions(selected: PromptMode) {
-  return PROMPT_MODES.map((mode) => option(mode.value, mode.label, selected)).join("");
+  return PROMPT_MODES.map((mode) =>
+    option(mode.value, mode.label, selected),
+  ).join("");
 }
 
 function methodOptions(settings: ExtensionSettings) {
@@ -503,14 +516,14 @@ function methodOptions(settings: ExtensionSettings) {
 
 function syncQuickControls() {
   currentMethod =
-    shadowRootRef?.querySelector<HTMLSelectElement>(".method")?.value ?? currentMethod;
+    shadowRootRef?.querySelector<HTMLSelectElement>(".method")?.value ??
+    currentMethod;
   currentDstLang =
     shadowRootRef?.querySelector<HTMLSelectElement>(".dst-lang")?.value ??
     currentDstLang;
-  currentPromptMode = (
-    shadowRootRef?.querySelector<HTMLSelectElement>(".prompt-mode")?.value ??
-    currentPromptMode
-  ) as PromptMode;
+  currentPromptMode = (shadowRootRef?.querySelector<HTMLSelectElement>(
+    ".prompt-mode",
+  )?.value ?? currentPromptMode) as PromptMode;
   persistQuickPreferences();
 }
 
@@ -566,10 +579,19 @@ function placePanel(panel: HTMLElement, rect: DOMRect) {
     : Math.max(160, rect.top - margin * 2);
 
   const finalLeft = manualPosition
-    ? Math.max(margin, Math.min(manualPosition.left, window.innerWidth - panel.offsetWidth - margin))
+    ? Math.max(
+        margin,
+        Math.min(
+          manualPosition.left,
+          window.innerWidth - panel.offsetWidth - margin,
+        ),
+      )
     : left;
   const finalTop = manualPosition
-    ? Math.max(margin, Math.min(manualPosition.top, window.innerHeight - 160 - margin))
+    ? Math.max(
+        margin,
+        Math.min(manualPosition.top, window.innerHeight - 160 - margin),
+      )
     : Math.max(margin, top);
 
   panel.style.left = `${finalLeft}px`;
@@ -585,7 +607,10 @@ function enableDragging(panel: HTMLElement) {
 
   topbar.addEventListener("pointerdown", (event) => {
     const target = event.target;
-    if (!(target instanceof Element) || target.closest("button, select, input, textarea")) {
+    if (
+      !(target instanceof Element) ||
+      target.closest("button, select, input, textarea")
+    ) {
       return;
     }
 
@@ -600,7 +625,9 @@ function enableDragging(panel: HTMLElement) {
     const move = (moveEvent: PointerEvent) => {
       if (
         !hasMoved &&
-        Math.abs(moveEvent.clientX - event.clientX) + Math.abs(moveEvent.clientY - event.clientY) < 6
+        Math.abs(moveEvent.clientX - event.clientX) +
+          Math.abs(moveEvent.clientY - event.clientY) <
+          6
       ) {
         return;
       }
@@ -611,11 +638,17 @@ function enableDragging(panel: HTMLElement) {
       const margin = 12;
       const left = Math.max(
         margin,
-        Math.min(moveEvent.clientX - offsetX, window.innerWidth - panel.offsetWidth - margin),
+        Math.min(
+          moveEvent.clientX - offsetX,
+          window.innerWidth - panel.offsetWidth - margin,
+        ),
       );
       const top = Math.max(
         margin,
-        Math.min(moveEvent.clientY - offsetY, window.innerHeight - panel.offsetHeight - margin),
+        Math.min(
+          moveEvent.clientY - offsetY,
+          window.innerHeight - panel.offsetHeight - margin,
+        ),
       );
       manualPosition = { left, top };
       panel.style.left = `${left}px`;
@@ -716,41 +749,67 @@ function renderPanel(selection: Selection, settings: ExtensionSettings) {
 
   root.append(panel);
   panel.querySelector<HTMLElement>(".selected")!.textContent = currentSelection;
-  panel.querySelector<HTMLButtonElement>(".pin")!.addEventListener("click", () => {
-    setPinned(!isPinned);
-  });
-  panel.querySelector<HTMLButtonElement>(".close")!.addEventListener("click", () => {
-    closePanel();
-  });
-  panel.querySelector<HTMLSelectElement>(".method")!.addEventListener("change", () => {
-    syncQuickControls();
-  });
-  panel.querySelector<HTMLSelectElement>(".dst-lang")!.addEventListener("change", () => {
-    syncQuickControls();
-  });
-  panel.querySelector<HTMLSelectElement>(".prompt-mode")!.addEventListener("change", () => {
-    syncQuickControls();
-  });
-  panel.querySelector<HTMLButtonElement>(".reasoning-toggle")!.addEventListener("click", () => {
-    setReasoningCollapsed(!reasoningCollapsed);
-  });
-  panel.querySelectorAll<HTMLButtonElement>("[data-word-type]").forEach((button) => {
-    button.addEventListener("click", () => {
-      setWordType(button.dataset.wordType === "1" ? 1 : 0);
-      toggleSavePicker(false);
-      void saveCurrentWord();
+  panel
+    .querySelector<HTMLButtonElement>(".pin")!
+    .addEventListener("click", () => {
+      setPinned(!isPinned);
     });
-  });
-  panel.querySelector<HTMLButtonElement>(".cancel-save")!.addEventListener("click", () => {
-    toggleSavePicker(false);
-  });
-  panel.querySelector<HTMLButtonElement>(".save")!.addEventListener("click", () => {
-    toggleSavePicker();
-  });
-  panel.querySelector<HTMLButtonElement>(".translate")!.addEventListener("click", () => {
-    startTranslation();
-  });
-  for (const eventName of ["pointerdown", "pointerup", "mousedown", "mouseup", "click"]) {
+  panel
+    .querySelector<HTMLButtonElement>(".close")!
+    .addEventListener("click", () => {
+      closePanel();
+    });
+  panel
+    .querySelector<HTMLSelectElement>(".method")!
+    .addEventListener("change", () => {
+      syncQuickControls();
+    });
+  panel
+    .querySelector<HTMLSelectElement>(".dst-lang")!
+    .addEventListener("change", () => {
+      syncQuickControls();
+    });
+  panel
+    .querySelector<HTMLSelectElement>(".prompt-mode")!
+    .addEventListener("change", () => {
+      syncQuickControls();
+    });
+  panel
+    .querySelector<HTMLButtonElement>(".reasoning-toggle")!
+    .addEventListener("click", () => {
+      setReasoningCollapsed(!reasoningCollapsed);
+    });
+  panel
+    .querySelectorAll<HTMLButtonElement>("[data-word-type]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        setWordType(button.dataset.wordType === "1" ? 1 : 0);
+        toggleSavePicker(false);
+        void saveCurrentWord();
+      });
+    });
+  panel
+    .querySelector<HTMLButtonElement>(".cancel-save")!
+    .addEventListener("click", () => {
+      toggleSavePicker(false);
+    });
+  panel
+    .querySelector<HTMLButtonElement>(".save")!
+    .addEventListener("click", () => {
+      toggleSavePicker();
+    });
+  panel
+    .querySelector<HTMLButtonElement>(".translate")!
+    .addEventListener("click", () => {
+      startTranslation();
+    });
+  for (const eventName of [
+    "pointerdown",
+    "pointerup",
+    "mousedown",
+    "mouseup",
+    "click",
+  ]) {
     panel.addEventListener(eventName, (event) => event.stopPropagation());
   }
   setWordType(currentWordType);
@@ -835,7 +894,10 @@ function startTranslation() {
         break;
       case "complete":
         setStatus("Ready.");
-        setResult(response.result || currentResult, response.reasoning || currentReasoning);
+        setResult(
+          response.result || currentResult,
+          response.reasoning || currentReasoning,
+        );
         setTranslateBusy(false);
         activePort = undefined;
         break;
@@ -864,7 +926,9 @@ function startTranslation() {
 function isEditableTarget(target: EventTarget | null) {
   if (!(target instanceof Element)) return false;
   return Boolean(
-    target.closest("input, textarea, select, [contenteditable='true'], [contenteditable='']"),
+    target.closest(
+      "input, textarea, select, [contenteditable='true'], [contenteditable='']",
+    ),
   );
 }
 
@@ -883,14 +947,19 @@ async function handleSelection(event: Event) {
   }
 
   try {
-    const settings = await sendMessage<ExtensionSettings>({ type: "getSettings" });
+    const settings = await sendMessage<ExtensionSettings>({
+      type: "getSettings",
+    });
     if (!settings.baseUrl) {
       renderConfigurationPanel(selection);
       return;
     }
     renderPanel(selection, settings);
   } catch (error) {
-    renderFallbackPanel(selection, error instanceof Error ? error.message : String(error));
+    renderFallbackPanel(
+      selection,
+      error instanceof Error ? error.message : String(error),
+    );
   }
 }
 
@@ -914,12 +983,16 @@ function renderConfigurationPanel(selection: Selection) {
   `;
   root.append(panel);
   panel.querySelector<HTMLElement>(".selected")!.textContent = currentSelection;
-  panel.querySelector<HTMLButtonElement>(".close")!.addEventListener("click", () => {
-    closePanel();
-  });
-  panel.querySelector<HTMLButtonElement>(".options")!.addEventListener("click", () => {
-    void sendMessage<object>({ type: "openOptions" });
-  });
+  panel
+    .querySelector<HTMLButtonElement>(".close")!
+    .addEventListener("click", () => {
+      closePanel();
+    });
+  panel
+    .querySelector<HTMLButtonElement>(".options")!
+    .addEventListener("click", () => {
+      void sendMessage<object>({ type: "openOptions" });
+    });
 
   const rect = selectionRect(selection);
   if (rect) placePanel(panel, rect);
@@ -945,9 +1018,11 @@ function renderFallbackPanel(selection: Selection, message: string) {
   root.append(panel);
   panel.querySelector<HTMLElement>(".selected")!.textContent = currentSelection;
   panel.querySelector<HTMLElement>(".status-text")!.textContent = message;
-  panel.querySelector<HTMLButtonElement>(".close")!.addEventListener("click", () => {
-    closePanel();
-  });
+  panel
+    .querySelector<HTMLButtonElement>(".close")!
+    .addEventListener("click", () => {
+      closePanel();
+    });
 
   const rect = selectionRect(selection);
   if (rect) placePanel(panel, rect);

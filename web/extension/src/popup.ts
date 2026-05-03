@@ -39,15 +39,22 @@ function formatTime(timestamp: number) {
 
 function escapeHtml(value: string) {
   return value
-    .split("&").join("&amp;")
-    .split("<").join("&lt;")
-    .split(">").join("&gt;")
-    .split('"').join("&quot;")
-    .split("'").join("&#039;");
+    .split("&")
+    .join("&amp;")
+    .split("<")
+    .join("&lt;")
+    .split(">")
+    .join("&gt;")
+    .split('"')
+    .join("&quot;")
+    .split("'")
+    .join("&#039;");
 }
 
 async function request<T>(message: unknown) {
-  const response = (await api.runtime.sendMessage(message)) as RuntimeResponse<T>;
+  const response = (await api.runtime.sendMessage(
+    message,
+  )) as RuntimeResponse<T>;
   if (!response.ok) {
     throw new Error(response.error);
   }
@@ -83,10 +90,14 @@ function renderHistory() {
 }
 
 function render() {
-  const configured = Boolean(state.settings?.baseUrl && state.settings?.username);
+  const configured = Boolean(
+    state.settings?.baseUrl && state.settings?.username,
+  );
   const signedIn = Boolean(state.settings?.token);
   const service = state.settings?.baseUrl || "Not configured";
-  const method = state.settings ? methodLabel(state.settings.method) : "Not configured";
+  const method = state.settings
+    ? methodLabel(state.settings.method)
+    : "Not configured";
   const target = state.settings?.dstLang || "Auto";
 
   popupRoot.innerHTML = `
@@ -377,20 +388,24 @@ function render() {
     </main>
   `;
 
-  popupRoot.querySelector<HTMLButtonElement>('[data-action="options"]')?.addEventListener("click", () => {
-    openOptions().catch((error: unknown) => {
-      state.error = error instanceof Error ? error.message : String(error);
-      render();
+  popupRoot
+    .querySelector<HTMLButtonElement>('[data-action="options"]')
+    ?.addEventListener("click", () => {
+      openOptions().catch((error: unknown) => {
+        state.error = error instanceof Error ? error.message : String(error);
+        render();
+      });
     });
-  });
 
-  popupRoot.querySelector<HTMLButtonElement>('[data-action="reload"]')?.addEventListener("click", () => {
-    load().catch((error: unknown) => {
-      state.error = error instanceof Error ? error.message : String(error);
-      state.loading = false;
-      render();
+  popupRoot
+    .querySelector<HTMLButtonElement>('[data-action="reload"]')
+    ?.addEventListener("click", () => {
+      load().catch((error: unknown) => {
+        state.error = error instanceof Error ? error.message : String(error);
+        state.loading = false;
+        render();
+      });
     });
-  });
 }
 
 async function load() {
