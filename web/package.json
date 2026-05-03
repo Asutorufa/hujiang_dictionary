@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
+    "build:extension": "vite build --config vite.extension.config.ts && vite build --config vite.extension.content.config.ts && vite build --config vite.extension.background.config.ts && vite build --config vite.extension.safari.config.ts && node scripts/package-extension.mjs",
     "preview": "vite preview",
     "lint": "eslint",
     "lint:fix": "eslint --fix"

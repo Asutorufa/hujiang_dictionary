@@ -24,6 +24,43 @@ https://github.com/user-attachments/assets/19575332-0906-4654-a173-b8c390e0baf4
 
 ![screenshot](https://raw.githubusercontent.com/Asutorufa/hujiang_dictionary/refs/heads/rust/assets/images/web.png)
 
+## browser extension
+
+The repository also includes a browser extension for translating selected text from any page.
+
+Local build:
+
+```bash
+cd web
+npm install
+npm run build:extension
+```
+
+Build outputs:
+
+- `web/extension-dist/chrome` - unpacked Chrome extension
+- `web/extension-dist/firefox` - unpacked Firefox extension
+- `web/extension-dist/safari` - generated Safari project
+- `web/extension-dist/safari-app` - built Safari macOS app
+
+Notes:
+
+- Safari packaging is built on macOS and requires Xcode / Command Line Tools.
+- The Safari app is generated so the extension can be enabled through Safari on macOS.
+
+## ci artifacts
+
+The GitHub Actions workflow at [`.github/workflows/rust.yaml`](./.github/workflows/rust.yaml) builds and uploads extension artifacts on macOS.
+
+Uploaded artifacts:
+
+- `dictdeck-extension-chrome.zip`
+- `dictdeck-extension-firefox.zip`
+- `dictdeck-extension-safari-project.zip`
+- `dictdeck-extension-safari-app.zip`
+
+These files are uploaded as workflow artifacts in CI, and the release workflow also includes them in release assets.
+
 ## cli
 
 - `jc <word>` - Japanese to Chinese

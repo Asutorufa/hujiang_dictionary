@@ -158,6 +158,44 @@ jobs:
       - name: Build Worker
         run: npx wrangler build
 
+  extension:
+    runs-on: macOS-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Use Node.js 24.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+          cache: "npm"
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build extensions
+        run: |
+          cd web
+          npm ci --legacy-peer-deps
+          npm run build:extension
+
+      - name: Package extension artifacts
+        run: |
+          cd web
+          mkdir -p artifacts
+          ditto -c -k --keepParent extension-dist/chrome artifacts/dictdeck-extension-chrome.zip
+          ditto -c -k --keepParent extension-dist/firefox artifacts/dictdeck-extension-firefox.zip
+          ditto -c -k --keepParent "extension-dist/safari" artifacts/dictdeck-extension-safari-project.zip
+          ditto -c -k --sequesterRsrc --keepParent "extension-dist/safari-app/DictDeck Selection Translator.app" artifacts/dictdeck-extension-safari-app.zip
+
+      - name: Upload extension artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-extension-artifacts
+          path: |
+            web/artifacts/dictdeck-extension-chrome.zip
+            web/artifacts/dictdeck-extension-firefox.zip
+            web/artifacts/dictdeck-extension-safari-project.zip
+            web/artifacts/dictdeck-extension-safari-app.zip
+
   build:
     needs: web
     name: Build - ${{ matrix.platform.os-name }}
@@ -250,6 +288,7 @@ jobs:
     if: github.ref_type == 'tag' || (github.ref_type == 'branch' && github.ref_name == 'rust')
     needs: 
       - build
+      - extension
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

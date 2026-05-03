@@ -14,7 +14,13 @@ export default tseslint.config(
       ".next/**",
       "next-env.d.ts",
       "public/mockServiceWorker.js",
+      "out-extension/**",
+      "extension-dist/**",
       "vite.config.ts",
+      "vite.extension.config.ts",
+      "vite.extension.content.config.ts",
+      "vite.extension.background.config.ts",
+      "vite.extension.safari.config.ts",
     ],
   },
   {

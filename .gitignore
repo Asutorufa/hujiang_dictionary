@@ -11,6 +11,8 @@ wrangler.deploy.toml
 .wrangler
 /dist
 /web/out
+/web/out-extension
+/web/extension-dist
 common/src/*.json
 
 # React Frontend

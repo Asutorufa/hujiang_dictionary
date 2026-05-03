@@ -1,5 +1,20 @@
 import { authorizedRequest, streamRequest } from "@/lib/api";
 import {
+  BUILTIN_METHODS,
+  DEFAULT_METHOD,
+  DEFAULT_SEARCH_ENGINE,
+  LANGUAGES,
+  PROMPT_MODES,
+  SEARCH_ENGINES,
+  buildTranslationQueryBody,
+  customMethodValue,
+  legacyCustomMethodValue,
+  methodLabel,
+  parseCustomMethod,
+  type CustomLLM,
+  type PromptMode,
+} from "@/lib/translation";
+import {
   Button,
   Card,
   DropdownMenu,
@@ -25,15 +40,14 @@ import { PageContainer } from "@/ui/PageContainer";
 
 async function fetchTranslation(
   opts: {
-    selected: string;
+    method: string;
     query: string;
     instruction: string;
-    prompt_mode?: "translate" | "explain" | "detailed" | "default";
-    google_search: boolean;
-    search_engine?: string;
+    promptMode?: PromptMode;
+    googleSearch: boolean;
+    searchEngine?: string;
     srcLang: string;
     dstLang: string;
-    custom_llm?: { name: string; model: string };
   },
   callback: (
     data?: { result: string; reasoning?: string },
@@ -45,18 +59,18 @@ async function fetchTranslation(
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      method: opts.selected,
-      word: opts.query,
-      instruction: opts.instruction.length > 0 ? opts.instruction : undefined,
-      prompt_mode:
-        opts.prompt_mode !== "default" ? opts.prompt_mode : undefined,
-      google_search: opts.google_search,
-      search_engine: opts.search_engine ? opts.search_engine : undefined,
-      src_lang: opts.srcLang ? opts.srcLang : undefined,
-      dst_lang: opts.dstLang ? opts.dstLang : undefined,
-      custom_llm: opts.custom_llm,
-    }),
+    body: JSON.stringify(
+      buildTranslationQueryBody({
+        method: opts.method,
+        text: opts.query,
+        instruction: opts.instruction.length > 0 ? opts.instruction : undefined,
+        promptMode: opts.promptMode,
+        googleSearch: opts.googleSearch,
+        searchEngine: opts.searchEngine ? opts.searchEngine : undefined,
+        srcLang: opts.srcLang ? opts.srcLang : undefined,
+        dstLang: opts.dstLang ? opts.dstLang : undefined,
+      }),
+    ),
   });
 
   if (resp.ok) {
@@ -70,7 +84,7 @@ async function fetchTranslation(
 }
 
 function showSelectLang(selected: string) {
-  if (selected.startsWith("custom-")) {
+  if (selected.startsWith("custom-") || parseCustomMethod(selected)) {
     return true;
   }
 
@@ -84,61 +98,87 @@ function showSelectLang(selected: string) {
   }
 }
 
-const languages = [
-  { key: "", name: "Auto", flag: "🌐" },
-  { key: "ja", name: "Japanese", flag: "🇯🇵" },
-  { key: "zh", name: "Chinese", flag: "🇨🇳" },
-  { key: "en", name: "English", flag: "🇺🇸" },
-  { key: "ko", name: "Korean", flag: "🇰🇷" },
-  { key: "fr", name: "French", flag: "🇫🇷" },
-  { key: "de", name: "German", flag: "🇩🇪" },
-  { key: "es", name: "Spanish", flag: "🇪🇸" },
-  { key: "it", name: "Italian", flag: "🇮🇹" },
-  { key: "pt", name: "Portuguese", flag: "🇵🇹" },
-  { key: "ru", name: "Russian", flag: "🇷🇺" },
-  { key: "vi", name: "Vietnamese", flag: "🇻🇳" },
-  { key: "th", name: "Thai", flag: "🇹🇭" },
-  { key: "id", name: "Indonesian", flag: "🇮🇩" },
-];
+const LANGUAGE_FLAGS: Record<string, string> = {
+  "": "🌐",
+  ja: "🇯🇵",
+  zh: "🇨🇳",
+  "zh-CN": "🇨🇳",
+  "zh-TW": "🇹🇼",
+  en: "🇺🇸",
+  ko: "🇰🇷",
+  fr: "🇫🇷",
+  de: "🇩🇪",
+  es: "🇪🇸",
+  it: "🇮🇹",
+  pt: "🇵🇹",
+  ru: "🇷🇺",
+  vi: "🇻🇳",
+  th: "🇹🇭",
+  id: "🇮🇩",
+};
+
+const languages = LANGUAGES.map(({ value, label }) => ({
+  key: value,
+  name: label,
+  flag: LANGUAGE_FLAGS[value] ?? "🌐",
+}));
 
 const languageMap = Object.fromEntries(
   languages.map(({ key, name, flag }) => [key, { name, flag }]),
 );
 
-type TranslationSource = {
-  key: string;
-  name: string;
+const TRANSLATION_SOURCE_KEYS = new Set(["google", "googlev1", "m2m100_1_2b"]);
+const SOURCE_TAGS: Partial<Record<(typeof BUILTIN_METHODS)[number]["value"], string>> = {
+  jc: "hujiang",
+  cj: "hujiang",
+  kr: "hujiang",
+  en: "hujiang",
 };
 
-const translationSources: TranslationSource[] = [
-  { key: "google", name: "Google Translate" },
-  { key: "googlev1", name: "Google Translate(old API)" },
-  { key: "m2m100_1_2b", name: "m2m100-1.2b" },
-];
+const translationSources = BUILTIN_METHODS.filter((method) =>
+  TRANSLATION_SOURCE_KEYS.has(method.value),
+).map((method) => ({
+  key: method.value,
+  name: method.label,
+}));
 
-const dictSources = [
-  { key: "weblio", name: "Weblio" },
-  { key: "ktbk", name: "コトバンク" },
-  { key: "jc", name: "Japanese -> Chinese", tag: "hujiang" },
-  { key: "cj", name: "Japanese <- Chinese", tag: "hujiang" },
-  { key: "kr", name: "Korean <-> Chinese", tag: "hujiang" },
-  { key: "en", name: "English <-> Chinese", tag: "hujiang" },
-];
+const dictSources = BUILTIN_METHODS.filter(
+  (method) => !TRANSLATION_SOURCE_KEYS.has(method.value),
+).map((method) => ({
+  key: method.value,
+  name: method.label,
+  tag: SOURCE_TAGS[method.value],
+}));
 
 const translationMap = Object.fromEntries(
-  [...translationSources, ...dictSources].map(({ key, name }) => [key, name]),
+  BUILTIN_METHODS.map((method) => [method.value, method.label]),
 );
 
-const promptModes = [
-  { key: "default", label: "Default" },
-  { key: "translate", label: "Simple Translation" },
-  { key: "explain", label: "Word-by-Word Explanation" },
-  { key: "detailed", label: "Detailed Analysis" },
-] as const;
-
 const promptModeLabels = Object.fromEntries(
-  promptModes.map((m) => [m.key, m.label]),
-) as Record<(typeof promptModes)[number]["key"], string>;
+  PROMPT_MODES.map((mode) => [mode.value, mode.label]),
+) as Record<PromptMode, string>;
+
+function resolveCustomModel(
+  value: string,
+  customModels: Record<string, CustomLLM>,
+): CustomLLM | undefined {
+  if (customModels[value]) {
+    return customModels[value];
+  }
+
+  const normalized = parseCustomMethod(value);
+  if (normalized) {
+    return normalized;
+  }
+
+  if (!value.startsWith("custom-")) {
+    return undefined;
+  }
+
+  return Object.values(customModels).find(
+    (customModel) => legacyCustomMethodValue(customModel) === value,
+  );
+}
 
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
@@ -146,7 +186,7 @@ const itemVariants = {
 };
 
 export default function Home() {
-  const [selected, setSelected] = useLocalStorage("translate_type", "ktbk");
+  const [selected, setSelected] = useLocalStorage("translate_type", DEFAULT_METHOD);
   const [query, setQuery] = useLocalStorage("query", "");
   const [instruction, setInstruction] = useLocalStorage("instruction", "");
   const [googleSearch, setGoogleSearch] = useLocalStorage(
@@ -155,7 +195,7 @@ export default function Home() {
   );
   const [searchEngine, setSearchEngine] = useLocalStorage(
     "search_engine",
-    "duckduckgo",
+    DEFAULT_SEARCH_ENGINE,
   );
   const [result, setResult] = useLocalStorage<{
     result: string;
@@ -166,17 +206,19 @@ export default function Home() {
   const [dstLang, setDstLang] = useLocalStorage("dst_lang", "ja");
   const [loading, setLoading] = useState(false);
   const [stream, setStream] = useLocalStorage("stream", true);
-  const [promptMode, setPromptMode] = useLocalStorage<
-    "translate" | "explain" | "detailed" | "default"
-  >("prompt_mode", "default");
+  const [promptMode, setPromptMode] = useLocalStorage<PromptMode>(
+    "prompt_mode",
+    "default",
+  );
   const [open, setOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useLocalStorage(
     "home_advanced_open",
     false,
   );
-  const [customModels, setCustomModels] = useLocalStorage<
-    Record<string, { name: string; model: string }>
-  >("custom_llms_cache", {});
+  const [customModels, setCustomModels] = useLocalStorage<Record<string, CustomLLM>>(
+    "custom_llms_cache",
+    {},
+  );
   const shouldReduceMotion = useReducedMotion();
   const streamFrameRef = useRef<number | null>(null);
   const persistTimeoutRef = useRef<number | null>(null);
@@ -238,13 +280,13 @@ export default function Home() {
       if (error) {
         console.log(error);
       } else if (models) {
-        const customModelsMap: Record<string, { name: string; model: string }> =
-          {};
+        const customModelsMap: Record<string, CustomLLM> = {};
         for (const llm of models) {
           for (const model of llm.models) {
-            customModelsMap[`custom-${llm.name}-${model}`] = {
+            const value = customMethodValue({ name: llm.name, model });
+            customModelsMap[value] = {
               name: llm.name,
-              model: model,
+              model,
             };
           }
         }
@@ -253,18 +295,26 @@ export default function Home() {
     });
   }, [setCustomModels]);
 
+  useEffect(() => {
+    if (!selected.startsWith("custom-")) return;
+
+    const customModel = resolveCustomModel(selected, customModels);
+    if (!customModel) return;
+
+    const normalizedValue = customMethodValue(customModel);
+    if (normalizedValue !== selected) {
+      setSelected(normalizedValue);
+    }
+  }, [customModels, selected, setSelected]);
+
   const doQueryWord = useCallback(async () => {
     if (!query) return;
-    let modelName = selected;
-    let customLLM: { name: string; model: string } | undefined;
-    if (modelName.startsWith("custom-")) {
-      customLLM = customModels?.[modelName];
-      modelName = "custom_llm";
-    }
+    const customLLM = resolveCustomModel(selected, customModels);
+    const method = customLLM ? customMethodValue(customLLM) : selected;
 
     setLoading(true);
 
-    if (stream && modelName === "custom_llm") {
+    if (stream && customLLM) {
       pendingStreamRef.current = { result: "", reasoning: "" };
       persistResult({ result: "" });
       try {
@@ -273,17 +323,18 @@ export default function Home() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            method: modelName,
-            word: query,
-            instruction: instruction.length > 0 ? instruction : undefined,
-            prompt_mode: promptMode !== "default" ? promptMode : undefined,
-            google_search: googleSearch,
-            search_engine: searchEngine ? searchEngine : undefined,
-            src_lang: srcLang ? srcLang : undefined,
-            dst_lang: dstLang ? dstLang : undefined,
-            custom_llm: customLLM,
-          }),
+          body: JSON.stringify(
+            buildTranslationQueryBody({
+              method,
+              text: query,
+              instruction: instruction.length > 0 ? instruction : undefined,
+              promptMode,
+              googleSearch,
+              searchEngine: searchEngine ? searchEngine : undefined,
+              srcLang: srcLang ? srcLang : undefined,
+              dstLang: dstLang ? dstLang : undefined,
+            }),
+          ),
         });
 
         if (!resp.ok) {
@@ -329,12 +380,11 @@ export default function Home() {
           query: query,
           srcLang: srcLang,
           dstLang: dstLang,
-          google_search: googleSearch,
-          search_engine: searchEngine,
+          googleSearch,
+          searchEngine,
           instruction: instruction,
-          prompt_mode: promptMode,
-          selected: modelName,
-          custom_llm: customLLM,
+          promptMode,
+          method,
         },
         (data, error) => {
           console.log(data);
@@ -388,6 +438,12 @@ export default function Home() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [setOpen, doQueryWord]);
+
+  const selectedCustomModel = resolveCustomModel(selected, customModels);
+  const selectedLabel = selectedCustomModel
+    ? selectedCustomModel.model
+    : translationMap[selected] || methodLabel(selected);
+  const hasCustomSelection = Boolean(selectedCustomModel);
 
   return (
     <div className="app-page-shell min-h-dvh">
@@ -457,9 +513,7 @@ export default function Home() {
                       color="gray"
                       className="app-control-trigger capitalize cursor-pointer"
                     >
-                      {translationMap[selected] ||
-                        customModels?.[selected]?.model ||
-                        "Select"}
+                      {selectedLabel || "Select"}
                     </Button>
                   </DropdownMenu.Trigger>
                 </Tooltip>
@@ -637,7 +691,7 @@ export default function Home() {
           </Card>
         </motion.div>
 
-        {selected.startsWith("custom-") && (
+        {hasCustomSelection && (
           <Card className="app-section-card">
             <Flex justify="between" align="start" gap="4" wrap="wrap">
               <Box className="min-w-0 space-y-1">
@@ -703,9 +757,11 @@ export default function Home() {
                           }
                           className="app-native-select pr-10"
                         >
-                          <option value="duckduckgo">DuckDuckGo</option>
-                          <option value="google">Google HTML</option>
-                          <option value="google_api">Google API</option>
+                          {SEARCH_ENGINES.map((engine) => (
+                            <option key={engine.value} value={engine.value}>
+                              {engine.label}
+                            </option>
+                          ))}
                         </select>
                         <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[var(--app-muted)]">
                           ▾
@@ -745,10 +801,10 @@ export default function Home() {
                         </Button>
                       </DropdownMenu.Trigger>
                       <DropdownMenu.Content>
-                        {promptModes.map((mode) => (
+                        {PROMPT_MODES.map((mode) => (
                           <DropdownMenu.Item
-                            key={mode.key}
-                            onSelect={() => setPromptMode(mode.key)}
+                            key={mode.value}
+                            onSelect={() => setPromptMode(mode.value)}
                           >
                             {mode.label}
                           </DropdownMenu.Item>
@@ -825,7 +881,7 @@ export default function Home() {
             <div className="app-stat-chip text-xs">
               {loading
                 ? "Translating..."
-                : `${selected.startsWith("custom-") ? "Custom LLM" : "Dictionary"} output`}
+                : `${hasCustomSelection ? "Custom LLM" : "Dictionary"} output`}
             </div>
           </Flex>
           <Card className="app-section-card">

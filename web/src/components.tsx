@@ -1,4 +1,5 @@
 import { authorizedRequest } from "@/lib/api";
+import type { CustomLLMProvider } from "@/lib/translation";
 import {
   Box,
   Button,
@@ -334,15 +335,10 @@ export async function changePriority(
   );
 }
 
-type ModelResponse = {
-  name: string;
-  models: string[];
-};
-
 export async function listModel(
-  callback: (data?: ModelResponse[], error?: string) => void,
+  callback: (data?: CustomLLMProvider[], error?: string) => void,
 ) {
-  await wordRequest<ModelResponse[]>("/word/ai_custom", "", (data, error) => {
+  await wordRequest<CustomLLMProvider[]>("/word/ai_custom", "", (data, error) => {
     callback(data, error);
   });
 }

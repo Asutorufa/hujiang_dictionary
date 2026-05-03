@@ -22,6 +22,6 @@
     },
     "types": ["vite/client"]
   },
-  "include": ["src"],
+  "include": ["src", "extension/src"],
   "exclude": ["node_modules"]
 }
