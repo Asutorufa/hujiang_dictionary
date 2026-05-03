@@ -193,7 +193,7 @@ export default function Home() {
     "google_search",
     false,
   );
-  const [searchEngine, setSearchEngine] = useLocalStorage(
+  const [searchEngine, setSearchEngine] = useLocalStorage<string>(
     "search_engine",
     DEFAULT_SEARCH_ENGINE,
   );

@@ -75,7 +75,7 @@ export const SEARCH_ENGINES = [
 export const DEFAULT_METHOD = "ktbk";
 export const DEFAULT_SEARCH_ENGINE = SEARCH_ENGINES[0].value;
 
-const BUILTIN_METHOD_LABELS = new Map(
+const BUILTIN_METHOD_LABELS = new Map<string, string>(
   BUILTIN_METHODS.map((method) => [method.value, method.label]),
 );
 

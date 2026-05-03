@@ -25,6 +25,8 @@ if (!app) {
   throw new Error("Options root was not found.");
 }
 
+const appRoot: HTMLElement = app;
+
 const HISTORY_RENDER_LIMIT = 30;
 const MESSAGE_TIMEOUT_MS = 15000;
 
@@ -156,7 +158,7 @@ function render() {
   }
 
   renderedShell = true;
-  app.innerHTML = `
+  appRoot.innerHTML = `
     <style>
       :root {
         color-scheme: light dark;

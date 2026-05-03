@@ -719,7 +719,9 @@ function renderPanel(selection: Selection, settings: ExtensionSettings) {
   panel.querySelector<HTMLButtonElement>(".pin")!.addEventListener("click", () => {
     setPinned(!isPinned);
   });
-  panel.querySelector<HTMLButtonElement>(".close")!.addEventListener("click", closePanel);
+  panel.querySelector<HTMLButtonElement>(".close")!.addEventListener("click", () => {
+    closePanel();
+  });
   panel.querySelector<HTMLSelectElement>(".method")!.addEventListener("change", () => {
     syncQuickControls();
   });
@@ -912,7 +914,9 @@ function renderConfigurationPanel(selection: Selection) {
   `;
   root.append(panel);
   panel.querySelector<HTMLElement>(".selected")!.textContent = currentSelection;
-  panel.querySelector<HTMLButtonElement>(".close")!.addEventListener("click", closePanel);
+  panel.querySelector<HTMLButtonElement>(".close")!.addEventListener("click", () => {
+    closePanel();
+  });
   panel.querySelector<HTMLButtonElement>(".options")!.addEventListener("click", () => {
     void sendMessage<object>({ type: "openOptions" });
   });
@@ -941,7 +945,9 @@ function renderFallbackPanel(selection: Selection, message: string) {
   root.append(panel);
   panel.querySelector<HTMLElement>(".selected")!.textContent = currentSelection;
   panel.querySelector<HTMLElement>(".status-text")!.textContent = message;
-  panel.querySelector<HTMLButtonElement>(".close")!.addEventListener("click", closePanel);
+  panel.querySelector<HTMLButtonElement>(".close")!.addEventListener("click", () => {
+    closePanel();
+  });
 
   const rect = selectionRect(selection);
   if (rect) placePanel(panel, rect);

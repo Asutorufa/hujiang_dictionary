@@ -23,6 +23,7 @@ const safariDir = path.join(distDir, "safari");
 const safariAppDir = path.join(distDir, "safari-app");
 const safariAppName = "DictDeck Selection Translator";
 const safariBundleIdentifier = "com.dictdeck.selection-translator";
+const safariExtensionBundleIdentifier = `${safariBundleIdentifier}.Extension`;
 const safariDeploymentTarget = "11.0";
 const safariBackgroundFile = "background.safari.js";
 const launchServicesRegister =
@@ -312,12 +313,18 @@ async function fixSafariProjectBundleIdentifiers(projectDir) {
 
   const appBundlePattern =
     /PRODUCT_BUNDLE_IDENTIFIER = "com\.dictdeck\.DictDeck-Selection-Translator";/g;
+  const extensionBundlePattern =
+    /PRODUCT_BUNDLE_IDENTIFIER = "com\.dictdeck\.DictDeck-Selection-Translator\.Extension";/g;
   const deploymentTargetPattern = /MACOSX_DEPLOYMENT_TARGET = 26\.4;/g;
   const content = await readFile(pbxproj, "utf8");
   const fixed = content
     .replace(
       appBundlePattern,
       `PRODUCT_BUNDLE_IDENTIFIER = "${safariBundleIdentifier}";`,
+    )
+    .replace(
+      extensionBundlePattern,
+      `PRODUCT_BUNDLE_IDENTIFIER = "${safariExtensionBundleIdentifier}";`,
     )
     .replace(
       deploymentTargetPattern,

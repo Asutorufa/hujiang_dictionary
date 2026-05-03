@@ -13,6 +13,8 @@ if (!root) {
   throw new Error("Popup root was not found.");
 }
 
+const popupRoot: HTMLDivElement = root;
+
 type PopupState = {
   settings?: ExtensionSettings;
   history: TranslationHistoryRecord[];
@@ -87,7 +89,7 @@ function render() {
   const method = state.settings ? methodLabel(state.settings.method) : "Not configured";
   const target = state.settings?.dstLang || "Auto";
 
-  root.innerHTML = `
+  popupRoot.innerHTML = `
     <style>
       :root {
         color-scheme: light dark;
@@ -375,14 +377,14 @@ function render() {
     </main>
   `;
 
-  root.querySelector<HTMLButtonElement>('[data-action="options"]')?.addEventListener("click", () => {
+  popupRoot.querySelector<HTMLButtonElement>('[data-action="options"]')?.addEventListener("click", () => {
     openOptions().catch((error: unknown) => {
       state.error = error instanceof Error ? error.message : String(error);
       render();
     });
   });
 
-  root.querySelector<HTMLButtonElement>('[data-action="reload"]')?.addEventListener("click", () => {
+  popupRoot.querySelector<HTMLButtonElement>('[data-action="reload"]')?.addEventListener("click", () => {
     load().catch((error: unknown) => {
       state.error = error instanceof Error ? error.message : String(error);
       state.loading = false;
