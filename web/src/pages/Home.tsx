@@ -128,7 +128,9 @@ const languageMap = Object.fromEntries(
 );
 
 const TRANSLATION_SOURCE_KEYS = new Set(["google", "googlev1", "m2m100_1_2b"]);
-const SOURCE_TAGS: Partial<Record<(typeof BUILTIN_METHODS)[number]["value"], string>> = {
+const SOURCE_TAGS: Partial<
+  Record<(typeof BUILTIN_METHODS)[number]["value"], string>
+> = {
   jc: "hujiang",
   cj: "hujiang",
   kr: "hujiang",
@@ -186,7 +188,10 @@ const itemVariants = {
 };
 
 export default function Home() {
-  const [selected, setSelected] = useLocalStorage("translate_type", DEFAULT_METHOD);
+  const [selected, setSelected] = useLocalStorage(
+    "translate_type",
+    DEFAULT_METHOD,
+  );
   const [query, setQuery] = useLocalStorage("query", "");
   const [instruction, setInstruction] = useLocalStorage("instruction", "");
   const [googleSearch, setGoogleSearch] = useLocalStorage(
@@ -215,10 +220,9 @@ export default function Home() {
     "home_advanced_open",
     false,
   );
-  const [customModels, setCustomModels] = useLocalStorage<Record<string, CustomLLM>>(
-    "custom_llms_cache",
-    {},
-  );
+  const [customModels, setCustomModels] = useLocalStorage<
+    Record<string, CustomLLM>
+  >("custom_llms_cache", {});
   const shouldReduceMotion = useReducedMotion();
   const streamFrameRef = useRef<number | null>(null);
   const persistTimeoutRef = useRef<number | null>(null);

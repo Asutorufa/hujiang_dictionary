@@ -17,7 +17,9 @@ export type ExtensionPort = {
 };
 
 type StorageArea = {
-  get(keys?: string | string[] | Record<string, unknown> | null): Promise<unknown>;
+  get(
+    keys?: string | string[] | Record<string, unknown> | null,
+  ): Promise<unknown>;
   set(items: Record<string, unknown>): Promise<void>;
   remove(keys: string | string[]): Promise<void>;
 };

@@ -338,9 +338,13 @@ export async function changePriority(
 export async function listModel(
   callback: (data?: CustomLLMProvider[], error?: string) => void,
 ) {
-  await wordRequest<CustomLLMProvider[]>("/word/ai_custom", "", (data, error) => {
-    callback(data, error);
-  });
+  await wordRequest<CustomLLMProvider[]>(
+    "/word/ai_custom",
+    "",
+    (data, error) => {
+      callback(data, error);
+    },
+  );
 }
 
 type LegacyColor =

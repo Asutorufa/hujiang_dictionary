@@ -1,10 +1,11 @@
-import type {
-  CustomLLMProvider,
-  PromptMode,
-} from "@/lib/translation";
+import type { CustomLLMProvider, PromptMode } from "@/lib/translation";
 import { DEFAULT_METHOD, DEFAULT_SEARCH_ENGINE } from "@/lib/translation";
 
-export type { CustomLLMProvider, PromptMode, TranslationResponse } from "@/lib/translation";
+export type {
+  CustomLLMProvider,
+  PromptMode,
+  TranslationResponse,
+} from "@/lib/translation";
 
 export type ExtensionSettings = {
   baseUrl: string;
@@ -61,7 +62,11 @@ export type RuntimeRequest =
   | { type: "getSettings" }
   | { type: "getHistory" }
   | { type: "clearHistory" }
-  | { type: "saveSettings"; settings: Partial<ExtensionSettings>; password?: string }
+  | {
+      type: "saveSettings";
+      settings: Partial<ExtensionSettings>;
+      password?: string;
+    }
   | {
       type: "login";
       baseUrl: string;
