@@ -19,13 +19,24 @@ const api = getExtensionApi();
 const MAX_SELECTION_LENGTH = 2000;
 const CONTEXT_LIMIT = 360;
 
+type SelectionSnapshot = {
+  text: string;
+  example: string;
+  rect: DOMRect;
+  title: string;
+  url: string;
+};
+
 let rootHost: HTMLDivElement | undefined;
 let shadowRootRef: ShadowRoot | undefined;
 let activePort: ExtensionPort | undefined;
+let pendingSelection: SelectionSnapshot | undefined;
 let currentSelection = "";
 let currentResult = "";
 let currentReasoning = "";
 let currentExample = "";
+let currentTitle = "";
+let currentUrl = "";
 let currentWordType: 0 | 1 = 0;
 let currentMethod = DEFAULT_METHOD;
 let currentDstLang = "";
@@ -64,6 +75,34 @@ function styles() {
       box-shadow: var(--dd-shadow);
       color: var(--dd-sumi);
       letter-spacing: 0;
+    }
+    .trigger {
+      position: fixed;
+      z-index: 2147483647;
+      width: 32px;
+      height: 32px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, var(--dd-enji) 18%, var(--dd-shironeri));
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at top, rgba(248, 181, 0, 0.3), transparent 58%),
+        color-mix(in srgb, var(--dd-gofun) 92%, var(--dd-enji) 8%);
+      box-shadow: 0 12px 30px rgba(28, 28, 28, 0.18);
+      color: var(--dd-enji);
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .trigger:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 34px rgba(28, 28, 28, 0.24);
+    }
+    .trigger:focus-visible {
+      outline: 2px solid color-mix(in srgb, var(--dd-enji) 56%, transparent);
+      outline-offset: 2px;
     }
     .topbar {
       display: flex;
@@ -332,6 +371,15 @@ function styles() {
       .icon-button:hover {
         background: rgba(255, 255, 255, 0.06);
       }
+      .trigger {
+        background:
+          radial-gradient(circle at top, rgba(248, 181, 0, 0.26), transparent 58%),
+          color-mix(in srgb, var(--dd-gofun) 88%, var(--dd-enji) 12%);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+      }
+      .trigger:hover {
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.44);
+      }
     }
   `;
 }
@@ -381,8 +429,13 @@ function ensureRoot() {
 function closePanel(resetPinned = true) {
   activePort?.disconnect();
   activePort = undefined;
+  pendingSelection = undefined;
+  currentSelection = "";
   currentResult = "";
   currentReasoning = "";
+  currentExample = "";
+  currentTitle = "";
+  currentUrl = "";
   reasoningCollapsed = false;
   reasoningAutoCollapsed = false;
   manualPosition = undefined;
@@ -390,6 +443,7 @@ function closePanel(resetPinned = true) {
     isPinned = false;
   }
   shadowRootRef?.querySelector(".panel")?.remove();
+  shadowRootRef?.querySelector(".trigger")?.remove();
 }
 
 function isPanelEvent(event: Event) {
@@ -527,6 +581,20 @@ function syncQuickControls() {
   persistQuickPreferences();
 }
 
+function createSelectionSnapshot(selection: Selection) {
+  const text = selection.toString().trim();
+  const rect = selectionRect(selection);
+  if (!text || !rect) return undefined;
+
+  return {
+    text,
+    example: selectedContext(selection),
+    rect: new DOMRect(rect.x, rect.y, rect.width, rect.height),
+    title: document.title,
+    url: location.href,
+  } satisfies SelectionSnapshot;
+}
+
 function selectedContext(selection: Selection) {
   const range = selection.rangeCount > 0 ? selection.getRangeAt(0) : undefined;
   const container = range?.commonAncestorContainer;
@@ -555,6 +623,32 @@ function selectionRect(selection: Selection) {
   const range = selection.getRangeAt(0);
   const rects = Array.from(range.getClientRects());
   return rects[0] || range.getBoundingClientRect();
+}
+
+function placeTrigger(trigger: HTMLElement, rect: DOMRect) {
+  const margin = 8;
+  const offset = 10;
+  const left = Math.max(
+    margin,
+    Math.min(
+      rect.left + rect.width / 2 - trigger.offsetWidth / 2,
+      window.innerWidth - trigger.offsetWidth - margin,
+    ),
+  );
+  const availableBelow = window.innerHeight - rect.bottom - margin;
+  const availableAbove = rect.top - margin;
+  const shouldPlaceBelow =
+    availableBelow >= trigger.offsetHeight + offset ||
+    availableBelow >= availableAbove;
+  const top = shouldPlaceBelow
+    ? Math.min(
+        rect.bottom + offset,
+        window.innerHeight - trigger.offsetHeight - margin,
+      )
+    : Math.max(margin, rect.top - trigger.offsetHeight - offset);
+
+  trigger.style.left = `${left}px`;
+  trigger.style.top = `${top}px`;
 }
 
 function placePanel(panel: HTMLElement, rect: DOMRect) {
@@ -597,6 +691,18 @@ function placePanel(panel: HTMLElement, rect: DOMRect) {
   panel.style.left = `${finalLeft}px`;
   panel.style.top = `${finalTop}px`;
   panel.style.maxHeight = `${Math.min(desiredHeight, maxHeight)}px`;
+}
+
+function trapFloatingElementEvents(element: HTMLElement) {
+  for (const eventName of [
+    "pointerdown",
+    "pointerup",
+    "mousedown",
+    "mouseup",
+    "click",
+  ]) {
+    element.addEventListener(eventName, (event) => event.stopPropagation());
+  }
 }
 
 function enableDragging(panel: HTMLElement) {
@@ -675,16 +781,36 @@ function enableDragging(panel: HTMLElement) {
   });
 }
 
-function renderPanel(selection: Selection, settings: ExtensionSettings) {
+function renderTrigger(snapshot: SelectionSnapshot) {
   const root = ensureRoot();
-  if (!isPinned) {
-    closePanel();
-  } else {
-    shadowRootRef?.querySelector(".panel")?.remove();
-  }
+  closePanel();
+  pendingSelection = snapshot;
 
-  currentSelection = selection.toString().trim();
-  currentExample = selectedContext(selection);
+  const trigger = document.createElement("button");
+  trigger.className = "trigger";
+  trigger.type = "button";
+  trigger.title = "Open DictDeck";
+  trigger.setAttribute("aria-label", "Open DictDeck");
+  trigger.textContent = "D";
+  trigger.addEventListener("click", () => {
+    void openPendingSelection();
+  });
+  trapFloatingElementEvents(trigger);
+  root.append(trigger);
+  placeTrigger(trigger, snapshot.rect);
+}
+
+function renderPanel(
+  snapshot: SelectionSnapshot,
+  settings: ExtensionSettings,
+) {
+  const root = ensureRoot();
+  closePanel();
+
+  currentSelection = snapshot.text;
+  currentExample = snapshot.example;
+  currentTitle = snapshot.title;
+  currentUrl = snapshot.url;
   currentWordType = settings.defaultWordType;
   currentMethod = settings.method;
   currentDstLang = settings.dstLang;
@@ -803,24 +929,12 @@ function renderPanel(selection: Selection, settings: ExtensionSettings) {
     .addEventListener("click", () => {
       startTranslation();
     });
-  for (const eventName of [
-    "pointerdown",
-    "pointerup",
-    "mousedown",
-    "mouseup",
-    "click",
-  ]) {
-    panel.addEventListener(eventName, (event) => event.stopPropagation());
-  }
+  trapFloatingElementEvents(panel);
   setWordType(currentWordType);
   setReasoningCollapsed(true);
   setPinned(false);
   enableDragging(panel);
-
-  const rect = selectionRect(selection);
-  if (rect) {
-    placePanel(panel, rect);
-  }
+  placePanel(panel, snapshot.rect);
 
   setResult("");
 }
@@ -914,8 +1028,8 @@ function startTranslation() {
     type: "translateSelection",
     payload: {
       text: currentSelection,
-      title: document.title,
-      url: location.href,
+      title: currentTitle,
+      url: currentUrl,
       method: currentMethod,
       dstLang: currentDstLang,
       promptMode: currentPromptMode,
@@ -932,17 +1046,12 @@ function isEditableTarget(target: EventTarget | null) {
   );
 }
 
-async function handleSelection(event: Event) {
-  if (isPanelEvent(event)) return;
-  if (isEditableTarget(event.target)) return;
-  if (isPinned) return;
+async function openPendingSelection() {
+  const snapshot = pendingSelection;
+  if (!snapshot) return;
 
-  const selection = window.getSelection();
-  const text = selection?.toString().trim() || "";
-  if (!selection || !text) return;
-
-  if (text.length > MAX_SELECTION_LENGTH) {
-    renderFallbackPanel(selection, "Selection is too long.");
+  if (snapshot.text.length > MAX_SELECTION_LENGTH) {
+    renderFallbackPanel(snapshot, "Selection is too long.");
     return;
   }
 
@@ -950,23 +1059,43 @@ async function handleSelection(event: Event) {
     const settings = await sendMessage<ExtensionSettings>({
       type: "getSettings",
     });
+    if (pendingSelection !== snapshot) return;
     if (!settings.baseUrl) {
-      renderConfigurationPanel(selection);
+      renderConfigurationPanel(snapshot);
       return;
     }
-    renderPanel(selection, settings);
+    renderPanel(snapshot, settings);
   } catch (error) {
+    if (pendingSelection !== snapshot) return;
     renderFallbackPanel(
-      selection,
+      snapshot,
       error instanceof Error ? error.message : String(error),
     );
   }
 }
 
-function renderConfigurationPanel(selection: Selection) {
+function handleSelection(event: Event) {
+  if (isPanelEvent(event)) return;
+  if (isEditableTarget(event.target)) return;
+  if (isPinned) return;
+
+  const selection = window.getSelection();
+  const snapshot = selection ? createSelectionSnapshot(selection) : undefined;
+  if (!snapshot) {
+    closePanel();
+    return;
+  }
+
+  renderTrigger(snapshot);
+}
+
+function renderConfigurationPanel(snapshot: SelectionSnapshot) {
   const root = ensureRoot();
   closePanel();
-  currentSelection = selection.toString().trim();
+  currentSelection = snapshot.text;
+  currentExample = snapshot.example;
+  currentTitle = snapshot.title;
+  currentUrl = snapshot.url;
 
   const panel = document.createElement("section");
   panel.className = "panel";
@@ -993,15 +1122,17 @@ function renderConfigurationPanel(selection: Selection) {
     .addEventListener("click", () => {
       void sendMessage<object>({ type: "openOptions" });
     });
-
-  const rect = selectionRect(selection);
-  if (rect) placePanel(panel, rect);
+  trapFloatingElementEvents(panel);
+  placePanel(panel, snapshot.rect);
 }
 
-function renderFallbackPanel(selection: Selection, message: string) {
+function renderFallbackPanel(snapshot: SelectionSnapshot, message: string) {
   const root = ensureRoot();
   closePanel();
-  currentSelection = selection.toString().trim();
+  currentSelection = snapshot.text;
+  currentExample = snapshot.example;
+  currentTitle = snapshot.title;
+  currentUrl = snapshot.url;
 
   const panel = document.createElement("section");
   panel.className = "panel";
@@ -1023,9 +1154,8 @@ function renderFallbackPanel(selection: Selection, message: string) {
     .addEventListener("click", () => {
       closePanel();
     });
-
-  const rect = selectionRect(selection);
-  if (rect) placePanel(panel, rect);
+  trapFloatingElementEvents(panel);
+  placePanel(panel, snapshot.rect);
 }
 
 function scheduleSelection(event: Event) {
