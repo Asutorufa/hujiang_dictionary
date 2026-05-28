@@ -223,8 +223,185 @@ function styles() {
       color: var(--dd-sumi);
       font-size: 14px;
       line-height: 1.62;
-      white-space: pre-wrap;
       word-break: break-word;
+    }
+    .markdown {
+      overflow-wrap: anywhere;
+    }
+    .markdown > :first-child {
+      margin-top: 0;
+    }
+    .markdown > :last-child {
+      margin-bottom: 0;
+    }
+    .markdown p,
+    .markdown ul,
+    .markdown ol,
+    .markdown pre,
+    .markdown blockquote,
+    .markdown h1,
+    .markdown h2,
+    .markdown h3,
+    .markdown h4 {
+      margin: 0 0 10px;
+    }
+    .markdown ul,
+    .markdown ol {
+      padding-left: 18px;
+    }
+    .markdown ul {
+      list-style: disc;
+    }
+    .markdown ol {
+      list-style: decimal;
+    }
+    .markdown li + li {
+      margin-top: 4px;
+    }
+    .markdown a {
+      color: var(--dd-enji);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      transition:
+        color 140ms ease,
+        background-color 140ms ease,
+        text-decoration-color 140ms ease;
+      cursor: pointer;
+    }
+    .markdown a:hover {
+      color: color-mix(in srgb, var(--dd-enji) 84%, var(--dd-sumi));
+      text-decoration-color: currentColor;
+    }
+    .markdown a:focus-visible {
+      outline: 2px solid color-mix(in srgb, var(--dd-enji) 45%, transparent);
+      outline-offset: 2px;
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--dd-enji) 10%, transparent);
+    }
+    .markdown strong {
+      font-weight: 700;
+    }
+    .markdown em {
+      font-style: italic;
+    }
+    .markdown code {
+      padding: 1px 6px;
+      border-radius: 5px;
+      border: 1px solid color-mix(in srgb, var(--dd-shironeri) 82%, transparent);
+      background: color-mix(in srgb, var(--dd-shironeri) 86%, transparent);
+      font-family: "SFMono-Regular", ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+      font-size: 0.92em;
+    }
+    .markdown pre {
+      padding: 10px;
+      border-radius: 7px;
+      border: 1px solid color-mix(in srgb, var(--dd-shironeri) 78%, transparent);
+      background:
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--dd-shironeri) 95%, transparent),
+          color-mix(in srgb, var(--dd-shironeri) 88%, transparent)
+        );
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+      overflow: auto;
+      tab-size: 2;
+    }
+    .markdown pre code {
+      display: block;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      white-space: pre;
+      line-height: 1.6;
+    }
+    .markdown .code-block {
+      margin: 0 0 10px;
+      border: 1px solid color-mix(in srgb, var(--dd-shironeri) 78%, transparent);
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--dd-shironeri) 95%, transparent),
+          color-mix(in srgb, var(--dd-shironeri) 88%, transparent)
+        );
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+    .markdown .code-block-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 30px;
+      padding: 0 10px;
+      border-bottom: 1px solid color-mix(in srgb, var(--dd-shironeri) 78%, transparent);
+      background: color-mix(in srgb, var(--dd-enji) 4%, var(--dd-gofun));
+    }
+    .markdown .code-language {
+      color: var(--dd-nezumi);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .markdown .code-block pre {
+      margin: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    .markdown .code-block pre code {
+      padding: 0;
+    }
+    .markdown blockquote {
+      padding: 8px 10px;
+      border-left: 3px solid color-mix(in srgb, var(--dd-enji) 22%, var(--dd-shironeri));
+      border-radius: 0 6px 6px 0;
+      background: color-mix(in srgb, var(--dd-enji) 4%, var(--dd-gofun));
+      color: var(--dd-nezumi);
+    }
+    .markdown h1,
+    .markdown h2,
+    .markdown h3,
+    .markdown h4 {
+      color: var(--dd-enji);
+      line-height: 1.35;
+    }
+    .markdown h1 {
+      font-size: 18px;
+    }
+    .markdown h2 {
+      font-size: 16px;
+    }
+    .markdown h3 {
+      font-size: 15px;
+    }
+    .markdown h4 {
+      font-size: 14px;
+    }
+    .markdown hr {
+      height: 1px;
+      margin: 12px 0;
+      border: 0;
+      background: color-mix(in srgb, var(--dd-shironeri) 80%, var(--dd-enji) 20%);
+    }
+    .markdown .task-list {
+      padding-left: 0;
+      list-style: none;
+    }
+    .markdown .task-list-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .markdown .task-check {
+      margin: 3px 0 0;
+      accent-color: var(--dd-enji);
+      pointer-events: none;
+    }
+    .markdown-empty {
+      color: var(--dd-nezumi);
     }
     .reasoning-wrap {
       margin: 0 0 10px;
@@ -261,7 +438,6 @@ function styles() {
       color: var(--dd-nezumi);
       font-size: 12px;
       line-height: 1.55;
-      white-space: pre-wrap;
       word-break: break-word;
     }
     .reasoning-wrap.collapsed .reasoning {
@@ -380,6 +556,12 @@ function styles() {
       .trigger:hover {
         box-shadow: 0 14px 34px rgba(0, 0, 0, 0.44);
       }
+      .markdown pre {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
+      .markdown .code-block {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      }
     }
   `;
 }
@@ -492,13 +674,15 @@ function setResult(result: string, reasoning?: string) {
   const reasoningEl = shadowRootRef?.querySelector<HTMLElement>(".reasoning");
   const saveButton = shadowRootRef?.querySelector<HTMLButtonElement>(".save");
 
-  if (resultEl) resultEl.textContent = currentResult || "No result yet.";
+  if (resultEl) {
+    resultEl.innerHTML = currentResult
+      ? renderMarkdown(currentResult)
+      : '<p class="markdown-empty">No result yet.</p>';
+  }
   if (reasoningWrap) {
     reasoningWrap.hidden = !currentReasoning;
   }
-  if (reasoningEl) {
-    reasoningEl.textContent = currentReasoning;
-  }
+  if (reasoningEl) reasoningEl.innerHTML = renderMarkdown(currentReasoning);
   if (currentReasoning && !currentResult && !reasoningAutoCollapsed) {
     setReasoningCollapsed(false);
   }
@@ -850,9 +1034,9 @@ function renderPanel(snapshot: SelectionSnapshot, settings: ExtensionSettings) {
           <span>Think</span>
           <span class="reasoning-chevron">▾</span>
         </button>
-        <pre class="reasoning"></pre>
+        <div class="reasoning markdown"></div>
       </div>
-      <pre class="result">No result yet.</pre>
+      <div class="result markdown"><p class="markdown-empty">No result yet.</p></div>
     </div>
     <div class="footer">
       <div class="save-picker" aria-label="Save type">
@@ -942,6 +1126,248 @@ function escapeAttribute(value: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function sanitizeHref(rawHref: string) {
+  const href = rawHref.trim();
+  if (!href) return "";
+
+  if (
+    href.startsWith("/") ||
+    href.startsWith("./") ||
+    href.startsWith("../") ||
+    href.startsWith("#")
+  ) {
+    return href;
+  }
+
+  try {
+    const url = new URL(href);
+    if (
+      url.protocol === "http:" ||
+      url.protocol === "https:" ||
+      url.protocol === "mailto:"
+    ) {
+      return url.toString();
+    }
+  } catch {
+    return "";
+  }
+
+  return "";
+}
+
+function createLinkToken(tokens: string[], label: string, href: string) {
+  const safeHref = sanitizeHref(href);
+  if (!safeHref) return label;
+
+  const token = `@@INLINE_${tokens.length}@@`;
+  tokens.push(
+    `<a href="${escapeAttribute(safeHref)}" target="_blank" rel="noreferrer noopener">${label}</a>`,
+  );
+  return token;
+}
+
+function renderInlineMarkdown(text: string) {
+  const tokens: string[] = [];
+  let html = escapeHtml(text);
+
+  html = html.replace(/`([^`\n]+)`/g, (_, code: string) => {
+    const token = `@@INLINE_${tokens.length}@@`;
+    tokens.push(`<code>${code}</code>`);
+    return token;
+  });
+
+  html = html.replace(
+    /\[([^\]\n]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
+    (_, label: string, href: string) => {
+      return createLinkToken(tokens, label, href);
+    },
+  );
+
+  html = html.replace(
+    /(^|[\s(>])((?:https?:\/\/|mailto:)[^\s<]+)/g,
+    (match: string, prefix: string, href: string) => {
+      return `${prefix}${createLinkToken(tokens, href, href)}`;
+    },
+  );
+
+  html = html.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/__([^_\n]+)__/g, "<strong>$1</strong>");
+  html = html.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+  html = html.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, "$1<em>$2</em>");
+  html = html.replace(/~~([^~\n]+)~~/g, "<s>$1</s>");
+
+  return html.replace(/@@INLINE_(\d+)@@/g, (_, index: string) => {
+    return tokens[Number(index)] || "";
+  });
+}
+
+function renderMarkdown(markdown: string) {
+  const blocks: string[] = [];
+  const source = markdown.replace(/\r\n?/g, "\n");
+
+  for (const part of source.split(/\n{2,}/)) {
+    const block = part.trim();
+    if (!block) continue;
+
+    const fenceMatch = block.match(/^```([\w-]+)?\n([\s\S]*?)\n```$/);
+    if (fenceMatch) {
+      const language = fenceMatch[1]?.trim();
+      const code = escapeHtml(fenceMatch[2]);
+      const className = language
+        ? ` class="language-${escapeAttribute(language)}"`
+        : "";
+      const header = language
+        ? `<div class="code-block-header"><span class="code-language">${escapeHtml(formatCodeLanguage(language))}</span></div>`
+        : "";
+      blocks.push(
+        `<div class="code-block">${header}<pre><code${className}>${code}</code></pre></div>`,
+      );
+      continue;
+    }
+
+    const lines = block.split("\n");
+    let index = 0;
+
+    while (index < lines.length) {
+      const line = lines[index].trim();
+      if (!line) {
+        index += 1;
+        continue;
+      }
+
+      if (/^([-*_])(?:\s*\1){2,}$/.test(line.replace(/\s+/g, ""))) {
+        blocks.push("<hr>");
+        index += 1;
+        continue;
+      }
+
+      const headingMatch = line.match(/^(#{1,4})\s+(.+)$/);
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        blocks.push(
+          `<h${level}>${renderInlineMarkdown(headingMatch[2].trim())}</h${level}>`,
+        );
+        index += 1;
+        continue;
+      }
+
+      if (line.startsWith(">")) {
+        const quoteLines: string[] = [];
+        while (index < lines.length && lines[index].trim().startsWith(">")) {
+          quoteLines.push(
+            renderInlineMarkdown(lines[index].trim().replace(/^>\s?/, "")),
+          );
+          index += 1;
+        }
+        blocks.push(`<blockquote>${quoteLines.join("<br>")}</blockquote>`);
+        continue;
+      }
+
+      if (/^\d+\.\s+/.test(line)) {
+        const items: string[] = [];
+        while (index < lines.length && /^\d+\.\s+/.test(lines[index].trim())) {
+          items.push(
+            `<li>${renderInlineMarkdown(lines[index].trim().replace(/^\d+\.\s+/, ""))}</li>`,
+          );
+          index += 1;
+        }
+        blocks.push(`<ol>${items.join("")}</ol>`);
+        continue;
+      }
+
+      if (/^[-*+]\s+/.test(line)) {
+        const taskItems: string[] = [];
+        const items: string[] = [];
+        let isTaskList = true;
+
+        while (index < lines.length && /^[-*+]\s+/.test(lines[index].trim())) {
+          const content = lines[index].trim().replace(/^[-*+]\s+/, "");
+          const taskMatch = content.match(/^\[( |x|X)\]\s+(.*)$/);
+          if (!taskMatch) {
+            isTaskList = false;
+          } else {
+            const checked = taskMatch[1].toLowerCase() === "x";
+            taskItems.push(
+              `<li class="task-list-item"><input class="task-check" type="checkbox" disabled ${checked ? "checked" : ""}><span>${renderInlineMarkdown(taskMatch[2])}</span></li>`,
+            );
+          }
+          items.push(`<li>${renderInlineMarkdown(content)}</li>`);
+          index += 1;
+        }
+
+        blocks.push(
+          isTaskList
+            ? `<ul class="task-list">${taskItems.join("")}</ul>`
+            : `<ul>${items.join("")}</ul>`,
+        );
+        continue;
+      }
+
+      const paragraphLines: string[] = [];
+      while (index < lines.length) {
+        const paragraphLine = lines[index].trim();
+        if (
+          !paragraphLine ||
+          /^([-*_])(?:\s*\1){2,}$/.test(paragraphLine.replace(/\s+/g, "")) ||
+          /^(#{1,4})\s+(.+)$/.test(paragraphLine) ||
+          paragraphLine.startsWith(">") ||
+          /^\d+\.\s+/.test(paragraphLine) ||
+          /^[-*+]\s+/.test(paragraphLine)
+        ) {
+          break;
+        }
+        paragraphLines.push(renderInlineMarkdown(lines[index]));
+        index += 1;
+      }
+
+      if (paragraphLines.length > 0) {
+        blocks.push(`<p>${paragraphLines.join("<br>")}</p>`);
+        continue;
+      }
+
+      index += 1;
+    }
+  }
+
+  return blocks.join("");
+}
+
+function formatCodeLanguage(language: string) {
+  const normalized = language.trim().toLowerCase();
+  const labels: Record<string, string> = {
+    bash: "Bash",
+    css: "CSS",
+    html: "HTML",
+    javascript: "JavaScript",
+    js: "JavaScript",
+    json: "JSON",
+    markdown: "Markdown",
+    md: "Markdown",
+    py: "Python",
+    python: "Python",
+    rs: "Rust",
+    rust: "Rust",
+    sh: "Shell",
+    sql: "SQL",
+    ts: "TypeScript",
+    tsx: "TSX",
+    typescript: "TypeScript",
+    xml: "XML",
+    yaml: "YAML",
+    yml: "YAML",
+    jsx: "JSX",
+  };
+
+  return labels[normalized] || language;
 }
 
 async function saveCurrentWord() {
