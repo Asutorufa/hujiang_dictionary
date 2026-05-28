@@ -800,10 +800,7 @@ function renderTrigger(snapshot: SelectionSnapshot) {
   placeTrigger(trigger, snapshot.rect);
 }
 
-function renderPanel(
-  snapshot: SelectionSnapshot,
-  settings: ExtensionSettings,
-) {
+function renderPanel(snapshot: SelectionSnapshot, settings: ExtensionSettings) {
   const root = ensureRoot();
   closePanel();
 
