@@ -1194,7 +1194,7 @@ function renderInlineMarkdown(text: string) {
 
   html = html.replace(
     /(^|[\s(>])((?:https?:\/\/|mailto:)[^\s<]+)/g,
-    (match: string, prefix: string, href: string) => {
+    (_fullMatch: string, prefix: string, href: string) => {
       return `${prefix}${createLinkToken(tokens, href, href)}`;
     },
   );
