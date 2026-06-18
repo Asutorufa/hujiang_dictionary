@@ -224,7 +224,7 @@ pub static COOKIE: &str = "HJ_UID=0f406091-be97-6b64-f1fc-f7b2470883e9; HJ_CST=1
 pub async fn get(word: &str) -> Result<Vec<Word>, Error> {
     let r = reqwest::Client::builder()
         .build()?
-        .get(format!("https://dict.hjenglish.com/w/{}", word))
+        .get(format!("https://dict.hujiang.com/w/{}", word))
         .header("User-Agent", USER_AGENT)
         .header("Cookie", COOKIE)
         .send()

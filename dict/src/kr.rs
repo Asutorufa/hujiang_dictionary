@@ -101,7 +101,7 @@ pub async fn get(word: &str) -> Result<Vec<Word>, Error> {
     let r = reqwest::Client::builder()
         .build()?
         .get(format!(
-            "https://dict.hjenglish.com/kr/{}",
+            "https://dict.hujiang.com/kr/{}",
             form_urlencoded::byte_serialize(word.as_bytes()).collect::<String>()
         ))
         .header("User-Agent", USER_AGENT)
