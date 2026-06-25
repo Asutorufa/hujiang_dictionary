@@ -20,7 +20,7 @@ worker-macros = { workspace = true }
 console_error_panic_hook = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
-js-sys = "^0.3"
+js-sys = { workspace = true }
 getrandom = { version = "0.4", features = ["wasm_js"] }
 getrandom_02 = { package = "getrandom", version = "0.2", features = ["js"] }
 
