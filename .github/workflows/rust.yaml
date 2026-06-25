@@ -153,7 +153,7 @@ jobs:
             ${{ runner.os }}-cargo-build-target-
 
       - name: Install worker-build
-        run: cargo install worker-build
+        run: cargo install worker-build --version 0.8.1
 
       - name: Build Worker
         run: npx wrangler build
