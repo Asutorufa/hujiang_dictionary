@@ -348,12 +348,7 @@ export async function listModel(
 }
 
 type LegacyColor =
-  | "danger"
-  | "default"
-  | "primary"
-  | "secondary"
-  | "success"
-  | "warning";
+  "danger" | "default" | "primary" | "secondary" | "success" | "warning";
 type RadixColor =
   | "crimson"
   | "ruby"

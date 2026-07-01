@@ -79,8 +79,7 @@ export type RuntimeRequest =
   | { type: "openOptions" };
 
 export type RuntimeResponse<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: string; authExpired?: boolean };
+  { ok: true; data: T } | { ok: false; error: string; authExpired?: boolean };
 
 export type QueryPortRequest = {
   type: "translateSelection";
