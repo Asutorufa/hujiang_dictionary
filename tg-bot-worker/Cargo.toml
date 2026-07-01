@@ -7,7 +7,7 @@ license = "MIT"
 repository = "https://github.com/wongnai/hj-rust"
 
 [dependencies]
-async-trait = "0.1"
+async-trait = "0.1.89"
 frankenstein = { workspace = true }
 log = { workspace = true }
 

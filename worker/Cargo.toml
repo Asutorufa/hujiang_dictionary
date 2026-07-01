@@ -21,12 +21,12 @@ console_error_panic_hook = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
 js-sys = { workspace = true }
-getrandom = { version = "0.4", features = ["wasm_js"] }
-getrandom_02 = { package = "getrandom", version = "0.2", features = ["js"] }
+getrandom = { version = "0.4.3", features = ["wasm_js"] }
+getrandom_02 = { package = "getrandom", version = "0.2.17", features = ["js"] }
 
 hjcommon = { path = "../common" }
 d1-orm = { version = "0.1.2", features = ["d1"] }
 async-trait = "0.1.89"
-futures-util = "0.3"
-bytes = "1.0"
+futures-util = "0.3.32"
+bytes = "1.12.0"
 hj_ai = { path = "../ai", features = ["worker"] }
