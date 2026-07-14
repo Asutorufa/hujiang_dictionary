@@ -24,7 +24,7 @@ export function PageHeader({
         sticky ? { top: "calc(env(safe-area-inset-top) + 0.75rem)" } : undefined
       }
     >
-      <div className={`app-hero-card app-header-root px-4 sm:px-5 ${padY}`}>
+      <div className={`app-hero-card app-header-root app-page-header px-1 ${padY}`}>
         <div className="app-header-inner">
           <Flex justify="between" align="start" gap="4" wrap="wrap">
             {(title || subtitle) && (

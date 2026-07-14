@@ -14,7 +14,6 @@ import { authorizedRequest } from "../lib/api";
 import { useLocation } from "wouter";
 import { ROUTE_LOGIN } from "../lib/constants";
 import { PageContainer } from "@/ui/PageContainer";
-import { PageHeader } from "@/ui/PageHeader";
 
 export type LlmProvider = {
   name: string;
@@ -290,7 +289,7 @@ export default function Config() {
   };
 
   return (
-    <PageContainer size="4xl" className="space-y-6">
+    <PageContainer size="4xl" className="app-settings-page space-y-6">
       <ConfirmModal
         title={
           deleteTarget
@@ -337,104 +336,115 @@ export default function Config() {
         }}
       />
 
-      <PageHeader
-        title="Config"
-        subtitle="LLM providers and general settings"
-        actions={
-          <Flex gap="2" align="center">
-            <Button
-              variant={activeTab === "llm" ? "solid" : "soft"}
-              color="gray"
-              className={
-                activeTab === "llm"
-                  ? "app-primary-action"
-                  : "app-secondary-action"
-              }
-              onClick={() => setActiveTab("llm")}
-            >
-              LLM Providers
-            </Button>
-            <Button
-              variant={activeTab === "config" ? "solid" : "soft"}
-              color="gray"
-              className={
-                activeTab === "config"
-                  ? "app-primary-action"
-                  : "app-secondary-action"
-              }
-              onClick={() => setActiveTab("config")}
-            >
-              General
-            </Button>
-          </Flex>
-        }
-      />
-
-      {activeTab === "llm" && (
-        <>
-          <Flex justify="between" align="center" mb="6">
-            <Text size="6" weight="bold">
-              LLM Providers
-            </Text>
-            <Button
-              color="gray"
-              className="app-primary-action"
-              onClick={openAddModal}
-            >
-              Add Provider
-            </Button>
-          </Flex>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            {providers.map((p) => (
-              <Card key={p.name} size="2">
-                <Flex justify="between" align="start">
-                  <Box>
-                    <Text size="4" weight="bold" as="div">
-                      {p.name}
-                    </Text>
-                    <Text size="2" color="gray" as="div">
-                      {normalizeProviderType(p.provider)}
-                    </Text>
-                    {p.base_url && (
-                      <Text size="1" className="truncate" as="div">
-                        {p.base_url}
-                      </Text>
-                    )}
-                  </Box>
-                  <Flex gap="2">
-                    <Button
-                      size="1"
-                      variant="soft"
-                      onClick={() => openEditModal(p)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="1"
-                      color="red"
-                      variant="soft"
-                      onClick={() => handleDelete(p.name)}
-                    >
-                      Delete
-                    </Button>
-                  </Flex>
-                </Flex>
-              </Card>
-            ))}
+      <header className="app-settings-hero">
+        <div className="app-library-eyebrow">Workspace / Settings</div>
+        <div className="app-settings-hero-row">
+          <div>
+            <h1>Settings</h1>
+            <p>Shape how DictDeck connects to models and your workspace.</p>
           </div>
-        </>
-      )}
+          <span className="app-settings-hero-status">Private workspace</span>
+        </div>
+      </header>
 
-      {activeTab === "config" && (
-        <Card
-          size="3"
-          className="mt-4"
-          style={{
-            backgroundColor: "var(--color-panel-solid)",
-            backdropFilter: "none",
-          }}
-        >
+      <div className="app-settings-layout">
+        <nav className="app-settings-nav" aria-label="Settings sections">
+          <div className="app-settings-nav-label">Manage</div>
+          <button
+            type="button"
+            className={activeTab === "llm" ? "is-active" : ""}
+            onClick={() => setActiveTab("llm")}
+          >
+            <span>LLM providers</span>
+            <small>Models and API connections</small>
+          </button>
+          <button
+            type="button"
+            className={activeTab === "config" ? "is-active" : ""}
+            onClick={() => setActiveTab("config")}
+          >
+            <span>General</span>
+            <small>Workspace-wide settings</small>
+          </button>
+        </nav>
+
+        <section className="app-settings-content">
+          {activeTab === "llm" && (
+            <>
+              <div className="app-settings-section-header">
+                <div>
+                  <div className="app-settings-section-kicker">Connections</div>
+                  <h2>LLM providers</h2>
+                  <p>Choose which model services are available to DictDeck.</p>
+                </div>
+                <Button
+                  color="gray"
+                  className="app-primary-action"
+                  onClick={openAddModal}
+                >
+                  Add provider
+                </Button>
+              </div>
+
+              <div className="app-provider-grid grid gap-4 md:grid-cols-2">
+                {providers.map((p) => (
+                  <Card key={p.name} size="2" className="app-provider-card">
+                    <Flex justify="between" align="start">
+                      <Box>
+                        <div className="app-provider-kicker">Connected provider</div>
+                        <Text size="4" weight="bold" as="div">
+                          {p.name}
+                        </Text>
+                        <Text size="2" color="gray" as="div">
+                          {normalizeProviderType(p.provider)}
+                        </Text>
+                        {p.base_url && (
+                          <Text size="1" className="truncate" as="div">
+                            {p.base_url}
+                          </Text>
+                        )}
+                      </Box>
+                      <Flex gap="2">
+                        <Button
+                          size="1"
+                          variant="soft"
+                          onClick={() => openEditModal(p)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="1"
+                          color="red"
+                          variant="soft"
+                          onClick={() => handleDelete(p.name)}
+                        >
+                          Delete
+                        </Button>
+                      </Flex>
+                    </Flex>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
+
+          {activeTab === "config" && (
+            <div>
+              <div className="app-settings-section-header">
+                <div>
+                  <div className="app-settings-section-kicker">Workspace</div>
+                  <h2>General settings</h2>
+                  <p>Keep the shared integrations used by your workspace in one place.</p>
+                </div>
+              </div>
+              <Card
+                size="3"
+                className="app-settings-form"
+                style={{
+                  backgroundColor: "var(--color-panel-solid)",
+                  backdropFilter: "none",
+                }}
+              >
           <form onSubmit={handleGeneralConfigSave}>
             <Flex direction="column" gap="4">
               <Text size="6" weight="bold" mb="2">
@@ -542,8 +552,11 @@ export default function Config() {
               </Flex>
             </Flex>
           </form>
-        </Card>
-      )}
+              </Card>
+            </div>
+          )}
+        </section>
+      </div>
 
       <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
         <Dialog.Content maxWidth="450px">

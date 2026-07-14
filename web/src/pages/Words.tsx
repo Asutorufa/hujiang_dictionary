@@ -1,59 +1,20 @@
 import {
-  BookIcon,
   ConfirmModal,
   countWord,
   deleteWord,
-  FilterIcon,
   ListWordResponse,
   queryWord,
-  RefreshIcon,
   SaveWordModal,
 } from "@/components";
 import WordCard from "@/WordCard";
-import { DropdownMenu, Tooltip, IconButton, Flex } from "@radix-ui/themes";
+import { DropdownMenu } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { LoadingOverlay } from "@/ui/LoadingOverlay";
 import { EmptyState } from "@/ui/EmptyState";
 import { PageContainer } from "@/ui/PageContainer";
-import { PageHeader } from "@/ui/PageHeader";
 import { Pager } from "@/ui/Pager";
-import { BookOpen } from "lucide-react";
-
-const PlusIcon = ({
-  size = 24,
-  width,
-  height,
-  ...props
-}: {
-  size?: number;
-  width?: number;
-  height?: number;
-}) => {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      focusable="false"
-      height={size || height}
-      role="presentation"
-      viewBox="0 0 24 24"
-      width={size || width}
-      {...props}
-    >
-      <g
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-      >
-        <path d="M6 12h12" />
-        <path d="M12 18V6" />
-      </g>
-    </svg>
-  );
-};
+import { BookOpen, SlidersHorizontal, Plus, RefreshCw } from "lucide-react";
 
 export default function Words() {
   const [words, setWords] = useState<ListWordResponse[]>([]);
@@ -114,7 +75,7 @@ export default function Words() {
   };
 
   return (
-    <div className="app-page-shell min-h-dvh">
+    <div className="app-library-page">
       <ConfirmModal
         title={`Are you sure you want to delete ${removeWord}?`}
         open={confirmOpen}
@@ -148,134 +109,73 @@ export default function Words() {
 
       <LoadingOverlay show={loading} />
 
-      <PageContainer size="7xl" className="space-y-4">
-        <PageHeader
-          title="Words"
-          density="compact"
-          actions={
-            <Flex gap="2" align="center" wrap="wrap">
+      <PageContainer size="7xl">
+        <header className="app-library-header">
+          <div>
+            <div className="app-library-eyebrow">Work / Library</div>
+            <h1>Vocabulary</h1>
+            <p>Keep the words you want to remember close at hand.</p>
+          </div>
+          <div className="app-library-header-actions">
+            <div className="app-library-page-count">
               <Pager
                 page={page}
                 total={total || 1}
                 onPageChange={(p) => setPage(p)}
               />
+            </div>
+            <DropdownMenu.Root modal={false}>
+              <DropdownMenu.Trigger asChild>
+                <button type="button" className="app-library-control">
+                  <SlidersHorizontal size={16} /> Filter
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content>
+                <DropdownMenu.Label>Sort by</DropdownMenu.Label>
+                <DropdownMenu.RadioGroup value={orderBy} onValueChange={setOrderBy}>
+                  <DropdownMenu.RadioItem value="word">Word (A–Z)</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="word desc">Word (Z–A)</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="priority desc">Priority</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="add_time desc">Recently added</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="anki_count desc">Most reviewed</DropdownMenu.RadioItem>
+                </DropdownMenu.RadioGroup>
+                <DropdownMenu.Separator />
+                <DropdownMenu.Label>Show</DropdownMenu.Label>
+                <DropdownMenu.RadioGroup value={grammar ? "grammar" : "words"} onValueChange={(v) => setGrammar(v === "grammar")}>
+                  <DropdownMenu.RadioItem value="words">Words</DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="grammar">Grammar</DropdownMenu.RadioItem>
+                </DropdownMenu.RadioGroup>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
+            <button
+              type="button"
+              className="app-library-add"
+              onClick={() => {
+                setNewWord({ new: { word: "", example: "", explain: "", add_time: 0, update_time: 0, reminder_time: 0, anki_count: 0, priority: 0, type: 0 } });
+                setOpen(true);
+              }}
+            >
+              <Plus size={17} /> Add word
+            </button>
+            <button type="button" className="app-library-icon-button" onClick={() => setRefresh((r) => r + 1)} aria-label="Refresh vocabulary">
+              <RefreshCw size={17} />
+            </button>
+          </div>
+        </header>
 
-              <DropdownMenu.Root modal={false}>
-                <DropdownMenu.Trigger>
-                  <IconButton
-                    variant="ghost"
-                    color="gray"
-                    className="app-icon-chip"
-                  >
-                    <FilterIcon size={18} />
-                  </IconButton>
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content>
-                  <DropdownMenu.Label>Sort By</DropdownMenu.Label>
-                  <DropdownMenu.RadioGroup
-                    value={orderBy}
-                    onValueChange={setOrderBy}
-                  >
-                    <DropdownMenu.RadioItem value="word">
-                      Word (A-Z)
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem value="word desc">
-                      Word (Z-A)
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem value="priority">
-                      Priority (Low-High)
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem value="priority desc">
-                      Priority (High-Low)
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem value="add_time">
-                      Date Added (Oldest)
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem value="add_time desc">
-                      Date Added (Newest)
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem value="update_time">
-                      Date Updated (Oldest)
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem value="update_time desc">
-                      Date Updated (Newest)
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem value="anki_count">
-                      Count (Low-High)
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem value="anki_count desc">
-                      Count (High-Low)
-                    </DropdownMenu.RadioItem>
-                  </DropdownMenu.RadioGroup>
+        <div className="app-library-list-heading">
+          <div>
+            <h2>{grammar ? "Grammar notes" : "Saved vocabulary"}</h2>
+            <span>Review, edit, or adjust a word without leaving the list.</span>
+          </div>
+          <span>{words.length} shown</span>
+        </div>
 
-                  <DropdownMenu.Separator />
-
-                  <DropdownMenu.Label>Filter</DropdownMenu.Label>
-                  <DropdownMenu.RadioGroup
-                    value={grammar ? "grammar" : "words"}
-                    onValueChange={(v) => setGrammar(v === "grammar")}
-                  >
-                    <DropdownMenu.RadioItem value="words">
-                      Words
-                    </DropdownMenu.RadioItem>
-                    <DropdownMenu.RadioItem value="grammar">
-                      <Flex gap="2" align="center">
-                        <BookIcon size={18} />
-                        Grammar
-                      </Flex>
-                    </DropdownMenu.RadioItem>
-                  </DropdownMenu.RadioGroup>
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
-
-              <Tooltip content="Add Word">
-                <IconButton
-                  size="1"
-                  color="gray"
-                  variant="solid"
-                  className="app-icon-primary"
-                  onClick={() => {
-                    setNewWord({
-                      new: {
-                        word: "",
-                        example: "",
-                        explain: "",
-                        add_time: 0,
-                        update_time: 0,
-                        reminder_time: 0,
-                        anki_count: 0,
-                        priority: 0,
-                        type: 0,
-                      },
-                    });
-                    setOpen(true);
-                  }}
-                >
-                  <PlusIcon size={16} />
-                </IconButton>
-              </Tooltip>
-
-              <Tooltip content="Refresh">
-                <IconButton
-                  size="1"
-                  variant="ghost"
-                  color="gray"
-                  className="app-icon-chip"
-                  onClick={() => setRefresh((r) => r + 1)}
-                >
-                  <RefreshIcon size={16} />
-                </IconButton>
-              </Tooltip>
-            </Flex>
-          }
-        />
-
-        {/* Masonry Layout using CSS columns */}
-        <div className="columns-1 lg:columns-2 2xl:columns-3 gap-4">
+        <div className="app-word-grid">
           {words
             .filter((w) => w.word && w.word.length > 0)
             .map((w, i) => (
-              <div key={w.word + i} className="break-inside-avoid mb-4">
+              <div key={w.word + i} className="app-word-grid-item">
                 <WordCard
                   word={w}
                   onEdit={() => {
@@ -309,4 +209,8 @@ export default function Words() {
       </PageContainer>
     </div>
   );
+  /*
+  return (
+    <div className="app-page-shell min-h-dvh">
+  */
 }

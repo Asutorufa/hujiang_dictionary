@@ -16,27 +16,31 @@ import {
 } from "@/lib/translation";
 import {
   Button,
-  Card,
   DropdownMenu,
   Switch,
   TextArea,
-  Tooltip,
-  Flex,
-  Text,
-  Box,
 } from "@radix-ui/themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { ROUTE_FLASHCARD } from "@/lib/constants";
 import {
-  DiskIcon,
   listModel as listModels,
   Markdown,
-  PlayIcon,
   SaveWordModal,
 } from "../components";
-import { PageHeader } from "@/ui/PageHeader";
-import { PageContainer } from "@/ui/PageContainer";
+import {
+  ArrowUp,
+  ChevronDown,
+  Globe2,
+  Layers3,
+  PencilLine,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+} from "lucide-react";
+import { useLocation } from "wouter";
 
 async function fetchTranslation(
   opts: {
@@ -182,12 +186,8 @@ function resolveCustomModel(
   );
 }
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  visible: { opacity: 1, y: 0 },
-};
-
 export default function Home() {
+  const [, setLocation] = useLocation();
   const [selected, setSelected] = useLocalStorage(
     "translate_type",
     DEFAULT_METHOD,
@@ -450,7 +450,7 @@ export default function Home() {
   const hasCustomSelection = Boolean(selectedCustomModel);
 
   return (
-    <div className="app-page-shell min-h-dvh">
+    <div className="app-home-page">
       <SaveWordModal
         open={open}
         onChange={(p) => setOpen(p)}
@@ -458,268 +458,251 @@ export default function Home() {
         explain={liveResult.result}
         type={0}
       />
-      <PageContainer className="space-y-6">
-        <PageHeader
-          actions={
-            <Flex
-              gap="2"
-              align="center"
-              wrap="wrap"
-              className="app-home-actions"
-            >
-              <Tooltip content="Translate (Ctrl+Enter)">
-                <Button
-                  variant="solid"
-                  color="gray"
-                  className="app-primary-action"
-                  loading={loading}
-                  onClick={doQueryWord}
-                >
-                  <Flex gap="2" align="center">
-                    <PlayIcon size={18} />
-                    Translate
-                  </Flex>
-                </Button>
-              </Tooltip>
+      <section className="app-home-stage">
+        <div className="app-home-kicker"><Sparkles size={15} /> Hujiang dictionary</div>
+        <h1>What can I help you find?</h1>
+        <p className="app-home-subtitle">Translate, understand, and save language in one place.</p>
 
-              <Tooltip content="Save Word (Ctrl+S)">
-                <Button
-                  variant="surface"
-                  color="gray"
-                  className="app-secondary-action"
-                  onClick={() => setOpen(true)}
-                >
-                  <Flex gap="2" align="center">
-                    <DiskIcon size={18} />
-                    Save
-                  </Flex>
-                </Button>
-              </Tooltip>
-            </Flex>
-          }
-        >
-          <div className="app-home-toolbar">
-            <Text size="1" color="gray" className="app-toolbar-hint">
-              Ctrl+Enter to translate. Ctrl+S to save.
-            </Text>
+        <div className="app-composer">
+          <div className="app-composer-input-row">
+            <button type="button" className="app-composer-add" aria-label="Add context">
+              <Plus size={21} />
+            </button>
+            <TextArea
+              ref={queryInputRef}
+              value={query}
+              placeholder="Ask DictDeck anything about a word or phrase"
+              variant="soft"
+              className="app-composer-textarea"
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
 
-            <Flex
-              gap="2"
-              align="center"
-              wrap="wrap"
-              className="app-control-row"
-            >
+          <div className="app-composer-footer">
+            <div className="app-composer-controls">
               <DropdownMenu.Root modal={false}>
-                <Tooltip content="Translate Method">
-                  <DropdownMenu.Trigger>
-                    <Button
-                      variant="surface"
-                      color="gray"
-                      className="app-control-trigger capitalize cursor-pointer"
-                    >
-                      {selectedLabel || "Select"}
-                    </Button>
-                  </DropdownMenu.Trigger>
-                </Tooltip>
+                <DropdownMenu.Trigger>
+                  <Button variant="ghost" className="app-composer-control">
+                    <Sparkles size={16} />
+                    <span>{selectedLabel || "Select source"}</span>
+                    <ChevronDown size={14} />
+                  </Button>
+                </DropdownMenu.Trigger>
                 <DropdownMenu.Content>
-                  <DropdownMenu.Group>
-                    {translationSources.map((source) => (
-                      <DropdownMenu.Item
-                        key={source.key}
-                        onSelect={() => setSelected(source.key)}
-                      >
-                        {source.name}
-                      </DropdownMenu.Item>
-                    ))}
-                  </DropdownMenu.Group>
-
-                  {dictSources.length > 0 && <DropdownMenu.Separator />}
-
-                  <DropdownMenu.Group>
-                    {dictSources.map((source) => (
-                      <DropdownMenu.Item
-                        key={source.key}
-                        onSelect={() => setSelected(source.key)}
-                      >
-                        <Flex justify="between" width="100%" gap="4">
-                          <Text>{source.name}</Text>
-                          {source.tag && (
-                            <Text color="gray" size="1">
-                              {source.tag}
-                            </Text>
-                          )}
-                        </Flex>
-                      </DropdownMenu.Item>
-                    ))}
-                  </DropdownMenu.Group>
-
-                  {Object.keys(customModels || {}).length > 0 && (
-                    <DropdownMenu.Separator />
-                  )}
-
-                  {Object.keys(customModels || {}).length > 0 && (
-                    <DropdownMenu.Group>
-                      {Object.keys(customModels || {}).map((key) => (
-                        <DropdownMenu.Item
-                          key={key}
-                          onSelect={() => setSelected(key)}
-                        >
-                          <Flex justify="between" width="100%" gap="4">
-                            <Text>{customModels[key].model}</Text>
-                            <Text color="gray" size="1">
-                              {customModels[key].name}
-                            </Text>
-                          </Flex>
-                        </DropdownMenu.Item>
-                      ))}
-                    </DropdownMenu.Group>
-                  )}
+                  <DropdownMenu.Label>Translation source</DropdownMenu.Label>
+                  {translationSources.map((source) => (
+                    <DropdownMenu.Item key={source.key} onSelect={() => setSelected(source.key)}>
+                      {source.name}
+                    </DropdownMenu.Item>
+                  ))}
+                  <DropdownMenu.Separator />
+                  {dictSources.map((source) => (
+                    <DropdownMenu.Item key={source.key} onSelect={() => setSelected(source.key)}>
+                      {source.name}
+                    </DropdownMenu.Item>
+                  ))}
+                  {Object.keys(customModels || {}).length > 0 && <DropdownMenu.Separator />}
+                  {Object.keys(customModels || {}).map((key) => (
+                    <DropdownMenu.Item key={key} onSelect={() => setSelected(key)}>
+                      {customModels[key].model}
+                    </DropdownMenu.Item>
+                  ))}
                 </DropdownMenu.Content>
               </DropdownMenu.Root>
 
               {showSelectLang(selected) && (
                 <>
                   <DropdownMenu.Root modal={false}>
-                    <Tooltip content="Source Language">
-                      <DropdownMenu.Trigger>
-                        <Button
-                          variant="surface"
-                          color="gray"
-                          className="app-control-trigger cursor-pointer"
-                        >
-                          <span className="app-language-pill">
-                            <span
-                              className="app-language-flag"
-                              aria-hidden="true"
-                            >
-                              {languageMap[srcLang]?.flag || "🌐"}
-                            </span>
-                            <span>{languageMap[srcLang]?.name || "Auto"}</span>
-                          </span>
-                        </Button>
-                      </DropdownMenu.Trigger>
-                    </Tooltip>
+                    <DropdownMenu.Trigger>
+                      <Button variant="ghost" className="app-composer-control app-composer-language">
+                        <span>{languageMap[srcLang]?.flag || "🌐"}</span>
+                        <span>{languageMap[srcLang]?.name || "Auto"}</span>
+                      </Button>
+                    </DropdownMenu.Trigger>
                     <DropdownMenu.Content>
                       {languages.map((lang) => (
-                        <DropdownMenu.Item
-                          key={lang.key}
-                          onSelect={() => setSrcLang(lang.key)}
-                        >
-                          <Flex gap="2" align="center">
-                            <span
-                              className="app-language-flag"
-                              aria-hidden="true"
-                            >
-                              {lang.flag}
-                            </span>
-                            <span>{lang.name}</span>
-                          </Flex>
+                        <DropdownMenu.Item key={lang.key} onSelect={() => setSrcLang(lang.key)}>
+                          {lang.flag} {lang.name}
                         </DropdownMenu.Item>
                       ))}
                     </DropdownMenu.Content>
                   </DropdownMenu.Root>
-
                   <DropdownMenu.Root modal={false}>
-                    <Tooltip content="Target Language">
-                      <DropdownMenu.Trigger>
-                        <Button
-                          variant="surface"
-                          color="gray"
-                          className="app-control-trigger cursor-pointer"
-                        >
-                          <span className="app-language-pill">
-                            <span
-                              className="app-language-flag"
-                              aria-hidden="true"
-                            >
-                              {languageMap[dstLang]?.flag || "🌐"}
-                            </span>
-                            <span>{languageMap[dstLang]?.name || "Auto"}</span>
-                          </span>
-                        </Button>
-                      </DropdownMenu.Trigger>
-                    </Tooltip>
+                    <DropdownMenu.Trigger>
+                      <Button variant="ghost" className="app-composer-control app-composer-language">
+                        <span>{languageMap[dstLang]?.flag || "🌐"}</span>
+                        <span>{languageMap[dstLang]?.name || "Auto"}</span>
+                      </Button>
+                    </DropdownMenu.Trigger>
                     <DropdownMenu.Content>
-                      {languages
-                        .filter((lang) => lang.key !== "")
-                        .map((lang) => (
-                          <DropdownMenu.Item
-                            key={lang.key}
-                            onSelect={() => setDstLang(lang.key)}
-                          >
-                            <Flex gap="2" align="center">
-                              <span
-                                className="app-language-flag"
-                                aria-hidden="true"
-                              >
-                                {lang.flag}
-                              </span>
-                              <span>{lang.name}</span>
-                            </Flex>
-                          </DropdownMenu.Item>
-                        ))}
+                      {languages.filter((lang) => lang.key !== "").map((lang) => (
+                        <DropdownMenu.Item key={lang.key} onSelect={() => setDstLang(lang.key)}>
+                          {lang.flag} {lang.name}
+                        </DropdownMenu.Item>
+                      ))}
                     </DropdownMenu.Content>
                   </DropdownMenu.Root>
                 </>
               )}
-            </Flex>
-          </div>
-        </PageHeader>
 
-        <motion.div
-          variants={shouldReduceMotion ? undefined : itemVariants}
-          initial={shouldReduceMotion ? false : "hidden"}
-          animate={shouldReduceMotion ? undefined : "visible"}
-        >
-          <Card className="app-section-card">
-            <Box>
-              <Text
-                as="label"
-                size="1"
-                weight="bold"
-                color="gray"
-                className="mb-2 block uppercase tracking-widest"
+              {hasCustomSelection && (
+                <button
+                  type="button"
+                  className={`app-composer-control app-composer-icon-control${showAdvanced ? " is-active" : ""}`}
+                  onClick={() => setShowAdvanced((value) => !value)}
+                  aria-label="Toggle advanced options"
+                >
+                  <SlidersHorizontal size={16} />
+                </button>
+              )}
+            </div>
+
+            <div className="app-composer-submit-group">
+              <span className="app-composer-shortcut">⌘ Enter</span>
+              <button
+                type="button"
+                className="app-composer-submit"
+                onClick={doQueryWord}
+                disabled={loading || !query.trim()}
+                aria-label="Translate"
               >
-                Input
-              </Text>
-              <TextArea
-                ref={queryInputRef}
-                color={query.length === 0 ? "red" : undefined}
-                value={query}
-                placeholder="Type or paste text to translate..."
-                variant="soft"
-                className="app-textarea"
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            </Box>
-          </Card>
-        </motion.div>
+                {loading ? <span className="app-loading-dot" /> : <ArrowUp size={19} strokeWidth={2.5} />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="app-quick-actions" aria-label="Quick actions">
+          <button type="button" onClick={() => queryInputRef.current?.focus()}>
+            <Search size={17} />
+            Dictionary lookup
+          </button>
+          <button type="button" onClick={() => { setSelected("google"); queryInputRef.current?.focus(); }}>
+            <Globe2 size={17} />
+            Translate a sentence
+          </button>
+          <button type="button" onClick={() => setOpen(true)}>
+            <PencilLine size={17} />
+            Save a word
+          </button>
+          <button type="button" onClick={() => setLocation(ROUTE_FLASHCARD)}>
+            <Layers3 size={17} />
+            Review vocabulary
+          </button>
+        </div>
+      </section>
 
         {hasCustomSelection && (
-          <Card className="app-section-card">
-            <Flex justify="between" align="start" gap="4" wrap="wrap">
-              <Box className="min-w-0 space-y-1">
-                <Text size="2" weight="bold" className="block leading-tight">
-                  Advanced
-                </Text>
-                <Text
-                  size="1"
-                  color="gray"
-                  className="block max-w-[28rem] leading-relaxed"
-                >
-                  Options for custom LLM queries
-                </Text>
-              </Box>
-              <Button
-                variant="soft"
-                color="gray"
-                className="cursor-pointer shrink-0"
-                onClick={() => setShowAdvanced((v) => !v)}
+          <AnimatePresence initial={false}>
+            {showAdvanced && (
+              <motion.section
+                className="app-advanced-panel"
+                initial={shouldReduceMotion ? false : { opacity: 0, height: 0 }}
+                animate={shouldReduceMotion ? undefined : { opacity: 1, height: "auto" }}
+                exit={shouldReduceMotion ? undefined : { opacity: 0, height: 0 }}
               >
-                {showAdvanced ? "Hide" : "Show"}
-              </Button>
-            </Flex>
+                <div className="app-advanced-heading">
+                  <div>
+                    <strong>Advanced options</strong>
+                    <span>Fine-tune this lookup without leaving the composer.</span>
+                  </div>
+                  <button type="button" onClick={() => setShowAdvanced(false)}>Close</button>
+                </div>
+                <div className="app-advanced-grid">
+                  <label className="app-toggle-row">
+                    <span><Switch checked={googleSearch} onCheckedChange={setGoogleSearch} /> Web search</span>
+                    <small>Use live sources when translating.</small>
+                  </label>
+                  <label className="app-toggle-row">
+                    <span><Switch checked={stream} onCheckedChange={setStream} /> Stream response</span>
+                    <small>Show the answer as it arrives.</small>
+                  </label>
+                  {googleSearch && (
+                    <label className="app-field-stack">
+                      <span>Search engine</span>
+                      <select value={searchEngine} onChange={(event) => setSearchEngine(event.target.value)} className="app-native-select">
+                        {SEARCH_ENGINES.map((engine) => <option key={engine.value} value={engine.value}>{engine.label}</option>)}
+                      </select>
+                    </label>
+                  )}
+                  <label className="app-field-stack">
+                    <span>Prompt mode</span>
+                    <DropdownMenu.Root modal={false}>
+                      <DropdownMenu.Trigger>
+                        <Button variant="ghost" className="app-advanced-select">{promptModeLabels[promptMode]} <ChevronDown size={14} /></Button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Content>
+                        {PROMPT_MODES.map((mode) => <DropdownMenu.Item key={mode.value} onSelect={() => setPromptMode(mode.value)}>{mode.label}</DropdownMenu.Item>)}
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Root>
+                  </label>
+                  {!googleSearch && (
+                    <label className="app-field-stack app-field-wide">
+                      <span>Custom instruction</span>
+                      <TextArea value={instruction} placeholder="Translate to natural spoken Japanese..." onChange={(event) => setInstruction(event.target.value)} />
+                    </label>
+                  )}
+                </div>
+              </motion.section>
+            )}
+          </AnimatePresence>
+        )}
 
+        {(liveResult.reasoning || liveResult.result) && (
+          <section className="app-home-thread">
+            {query && (
+              <div className="app-thread-user">
+                <div className="app-thread-avatar app-thread-avatar-user">You</div>
+                <div className="app-thread-user-bubble">{query}</div>
+              </div>
+            )}
+            {liveResult.reasoning && (
+              <div className="app-thread-message app-thread-reasoning">
+                <div className="app-thread-avatar">D</div>
+                <div className="app-thread-message-body">
+                  <div className="app-thread-label">Thinking process</div>
+                  <div className="prose"><Markdown>{liveResult.reasoning}</Markdown></div>
+                </div>
+              </div>
+            )}
+            <div className="app-thread-message">
+              <div className="app-thread-avatar">D</div>
+              <div className="app-thread-message-body">
+                <div className="app-thread-label">DictDeck</div>
+                <div className="prose"><Markdown>{liveResult.result || (loading ? "Looking that up…" : "No result found.")}</Markdown></div>
+                <div className="app-thread-actions">
+                  <button type="button" onClick={() => setOpen(true)}>Save to vocabulary</button>
+                  <button type="button" onClick={() => navigator.clipboard?.writeText(liveResult.result)}>Copy</button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {!liveResult.result && !liveResult.reasoning && (
+          <section className="app-home-suggestions">
+            <div className="app-home-suggestion-heading">Try one of these</div>
+            <div className="app-home-suggestion-grid">
+              <button type="button" onClick={() => { setQuery("一期一会"); queryInputRef.current?.focus(); }}>
+                <span className="app-suggestion-icon"><Search size={17} /></span>
+                <span><strong>一期一会</strong><small>Look up a Japanese phrase</small></span>
+              </button>
+              <button type="button" onClick={() => { setQuery("How do I say thank you naturally?"); queryInputRef.current?.focus(); }}>
+                <span className="app-suggestion-icon"><Globe2 size={17} /></span>
+                <span><strong>Natural translation</strong><small>Ask for a better way to say it</small></span>
+              </button>
+              <button type="button" onClick={() => setLocation(ROUTE_FLASHCARD)}>
+                <span className="app-suggestion-icon"><Sparkles size={17} /></span>
+                <span><strong>Start a review</strong><small>Practice saved vocabulary</small></span>
+              </button>
+            </div>
+          </section>
+        )}
+      </div>
+  );
+  /*
+  return (
+    <div className="app-page-shell min-h-dvh">
             <AnimatePresence initial={false}>
               {showAdvanced && (
                 <motion.div
@@ -914,4 +897,5 @@ export default function Home() {
       </PageContainer>
     </div>
   );
+  */
 }

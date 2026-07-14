@@ -35,7 +35,7 @@ export function Pager({
   };
 
   return (
-    <Flex gap="1" align="center">
+    <Flex className="app-pager" gap="1" align="center">
       <IconButton
         size="1"
         variant="ghost"
