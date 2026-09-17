@@ -31,6 +31,20 @@ export type Configuration = {
   value: string;
 };
 
+type McpToken = {
+  id: string;
+  name: string;
+  scopes: string[];
+  created_at: number;
+  expires_at: number | null;
+  last_used_at: number | null;
+  revoked_at: number | null;
+};
+
+type CreatedMcpToken = McpToken & {
+  token: string;
+};
+
 const normalizeProviderType = (provider: string) =>
   provider === "claude" ? "anthropic" : provider;
 
@@ -38,8 +52,20 @@ export default function Config() {
   const [, setLocation] = useLocation();
   const [providers, setProviders] = useState<LlmProvider[]>([]);
   const [configurations, setConfigurations] = useState<Configuration[]>([]);
+  const [mcpTokens, setMcpTokens] = useState<McpToken[]>([]);
   const [activeTab, setActiveTab] = useState("llm");
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [revokeTokenId, setRevokeTokenId] = useState<string | null>(null);
+  const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
+  const [createdToken, setCreatedToken] = useState<CreatedMcpToken | null>(
+    null,
+  );
+  const [tokenName, setTokenName] = useState("");
+  const [tokenExpiry, setTokenExpiry] = useState("90");
+  const [tokenScopes, setTokenScopes] = useState({
+    read: true,
+    write: true,
+  });
 
   const { isOpen, onOpenChange } = useDisclosure();
   const [editingProvider, setEditingProvider] = useState<LlmProvider | null>(
@@ -91,11 +117,93 @@ export default function Config() {
     }
   };
 
+  const fetchMcpTokens = async () => {
+    try {
+      const res = await authorizedRequest("/mcp/tokens/list", {
+        method: "POST",
+      });
+      if (!res.ok) {
+        if (res.status === 401) setLocation(ROUTE_LOGIN);
+        return;
+      }
+      setMcpTokens((await res.json()) as McpToken[]);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     fetchProviders();
     fetchConfigurations();
+    fetchMcpTokens();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleCreateMcpToken = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    const scopes = [
+      tokenScopes.read ? "dictionary:read" : "",
+      tokenScopes.write ? "dictionary:write" : "",
+    ].filter(Boolean);
+    if (scopes.length === 0) {
+      addToast({
+        title: "Select at least one permission",
+        color: "warning",
+      });
+      return;
+    }
+
+    try {
+      const res = await authorizedRequest("/mcp/tokens/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: tokenName.trim(),
+          scopes,
+          expires_in_days: tokenExpiry === "never" ? null : Number(tokenExpiry),
+        }),
+      });
+      await ensureOk(res, "Create MCP token");
+      const token = (await res.json()) as CreatedMcpToken;
+      setTokenDialogOpen(false);
+      setCreatedToken(token);
+      setTokenName("");
+      await fetchMcpTokens();
+    } catch (err) {
+      addToast({
+        title: "Failed to create MCP token",
+        description: err instanceof Error ? err.message : String(err),
+        color: "danger",
+      });
+    }
+  };
+
+  const handleRevokeMcpToken = async () => {
+    if (!revokeTokenId) return;
+    try {
+      const res = await authorizedRequest("/mcp/tokens/revoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: revokeTokenId }),
+      });
+      await ensureOk(res, "Revoke MCP token");
+      addToast({ title: "MCP token revoked", color: "success" });
+      await fetchMcpTokens();
+    } catch (err) {
+      addToast({
+        title: "Failed to revoke MCP token",
+        description: err instanceof Error ? err.message : String(err),
+        color: "danger",
+      });
+    } finally {
+      setRevokeTokenId(null);
+    }
+  };
+
+  const formatTokenDate = (timestamp: number | null) =>
+    timestamp ? new Date(timestamp * 1000).toLocaleString() : "Never";
 
   const ensureOk = async (res: Response, action: string) => {
     if (!res.ok) {
@@ -336,6 +444,18 @@ export default function Config() {
         }}
       />
 
+      <ConfirmModal
+        title="Revoke this MCP token?"
+        open={!!revokeTokenId}
+        color="danger"
+        confirmLabel="Revoke"
+        cancelLabel="Cancel"
+        onChange={(open) => {
+          if (!open) setRevokeTokenId(null);
+        }}
+        onConfirm={handleRevokeMcpToken}
+      />
+
       <header className="app-settings-hero">
         <div className="app-library-eyebrow">Workspace / Settings</div>
         <div className="app-settings-hero-row">
@@ -391,7 +511,9 @@ export default function Config() {
                   <Card key={p.name} size="2" className="app-provider-card">
                     <Flex justify="between" align="start">
                       <Box>
-                        <div className="app-provider-kicker">Connected provider</div>
+                        <div className="app-provider-kicker">
+                          Connected provider
+                        </div>
                         <Text size="4" weight="bold" as="div">
                           {p.name}
                         </Text>
@@ -434,7 +556,10 @@ export default function Config() {
                 <div>
                   <div className="app-settings-section-kicker">Workspace</div>
                   <h2>General settings</h2>
-                  <p>Keep the shared integrations used by your workspace in one place.</p>
+                  <p>
+                    Keep the shared integrations used by your workspace in one
+                    place.
+                  </p>
                 </div>
               </div>
               <Card
@@ -445,113 +570,189 @@ export default function Config() {
                   backdropFilter: "none",
                 }}
               >
-          <form onSubmit={handleGeneralConfigSave}>
-            <Flex direction="column" gap="4">
-              <Text size="6" weight="bold" mb="2">
-                General Configurations
-              </Text>
-
-              <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">
-                  Telegram Bot Token (TELEGRAM_TOKEN)
-                </Text>
-                <TextField.Root
-                  name="TELEGRAM_TOKEN"
-                  type="password"
-                  defaultValue={
-                    configurations.find((c) => c.key === "TELEGRAM_TOKEN")
-                      ?.value || ""
-                  }
-                  placeholder="123456789:ABCDefghIJKlmnopQRSTuvwxYZ1234567890"
-                />
-              </Flex>
-
-              <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">
-                  Maintainer ID (MAINTAINER_ID)
-                </Text>
-                <Text size="1" color="gray">
-                  The primary admin user ID who receives cron messages and error
-                  reports.
-                </Text>
-                <TextField.Root
-                  name="MAINTAINER_ID"
-                  defaultValue={
-                    configurations.find((c) => c.key === "MAINTAINER_ID")
-                      ?.value || ""
-                  }
-                  placeholder="123456789"
-                />
-              </Flex>
-
-              <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">
-                  Allowed Users (ALLOW_USERS)
-                </Text>
-                <Text size="1" color="gray">
-                  Comma-separated list of allowed Telegram User IDs.
-                </Text>
-                <TextField.Root
-                  name="ALLOW_USERS"
-                  defaultValue={
-                    configurations.find((c) => c.key === "ALLOW_USERS")
-                      ?.value || ""
-                  }
-                  placeholder="123456789,987654321"
-                />
-              </Flex>
-
-              <Box mt="4">
-                <Card variant="surface" className="app-accent-panel">
-                  <Flex direction="column" gap="4" p="1">
-                    <Text size="3" weight="bold">
-                      Google Search Grounding
+                <form onSubmit={handleGeneralConfigSave}>
+                  <Flex direction="column" gap="4">
+                    <Text size="6" weight="bold" mb="2">
+                      General Configurations
                     </Text>
+
                     <Flex direction="column" gap="1">
                       <Text as="label" size="2" weight="bold">
-                        Google Custom Search API Key (GOOGLE_SEARCH_API_KEY)
+                        Telegram Bot Token (TELEGRAM_TOKEN)
                       </Text>
                       <TextField.Root
-                        name="GOOGLE_SEARCH_API_KEY"
+                        name="TELEGRAM_TOKEN"
                         type="password"
                         defaultValue={
-                          configurations.find(
-                            (c) => c.key === "GOOGLE_SEARCH_API_KEY",
-                          )?.value || ""
+                          configurations.find((c) => c.key === "TELEGRAM_TOKEN")
+                            ?.value || ""
                         }
-                        placeholder="AIza..."
+                        placeholder="123456789:ABCDefghIJKlmnopQRSTuvwxYZ1234567890"
                       />
                     </Flex>
+
                     <Flex direction="column" gap="1">
                       <Text as="label" size="2" weight="bold">
-                        Google Custom Search CX (GOOGLE_SEARCH_CX)
+                        Maintainer ID (MAINTAINER_ID)
+                      </Text>
+                      <Text size="1" color="gray">
+                        The primary admin user ID who receives cron messages and
+                        error reports.
                       </Text>
                       <TextField.Root
-                        name="GOOGLE_SEARCH_CX"
+                        name="MAINTAINER_ID"
                         defaultValue={
-                          configurations.find(
-                            (c) => c.key === "GOOGLE_SEARCH_CX",
-                          )?.value || ""
+                          configurations.find((c) => c.key === "MAINTAINER_ID")
+                            ?.value || ""
                         }
-                        placeholder="0123456789..."
+                        placeholder="123456789"
                       />
                     </Flex>
-                  </Flex>
-                </Card>
-              </Box>
 
-              <Flex justify="end" mt="4">
-                <Button
-                  color="gray"
-                  className="app-primary-action"
-                  type="submit"
-                  size="3"
-                >
-                  Save Configurations
-                </Button>
-              </Flex>
-            </Flex>
-          </form>
+                    <Flex direction="column" gap="1">
+                      <Text as="label" size="2" weight="bold">
+                        Allowed Users (ALLOW_USERS)
+                      </Text>
+                      <Text size="1" color="gray">
+                        Comma-separated list of allowed Telegram User IDs.
+                      </Text>
+                      <TextField.Root
+                        name="ALLOW_USERS"
+                        defaultValue={
+                          configurations.find((c) => c.key === "ALLOW_USERS")
+                            ?.value || ""
+                        }
+                        placeholder="123456789,987654321"
+                      />
+                    </Flex>
+
+                    <Box mt="4">
+                      <Card variant="surface" className="app-accent-panel">
+                        <Flex direction="column" gap="4" p="1">
+                          <Text size="3" weight="bold">
+                            Google Search Grounding
+                          </Text>
+                          <Flex direction="column" gap="1">
+                            <Text as="label" size="2" weight="bold">
+                              Google Custom Search API Key
+                              (GOOGLE_SEARCH_API_KEY)
+                            </Text>
+                            <TextField.Root
+                              name="GOOGLE_SEARCH_API_KEY"
+                              type="password"
+                              defaultValue={
+                                configurations.find(
+                                  (c) => c.key === "GOOGLE_SEARCH_API_KEY",
+                                )?.value || ""
+                              }
+                              placeholder="AIza..."
+                            />
+                          </Flex>
+                          <Flex direction="column" gap="1">
+                            <Text as="label" size="2" weight="bold">
+                              Google Custom Search CX (GOOGLE_SEARCH_CX)
+                            </Text>
+                            <TextField.Root
+                              name="GOOGLE_SEARCH_CX"
+                              defaultValue={
+                                configurations.find(
+                                  (c) => c.key === "GOOGLE_SEARCH_CX",
+                                )?.value || ""
+                              }
+                              placeholder="0123456789..."
+                            />
+                          </Flex>
+                        </Flex>
+                      </Card>
+                    </Box>
+
+                    <Flex justify="end" mt="4">
+                      <Button
+                        color="gray"
+                        className="app-primary-action"
+                        type="submit"
+                        size="3"
+                      >
+                        Save Configurations
+                      </Button>
+                    </Flex>
+                  </Flex>
+                </form>
+              </Card>
+
+              <Card
+                size="3"
+                className="app-settings-form mt-6"
+                style={{
+                  backgroundColor: "var(--color-panel-solid)",
+                  backdropFilter: "none",
+                }}
+              >
+                <Flex justify="between" align="start" gap="4" wrap="wrap">
+                  <Box>
+                    <Text size="6" weight="bold" as="div">
+                      MCP access tokens
+                    </Text>
+                    <Text size="2" color="gray" as="div" mt="1">
+                      Let connected LLM clients search and manage saved words.
+                      Tokens are shown only once.
+                    </Text>
+                  </Box>
+                  <Button
+                    color="gray"
+                    className="app-primary-action"
+                    onClick={() => {
+                      setTokenName("");
+                      setTokenExpiry("90");
+                      setTokenScopes({ read: true, write: true });
+                      setTokenDialogOpen(true);
+                    }}
+                  >
+                    Generate token
+                  </Button>
+                </Flex>
+
+                <Flex direction="column" gap="3" mt="5">
+                  {mcpTokens.length === 0 ? (
+                    <Text size="2" color="gray">
+                      No MCP tokens have been generated.
+                    </Text>
+                  ) : (
+                    mcpTokens.map((token) => (
+                      <Flex
+                        key={token.id}
+                        justify="between"
+                        align="start"
+                        gap="4"
+                        className="border-t border-[var(--app-line)] pt-3"
+                        wrap="wrap"
+                      >
+                        <Box>
+                          <Text weight="bold" as="div">
+                            {token.name}
+                          </Text>
+                          <Text size="1" color="gray" as="div">
+                            {token.scopes.join(", ")} · expires{" "}
+                            {formatTokenDate(token.expires_at)}
+                          </Text>
+                          <Text size="1" color="gray" as="div">
+                            Last used: {formatTokenDate(token.last_used_at)}
+                            {token.revoked_at ? " · Revoked" : ""}
+                          </Text>
+                        </Box>
+                        <Button
+                          size="1"
+                          color="red"
+                          variant="soft"
+                          disabled={!!token.revoked_at}
+                          onClick={() => setRevokeTokenId(token.id)}
+                        >
+                          Revoke
+                        </Button>
+                      </Flex>
+                    ))
+                  )}
+                </Flex>
               </Card>
             </div>
           )}
@@ -742,6 +943,130 @@ export default function Config() {
               </Button>
             </Flex>
           </form>
+        </Dialog.Content>
+      </Dialog.Root>
+
+      <Dialog.Root open={tokenDialogOpen} onOpenChange={setTokenDialogOpen}>
+        <Dialog.Content maxWidth="450px">
+          <form onSubmit={handleCreateMcpToken}>
+            <Dialog.Title>Generate MCP token</Dialog.Title>
+            <Text size="2" color="gray" as="p" mt="2">
+              Store this token in the LLM client configuration. It will not be
+              shown again after this dialog is closed.
+            </Text>
+            <Flex direction="column" gap="3" mt="4">
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">
+                  Name
+                </Text>
+                <TextField.Root
+                  value={tokenName}
+                  onChange={(event) => setTokenName(event.target.value)}
+                  placeholder="Claude dictionary assistant"
+                  required
+                />
+              </Flex>
+              <Flex direction="column" gap="2">
+                <Text as="label" size="2" weight="bold">
+                  Permissions
+                </Text>
+                <Flex align="center" gap="2">
+                  <Switch
+                    checked={tokenScopes.read}
+                    onCheckedChange={(checked) =>
+                      setTokenScopes((current) => ({
+                        ...current,
+                        read: checked,
+                      }))
+                    }
+                  />
+                  <Text size="2">dictionary:read</Text>
+                </Flex>
+                <Flex align="center" gap="2">
+                  <Switch
+                    checked={tokenScopes.write}
+                    onCheckedChange={(checked) =>
+                      setTokenScopes((current) => ({
+                        ...current,
+                        write: checked,
+                      }))
+                    }
+                  />
+                  <Text size="2">dictionary:write</Text>
+                </Flex>
+              </Flex>
+              <Flex direction="column" gap="1">
+                <Text as="label" size="2" weight="bold">
+                  Expiration
+                </Text>
+                <select
+                  value={tokenExpiry}
+                  onChange={(event) => setTokenExpiry(event.target.value)}
+                  className="app-native-select w-full"
+                >
+                  <option value="30">30 days</option>
+                  <option value="90">90 days</option>
+                  <option value="365">365 days</option>
+                  <option value="never">Never</option>
+                </select>
+              </Flex>
+            </Flex>
+            <Flex gap="3" mt="5" justify="end">
+              <Button
+                color="gray"
+                variant="soft"
+                type="button"
+                onClick={() => setTokenDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button color="gray" className="app-primary-action" type="submit">
+                Generate
+              </Button>
+            </Flex>
+          </form>
+        </Dialog.Content>
+      </Dialog.Root>
+
+      <Dialog.Root
+        open={!!createdToken}
+        onOpenChange={(open) => {
+          if (!open) setCreatedToken(null);
+        }}
+      >
+        <Dialog.Content maxWidth="520px">
+          <Dialog.Title>Token generated</Dialog.Title>
+          <Text size="2" color="gray" as="p" mt="2">
+            Copy this token now. For security, it is stored as a hash and will
+            not be displayed again.
+          </Text>
+          {createdToken && (
+            <>
+              <Box
+                mt="4"
+                p="3"
+                className="break-all rounded-md border border-[var(--app-line)] bg-[var(--app-subtle)] font-mono text-sm"
+              >
+                {createdToken.token}
+              </Box>
+              <Flex justify="between" align="center" mt="3" gap="3" wrap="wrap">
+                <Text size="1" color="gray">
+                  {createdToken.scopes.join(", ")} · expires{" "}
+                  {formatTokenDate(createdToken.expires_at)}
+                </Text>
+                <Button
+                  color="gray"
+                  className="app-primary-action"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(createdToken.token);
+                    addToast({ title: "Token copied", color: "success" });
+                  }}
+                >
+                  Copy token
+                </Button>
+              </Flex>
+            </>
+          )}
         </Dialog.Content>
       </Dialog.Root>
     </PageContainer>

@@ -153,7 +153,7 @@ jobs:
             ${{ runner.os }}-cargo-build-target-
 
       - name: Install worker-build
-        run: cargo install worker-build --version 0.8.3
+        run: cargo install worker-build --version 0.8.6
 
       - name: Build Worker
         run: npx wrangler build
@@ -264,20 +264,8 @@ jobs:
     
       - id: rename-binary-name
         run: |
-         cp target/${{ matrix.platform.target }}/release/lambda${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }} lambda-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
-         cp target/${{ matrix.platform.target }}/release/tg${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }} tg-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
          cp target/${{ matrix.platform.target }}/release/hj${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }} hj-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
 
-      - name: lambda-${{ matrix.platform.target }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: lambda-${{ matrix.platform.target }}
-          path: lambda-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
-      - name: tg-${{ matrix.platform.target }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: tg-${{ matrix.platform.target }}
-          path: tg-${{ matrix.platform.target }}${{ contains(matrix.platform.target, 'windows') && '.exe' || '' }}
       - name: hj-${{ matrix.platform.target }}
         uses: actions/upload-artifact@v7
         with:

@@ -134,7 +134,7 @@ impl Client {
             return Err(Error::Api(error_text));
         }
 
-        let stream = resp.bytes_stream();
+        let stream = bytes_stream(resp);
         Ok(SseStream {
             inner: stream,
             buffer: String::new(),
@@ -171,12 +171,28 @@ impl Client {
             return Err(Error::Api(error_text));
         }
 
-        let stream = resp.bytes_stream();
+        let stream = bytes_stream(resp);
         Ok(SseStream {
             inner: stream,
             buffer: String::new(),
             queue: VecDeque::new(),
         })
+    }
+}
+
+fn bytes_stream(
+    response: reqwest::Response,
+) -> Pin<Box<dyn Stream<Item = Result<bytes::Bytes, reqwest::Error>>>> {
+    #[cfg(target_arch = "wasm32")]
+    {
+        Box::pin(futures_util::stream::once(
+            async move { response.bytes().await },
+        ))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        Box::pin(response.bytes_stream())
     }
 }
 

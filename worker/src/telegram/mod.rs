@@ -3,8 +3,11 @@ use frankenstein::types::{CallbackQuery, Message, MessageEntityType};
 use frankenstein::updates::{Update, UpdateContent};
 use log::{error, warn};
 
+pub mod client;
 pub mod macros;
 pub mod utils;
+
+pub use client::{TelegramBotClient, TelegramClientError};
 
 #[async_trait(?Send)]
 pub trait TelegramBot {

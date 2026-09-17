@@ -9,12 +9,7 @@ import {
   Spoiler,
 } from "@/components";
 import { addToast } from "@/components";
-import {
-  Button,
-  Badge,
-  DropdownMenu,
-  Spinner,
-} from "@radix-ui/themes";
+import { Button, Badge, DropdownMenu, Spinner } from "@radix-ui/themes";
 import {
   motion,
   PanInfo,
@@ -24,10 +19,25 @@ import {
   useReducedMotion,
   useTransform,
 } from "framer-motion";
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { EmptyState } from "@/ui/EmptyState";
-import { ArrowLeft, ArrowRight, Check, Layers3, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Layers3,
+  RotateCcw,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 
 type ReviewCardMotionProps = {
   currentWord: ListWordResponse;
@@ -42,14 +52,13 @@ type ReviewCardMotionHandle = {
   swipe: (action: "know" | "skip") => Promise<void>;
 };
 
-const ReviewCardMotion = forwardRef<ReviewCardMotionHandle, ReviewCardMotionProps>(function ReviewCardMotion({
-  currentWord,
-  page,
-  total,
-  shouldReduceMotion,
-  onSwipe,
-  onPriorityChange,
-}, ref) {
+const ReviewCardMotion = forwardRef<
+  ReviewCardMotionHandle,
+  ReviewCardMotionProps
+>(function ReviewCardMotion(
+  { currentWord, page, total, shouldReduceMotion, onSwipe, onPriorityChange },
+  ref,
+) {
   const controls = useAnimation();
   const dragControls = useDragControls();
   const dragX = useMotionValue(0);
@@ -80,29 +89,32 @@ const ReviewCardMotion = forwardRef<ReviewCardMotionHandle, ReviewCardMotionProp
     }
   };
 
-  const handleSwipe = useCallback(async (action: "know" | "skip") => {
-    if (isAnimating.current) return;
-    isAnimating.current = true;
+  const handleSwipe = useCallback(
+    async (action: "know" | "skip") => {
+      if (isAnimating.current) return;
+      isAnimating.current = true;
 
-    try {
-      const canAdvance = page < total;
-      const exitX = action === "know" ? 500 : -500;
+      try {
+        const canAdvance = page < total;
+        const exitX = action === "know" ? 500 : -500;
 
-      if (canAdvance) {
-        await controls.start({ x: exitX, opacity: 0 });
-      } else {
-        await controls.start({ x: exitX > 0 ? 56 : -56, opacity: 0.85 });
+        if (canAdvance) {
+          await controls.start({ x: exitX, opacity: 0 });
+        } else {
+          await controls.start({ x: exitX > 0 ? 56 : -56, opacity: 0.85 });
+        }
+
+        await onSwipe(action);
+
+        if (!canAdvance) {
+          await controls.start({ x: 0, y: 0, opacity: 1, scale: 1 });
+        }
+      } finally {
+        isAnimating.current = false;
       }
-
-      await onSwipe(action);
-
-      if (!canAdvance) {
-        await controls.start({ x: 0, y: 0, opacity: 1, scale: 1 });
-      }
-    } finally {
-      isAnimating.current = false;
-    }
-  }, [controls, onSwipe, page, total]);
+    },
+    [controls, onSwipe, page, total],
+  );
 
   useImperativeHandle(ref, () => ({ swipe: handleSwipe }), [handleSwipe]);
 
@@ -114,7 +126,9 @@ const ReviewCardMotion = forwardRef<ReviewCardMotionHandle, ReviewCardMotionProp
 
   return (
     <motion.div
-      initial={shouldReduceMotion ? false : { opacity: 1, x: 0, y: 0, scale: 1 }}
+      initial={
+        shouldReduceMotion ? false : { opacity: 1, x: 0, y: 0, scale: 1 }
+      }
       animate={controls}
       transition={{ duration: 0.16 }}
       drag="x"
@@ -127,57 +141,123 @@ const ReviewCardMotion = forwardRef<ReviewCardMotionHandle, ReviewCardMotionProp
       onDragEnd={handleDragEnd}
       style={{ touchAction: "pan-y" }}
       className="app-review-card-wrap"
-      onTapStart={() => { longPressTimer.current = setTimeout(handleLongPress, 800); }}
-      onTapCancel={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
-      onTap={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
-      onDragStart={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); }}
+      onTapStart={() => {
+        longPressTimer.current = setTimeout(handleLongPress, 800);
+      }}
+      onTapCancel={() => {
+        if (longPressTimer.current) clearTimeout(longPressTimer.current);
+      }}
+      onTap={() => {
+        if (longPressTimer.current) clearTimeout(longPressTimer.current);
+      }}
+      onDragStart={() => {
+        if (longPressTimer.current) clearTimeout(longPressTimer.current);
+      }}
     >
-      <motion.div className="app-review-swipe-feedback app-review-swipe-feedback-right" style={{ opacity: opacityRight }}><Check size={42} /></motion.div>
-      <motion.div className="app-review-swipe-feedback app-review-swipe-feedback-left" style={{ opacity: opacityLeft }}><X size={42} /></motion.div>
+      <motion.div
+        className="app-review-swipe-feedback app-review-swipe-feedback-right"
+        style={{ opacity: opacityRight }}
+      >
+        <Check size={42} />
+      </motion.div>
+      <motion.div
+        className="app-review-swipe-feedback app-review-swipe-feedback-left"
+        style={{ opacity: opacityLeft }}
+      >
+        <X size={42} />
+      </motion.div>
 
       <article
         className="app-review-card"
         onPointerDown={(event) => {
           const target = event.target as HTMLElement;
-          if (target.closest("a,button,input,textarea,select,[role='menuitem'],[data-radix-collection-item]")) return;
+          if (
+            target.closest(
+              "a,button,input,textarea,select,[role='menuitem'],[data-radix-collection-item]",
+            )
+          )
+            return;
           dragControls.start(event);
         }}
       >
         <header className="app-review-card-header">
           <div>
             <h2>{currentWord.word}</h2>
-            <span>Added {new Date(currentWord.update_time * 1000).toLocaleDateString()}</span>
+            <span>
+              Added{" "}
+              {new Date(currentWord.update_time * 1000).toLocaleDateString()}
+            </span>
           </div>
           <div className="app-review-card-meta">
-            <span>Review {new Date(currentWord.reminder_time * 1000).toLocaleDateString()}</span>
+            <span>
+              Review{" "}
+              {new Date(currentWord.reminder_time * 1000).toLocaleDateString()}
+            </span>
             <DropdownMenu.Root modal={false}>
               <DropdownMenu.Trigger>
-                <Badge size="1" variant="soft" color={currentWord.priority === 0 ? "green" : currentWord.priority === 1 ? "orange" : "red"}>
+                <Badge
+                  size="1"
+                  variant="soft"
+                  color={
+                    currentWord.priority === 0
+                      ? "green"
+                      : currentWord.priority === 1
+                        ? "orange"
+                        : "red"
+                  }
+                >
                   {getPriorityText(currentWord.priority)}
                 </Badge>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content>
-                <DropdownMenu.Item color="green" onSelect={() => onPriorityChange("0")}>Low</DropdownMenu.Item>
-                <DropdownMenu.Item color="orange" onSelect={() => onPriorityChange("1")}>Medium</DropdownMenu.Item>
-                <DropdownMenu.Item color="red" onSelect={() => onPriorityChange("2")}>High</DropdownMenu.Item>
+                <DropdownMenu.Item
+                  color="green"
+                  onSelect={() => onPriorityChange("0")}
+                >
+                  Low
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  color="orange"
+                  onSelect={() => onPriorityChange("1")}
+                >
+                  Medium
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  color="red"
+                  onSelect={() => onPriorityChange("2")}
+                >
+                  High
+                </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
           </div>
         </header>
 
         {currentWord.example && (
-          <section className="app-review-example prose"><Markdown>{currentWord.example}</Markdown></section>
+          <section className="app-review-example prose">
+            <Markdown>{currentWord.example}</Markdown>
+          </section>
         )}
         <section className="app-review-meaning">
           <div className="app-word-section-label">Meaning</div>
-          <Spoiler flex className="app-review-spoiler" containerClassName="!p-0">
-            <div className="prose app-review-meaning-content"><Markdown>{currentWord.explain}</Markdown></div>
+          <Spoiler
+            flex
+            className="app-review-spoiler"
+            containerClassName="!p-0"
+          >
+            <div className="prose app-review-meaning-content">
+              <Markdown>{currentWord.explain}</Markdown>
+            </div>
           </Spoiler>
         </section>
 
         <footer className="app-review-card-footer">
-          <span><RotateCcw size={14} /> Long press to copy</span>
-          <span>Card {page} / {total}</span>
+          <span>
+            <RotateCcw size={14} /> Long press to copy
+          </span>
+          <span>
+            Card {page} / {total}
+          </span>
         </footer>
       </article>
     </motion.div>
@@ -312,17 +392,22 @@ export default function Flashcard() {
             <span>of {total || 0} cards</span>
           </div>
           <div className="app-review-progress-track" aria-hidden="true">
-            <span style={{ width: `${total > 0 ? Math.min((page / total) * 100, 100) : 0}%` }} />
+            <span
+              style={{
+                width: `${total > 0 ? Math.min((page / total) * 100, 100) : 0}%`,
+              }}
+            />
           </div>
         </div>
       </header>
 
       <div className="app-review-toolbar">
         <DropdownMenu.Root modal={false}>
-          <DropdownMenu.Trigger asChild disabled={loading && wordsMap.size === 0}>
-            <Button variant="ghost" className="app-review-control">
-              <SlidersHorizontal size={16} /> {orderBy.replace("_", " ")}
-            </Button>
+          <DropdownMenu.Trigger disabled={loading && wordsMap.size === 0}>
+            <button type="button" className="app-review-control">
+              <SlidersHorizontal size={16} />
+              <span>{orderBy.replace("_", " ")}</span>
+            </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Content>
             <DropdownMenu.Label>Sort review by</DropdownMenu.Label>
@@ -333,24 +418,50 @@ export default function Flashcard() {
               ["reminder_time", "Reminder date"],
               ["anki_count desc", "Review count"],
             ].map(([value, label]) => (
-              <DropdownMenu.RadioItem key={value} value={value} onSelect={() => { setOrderBy(value); setPage(1); }}>
+              <DropdownMenu.RadioItem
+                key={value}
+                value={value}
+                onSelect={() => {
+                  setOrderBy(value);
+                  setPage(1);
+                }}
+              >
                 {label}
               </DropdownMenu.RadioItem>
             ))}
           </DropdownMenu.Content>
         </DropdownMenu.Root>
         <DropdownMenu.Root modal={false}>
-          <DropdownMenu.Trigger asChild disabled={loading && wordsMap.size === 0}>
-            <Button variant="ghost" className="app-review-control">
-              <Layers3 size={16} /> {grammar ? "Grammar" : "Words"}
-            </Button>
+          <DropdownMenu.Trigger disabled={loading && wordsMap.size === 0}>
+            <button type="button" className="app-review-control">
+              <Layers3 size={16} />
+              <span>{grammar ? "Grammar" : "Words"}</span>
+            </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Content>
-            <DropdownMenu.RadioItem value="word" onSelect={() => { setGrammar(false); setPage(1); }}>Words</DropdownMenu.RadioItem>
-            <DropdownMenu.RadioItem value="grammar" onSelect={() => { setGrammar(true); setPage(1); }}>Grammar</DropdownMenu.RadioItem>
+            <DropdownMenu.RadioItem
+              value="word"
+              onSelect={() => {
+                setGrammar(false);
+                setPage(1);
+              }}
+            >
+              Words
+            </DropdownMenu.RadioItem>
+            <DropdownMenu.RadioItem
+              value="grammar"
+              onSelect={() => {
+                setGrammar(true);
+                setPage(1);
+              }}
+            >
+              Grammar
+            </DropdownMenu.RadioItem>
           </DropdownMenu.Content>
         </DropdownMenu.Root>
-        <span className="app-review-toolbar-hint">Drag a card or use the buttons below.</span>
+        <span className="app-review-toolbar-hint">
+          Drag a card or use the buttons below.
+        </span>
       </div>
 
       <div className="app-review-stage">
@@ -381,13 +492,26 @@ export default function Flashcard() {
 
       {currentWord && (
         <div className="app-review-actions">
-          <Button className="app-review-skip" variant="ghost" onClick={() => reviewCardRef.current?.swipe("skip")}>
+          <Button
+            className="app-review-skip"
+            variant="ghost"
+            onClick={() => reviewCardRef.current?.swipe("skip")}
+          >
             <X size={17} /> Skip
           </Button>
-          <button type="button" className="app-review-back" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} aria-label="Previous card">
+          <button
+            type="button"
+            className="app-review-back"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            aria-label="Previous card"
+          >
             <ArrowLeft size={18} />
           </button>
-          <Button className="app-review-know" onClick={() => reviewCardRef.current?.swipe("know")}>
+          <Button
+            className="app-review-know"
+            onClick={() => reviewCardRef.current?.swipe("know")}
+          >
             Know <ArrowRight size={17} />
           </Button>
         </div>

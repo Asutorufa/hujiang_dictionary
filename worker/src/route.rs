@@ -12,7 +12,8 @@ use subtle::ConstantTimeEq;
 use crate::{
     ai::{self, Translator},
     d1::{Count, Error as D1Error, Queries, Word, list_word_query},
-    opts::RunOpt,
+    mcp,
+    opts::WorkerState,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -203,7 +204,7 @@ impl UnifiedResponse {
     }
 }
 
-impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
+impl WorkerState {
     pub fn create_token(&self) -> Result<String, String> {
         let expiration = Utc::now()
             .checked_add_signed(Duration::days(self.auth_token_expiration))
@@ -285,6 +286,24 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
                     Ok(resp) => Ok(UnifiedResponse::json(serde_json::to_vec(&resp)?)),
                     Err((msg, status)) => Ok(UnifiedResponse::error(status, msg)),
                 }
+            }
+            "/mcp/tokens/list" | "/mcp/tokens/create" | "/mcp/tokens/revoke" => {
+                if method != "POST" {
+                    return Ok(UnifiedResponse::error(
+                        405,
+                        "Method not allowed".to_string(),
+                    ));
+                }
+                if let Err(e) = self.check_auth(auth_header) {
+                    return Ok(UnifiedResponse::error(401, e));
+                }
+                let response = match path {
+                    "/mcp/tokens/list" => self.list_mcp_tokens().await,
+                    "/mcp/tokens/create" => self.create_mcp_token(body).await,
+                    "/mcp/tokens/revoke" => self.revoke_mcp_token(body).await,
+                    _ => unreachable!(),
+                }?;
+                Ok(UnifiedResponse::json(response))
             }
             "/tgbot/register" => {
                 if let Err(e) = self.check_auth(auth_header) {
@@ -500,6 +519,32 @@ impl<T1: DatabaseExecutor, T2: Translator> RunOpt<T1, T2> {
             .map_err(|e| Error::Internal(e.to_string()))?;
         cache.last_updated = 0; // Invalidate cache
 
+        Ok([b'{', b'}'].to_vec())
+    }
+
+    pub async fn list_mcp_tokens(&self) -> Result<Vec<u8>, Error> {
+        let tokens = mcp::list_tokens(self).await.map_err(Error::Internal)?;
+        Ok(serde_json::to_vec(&tokens)?)
+    }
+
+    pub async fn create_mcp_token(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        let request = serde_json::from_slice::<mcp::CreateTokenRequest>(&body)?;
+        let token = mcp::create_token(self, request)
+            .await
+            .map_err(Error::Internal)?;
+        Ok(serde_json::to_vec(&token)?)
+    }
+
+    pub async fn revoke_mcp_token(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        #[derive(Deserialize)]
+        struct Request {
+            id: String,
+        }
+
+        let request = serde_json::from_slice::<Request>(&body)?;
+        mcp::revoke_token(self, &request.id)
+            .await
+            .map_err(Error::Internal)?;
         Ok([b'{', b'}'].to_vec())
     }
 

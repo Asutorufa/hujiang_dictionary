@@ -1,19 +1,16 @@
 name = "dictdeck"
 main = "worker/build/worker/shim.mjs"
-compatibility_date = "2023-03-22"
+compatibility_date = "2026-09-17"
 
 [build]
 command = "worker-build --release"
 cwd = "worker"
 
 [vars]
-TELEGRAM_TOKEN = ""
-ALLOW_USERS = ""
-MAINTAINER_ID = ""          # send random word to the chat id when cron job run
 AUTH_USERNAME = ""
 AUTH_PASSWORD = ""
-AUTH_SECRET = "test"
 AUTH_TOKEN_EXPIRATION = "1" # in days
+MCP_ALLOWED_ORIGINS = ""
 
 [ai]
 binding = "AI"
@@ -39,13 +36,11 @@ binding = "ASSETS"
 [env.dev]
 
 [env.dev.vars]
-TELEGRAM_TOKEN = ""
-ALLOW_USERS = ""
-MAINTAINER_ID = ""          # send random word to the chat id when cron job run
 AUTH_USERNAME = "admin"
 AUTH_PASSWORD = "password"
 AUTH_SECRET = "test"
 AUTH_TOKEN_EXPIRATION = "1" # in days
+MCP_ALLOWED_ORIGINS = ""
 [env.dev.ai]
 binding = "AI"
 [[env.dev.d1_databases]]
@@ -86,7 +81,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
 rustup target add wasm32-unknown-unknown && \
 npm install --prefix web && \
 npm run build --prefix web && \
-cargo install -q worker-build && \
+cargo install -q worker-build --version 0.8.6 && \
 cd worker && worker-build --release"""
 [[env.ci.d1_databases]]
 binding = "DB"

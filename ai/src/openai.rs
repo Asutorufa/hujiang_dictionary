@@ -98,7 +98,7 @@ impl OpenAI {
             return Err(Error::Api(format!("HTTP error {}: {}", status, err_msg)));
         }
 
-        let stream = resp.bytes_stream();
+        let stream = crate::http::bytes_stream(resp);
 
         Ok(futures_util::stream::unfold(
             (stream, String::new()),

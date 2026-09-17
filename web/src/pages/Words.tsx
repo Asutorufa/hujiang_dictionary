@@ -125,25 +125,46 @@ export default function Words() {
               />
             </div>
             <DropdownMenu.Root modal={false}>
-              <DropdownMenu.Trigger asChild>
+              <DropdownMenu.Trigger>
                 <button type="button" className="app-library-control">
-                  <SlidersHorizontal size={16} /> Filter
+                  <SlidersHorizontal size={16} />
+                  <span>Filter</span>
                 </button>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content>
                 <DropdownMenu.Label>Sort by</DropdownMenu.Label>
-                <DropdownMenu.RadioGroup value={orderBy} onValueChange={setOrderBy}>
-                  <DropdownMenu.RadioItem value="word">Word (A–Z)</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="word desc">Word (Z–A)</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="priority desc">Priority</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="add_time desc">Recently added</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="anki_count desc">Most reviewed</DropdownMenu.RadioItem>
+                <DropdownMenu.RadioGroup
+                  value={orderBy}
+                  onValueChange={setOrderBy}
+                >
+                  <DropdownMenu.RadioItem value="word">
+                    Word (A–Z)
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="word desc">
+                    Word (Z–A)
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="priority desc">
+                    Priority
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="add_time desc">
+                    Recently added
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="anki_count desc">
+                    Most reviewed
+                  </DropdownMenu.RadioItem>
                 </DropdownMenu.RadioGroup>
                 <DropdownMenu.Separator />
                 <DropdownMenu.Label>Show</DropdownMenu.Label>
-                <DropdownMenu.RadioGroup value={grammar ? "grammar" : "words"} onValueChange={(v) => setGrammar(v === "grammar")}>
-                  <DropdownMenu.RadioItem value="words">Words</DropdownMenu.RadioItem>
-                  <DropdownMenu.RadioItem value="grammar">Grammar</DropdownMenu.RadioItem>
+                <DropdownMenu.RadioGroup
+                  value={grammar ? "grammar" : "words"}
+                  onValueChange={(v) => setGrammar(v === "grammar")}
+                >
+                  <DropdownMenu.RadioItem value="words">
+                    Words
+                  </DropdownMenu.RadioItem>
+                  <DropdownMenu.RadioItem value="grammar">
+                    Grammar
+                  </DropdownMenu.RadioItem>
                 </DropdownMenu.RadioGroup>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
@@ -151,13 +172,30 @@ export default function Words() {
               type="button"
               className="app-library-add"
               onClick={() => {
-                setNewWord({ new: { word: "", example: "", explain: "", add_time: 0, update_time: 0, reminder_time: 0, anki_count: 0, priority: 0, type: 0 } });
+                setNewWord({
+                  new: {
+                    word: "",
+                    example: "",
+                    explain: "",
+                    add_time: 0,
+                    update_time: 0,
+                    reminder_time: 0,
+                    anki_count: 0,
+                    priority: 0,
+                    type: 0,
+                  },
+                });
                 setOpen(true);
               }}
             >
               <Plus size={17} /> Add word
             </button>
-            <button type="button" className="app-library-icon-button" onClick={() => setRefresh((r) => r + 1)} aria-label="Refresh vocabulary">
+            <button
+              type="button"
+              className="app-library-icon-button"
+              onClick={() => setRefresh((r) => r + 1)}
+              aria-label="Refresh vocabulary"
+            >
               <RefreshCw size={17} />
             </button>
           </div>
@@ -166,7 +204,9 @@ export default function Words() {
         <div className="app-library-list-heading">
           <div>
             <h2>{grammar ? "Grammar notes" : "Saved vocabulary"}</h2>
-            <span>Review, edit, or adjust a word without leaving the list.</span>
+            <span>
+              Review, edit, or adjust a word without leaving the list.
+            </span>
           </div>
           <span>{words.length} shown</span>
         </div>

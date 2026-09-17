@@ -1,20 +1,21 @@
-use crate::ai::Models;
 use crate::d1::Queries;
-use crate::{ai::Translator, opts::RunOpt};
+use crate::telegram::{
+    TelegramBot, TelegramBotClient,
+    utils::{html_escape, markdown_escape, split_message, vec_string_markdown_escape},
+};
+use crate::{
+    ai::{Models, Translator},
+    opts::WorkerState,
+};
 use async_trait::async_trait;
 use core::fmt;
 use d1_orm::DatabaseExecutor;
 use frankenstein::AsyncTelegramApi;
-use frankenstein::client_reqwest::Bot;
 use frankenstein::methods::{SendMessageParams, SetMyCommandsParams, SetWebhookParams};
 use frankenstein::types::{ChatId, LinkPreviewOptions, MaybeInaccessibleMessage};
 use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use log::*;
 use std::sync::Arc;
-use tg_bot_worker::{
-    TelegramBot,
-    utils::{html_escape, markdown_escape, split_message, vec_string_markdown_escape},
-};
 
 macro_rules! llm_parser {
     ($variant:ident) => {
@@ -57,7 +58,7 @@ macro_rules! gg_parser {
     };
 }
 
-tg_bot_worker::bot_commands! {
+crate::bot_commands! {
     #[derive(Debug, PartialEq, Eq)]
     pub enum Command {
         #[command(name = "jpcn", desc = "jp -> cn")]
@@ -247,12 +248,12 @@ pub enum CallbackQueryCommand {
     Remove(String),
 }
 
-pub struct BotHandler<T: DatabaseExecutor, T2: Translator> {
-    pub opt: Arc<RunOpt<T, T2>>,
+pub struct BotHandler {
+    pub opt: Arc<WorkerState>,
 }
 
 #[async_trait(?Send)]
-impl<T: DatabaseExecutor, T2: Translator> TelegramBot for BotHandler<T, T2> {
+impl TelegramBot for BotHandler {
     type Error = Error;
 
     async fn handle_command(
@@ -285,8 +286,8 @@ impl<T: DatabaseExecutor, T2: Translator> TelegramBot for BotHandler<T, T2> {
     }
 }
 
-pub async fn handle<T: DatabaseExecutor, T2: Translator>(
-    opt: Arc<RunOpt<T, T2>>,
+pub async fn handle(
+    opt: Arc<WorkerState>,
     update: frankenstein::updates::Update,
 ) -> Result<(), Error> {
     let handler = BotHandler { opt };
@@ -304,12 +305,6 @@ impl fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-impl From<frankenstein::Error> for Error {
-    fn from(value: frankenstein::Error) -> Self {
-        Error(value.to_string())
-    }
-}
-
 pub fn parse_callback_query_command(
     command: &str,
     argument: &str,
@@ -323,11 +318,7 @@ pub fn parse_callback_query_command(
     }
 }
 
-pub async fn llm_answer<T: DatabaseExecutor, T2: Translator>(
-    opt: Arc<RunOpt<T, T2>>,
-    model: Models,
-    v: String,
-) -> (String, String) {
+pub async fn llm_answer(opt: Arc<WorkerState>, model: Models, v: String) -> (String, String) {
     if let Some(ai) = opt.workers_ai.as_ref() {
         let req = crate::ai::TranslateRequest {
             model: model.as_str(),
@@ -347,8 +338,8 @@ pub async fn llm_answer<T: DatabaseExecutor, T2: Translator>(
     }
 }
 
-pub async fn answer<T: DatabaseExecutor, T2: Translator>(
-    opt: Arc<RunOpt<T, T2>>,
+pub async fn answer(
+    opt: Arc<WorkerState>,
     msg: Box<frankenstein::types::Message>,
     cmd: Command,
 ) -> Result<(), Error> {
@@ -580,8 +571,8 @@ pub async fn answer<T: DatabaseExecutor, T2: Translator>(
     Ok(())
 }
 
-pub async fn callback_query<T: DatabaseExecutor, T2: Translator>(
-    opt: Arc<RunOpt<T, T2>>,
+pub async fn callback_query(
+    opt: Arc<WorkerState>,
     call_query: Box<frankenstein::types::CallbackQuery>,
     command: CallbackQueryCommand,
 ) -> Result<(), Error> {
@@ -692,9 +683,7 @@ pub async fn callback_query<T: DatabaseExecutor, T2: Translator>(
     Ok(())
 }
 
-pub async fn send_random_word<T: DatabaseExecutor, T2: Translator>(
-    opt: Arc<RunOpt<T, T2>>,
-) -> Result<(), Error> {
+pub async fn send_random_word(opt: Arc<WorkerState>) -> Result<(), Error> {
     let reply = match crate::d1::random_word(&opt.d1).await {
         Err(e) => e.to_string(),
         Ok(v) => {
@@ -723,7 +712,7 @@ pub async fn send_random_word<T: DatabaseExecutor, T2: Translator>(
     Ok(())
 }
 
-pub async fn set_webhook(bot: &Bot, url: &str, matainer: i64) -> Result<(), Error> {
+pub async fn set_webhook(bot: &TelegramBotClient, url: &str, matainer: i64) -> Result<(), Error> {
     info!("Registering webhook: {}", url);
 
     bot.set_my_commands(
