@@ -1,4 +1,4 @@
-use crate::{Completion, Message, openai, openai_responses};
+use crate::{Completion, Message, codex, openai, openai_responses};
 use futures_util::StreamExt;
 use mockito::Server;
 
@@ -440,5 +440,67 @@ async fn test_openai_responses_completion_stream_success() {
     assert_eq!(full_content, "Hello world");
     assert_eq!(full_thinking, "");
 
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_codex_completion_stream_success() {
+    let mut server = Server::new_async().await;
+
+    let mock_response = "event: response.output_text.delta\n\
+                         data: {\"type\":\"response.output_text.delta\",\"delta\":\"Hello\"}\n\n\
+                         event: response.reasoning_summary_text.delta\n\
+                         data: {\"type\":\"response.reasoning_summary_text.delta\",\"delta\":\"Thinking\"}\n\n\
+                         event: response.completed\n\
+                         data: {\"type\":\"response.completed\"}\n\n";
+
+    let mock = server
+        .mock("POST", "/backend-api/codex/responses")
+        .match_header("authorization", "Bearer oauth-token")
+        .match_header("chatgpt-account-id", "acct_test")
+        .match_header("openai-beta", "responses=experimental")
+        .match_header("accept", "text/event-stream")
+        .match_body(mockito::Matcher::JsonString(
+            r#"{"model":"gpt-5.4","store":false,"stream":true,"instructions":"Translate this","input":[{"role":"user","content":[{"type":"input_text","text":"Hello"}]}],"text":{"verbosity":"low"},"include":["reasoning.encrypted_content"],"parallel_tool_calls":true}"#.to_string(),
+        ))
+        .with_status(200)
+        .with_header("content-type", "text/event-stream")
+        .with_body(mock_response)
+        .create_async()
+        .await;
+
+    let provider = codex::OpenAICodex {
+        base_url: format!("{}/backend-api", server.url()),
+        api_key: "oauth-token".to_string(),
+        account_id: "acct_test".to_string(),
+        model: "gpt-5.4".to_string(),
+        ..Default::default()
+    };
+
+    let messages = vec![
+        Message {
+            role: "system".to_string(),
+            content: "Translate this".to_string(),
+        },
+        Message {
+            role: "user".to_string(),
+            content: "Hello".to_string(),
+        },
+    ];
+
+    let stream = provider.completion_stream(messages).await.unwrap();
+    futures_util::pin_mut!(stream);
+    let mut content = String::new();
+    let mut thinking = String::new();
+    while let Some(result) = stream.next().await {
+        let chunk = result.unwrap();
+        content.push_str(&chunk.content);
+        if let Some(value) = chunk.thinking {
+            thinking.push_str(&value);
+        }
+    }
+
+    assert_eq!(content, "Hello");
+    assert_eq!(thinking, "Thinking");
     mock.assert_async().await;
 }

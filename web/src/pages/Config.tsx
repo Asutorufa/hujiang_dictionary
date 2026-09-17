@@ -49,7 +49,42 @@ type CreatedMcpToken = McpToken & {
 };
 
 const normalizeProviderType = (provider: string) =>
-  provider === "claude" ? "anthropic" : provider;
+  provider === "claude"
+    ? "anthropic"
+    : provider === "openai-codex"
+      ? "codex"
+      : provider;
+
+const providerLabel = (provider: string) =>
+  normalizeProviderType(provider) === "codex"
+    ? "OpenAI Codex (ChatGPT)"
+    : normalizeProviderType(provider);
+
+const isCodexConnected = (provider: LlmProvider | null) => {
+  if (!provider || normalizeProviderType(provider.provider) !== "codex") {
+    return false;
+  }
+  try {
+    const features = JSON.parse(provider.features || "{}") as {
+      oauth?: { connected?: boolean };
+    };
+    return features.oauth?.connected === true;
+  } catch {
+    return false;
+  }
+};
+
+type CodexLoginState = {
+  state: string;
+  user_code: string;
+  verification_url: string;
+  interval_seconds: number;
+};
+
+type CodexPollResponse = {
+  status: "pending" | "connected";
+  retry_after_seconds?: number;
+};
 
 export default function Config() {
   const [, setLocation] = useLocation();
@@ -84,6 +119,8 @@ export default function Config() {
     useState<string>("2023-06-01");
   const [thinkingEnabled, setThinkingEnabled] = useState<boolean>(false);
   const [thinkingBudget, setThinkingBudget] = useState<string>("1024");
+  const [codexLogin, setCodexLogin] = useState<CodexLoginState | null>(null);
+  const [codexLoginLoading, setCodexLoginLoading] = useState(false);
 
   const fetchProviders = async () => {
     setProvidersLoading(true);
@@ -139,12 +176,78 @@ export default function Config() {
     }
   };
 
+  const ensureOk = async (res: Response, action: string) => {
+    if (!res.ok) {
+      throw new Error(`${action} failed (${res.status}): ${await res.text()}`);
+    }
+  };
+
   useEffect(() => {
     fetchProviders();
     fetchConfigurations();
     fetchMcpTokens();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!codexLogin) return;
+
+    let cancelled = false;
+    const wait = (milliseconds: number) =>
+      new Promise<void>((resolve) => {
+        window.setTimeout(resolve, milliseconds);
+      });
+
+    const poll = async () => {
+      try {
+        let retryAfter = Math.max(1, codexLogin.interval_seconds);
+        while (!cancelled) {
+          await wait(retryAfter * 1000);
+          if (cancelled) return;
+
+          const res = await authorizedRequest("/llm/codex/poll", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ state: codexLogin.state }),
+          });
+          await ensureOk(res, "Check Codex sign-in");
+          const result = (await res.json()) as CodexPollResponse;
+
+          if (result.status === "connected") {
+            setCodexLogin(null);
+            addToast({
+              title: "OpenAI Codex connected",
+              description: "Your ChatGPT credentials are stored securely.",
+              color: "success",
+            });
+            onOpenChange(false);
+            await fetchProviders();
+            return;
+          }
+
+          retryAfter = Math.max(
+            1,
+            result.retry_after_seconds || codexLogin.interval_seconds,
+          );
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setCodexLogin(null);
+          addToast({
+            title: "Codex sign-in failed",
+            description: err instanceof Error ? err.message : String(err),
+            color: "danger",
+          });
+        }
+      }
+    };
+
+    void poll();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codexLogin?.state]);
 
   const handleCreateMcpToken = async (
     event: React.FormEvent<HTMLFormElement>,
@@ -212,12 +315,6 @@ export default function Config() {
   const formatTokenDate = (timestamp: number | null) =>
     timestamp ? new Date(timestamp * 1000).toLocaleString() : "Never";
 
-  const ensureOk = async (res: Response, action: string) => {
-    if (!res.ok) {
-      throw new Error(`${action} failed (${res.status}): ${await res.text()}`);
-    }
-  };
-
   const handleDelete = (name: string) => {
     setDeleteTarget(name);
   };
@@ -228,6 +325,41 @@ export default function Config() {
     const data = Object.fromEntries(
       formData.entries(),
     ) as unknown as LlmProvider;
+
+    if (data.provider === "codex" && !isCodexConnected(editingProvider)) {
+      try {
+        setCodexLoginLoading(true);
+        const res = await authorizedRequest("/llm/codex/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: data.name.trim(),
+            models: data.models.trim(),
+          }),
+        });
+        await ensureOk(res, "Start Codex sign-in");
+        const login = (await res.json()) as CodexLoginState;
+        if (!login.state || !login.user_code || !login.verification_url) {
+          throw new Error("Codex sign-in returned an invalid device code");
+        }
+        setCodexLogin(login);
+        addToast({
+          title: "Finish signing in to OpenAI",
+          description: "Use the device code shown in this dialog.",
+          color: "info",
+        });
+      } catch (err) {
+        console.error(err);
+        addToast({
+          title: "Failed to start Codex sign-in",
+          description: err instanceof Error ? err.message : String(err),
+          color: "danger",
+        });
+      } finally {
+        setCodexLoginLoading(false);
+      }
+      return;
+    }
 
     // Pack features
     let featuresObj: Record<string, unknown> = {};
@@ -304,6 +436,7 @@ export default function Config() {
 
   const openAddModal = () => {
     setEditingProvider(null);
+    setCodexLogin(null);
     setSelectedProviderType("openai");
     setGeminiSearch(false);
     setProjectId("");
@@ -369,6 +502,7 @@ export default function Config() {
 
   const openEditModal = (provider: LlmProvider) => {
     setEditingProvider(provider);
+    setCodexLogin(null);
     setSelectedProviderType(normalizeProviderType(provider.provider));
     try {
       const features = JSON.parse(provider.features || "{}") as Record<
@@ -525,13 +659,15 @@ export default function Config() {
                       <Flex justify="between" align="start" gap="4">
                         <Box className="app-provider-details">
                           <div className="app-provider-kicker">
-                            Connected provider
+                            {normalizeProviderType(p.provider) === "codex"
+                              ? "ChatGPT OAuth"
+                              : "Connected provider"}
                           </div>
                           <Text size="4" weight="bold" as="div">
                             {p.name}
                           </Text>
                           <Text size="2" color="gray" as="div">
-                            {normalizeProviderType(p.provider)}
+                            {providerLabel(p.provider)}
                           </Text>
                           {p.base_url && (
                             <Text size="1" className="truncate" as="div">
@@ -783,7 +919,13 @@ export default function Config() {
         </section>
       </div>
 
-      <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
+      <Dialog.Root
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) setCodexLogin(null);
+          onOpenChange(open);
+        }}
+      >
         <Dialog.Content maxWidth="450px">
           <form onSubmit={handleSave}>
             <Dialog.Title>
@@ -809,9 +951,10 @@ export default function Config() {
                   <select
                     name="provider"
                     value={selectedProviderType}
-                    onChange={(event) =>
-                      setSelectedProviderType(event.target.value)
-                    }
+                    onChange={(event) => {
+                      setCodexLogin(null);
+                      setSelectedProviderType(event.target.value);
+                    }}
                     className="app-native-select w-full pr-10"
                   >
                     <option value="openai">OpenAI</option>
@@ -819,31 +962,71 @@ export default function Config() {
                     <option value="vertexai">VertexAI</option>
                     <option value="workersai">Workers AI</option>
                     <option value="anthropic">Anthropic</option>
+                    <option value="codex">OpenAI Codex (ChatGPT)</option>
                   </select>
                   <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[var(--app-muted)]">
                     ▾
                   </span>
                 </Box>
               </Flex>
-              <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">
-                  Base URL (Optional)
-                </Text>
-                <TextField.Root
-                  name="base_url"
-                  defaultValue={editingProvider?.base_url}
-                />
-              </Flex>
-              <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">
-                  API Key
-                </Text>
-                <TextField.Root
-                  name="api_key"
-                  type="password"
-                  defaultValue={editingProvider?.api_key}
-                />
-              </Flex>
+              {selectedProviderType === "codex" ? (
+                <Box className="rounded-md border border-[var(--app-border)] p-3">
+                  <input
+                    type="hidden"
+                    name="base_url"
+                    value="https://chatgpt.com/backend-api"
+                    readOnly
+                  />
+                  <input type="hidden" name="api_key" value="" readOnly />
+                  <Text size="2" as="p">
+                    Codex uses your ChatGPT subscription. Sign in with a device
+                    code; no API key is required.
+                  </Text>
+                  {codexLogin ? (
+                    <Flex direction="column" gap="2" mt="3">
+                      <Text size="2" as="p">
+                        Enter this code at OpenAI:
+                      </Text>
+                      <Text size="6" weight="bold" className="tracking-widest">
+                        {codexLogin.user_code}
+                      </Text>
+                      <a
+                        href={codexLogin.verification_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="app-inline-link"
+                      >
+                        Open OpenAI device sign-in
+                      </a>
+                      <Text size="1" color="gray">
+                        Waiting for authorization…
+                      </Text>
+                    </Flex>
+                  ) : null}
+                </Box>
+              ) : (
+                <>
+                  <Flex direction="column" gap="1">
+                    <Text as="label" size="2" weight="bold">
+                      Base URL (Optional)
+                    </Text>
+                    <TextField.Root
+                      name="base_url"
+                      defaultValue={editingProvider?.base_url}
+                    />
+                  </Flex>
+                  <Flex direction="column" gap="1">
+                    <Text as="label" size="2" weight="bold">
+                      API Key
+                    </Text>
+                    <TextField.Root
+                      name="api_key"
+                      type="password"
+                      defaultValue={editingProvider?.api_key}
+                    />
+                  </Flex>
+                </>
+              )}
               <Flex direction="column" gap="1">
                 <Text as="label" size="2" weight="bold">
                   Models (comma separated)
@@ -851,8 +1034,16 @@ export default function Config() {
                 <TextField.Root
                   name="models"
                   defaultValue={editingProvider?.models}
+                  placeholder={
+                    selectedProviderType === "codex" ? "gpt-5.4" : undefined
+                  }
                   required
                 />
+                {selectedProviderType === "codex" && (
+                  <Text size="1" color="gray">
+                    Enter one or more Codex model ids, separated by commas.
+                  </Text>
+                )}
               </Flex>
               {selectedProviderType === "anthropic" && (
                 <>
@@ -958,12 +1149,27 @@ export default function Config() {
                 variant="soft"
                 className="app-secondary-action"
                 type="button"
-                onClick={() => onOpenChange(false)}
+                onClick={() => {
+                  setCodexLogin(null);
+                  onOpenChange(false);
+                }}
               >
                 Cancel
               </Button>
-              <Button color="gray" className="app-primary-action" type="submit">
-                Save
+              <Button
+                color="gray"
+                className="app-primary-action"
+                type="submit"
+                disabled={codexLoginLoading || !!codexLogin}
+              >
+                {selectedProviderType === "codex" &&
+                !isCodexConnected(editingProvider)
+                  ? codexLogin
+                    ? "Waiting for ChatGPT…"
+                    : codexLoginLoading
+                      ? "Starting sign-in…"
+                      : "Sign in with ChatGPT"
+                  : "Save"}
               </Button>
             </Flex>
           </form>

@@ -1,3 +1,7 @@
+use base64::{
+    Engine,
+    engine::general_purpose::{URL_SAFE, URL_SAFE_NO_PAD},
+};
 use chrono::{Duration, Utc};
 use d1_orm::DatabaseExecutor;
 use frankenstein::updates::Update;
@@ -5,16 +9,27 @@ use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use log::*;
 use serde::{Deserialize, Serialize};
+use serde_json::{Value, json};
 use std::str;
 use std::sync::Arc;
 use subtle::ConstantTimeEq;
 
 use crate::{
     ai::{self, Translator},
-    d1::{Count, Error as D1Error, Queries, Word, list_word_query},
+    d1::{CodexOAuthState, Count, Error as D1Error, LlmProvider, Queries, Word, list_word_query},
     mcp,
     opts::WorkerState,
 };
+
+const CODEX_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
+const CODEX_TOKEN_URL: &str = "https://auth.openai.com/oauth/token";
+const CODEX_DEVICE_USER_CODE_URL: &str = "https://auth.openai.com/api/accounts/deviceauth/usercode";
+const CODEX_DEVICE_TOKEN_URL: &str = "https://auth.openai.com/api/accounts/deviceauth/token";
+const CODEX_DEVICE_VERIFICATION_URL: &str = "https://auth.openai.com/codex/device";
+const CODEX_DEVICE_REDIRECT_URI: &str = "https://auth.openai.com/deviceauth/callback";
+const CODEX_BASE_URL: &str = "https://chatgpt.com/backend-api";
+const CODEX_OAUTH_STATE_TTL_SECONDS: i64 = 10 * 60;
+const CODEX_TOKEN_REFRESH_SKEW_SECONDS: i64 = 60;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Claims {
@@ -31,6 +46,77 @@ pub struct LoginRequest {
 #[derive(Serialize)]
 pub struct LoginResponse {
     pub token: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CodexLoginRequest {
+    pub name: String,
+    pub models: String,
+}
+
+#[derive(Debug, Serialize)]
+struct CodexLoginResponse {
+    state: String,
+    user_code: String,
+    verification_url: &'static str,
+    interval_seconds: i64,
+}
+
+#[derive(Debug, Serialize)]
+struct CodexPollResponse {
+    status: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    retry_after_seconds: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CodexDeviceAuthResponse {
+    device_auth_id: String,
+    user_code: String,
+    #[serde(default)]
+    interval: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CodexDeviceTokenResponse {
+    authorization_code: Option<String>,
+    code_verifier: Option<String>,
+    #[serde(default)]
+    error: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CodexPollRequest {
+    state: String,
+}
+
+#[derive(Debug, Serialize)]
+struct CodexDeviceAuthRequest<'a> {
+    client_id: &'a str,
+}
+
+#[derive(Debug, Serialize)]
+struct CodexDeviceTokenRequest<'a> {
+    device_auth_id: &'a str,
+    user_code: &'a str,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CodexOAuthCredentials {
+    access_token: String,
+    refresh_token: String,
+    expires_at: i64,
+    account_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct CodexTokenResponse {
+    access_token: String,
+    #[serde(default)]
+    refresh_token: Option<String>,
+    expires_in: i64,
+    #[serde(default)]
+    id_token: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -172,6 +258,303 @@ impl From<ai::Error> for Error {
     }
 }
 
+fn is_codex_provider(provider: &str) -> bool {
+    matches!(provider, "codex" | "openai-codex")
+}
+
+fn normalize_codex_models(models: &str) -> Result<String, Error> {
+    let mut normalized = Vec::new();
+    for model in models
+        .split(',')
+        .map(str::trim)
+        .filter(|model| !model.is_empty())
+    {
+        if model.len() > 100 {
+            return Err(Error::Internal(
+                "Codex model names must contain at most 100 characters".to_string(),
+            ));
+        }
+        if !normalized.iter().any(|existing| existing == model) {
+            normalized.push(model.to_string());
+        }
+    }
+
+    if normalized.is_empty() {
+        return Err(Error::Internal(
+            "at least one Codex model is required".to_string(),
+        ));
+    }
+
+    Ok(normalized.join(","))
+}
+
+fn codex_credentials_from_value(value: &Value) -> Option<CodexOAuthCredentials> {
+    let oauth = value.get("oauth")?;
+    let credentials = CodexOAuthCredentials {
+        access_token: oauth.get("access_token")?.as_str()?.to_string(),
+        refresh_token: oauth.get("refresh_token")?.as_str()?.to_string(),
+        expires_at: oauth.get("expires_at")?.as_i64()?,
+        account_id: oauth.get("account_id")?.as_str()?.to_string(),
+    };
+    if credentials.access_token.is_empty()
+        || credentials.refresh_token.is_empty()
+        || credentials.expires_at <= 0
+        || credentials.account_id.is_empty()
+    {
+        return None;
+    }
+    Some(credentials)
+}
+
+fn codex_credentials_from_features(features: &str) -> Option<CodexOAuthCredentials> {
+    serde_json::from_str(features)
+        .ok()
+        .and_then(|value: Value| codex_credentials_from_value(&value))
+}
+
+fn codex_features(credentials: &CodexOAuthCredentials) -> String {
+    json!({ "oauth": credentials }).to_string()
+}
+
+fn public_codex_features(features: &str) -> String {
+    let Some(credentials) = codex_credentials_from_features(features) else {
+        return "{}".to_string();
+    };
+
+    json!({
+        "oauth": {
+            "connected": true,
+            "account_id": credentials.account_id,
+        }
+    })
+    .to_string()
+}
+
+fn redact_llm_provider(mut provider: LlmProvider) -> LlmProvider {
+    if is_codex_provider(&provider.provider) {
+        provider.api_key.clear();
+        provider.features = public_codex_features(&provider.features);
+    }
+    provider
+}
+
+fn random_urlsafe(bytes_len: usize) -> Result<String, Error> {
+    let mut bytes = vec![0_u8; bytes_len];
+    getrandom::fill(&mut bytes).map_err(|error| Error::Internal(error.to_string()))?;
+    Ok(URL_SAFE_NO_PAD.encode(bytes))
+}
+
+fn jwt_account_id(token: &str) -> Option<String> {
+    let payload = token.split('.').nth(1)?;
+    let bytes = URL_SAFE_NO_PAD
+        .decode(payload)
+        .or_else(|_| URL_SAFE.decode(payload))
+        .ok()?;
+    let value: Value = serde_json::from_slice(&bytes).ok()?;
+    value
+        .get("https://api.openai.com/auth")
+        .and_then(|auth| auth.get("chatgpt_account_id"))
+        .and_then(Value::as_str)
+        .filter(|account_id| !account_id.is_empty())
+        .map(str::to_string)
+}
+
+fn device_interval_seconds(interval: Option<&Value>) -> i64 {
+    let interval = interval
+        .and_then(|value| value.as_i64().or_else(|| value.as_str()?.parse().ok()))
+        .unwrap_or(5);
+    interval.clamp(1, 60)
+}
+
+async fn request_codex_device_auth() -> Result<CodexDeviceAuthResponse, Error> {
+    let response = reqwest::Client::new()
+        .post(CODEX_DEVICE_USER_CODE_URL)
+        .json(&CodexDeviceAuthRequest {
+            client_id: CODEX_CLIENT_ID,
+        })
+        .send()
+        .await
+        .map_err(|error| Error::Internal(error.to_string()))?;
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|error| Error::Internal(error.to_string()))?;
+    if !status.is_success() {
+        return Err(Error::Internal(format!(
+            "Codex device login request failed ({}): {}",
+            status,
+            if body.is_empty() {
+                "empty response"
+            } else {
+                body.as_str()
+            }
+        )));
+    }
+
+    let response = serde_json::from_str::<CodexDeviceAuthResponse>(&body).map_err(|error| {
+        Error::Internal(format!("invalid Codex device login response: {error}"))
+    })?;
+    if response.device_auth_id.trim().is_empty() || response.user_code.trim().is_empty() {
+        return Err(Error::Internal(
+            "Codex device login response is missing the device id or user code".to_string(),
+        ));
+    }
+    Ok(response)
+}
+
+enum CodexDevicePoll {
+    Pending,
+    Authorized {
+        authorization_code: String,
+        code_verifier: String,
+    },
+}
+
+async fn poll_codex_device_auth(
+    device_auth_id: &str,
+    user_code: &str,
+) -> Result<CodexDevicePoll, Error> {
+    let response = reqwest::Client::new()
+        .post(CODEX_DEVICE_TOKEN_URL)
+        .json(&CodexDeviceTokenRequest {
+            device_auth_id,
+            user_code,
+        })
+        .send()
+        .await
+        .map_err(|error| Error::Internal(error.to_string()))?;
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|error| Error::Internal(error.to_string()))?;
+
+    if status.is_success() {
+        let response =
+            serde_json::from_str::<CodexDeviceTokenResponse>(&body).map_err(|error| {
+                Error::Internal(format!("invalid Codex device token response: {error}"))
+            })?;
+        let Some(authorization_code) = response
+            .authorization_code
+            .filter(|value| !value.trim().is_empty())
+        else {
+            return Err(Error::Internal(
+                "Codex device token response is missing an authorization code".to_string(),
+            ));
+        };
+        let Some(code_verifier) = response
+            .code_verifier
+            .filter(|value| !value.trim().is_empty())
+        else {
+            return Err(Error::Internal(
+                "Codex device token response is missing a code verifier".to_string(),
+            ));
+        };
+        return Ok(CodexDevicePoll::Authorized {
+            authorization_code,
+            code_verifier,
+        });
+    }
+
+    let pending = status.as_u16() == 403
+        || status.as_u16() == 404
+        || serde_json::from_str::<CodexDeviceTokenResponse>(&body)
+            .ok()
+            .and_then(|response| response.error)
+            .and_then(|error| {
+                error
+                    .as_str()
+                    .map(str::to_string)
+                    .or_else(|| error.get("code")?.as_str().map(str::to_string))
+            })
+            .is_some_and(|error| {
+                matches!(
+                    error.as_str(),
+                    "deviceauth_authorization_pending" | "authorization_pending" | "slow_down"
+                )
+            });
+    if pending {
+        return Ok(CodexDevicePoll::Pending);
+    }
+
+    Err(Error::Internal(format!(
+        "Codex device authorization failed ({}): {}",
+        status,
+        if body.is_empty() {
+            "empty response"
+        } else {
+            body.as_str()
+        }
+    )))
+}
+
+async fn read_codex_token_response(
+    response: reqwest::Response,
+    operation: &str,
+) -> Result<CodexTokenResponse, Error> {
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|error| Error::Internal(error.to_string()))?;
+
+    if !status.is_success() {
+        return Err(Error::Internal(format!(
+            "Codex OAuth {operation} failed ({}): {}",
+            status,
+            if body.is_empty() {
+                "empty response"
+            } else {
+                body.as_str()
+            }
+        )));
+    }
+
+    let token = serde_json::from_str::<CodexTokenResponse>(&body)
+        .map_err(|error| Error::Internal(format!("invalid Codex OAuth token response: {error}")))?;
+    if token.access_token.trim().is_empty() || token.expires_in <= 0 {
+        return Err(Error::Internal(
+            "Codex OAuth token response is missing a valid access token or expiry".to_string(),
+        ));
+    }
+    Ok(token)
+}
+
+async fn exchange_codex_code(
+    code: &str,
+    verifier: &str,
+    redirect_uri: &str,
+) -> Result<CodexTokenResponse, Error> {
+    let response = reqwest::Client::new()
+        .post(CODEX_TOKEN_URL)
+        .form(&[
+            ("grant_type", "authorization_code"),
+            ("client_id", CODEX_CLIENT_ID),
+            ("code", code),
+            ("code_verifier", verifier),
+            ("redirect_uri", redirect_uri),
+        ])
+        .send()
+        .await
+        .map_err(|error| Error::Internal(error.to_string()))?;
+    read_codex_token_response(response, "exchange").await
+}
+
+async fn refresh_codex_token(refresh_token: &str) -> Result<CodexTokenResponse, Error> {
+    let response = reqwest::Client::new()
+        .post(CODEX_TOKEN_URL)
+        .form(&[
+            ("grant_type", "refresh_token"),
+            ("client_id", CODEX_CLIENT_ID),
+            ("refresh_token", refresh_token),
+        ])
+        .send()
+        .await
+        .map_err(|error| Error::Internal(error.to_string()))?;
+    read_codex_token_response(response, "refresh").await
+}
+
 pub struct UnifiedResponse {
     pub status: u16,
     pub body: UnifiedBody,
@@ -271,6 +654,7 @@ impl WorkerState {
         auth_header: Option<&str>,
         body: Vec<u8>,
         domain: &str,
+        origin: &str,
     ) -> Result<UnifiedResponse, Error> {
         match path {
             "/login" => {
@@ -372,7 +756,7 @@ impl WorkerState {
                     if path == "/word/query_stream" {
                         return self.word_query_stream(body).await;
                     }
-                    let resp = self.route(path, body).await?;
+                    let resp = self.route(path, body, origin).await?;
                     Ok(UnifiedResponse::json(resp))
                 } else {
                     Err(Error::NotFound)
@@ -381,7 +765,7 @@ impl WorkerState {
         }
     }
 
-    pub async fn route(&self, path: &str, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+    pub async fn route(&self, path: &str, body: Vec<u8>, origin: &str) -> Result<Vec<u8>, Error> {
         match path {
             "/word/list" => self.list_word(body).await,
             "/word/query" => self.word_query(body).await,
@@ -394,6 +778,8 @@ impl WorkerState {
             "/llm/list" => self.list_llm_providers().await,
             "/llm/save" => self.save_llm_provider(body).await,
             "/llm/delete" => self.delete_llm_provider(body).await,
+            "/llm/codex/login" => self.start_codex_login(body, origin).await,
+            "/llm/codex/poll" => self.poll_codex_login(body).await,
             "/config/list" => self.list_configurations().await,
             "/config/save" => self.save_configuration(body).await,
             _ => Err(Error::NotFound),
@@ -447,7 +833,7 @@ impl WorkerState {
                 })
                 .await?;
 
-            return Ok([b'{', b'}'].to_vec());
+            return Ok(b"{}".to_vec());
         }
 
         self.d1
@@ -459,7 +845,7 @@ impl WorkerState {
             })
             .await?;
 
-        Ok([b'{', b'}'].to_vec())
+        Ok(b"{}".to_vec())
     }
 
     pub async fn delete_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
@@ -469,7 +855,7 @@ impl WorkerState {
             .execute(Queries::DeleteWord { word: &req.word })
             .await?;
 
-        Ok([b'{', b'}'].to_vec())
+        Ok(b"{}".to_vec())
     }
 
     pub async fn count_word(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
@@ -492,7 +878,7 @@ impl WorkerState {
         self.d1
             .execute(Queries::IncrementRemindCount { word: &req.word })
             .await?;
-        Ok([b'{', b'}'].to_vec())
+        Ok(b"{}".to_vec())
     }
 
     pub async fn list_configurations(&self) -> Result<Vec<u8>, Error> {
@@ -519,7 +905,7 @@ impl WorkerState {
             .map_err(|e| Error::Internal(e.to_string()))?;
         cache.last_updated = 0; // Invalidate cache
 
-        Ok([b'{', b'}'].to_vec())
+        Ok(b"{}".to_vec())
     }
 
     pub async fn list_mcp_tokens(&self) -> Result<Vec<u8>, Error> {
@@ -545,7 +931,153 @@ impl WorkerState {
         mcp::revoke_token(self, &request.id)
             .await
             .map_err(Error::Internal)?;
-        Ok([b'{', b'}'].to_vec())
+        Ok(b"{}".to_vec())
+    }
+
+    pub async fn start_codex_login(&self, body: Vec<u8>, origin: &str) -> Result<Vec<u8>, Error> {
+        let request = serde_json::from_slice::<CodexLoginRequest>(&body)?;
+        let name = request.name.trim().to_string();
+        if name.is_empty() || name.len() > 100 {
+            return Err(Error::Internal(
+                "Codex provider name must contain 1 to 100 characters".to_string(),
+            ));
+        }
+        let models = normalize_codex_models(&request.models)?;
+
+        let device = request_codex_device_auth().await?;
+        let state = random_urlsafe(32)?;
+        let return_url = format!("{origin}/#/docs/config");
+        let interval_seconds = device_interval_seconds(device.interval.as_ref());
+
+        self.d1
+            .execute(Queries::DeleteExpiredCodexOAuthStates {
+                before: Utc::now().timestamp() - CODEX_OAUTH_STATE_TTL_SECONDS,
+            })
+            .await?;
+        self.d1
+            .execute(Queries::SaveCodexOAuthState {
+                state: &state,
+                verifier: "",
+                device_auth_id: &device.device_auth_id,
+                device_user_code: &device.user_code,
+                device_interval_seconds: interval_seconds,
+                provider_name: &name,
+                models: &models,
+                redirect_uri: CODEX_DEVICE_REDIRECT_URI,
+                return_url: &return_url,
+                created_at: Utc::now().timestamp(),
+            })
+            .await?;
+
+        Ok(serde_json::to_vec(&CodexLoginResponse {
+            state,
+            user_code: device.user_code,
+            verification_url: CODEX_DEVICE_VERIFICATION_URL,
+            interval_seconds,
+        })?)
+    }
+
+    pub async fn poll_codex_login(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        let request = serde_json::from_slice::<CodexPollRequest>(&body)?;
+        let state = request.state.trim();
+        if state.is_empty() {
+            return Err(Error::Internal("Missing Codex OAuth state".to_string()));
+        }
+        let state_record: Option<CodexOAuthState> = self
+            .d1
+            .query_first(Queries::GetCodexOAuthState { state })
+            .await?;
+        let Some(state_record) = state_record else {
+            return Err(Error::Internal(
+                "Unknown or expired Codex OAuth state".to_string(),
+            ));
+        };
+
+        if state_record.created_at < Utc::now().timestamp() - CODEX_OAUTH_STATE_TTL_SECONDS {
+            self.d1
+                .execute(Queries::DeleteCodexOAuthState { state })
+                .await?;
+            return Err(Error::Internal("Codex OAuth login expired".to_string()));
+        }
+
+        if state_record.device_auth_id.is_empty() || state_record.device_user_code.is_empty() {
+            return Err(Error::Internal(
+                "Codex OAuth state is missing device authorization data".to_string(),
+            ));
+        }
+
+        match poll_codex_device_auth(&state_record.device_auth_id, &state_record.device_user_code)
+            .await?
+        {
+            CodexDevicePoll::Pending => Ok(serde_json::to_vec(&CodexPollResponse {
+                status: "pending",
+                retry_after_seconds: Some(state_record.device_interval_seconds.max(1)),
+            })?),
+            CodexDevicePoll::Authorized {
+                authorization_code,
+                code_verifier,
+            } => {
+                // Consume the state before exchanging the one-time authorization code.
+                self.d1
+                    .execute(Queries::DeleteCodexOAuthState { state })
+                    .await?;
+                self.finish_codex_login(&state_record, &authorization_code, &code_verifier)
+                    .await
+            }
+        }
+    }
+
+    async fn finish_codex_login(
+        &self,
+        state_record: &CodexOAuthState,
+        authorization_code: &str,
+        code_verifier: &str,
+    ) -> Result<Vec<u8>, Error> {
+        let token =
+            exchange_codex_code(authorization_code, code_verifier, CODEX_DEVICE_REDIRECT_URI)
+                .await?;
+        let refresh_token = token
+            .refresh_token
+            .filter(|refresh_token| !refresh_token.is_empty())
+            .ok_or_else(|| {
+                Error::Internal(
+                    "Codex OAuth token response did not include a refresh token".to_string(),
+                )
+            })?;
+        let account_id = token
+            .id_token
+            .as_deref()
+            .and_then(jwt_account_id)
+            .or_else(|| jwt_account_id(&token.access_token))
+            .ok_or_else(|| {
+                Error::Internal(
+                    "Failed to extract the ChatGPT account id from the OAuth token".to_string(),
+                )
+            })?;
+
+        let credentials = CodexOAuthCredentials {
+            access_token: token.access_token,
+            refresh_token,
+            expires_at: Utc::now().timestamp() + token.expires_in,
+            account_id,
+        };
+        let features = codex_features(&credentials);
+
+        self.d1
+            .execute(Queries::SaveLlmProvider {
+                name: &state_record.provider_name,
+                base_url: CODEX_BASE_URL,
+                api_key: "",
+                provider: "codex",
+                models: &state_record.models,
+                features: &features,
+            })
+            .await?;
+
+        Ok(serde_json::to_vec(&CodexPollResponse {
+            status: "connected",
+            retry_after_seconds: None,
+        })?)
     }
 
     pub async fn change_priority(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
@@ -556,19 +1088,47 @@ impl WorkerState {
                 word: &req.word,
             })
             .await?;
-        Ok([b'{', b'}'].to_vec())
+        Ok(b"{}".to_vec())
     }
 
     pub async fn list_llm_providers(&self) -> Result<Vec<u8>, Error> {
-        let providers: Vec<crate::d1::LlmProvider> = self
+        let providers: Vec<LlmProvider> = self
             .d1
             .query_all(crate::d1::Queries::ListLlmProviders)
             .await?;
+        let providers = providers
+            .into_iter()
+            .map(redact_llm_provider)
+            .collect::<Vec<_>>();
         Ok(serde_json::to_vec(&providers)?)
     }
 
     pub async fn save_llm_provider(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
-        let req = serde_json::from_slice::<crate::d1::LlmProvider>(&body)?;
+        let mut req = serde_json::from_slice::<LlmProvider>(&body)?;
+        if is_codex_provider(&req.provider) {
+            let existing: Option<LlmProvider> = self
+                .d1
+                .query_first(Queries::GetLlmProviderByName { name: &req.name })
+                .await?;
+
+            if codex_credentials_from_features(&req.features).is_none() {
+                let Some(existing) = existing else {
+                    return Err(Error::Internal(
+                        "Sign in with ChatGPT before saving a Codex provider".to_string(),
+                    ));
+                };
+                let Some(_) = codex_credentials_from_features(&existing.features) else {
+                    return Err(Error::Internal(
+                        "Sign in with ChatGPT before saving a Codex provider".to_string(),
+                    ));
+                };
+                req.features = existing.features;
+            }
+            req.provider = "codex".to_string();
+            req.base_url = CODEX_BASE_URL.to_string();
+            req.models = normalize_codex_models(&req.models)?;
+            req.api_key.clear();
+        }
         self.d1
             .execute(crate::d1::Queries::SaveLlmProvider {
                 name: &req.name,
@@ -579,7 +1139,7 @@ impl WorkerState {
                 features: &req.features,
             })
             .await?;
-        Ok([b'{', b'}'].to_vec())
+        Ok(b"{}".to_vec())
     }
 
     pub async fn delete_llm_provider(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
@@ -591,7 +1151,7 @@ impl WorkerState {
         self.d1
             .execute(crate::d1::Queries::DeleteLlmProvider { name: &req.name })
             .await?;
-        Ok([b'{', b'}'].to_vec())
+        Ok(b"{}".to_vec())
     }
 
     pub async fn get_custom_llm_providers(
@@ -612,18 +1172,78 @@ impl WorkerState {
         &self,
         name: &str,
     ) -> Result<hj_ai::provider::Provider, Error> {
-        let p: Option<crate::d1::LlmProvider> = self
+        let p: Option<LlmProvider> = self
             .d1
             .query_first(crate::d1::Queries::GetLlmProviderByName { name })
             .await?;
         let p = p.ok_or_else(|| Error::Internal("custom llm not found".to_string()))?;
+        let p = if is_codex_provider(&p.provider) {
+            self.refresh_codex_provider(p).await?
+        } else {
+            p
+        };
         Ok(Self::map_llm_provider_to_config(p))
     }
 
-    fn map_llm_provider_to_config(p: crate::d1::LlmProvider) -> hj_ai::provider::Provider {
+    async fn refresh_codex_provider(
+        &self,
+        mut provider: LlmProvider,
+    ) -> Result<LlmProvider, Error> {
+        let current = codex_credentials_from_features(&provider.features).ok_or_else(|| {
+            Error::Internal("Codex provider is not connected to ChatGPT".to_string())
+        })?;
+        let now = Utc::now().timestamp();
+        if !current.access_token.is_empty()
+            && current.expires_at > now + CODEX_TOKEN_REFRESH_SKEW_SECONDS
+        {
+            return Ok(provider);
+        }
+
+        let token = refresh_codex_token(&current.refresh_token).await?;
+        let refresh_token = token
+            .refresh_token
+            .filter(|refresh_token| !refresh_token.is_empty())
+            .unwrap_or(current.refresh_token);
+        let account_id = token
+            .id_token
+            .as_deref()
+            .and_then(jwt_account_id)
+            .or_else(|| jwt_account_id(&token.access_token))
+            .unwrap_or(current.account_id);
+        if account_id.is_empty() {
+            return Err(Error::Internal(
+                "Failed to extract the ChatGPT account id from the refreshed token".to_string(),
+            ));
+        }
+
+        let credentials = CodexOAuthCredentials {
+            access_token: token.access_token,
+            refresh_token,
+            expires_at: now + token.expires_in,
+            account_id,
+        };
+        provider.features = codex_features(&credentials);
+        self.d1
+            .execute(Queries::SaveLlmProvider {
+                name: &provider.name,
+                base_url: CODEX_BASE_URL,
+                api_key: "",
+                provider: "codex",
+                models: &provider.models,
+                features: &provider.features,
+            })
+            .await?;
+
+        Ok(provider)
+    }
+
+    fn map_llm_provider_to_config(p: LlmProvider) -> hj_ai::provider::Provider {
+        let codex = is_codex_provider(&p.provider);
         let config = crate::ai::ConfigProvider {
             name: p.name.clone(),
-            base_url: if p.base_url.is_empty() {
+            base_url: if codex {
+                Some(CODEX_BASE_URL.to_string())
+            } else if p.base_url.is_empty() {
                 None
             } else {
                 Some(p.base_url)
@@ -638,6 +1258,7 @@ impl WorkerState {
                 "vertexai" => Some(crate::ai::ProviderType::VertexAI),
                 "workersai" => Some(crate::ai::ProviderType::WorkersAI),
                 "anthropic" | "claude" => Some(crate::ai::ProviderType::Anthropic),
+                "codex" | "openai-codex" => Some(crate::ai::ProviderType::Codex),
                 _ => Some(crate::ai::ProviderType::OpenAI),
             },
             models: p
@@ -883,5 +1504,63 @@ impl UnifiedResponse {
                 ("Connection".to_string(), "keep-alive".to_string()),
             ],
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn codex_models_are_trimmed_and_deduplicated() {
+        assert_eq!(
+            normalize_codex_models(" gpt-5.4, gpt-5.3-codex, gpt-5.4 ,, ").unwrap(),
+            "gpt-5.4,gpt-5.3-codex"
+        );
+        assert!(normalize_codex_models(" , ").is_err());
+    }
+
+    #[test]
+    fn codex_device_interval_accepts_number_or_string() {
+        assert_eq!(device_interval_seconds(Some(&Value::from(12))), 12);
+        assert_eq!(device_interval_seconds(Some(&Value::from("8"))), 8);
+        assert_eq!(device_interval_seconds(Some(&Value::from(0))), 1);
+        assert_eq!(device_interval_seconds(Some(&Value::from(120))), 60);
+        assert_eq!(device_interval_seconds(None), 5);
+    }
+
+    #[test]
+    fn codex_account_id_is_read_from_jwt_claim() {
+        let payload = URL_SAFE_NO_PAD.encode(
+            json!({
+                "https://api.openai.com/auth": {
+                    "chatgpt_account_id": "acct_test"
+                }
+            })
+            .to_string(),
+        );
+        let token = format!("header.{payload}.signature");
+        assert_eq!(jwt_account_id(&token).as_deref(), Some("acct_test"));
+        assert_eq!(jwt_account_id("not-a-jwt"), None);
+    }
+
+    #[test]
+    fn codex_provider_listing_does_not_expose_oauth_tokens() {
+        let credentials = CodexOAuthCredentials {
+            access_token: "access-secret".to_string(),
+            refresh_token: "refresh-secret".to_string(),
+            expires_at: 1,
+            account_id: "acct_test".to_string(),
+        };
+        let public = public_codex_features(&codex_features(&credentials));
+        assert_eq!(
+            serde_json::from_str::<Value>(&public)
+                .unwrap()
+                .pointer("/oauth/connected")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
+        assert!(!public.contains("access-secret"));
+        assert!(!public.contains("refresh-secret"));
     }
 }

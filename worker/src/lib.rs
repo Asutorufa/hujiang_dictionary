@@ -147,6 +147,7 @@ async fn main(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
 
     let url = req.url()?;
     let domain = url.host_str().unwrap_or("").to_string();
+    let request_origin = format!("{}://{}", url.scheme(), domain);
     let path = url.path();
     let method = req.method().to_string();
 
@@ -156,7 +157,7 @@ async fn main(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
         .ok()
         .flatten()
         .or_else(|| headers.get("authorization").ok().flatten());
-    let origin = headers.get("Origin").ok().flatten();
+    let header_origin = headers.get("Origin").ok().flatten();
     let accept = headers.get("Accept").ok().flatten();
     let protocol_version = headers.get("MCP-Protocol-Version").ok().flatten();
 
@@ -165,7 +166,7 @@ async fn main(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
     if path == "/mcp" {
         return mcp::handle(
             &method,
-            origin.as_deref(),
+            header_origin.as_deref(),
             auth_header.as_deref(),
             accept.as_deref(),
             protocol_version.as_deref(),
@@ -176,7 +177,14 @@ async fn main(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
     }
 
     match opt
-        .serve(&method, path, auth_header.as_deref(), body, &domain)
+        .serve(
+            &method,
+            path,
+            auth_header.as_deref(),
+            body,
+            &domain,
+            &request_origin,
+        )
         .await
     {
         Ok(resp) => {

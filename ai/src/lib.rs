@@ -1,4 +1,5 @@
 pub mod anthropic;
+pub mod codex;
 pub mod completion;
 pub mod error;
 pub mod gemini;

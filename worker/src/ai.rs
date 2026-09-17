@@ -477,6 +477,8 @@ pub enum ProviderType {
     Gemini,
     VertexAI,
     WorkersAI,
+    #[serde(alias = "openai-codex")]
+    Codex,
     #[serde(alias = "claude")]
     Anthropic,
 }
@@ -502,6 +504,32 @@ impl From<ConfigProvider> for hj_ai::provider::Provider {
                 models: HashSet::from_iter(v.models),
                 ..Default::default()
             }),
+            ProviderType::Codex => {
+                let oauth = v
+                    .features
+                    .as_ref()
+                    .and_then(|features| features.get("oauth"));
+                hj_ai::provider::Provider::Codex(hj_ai::codex::OpenAICodex {
+                    name: v.name,
+                    base_url: v
+                        .base_url
+                        .filter(|base_url| !base_url.is_empty())
+                        .unwrap_or_else(|| "https://chatgpt.com/backend-api".to_string()),
+                    api_key: oauth
+                        .and_then(|oauth| oauth.get("access_token"))
+                        .and_then(|value| value.as_str())
+                        .map(str::to_string)
+                        .unwrap_or_else(|| v.api_key.unwrap_or_default()),
+                    account_id: oauth
+                        .and_then(|oauth| oauth.get("account_id"))
+                        .and_then(|value| value.as_str())
+                        .unwrap_or_default()
+                        .to_string(),
+                    model: v.models.first().cloned().unwrap_or_default(),
+                    models: HashSet::from_iter(v.models),
+                    ..Default::default()
+                })
+            }
             ProviderType::Gemini => hj_ai::provider::Provider::Gemini(hj_ai::gemini::Gemini::new(
                 v.api_key.unwrap_or_default(),
                 v.models.first().cloned().unwrap_or_default(),

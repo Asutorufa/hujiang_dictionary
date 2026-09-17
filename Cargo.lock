@@ -1260,6 +1260,7 @@ dependencies = [
  "sha2",
  "subtle",
  "tokio",
+ "url",
  "wasm-bindgen",
  "web-sys",
  "worker",
