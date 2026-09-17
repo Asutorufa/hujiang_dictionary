@@ -217,6 +217,23 @@ pub struct CustomLLM {
     pub model: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct ListLlmModelsRequest {
+    #[serde(default)]
+    name: String,
+    provider: String,
+    #[serde(default)]
+    base_url: String,
+    #[serde(default)]
+    api_key: String,
+    #[serde(default)]
+    project_id: String,
+    #[serde(default)]
+    location: String,
+    #[serde(default)]
+    anthropic_version: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub enum Error {
     NotFound,
@@ -260,6 +277,20 @@ impl From<ai::Error> for Error {
 
 fn is_codex_provider(provider: &str) -> bool {
     matches!(provider, "codex" | "openai-codex")
+}
+
+fn provider_type(provider: &str) -> Result<crate::ai::ProviderType, Error> {
+    match provider {
+        "openai" => Ok(crate::ai::ProviderType::OpenAI),
+        "gemini" => Ok(crate::ai::ProviderType::Gemini),
+        "vertexai" => Ok(crate::ai::ProviderType::VertexAI),
+        "workersai" => Ok(crate::ai::ProviderType::WorkersAI),
+        "anthropic" | "claude" => Ok(crate::ai::ProviderType::Anthropic),
+        "codex" | "openai-codex" => Ok(crate::ai::ProviderType::Codex),
+        _ => Err(Error::Internal(format!(
+            "unsupported provider type: {provider}"
+        ))),
+    }
 }
 
 fn normalize_codex_models(models: &str) -> Result<String, Error> {
@@ -776,6 +807,7 @@ impl WorkerState {
             "/word/priority" => self.change_priority(body).await,
             "/word/ai_custom" => self.custom_llms().await,
             "/llm/list" => self.list_llm_providers().await,
+            "/llm/models" => self.list_llm_models(body).await,
             "/llm/save" => self.save_llm_provider(body).await,
             "/llm/delete" => self.delete_llm_provider(body).await,
             "/llm/codex/login" => self.start_codex_login(body, origin).await,
@@ -1101,6 +1133,79 @@ impl WorkerState {
             .map(redact_llm_provider)
             .collect::<Vec<_>>();
         Ok(serde_json::to_vec(&providers)?)
+    }
+
+    pub async fn list_llm_models(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {
+        let request = serde_json::from_slice::<ListLlmModelsRequest>(&body)?;
+        let provider_name = request.provider.trim().to_ascii_lowercase();
+        provider_type(&provider_name)?;
+
+        let provider = if is_codex_provider(&provider_name) {
+            let name = request.name.trim();
+            if name.is_empty() {
+                return Err(Error::Internal(
+                    "Codex model discovery requires an existing connected provider".to_string(),
+                ));
+            }
+            let provider: Option<LlmProvider> = self
+                .d1
+                .query_first(Queries::GetLlmProviderByName { name })
+                .await?;
+            let provider = provider.ok_or_else(|| {
+                Error::Internal(
+                    "Codex model discovery requires an existing connected provider".to_string(),
+                )
+            })?;
+            Self::map_llm_provider_to_config(self.refresh_codex_provider(provider).await?)
+        } else {
+            let features = if provider_name == "vertexai" {
+                let project_id = request.project_id.trim();
+                if project_id.is_empty() {
+                    return Err(Error::Internal(
+                        "VertexAI model discovery requires a project ID".to_string(),
+                    ));
+                }
+                json!({
+                    "project_id": project_id,
+                    "location": if request.location.trim().is_empty() {
+                        "us-central1"
+                    } else {
+                        request.location.trim()
+                    },
+                })
+            } else if provider_name == "anthropic" || provider_name == "claude" {
+                json!({
+                    "anthropic_version": if request.anthropic_version.trim().is_empty() {
+                        "2023-06-01"
+                    } else {
+                        request.anthropic_version.trim()
+                    },
+                })
+            } else {
+                json!({})
+            };
+
+            Self::map_llm_provider_to_config(LlmProvider {
+                name: request.name,
+                base_url: request.base_url,
+                api_key: request.api_key,
+                provider: provider_name,
+                models: String::new(),
+                features: features.to_string(),
+            })
+        };
+
+        let models = provider
+            .list_models()
+            .await
+            .map_err(|error| Error::Internal(error.to_string()))?;
+        if models.is_empty() {
+            return Err(Error::Internal(
+                "provider returned no usable models".to_string(),
+            ));
+        }
+
+        Ok(serde_json::to_vec(&models)?)
     }
 
     pub async fn save_llm_provider(&self, body: Vec<u8>) -> Result<Vec<u8>, Error> {

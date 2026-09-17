@@ -1,12 +1,13 @@
 use crate::{Completion, CompletionResponse, Error, Message};
 use futures_util::Stream;
 use reqwest::Client;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
 
 const DEFAULT_CODEX_BASE_URL: &str = "https://chatgpt.com/backend-api";
 const DEFAULT_CODEX_MODEL: &str = "gpt-5.4";
+const CODEX_CLIENT_VERSION: &str = "99.99.99";
 const CODEX_USER_AGENT: &str = "hj-rust";
 
 #[derive(Clone)]
@@ -65,12 +66,76 @@ struct CodexTextOptions {
     verbosity: &'static str,
 }
 
+#[derive(Debug, Deserialize)]
+struct CodexModelsResponse {
+    #[serde(default)]
+    models: Vec<CodexModel>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CodexModel {
+    slug: String,
+    #[serde(default)]
+    supported_in_api: bool,
+}
+
 enum CodexStreamItem {
     Chunk(CompletionResponse),
     Stop,
 }
 
 impl OpenAICodex {
+    fn models_url(&self) -> String {
+        let base_url = self.base_url.trim().trim_end_matches('/');
+        let base_url = if base_url.is_empty() {
+            DEFAULT_CODEX_BASE_URL
+        } else {
+            base_url
+        };
+
+        if base_url.ends_with("/codex/models") {
+            base_url.to_string()
+        } else if base_url.ends_with("/codex") {
+            format!("{base_url}/models")
+        } else {
+            format!("{base_url}/codex/models")
+        }
+    }
+
+    pub async fn list_models(&self) -> Result<Vec<String>, Error> {
+        if self.api_key.trim().is_empty() {
+            return Err(Error::Api("Codex OAuth is not connected".to_string()));
+        }
+
+        let mut request = self
+            .client
+            .get(self.models_url())
+            .query(&[("client_version", CODEX_CLIENT_VERSION)])
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Accept", "application/json")
+            .header("User-Agent", CODEX_USER_AGENT)
+            .header("originator", "hj-rust");
+        if !self.account_id.trim().is_empty() {
+            request = request.header("ChatGPT-Account-Id", &self.account_id);
+        }
+
+        let response = request.send().await?;
+        let status = response.status();
+        if !status.is_success() {
+            let error_body = response.text().await.unwrap_or_default();
+            return Err(Error::Api(codex_http_error_message(status, &error_body)));
+        }
+
+        let response: CodexModelsResponse = response.json().await?;
+        Ok(response
+            .models
+            .into_iter()
+            .filter(|model| model.supported_in_api)
+            .map(|model| model.slug.trim().to_string())
+            .filter(|model| !model.is_empty())
+            .collect())
+    }
+
     fn responses_url(&self) -> String {
         let base_url = self.base_url.trim().trim_end_matches('/');
         let base_url = if base_url.is_empty() {

@@ -59,6 +59,32 @@ async fn test_openai_completion_success() {
 }
 
 #[tokio::test]
+async fn test_openai_list_models() {
+    let mut server = Server::new_async().await;
+
+    let mock = server
+        .mock("GET", "/models")
+        .match_header("authorization", "Bearer test_key")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(r#"{"data":[{"id":"gpt-4.1"},{"id":"gpt-4o"}]}"#)
+        .create_async()
+        .await;
+
+    let openai = openai::OpenAI {
+        base_url: server.url(),
+        api_key: "test_key".to_string(),
+        ..Default::default()
+    };
+
+    assert_eq!(
+        openai.list_models().await.unwrap(),
+        vec!["gpt-4.1".to_string(), "gpt-4o".to_string()]
+    );
+    mock.assert_async().await;
+}
+
+#[tokio::test]
 async fn test_anthropic_completion_success() {
     let mut server = Server::new_async().await;
 
@@ -119,6 +145,38 @@ async fn test_anthropic_completion_success() {
     assert_eq!(response.content, "Hello!");
     assert_eq!(response.thinking, Some("Thinking...".to_string()));
 
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_anthropic_list_models() {
+    let mut server = Server::new_async().await;
+
+    let mock = server
+        .mock("GET", "/v1/models?limit=1000")
+        .match_header("x-api-key", "test_key")
+        .match_header("anthropic-version", "2023-06-01")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(
+            r#"{"data":[{"id":"claude-sonnet-4-20250514"},{"id":"claude-3-7-sonnet-latest"}],"has_more":false,"last_id":"claude-3-7-sonnet-latest"}"#,
+        )
+        .create_async()
+        .await;
+
+    let anthropic = crate::anthropic::Anthropic {
+        base_url: server.url(),
+        api_key: "test_key".to_string(),
+        ..Default::default()
+    };
+
+    assert_eq!(
+        anthropic.list_models().await.unwrap(),
+        vec![
+            "claude-sonnet-4-20250514".to_string(),
+            "claude-3-7-sonnet-latest".to_string()
+        ]
+    );
     mock.assert_async().await;
 }
 
@@ -503,6 +561,38 @@ async fn test_codex_completion_stream_success() {
 
     assert_eq!(content, "Hello");
     assert_eq!(thinking, "Thinking");
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_codex_list_models_filters_unavailable_models() {
+    let mut server = Server::new_async().await;
+
+    let mock = server
+        .mock(
+            "GET",
+            "/backend-api/codex/models?client_version=99.99.99",
+        )
+        .match_header("authorization", "Bearer oauth-token")
+        .match_header("chatgpt-account-id", "acct_test")
+        .match_header("accept", "application/json")
+        .match_header("user-agent", "hj-rust")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(
+            r#"{"models":[{"slug":"gpt-5.4","supported_in_api":true},{"slug":"internal-preview","supported_in_api":false}]}"#,
+        )
+        .create_async()
+        .await;
+
+    let provider = codex::OpenAICodex {
+        base_url: format!("{}/backend-api", server.url()),
+        api_key: "oauth-token".to_string(),
+        account_id: "acct_test".to_string(),
+        ..Default::default()
+    };
+
+    assert_eq!(provider.list_models().await.unwrap(), vec!["gpt-5.4"]);
     mock.assert_async().await;
 }
 

@@ -530,11 +530,17 @@ impl From<ConfigProvider> for hj_ai::provider::Provider {
                     ..Default::default()
                 })
             }
-            ProviderType::Gemini => hj_ai::provider::Provider::Gemini(hj_ai::gemini::Gemini::new(
-                v.api_key.unwrap_or_default(),
-                v.models.first().cloned().unwrap_or_default(),
-                v.models,
-            )),
+            ProviderType::Gemini => {
+                let mut provider = hj_ai::gemini::Gemini::new(
+                    v.api_key.unwrap_or_default(),
+                    v.models.first().cloned().unwrap_or_default(),
+                    v.models,
+                );
+                if let Some(base_url) = v.base_url.filter(|base_url| !base_url.is_empty()) {
+                    provider = provider.with_base_url(base_url);
+                }
+                hj_ai::provider::Provider::Gemini(provider)
+            }
             ProviderType::VertexAI => {
                 let project_id = v
                     .features
@@ -551,13 +557,17 @@ impl From<ConfigProvider> for hj_ai::provider::Provider {
                     .unwrap_or("us-central1")
                     .to_string();
 
-                hj_ai::provider::Provider::Gemini(hj_ai::gemini::Gemini::new_vertex_ai(
+                let mut provider = hj_ai::gemini::Gemini::new_vertex_ai(
                     project_id,
                     location,
                     v.models.first().cloned().unwrap_or_default(),
                     v.api_key.unwrap_or_default(),
                     v.models,
-                ))
+                );
+                if let Some(base_url) = v.base_url.filter(|base_url| !base_url.is_empty()) {
+                    provider = provider.with_base_url(base_url);
+                }
+                hj_ai::provider::Provider::Gemini(provider)
             }
             ProviderType::WorkersAI =>
             {

@@ -69,12 +69,94 @@ struct APICompletionResponse {
     pub content: Vec<Value>,
 }
 
+#[derive(Debug, Deserialize)]
+struct APIModelsResponse {
+    #[serde(default)]
+    pub data: Vec<APIModel>,
+    #[serde(default)]
+    pub has_more: bool,
+    pub last_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct APIModel {
+    pub id: String,
+}
+
 enum AnthropicStreamItem {
     Chunk(CompletionResponse),
     Stop,
 }
 
 impl Anthropic {
+    fn models_url(&self) -> String {
+        let base_url = self.base_url.trim().trim_end_matches('/');
+        let base_url = if base_url.is_empty() {
+            DEFAULT_ANTHROPIC_BASE_URL
+        } else {
+            base_url
+        };
+
+        if base_url.ends_with("/models") {
+            base_url.to_string()
+        } else if base_url.ends_with("/v1") {
+            format!("{base_url}/models")
+        } else {
+            format!("{base_url}/v1/models")
+        }
+    }
+
+    pub async fn list_models(&self) -> Result<Vec<String>, Error> {
+        let models_url = self.models_url();
+        let mut models = Vec::new();
+        let mut after_id = None;
+
+        loop {
+            let mut request = self
+                .client
+                .get(&models_url)
+                .query(&[("limit", "1000")])
+                .header("x-api-key", &self.api_key)
+                .header("anthropic-version", &self.anthropic_version);
+            if let Some(after_id) = &after_id {
+                request = request.query(&[("after_id", after_id)]);
+            }
+
+            let response = request.send().await?;
+            let status = response.status();
+            if !status.is_success() {
+                let error_body = response.text().await.unwrap_or_default();
+                return Err(Error::Api(format!("HTTP error {}: {}", status, error_body)));
+            }
+
+            let page: APIModelsResponse = response.json().await?;
+            let next_after_id = page
+                .last_id
+                .clone()
+                .or_else(|| page.data.last().map(|model| model.id.trim().to_string()));
+            models.extend(
+                page.data
+                    .into_iter()
+                    .map(|model| model.id.trim().to_string())
+                    .filter(|model| !model.is_empty()),
+            );
+
+            if !page.has_more {
+                break;
+            }
+
+            let Some(next_after_id) = next_after_id.filter(|id| !id.is_empty()) else {
+                break;
+            };
+            if after_id.as_deref() == Some(next_after_id.as_str()) {
+                break;
+            }
+            after_id = Some(next_after_id);
+        }
+
+        Ok(models)
+    }
+
     fn messages_url(&self) -> String {
         let base_url = self.base_url.trim().trim_end_matches('/');
         let base_url = if base_url.is_empty() {

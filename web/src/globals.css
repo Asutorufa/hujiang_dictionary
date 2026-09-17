@@ -155,6 +155,19 @@ body::-webkit-scrollbar-corner,
     color-mix(in srgb, var(--app-accent-soft) 55%, transparent);
 }
 
+.app-model-select {
+  min-height: 160px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  appearance: auto;
+  -webkit-appearance: auto;
+  -moz-appearance: auto;
+}
+
+.app-model-select option {
+  padding: 4px 6px;
+}
+
 /* Make interactive controls consistently show pointer cursor. */
 button:not(:disabled),
 [role="button"]:not([aria-disabled="true"]),

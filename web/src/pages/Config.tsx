@@ -23,6 +23,7 @@ import {
   ExternalLink,
   KeyRound,
   PlugZap,
+  RefreshCw,
   Search,
   Send,
   ShieldCheck,
@@ -84,6 +85,21 @@ const isCodexConnected = (provider: LlmProvider | null) => {
   }
 };
 
+const parseModelIds = (models: string) =>
+  Array.from(
+    new Set(
+      models
+        .split(",")
+        .map((model) => model.trim())
+        .filter(Boolean),
+    ),
+  );
+
+const formValue = (formData: FormData, name: string, fallback = "") => {
+  const value = formData.get(name);
+  return typeof value === "string" ? value : fallback;
+};
+
 type CodexLoginState = {
   state: string;
   user_code: string;
@@ -132,6 +148,10 @@ export default function Config() {
   const [codexLogin, setCodexLogin] = useState<CodexLoginState | null>(null);
   const [codexLoginLoading, setCodexLoginLoading] = useState(false);
   const [codexCodeCopied, setCodexCodeCopied] = useState(false);
+  const [modelsText, setModelsText] = useState("");
+  const [availableModels, setAvailableModels] = useState<string[] | null>(null);
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
 
   const fetchProviders = async () => {
     setProvidersLoading(true);
@@ -350,12 +370,92 @@ export default function Config() {
     setDeleteTarget(name);
   };
 
+  const resetModelDiscovery = () => {
+    setModelsText("");
+    setAvailableModels(null);
+    setSelectedModels([]);
+  };
+
+  const handleFetchModels = async (form: HTMLFormElement) => {
+    setModelsLoading(true);
+    try {
+      const formData = new FormData(form);
+      const res = await authorizedRequest("/llm/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formValue(formData, "name"),
+          provider: selectedProviderType,
+          base_url: formValue(formData, "base_url"),
+          api_key: formValue(formData, "api_key"),
+          project_id: formValue(formData, "project_id"),
+          location: formValue(formData, "location"),
+          anthropic_version: formValue(
+            formData,
+            "anthropic_version",
+            "2023-06-01",
+          ),
+        }),
+      });
+      await ensureOk(res, "Fetch models");
+      const payload: unknown = await res.json();
+      if (!Array.isArray(payload)) {
+        throw new Error("Provider returned an invalid model list");
+      }
+      const fetchedModels = parseModelIds(
+        payload.filter((model): model is string => typeof model === "string").join(","),
+      );
+      if (fetchedModels.length === 0) {
+        throw new Error("Provider returned no usable models");
+      }
+
+      const currentModels = parseModelIds(
+        modelsText || formValue(formData, "models"),
+      );
+      const mergedModels = parseModelIds(
+        [...currentModels, ...fetchedModels].join(","),
+      );
+      const nextSelectedModels =
+        currentModels.length > 0 ? currentModels : fetchedModels;
+      setAvailableModels(mergedModels);
+      setSelectedModels(nextSelectedModels);
+      setModelsText(nextSelectedModels.join(","));
+      addToast({
+        title: "Models loaded",
+        description: `${fetchedModels.length} model${fetchedModels.length === 1 ? "" : "s"} available.`,
+        color: "success",
+      });
+    } catch (err) {
+      addToast({
+        title: "Failed to fetch models",
+        description: err instanceof Error ? err.message : String(err),
+        color: "danger",
+      });
+    } finally {
+      setModelsLoading(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const data = Object.fromEntries(
       formData.entries(),
     ) as unknown as LlmProvider;
+    data.models = parseModelIds(
+      formData
+        .getAll("models")
+        .filter((model): model is string => typeof model === "string")
+        .join(","),
+    ).join(",");
+
+    if (!data.models) {
+      addToast({
+        title: "Select at least one model",
+        color: "warning",
+      });
+      return;
+    }
 
     if (data.provider === "codex" && !isCodexConnected(editingProvider)) {
       try {
@@ -470,6 +570,7 @@ export default function Config() {
     setEditingProvider(null);
     setCodexLogin(null);
     setCodexCodeCopied(false);
+    resetModelDiscovery();
     setSelectedProviderType("openai");
     setGeminiSearch(false);
     setProjectId("");
@@ -538,6 +639,9 @@ export default function Config() {
     setCodexLogin(null);
     setCodexCodeCopied(false);
     setSelectedProviderType(normalizeProviderType(provider.provider));
+    setModelsText(provider.models || "");
+    setAvailableModels(null);
+    setSelectedModels(parseModelIds(provider.models || ""));
     try {
       const features = JSON.parse(provider.features || "{}") as Record<
         string,
@@ -570,6 +674,13 @@ export default function Config() {
     }
     onOpenChange(true);
   };
+
+  const supportsModelDiscovery =
+    selectedProviderType === "openai" ||
+    selectedProviderType === "gemini" ||
+    selectedProviderType === "vertexai" ||
+    selectedProviderType === "anthropic" ||
+    (selectedProviderType === "codex" && isCodexConnected(editingProvider));
 
   return (
     <PageContainer size="4xl" className="app-settings-page space-y-6">
@@ -991,6 +1102,7 @@ export default function Config() {
                     onChange={(event) => {
                       setCodexLogin(null);
                       setCodexCodeCopied(false);
+                      resetModelDiscovery();
                       setSelectedProviderType(event.target.value);
                     }}
                     className="app-native-select w-full pr-10"
@@ -1139,21 +1251,91 @@ export default function Config() {
                 </>
               )}
               <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="bold">
-                  Models (comma separated)
-                </Text>
-                <TextField.Root
-                  name="models"
-                  defaultValue={editingProvider?.models}
-                  placeholder={
-                    selectedProviderType === "codex" ? "gpt-5.4" : undefined
-                  }
-                  required
-                />
-                {selectedProviderType === "codex" && (
+                <Flex align="center" justify="between" gap="2">
+                  <Text as="label" size="2" weight="bold">
+                    {availableModels ? "Available models" : "Models (comma separated)"}
+                  </Text>
+                  {supportsModelDiscovery && (
+                    <Button
+                      type="button"
+                      size="1"
+                      variant="soft"
+                      color="gray"
+                      disabled={modelsLoading}
+                      onClick={(event) => {
+                        const form = event.currentTarget.form;
+                        if (form) void handleFetchModels(form);
+                      }}
+                    >
+                      <RefreshCw
+                        size={14}
+                        aria-hidden="true"
+                        className={modelsLoading ? "animate-spin" : undefined}
+                      />
+                      {modelsLoading ? "Fetching…" : "Fetch models"}
+                    </Button>
+                  )}
+                </Flex>
+                {availableModels ? (
+                  <>
+                    <select
+                      name="models"
+                      multiple
+                      required
+                      size={Math.min(Math.max(availableModels.length, 4), 8)}
+                      value={selectedModels}
+                      onChange={(event) => {
+                        const values = Array.from(
+                          event.currentTarget.selectedOptions,
+                          (option) => option.value,
+                        );
+                        setSelectedModels(values);
+                        setModelsText(values.join(","));
+                      }}
+                      className="app-native-select app-model-select w-full"
+                    >
+                      {availableModels.map((model) => (
+                        <option key={model} value={model}>
+                          {model}
+                        </option>
+                      ))}
+                    </select>
+                    <Flex align="center" justify="between" gap="2">
+                      <Text size="1" color="gray">
+                        {selectedModels.length} selected
+                      </Text>
+                      <Button
+                        type="button"
+                        size="1"
+                        variant="ghost"
+                        onClick={() => setAvailableModels(null)}
+                      >
+                        Use manual entry
+                      </Button>
+                    </Flex>
+                  </>
+                ) : (
+                  <TextField.Root
+                    name="models"
+                    value={modelsText}
+                    onChange={(event) => setModelsText(event.target.value)}
+                    placeholder={
+                      selectedProviderType === "codex" ? "gpt-5.4" : undefined
+                    }
+                    required
+                  />
+                )}
+                {selectedProviderType === "codex" ? (
                   <Text size="1" color="gray">
                     Enter one or more Codex model ids, separated by commas.
+                    Model discovery is available after ChatGPT sign-in.
                   </Text>
+                ) : (
+                  supportsModelDiscovery && (
+                    <Text size="1" color="gray">
+                      Fetch the provider catalog, or enter model ids manually.
+                    </Text>
+                  )
                 )}
               </Flex>
               {selectedProviderType === "anthropic" && (

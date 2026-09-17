@@ -63,6 +63,19 @@ impl Completion for Provider {
 }
 
 impl Provider {
+    pub async fn list_models(&self) -> Result<Vec<String>, Error> {
+        match self {
+            Provider::OpenAI(provider) => provider.list_models().await,
+            Provider::WorkersAI(_) => Err(Error::Api(
+                "Workers AI model listing is not supported".to_string(),
+            )),
+            Provider::Gemini(provider) => provider.list_models().await,
+            Provider::OpenAIResponses(provider) => provider.list_models().await,
+            Provider::Codex(provider) => provider.list_models().await,
+            Provider::Anthropic(provider) => provider.list_models().await,
+        }
+    }
+
     pub fn models(&self) -> Vec<String> {
         match self {
             Provider::OpenAI(provider) => provider.models.iter().cloned().collect(),

@@ -5,6 +5,8 @@ use futures_util::Stream;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
+const DEFAULT_OPENAI_BASE_URL: &str = "https://api.openai.com/v1";
+
 #[derive(Clone)]
 pub struct OpenAI {
     pub name: String,
@@ -72,7 +74,68 @@ struct StreamMessage {
     pub reasoning_content: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct APIModelsResponse {
+    #[serde(default)]
+    pub data: Vec<APIModel>,
+}
+
+#[derive(Debug, Deserialize)]
+struct APIModel {
+    pub id: String,
+}
+
+pub(crate) fn models_url(base_url: &str) -> String {
+    let base_url = base_url.trim().trim_end_matches('/');
+    let base_url = if base_url.is_empty() {
+        DEFAULT_OPENAI_BASE_URL
+    } else {
+        base_url
+    };
+    let base_url = base_url.strip_suffix("/models").unwrap_or(base_url);
+    format!("{base_url}/models")
+}
+
+pub(crate) async fn fetch_models(
+    client: &Client,
+    base_url: &str,
+    api_key: &str,
+) -> Result<Vec<String>, Error> {
+    let mut request = client.get(models_url(base_url));
+    if !api_key.trim().is_empty() {
+        request = request.bearer_auth(api_key);
+    }
+
+    let response = request.send().await?;
+    let status = response.status();
+    if !status.is_success() {
+        let error_body = response.text().await.unwrap_or_default();
+        return Err(Error::Api(format!("HTTP error {}: {}", status, error_body)));
+    }
+
+    let response: APIModelsResponse = response.json().await?;
+    Ok(response
+        .data
+        .into_iter()
+        .map(|model| model.id.trim().to_string())
+        .filter(|model| !model.is_empty())
+        .collect())
+}
+
 impl OpenAI {
+    fn completions_base_url(&self) -> String {
+        let base_url = self.base_url.trim().trim_end_matches('/');
+        if base_url.is_empty() {
+            DEFAULT_OPENAI_BASE_URL.to_string()
+        } else {
+            base_url.to_string()
+        }
+    }
+
+    pub async fn list_models(&self) -> Result<Vec<String>, Error> {
+        fetch_models(&self.client, &self.base_url, &self.api_key).await
+    }
+
     pub async fn create_completion_stream(
         self,
         messages: Vec<Message>,
@@ -85,7 +148,7 @@ impl OpenAI {
 
         let resp = self
             .client
-            .post(format!("{}/chat/completions", self.base_url))
+            .post(format!("{}/chat/completions", self.completions_base_url()))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Accept", "text/event-stream")
             .json(&req)
@@ -184,7 +247,7 @@ impl Completion for OpenAI {
 
         let resp = self
             .client
-            .post(format!("{}/chat/completions", self.base_url))
+            .post(format!("{}/chat/completions", self.completions_base_url()))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&req)
             .send()
