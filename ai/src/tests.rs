@@ -460,6 +460,7 @@ async fn test_codex_completion_stream_success() {
         .match_header("chatgpt-account-id", "acct_test")
         .match_header("openai-beta", "responses=experimental")
         .match_header("accept", "text/event-stream")
+        .match_header("user-agent", "hj-rust")
         .match_body(mockito::Matcher::JsonString(
             r#"{"model":"gpt-5.4","store":false,"stream":true,"instructions":"Translate this","input":[{"role":"user","content":[{"type":"input_text","text":"Hello"}]}],"text":{"verbosity":"low"},"include":["reasoning.encrypted_content"],"parallel_tool_calls":true}"#.to_string(),
         ))
@@ -502,5 +503,40 @@ async fn test_codex_completion_stream_success() {
 
     assert_eq!(content, "Hello");
     assert_eq!(thinking, "Thinking");
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_codex_cloudflare_worker_block_has_actionable_error() {
+    let mut server = Server::new_async().await;
+    let mock = server
+        .mock("POST", "/backend-api/codex/responses")
+        .match_header("user-agent", "hj-rust")
+        .with_status(403)
+        .with_header("content-type", "text/html")
+        .with_body("<html><body>Unable to load site</body></html>")
+        .create_async()
+        .await;
+
+    let provider = codex::OpenAICodex {
+        base_url: format!("{}/backend-api", server.url()),
+        api_key: "oauth-token".to_string(),
+        model: "gpt-5.4".to_string(),
+        ..Default::default()
+    };
+
+    let error = match provider
+        .completion(vec![Message {
+            role: "user".to_string(),
+            content: "Hi".to_string(),
+        }])
+        .await
+    {
+        Ok(_) => panic!("expected the mocked Codex request to fail"),
+        Err(error) => error.to_string(),
+    };
+
+    assert!(error.contains("Workers egress"));
+    assert!(!error.contains("Unable to load site"));
     mock.assert_async().await;
 }

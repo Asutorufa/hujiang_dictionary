@@ -468,6 +468,141 @@ button.app-primary-action:hover {
   padding: 22px !important;
 }
 
+.app-codex-login-panel {
+  padding: 16px;
+  border: 1px solid var(--app-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--app-panel-muted) 52%, var(--app-panel));
+}
+
+.app-codex-login-icon {
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--app-accent-soft);
+  color: var(--app-accent-strong);
+}
+
+.app-codex-login-header p {
+  max-width: 330px;
+  line-height: 1.45;
+}
+
+.app-codex-login-flow {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.app-codex-login-step {
+  color: var(--app-text);
+}
+
+.app-codex-step-number {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--app-accent);
+  color: var(--app-bg);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.app-codex-login-action {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 13px;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 40%, var(--app-border));
+  border-radius: 10px;
+  background: var(--app-panel);
+  color: var(--app-text);
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-decoration: none;
+  transition: border-color 160ms ease, background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.app-codex-login-action:hover {
+  border-color: var(--app-accent);
+  background: color-mix(in srgb, var(--app-accent-soft) 70%, var(--app-panel));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--app-accent) 12%, transparent);
+}
+
+.app-codex-login-action:focus-visible {
+  outline: 3px solid var(--app-accent-soft);
+  outline-offset: 2px;
+}
+
+.app-codex-login-action-content {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.app-codex-login-action-content svg {
+  flex: 0 0 auto;
+  color: var(--app-accent-strong);
+}
+
+.app-codex-login-action-arrow {
+  flex: 0 0 auto;
+  color: var(--app-muted);
+  transition: transform 160ms ease, color 160ms ease;
+}
+
+.app-codex-login-action:hover .app-codex-login-action-arrow {
+  color: var(--app-accent-strong);
+  transform: translate(2px, -2px);
+}
+
+.app-codex-code-row {
+  min-width: 0;
+}
+
+.app-codex-code-block {
+  min-width: 0;
+}
+
+.app-codex-code {
+  display: block;
+  margin-top: 5px;
+  color: var(--app-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
+  letter-spacing: 0.14em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.app-codex-copy-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  cursor: pointer;
+}
+
+.app-codex-copy-button:hover {
+  border-color: var(--app-border-strong);
+  background: var(--app-panel-muted);
+}
+
+.app-codex-login-status {
+  padding-top: 2px;
+  color: var(--app-muted);
+}
+
 .app-settings-panel-heading {
   display: flex;
   align-items: flex-start;

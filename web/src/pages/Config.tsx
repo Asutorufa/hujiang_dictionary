@@ -16,7 +16,17 @@ import { useLocation } from "wouter";
 import { ROUTE_LOGIN } from "../lib/constants";
 import { EmptyState } from "@/ui/EmptyState";
 import { PageContainer } from "@/ui/PageContainer";
-import { KeyRound, PlugZap, Search, Send } from "lucide-react";
+import {
+  ArrowUpRight,
+  Check,
+  Copy,
+  ExternalLink,
+  KeyRound,
+  PlugZap,
+  Search,
+  Send,
+  ShieldCheck,
+} from "lucide-react";
 
 export type LlmProvider = {
   name: string;
@@ -121,6 +131,7 @@ export default function Config() {
   const [thinkingBudget, setThinkingBudget] = useState<string>("1024");
   const [codexLogin, setCodexLogin] = useState<CodexLoginState | null>(null);
   const [codexLoginLoading, setCodexLoginLoading] = useState(false);
+  const [codexCodeCopied, setCodexCodeCopied] = useState(false);
 
   const fetchProviders = async () => {
     setProvidersLoading(true);
@@ -215,6 +226,7 @@ export default function Config() {
 
           if (result.status === "connected") {
             setCodexLogin(null);
+            setCodexCodeCopied(false);
             addToast({
               title: "OpenAI Codex connected",
               description: "Your ChatGPT credentials are stored securely.",
@@ -233,6 +245,7 @@ export default function Config() {
       } catch (err) {
         if (!cancelled) {
           setCodexLogin(null);
+          setCodexCodeCopied(false);
           addToast({
             title: "Codex sign-in failed",
             description: err instanceof Error ? err.message : String(err),
@@ -315,6 +328,24 @@ export default function Config() {
   const formatTokenDate = (timestamp: number | null) =>
     timestamp ? new Date(timestamp * 1000).toLocaleString() : "Never";
 
+  const handleCopyCodexCode = async () => {
+    if (!codexLogin) return;
+    try {
+      if (!navigator.clipboard) {
+        throw new Error("Clipboard access is unavailable");
+      }
+      await navigator.clipboard.writeText(codexLogin.user_code);
+      setCodexCodeCopied(true);
+      window.setTimeout(() => setCodexCodeCopied(false), 1600);
+    } catch {
+      addToast({
+        title: "Could not copy the device code",
+        description: "Copy the highlighted code manually.",
+        color: "warning",
+      });
+    }
+  };
+
   const handleDelete = (name: string) => {
     setDeleteTarget(name);
   };
@@ -343,6 +374,7 @@ export default function Config() {
           throw new Error("Codex sign-in returned an invalid device code");
         }
         setCodexLogin(login);
+        setCodexCodeCopied(false);
         addToast({
           title: "Finish signing in to OpenAI",
           description: "Use the device code shown in this dialog.",
@@ -437,6 +469,7 @@ export default function Config() {
   const openAddModal = () => {
     setEditingProvider(null);
     setCodexLogin(null);
+    setCodexCodeCopied(false);
     setSelectedProviderType("openai");
     setGeminiSearch(false);
     setProjectId("");
@@ -503,6 +536,7 @@ export default function Config() {
   const openEditModal = (provider: LlmProvider) => {
     setEditingProvider(provider);
     setCodexLogin(null);
+    setCodexCodeCopied(false);
     setSelectedProviderType(normalizeProviderType(provider.provider));
     try {
       const features = JSON.parse(provider.features || "{}") as Record<
@@ -922,7 +956,10 @@ export default function Config() {
       <Dialog.Root
         open={isOpen}
         onOpenChange={(open) => {
-          if (!open) setCodexLogin(null);
+          if (!open) {
+            setCodexLogin(null);
+            setCodexCodeCopied(false);
+          }
           onOpenChange(open);
         }}
       >
@@ -953,6 +990,7 @@ export default function Config() {
                     value={selectedProviderType}
                     onChange={(event) => {
                       setCodexLogin(null);
+                      setCodexCodeCopied(false);
                       setSelectedProviderType(event.target.value);
                     }}
                     className="app-native-select w-full pr-10"
@@ -970,7 +1008,7 @@ export default function Config() {
                 </Box>
               </Flex>
               {selectedProviderType === "codex" ? (
-                <Box className="rounded-md border border-[var(--app-border)] p-3">
+                <Box className="app-codex-login-panel">
                   <input
                     type="hidden"
                     name="base_url"
@@ -978,31 +1016,104 @@ export default function Config() {
                     readOnly
                   />
                   <input type="hidden" name="api_key" value="" readOnly />
-                  <Text size="2" as="p">
-                    Codex uses your ChatGPT subscription. Sign in with a device
-                    code; no API key is required.
-                  </Text>
+                  <Flex
+                    align="start"
+                    gap="3"
+                    className="app-codex-login-header"
+                  >
+                    <span className="app-codex-login-icon" aria-hidden="true">
+                      <ShieldCheck size={18} />
+                    </span>
+                    <Box>
+                      <Text size="3" weight="bold" as="div">
+                        Sign in with ChatGPT
+                      </Text>
+                      <Text size="2" color="gray" as="p" mt="1">
+                        Use your ChatGPT subscription with Codex. No API key is
+                        required.
+                      </Text>
+                    </Box>
+                  </Flex>
                   {codexLogin ? (
-                    <Flex direction="column" gap="2" mt="3">
-                      <Text size="2" as="p">
-                        Enter this code at OpenAI:
-                      </Text>
-                      <Text size="6" weight="bold" className="tracking-widest">
-                        {codexLogin.user_code}
-                      </Text>
+                    <Box className="app-codex-login-flow">
+                      <Flex
+                        align="center"
+                        gap="2"
+                        className="app-codex-login-step"
+                      >
+                        <span className="app-codex-step-number">1</span>
+                        <Text size="2">
+                          Open OpenAI&apos;s device sign-in page.
+                        </Text>
+                      </Flex>
                       <a
                         href={codexLogin.verification_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="app-inline-link"
+                        className="app-codex-login-action"
                       >
-                        Open OpenAI device sign-in
+                        <span className="app-codex-login-action-content">
+                          <ExternalLink size={16} aria-hidden="true" />
+                          <span>Open OpenAI device sign-in</span>
+                        </span>
+                        <ArrowUpRight
+                          size={16}
+                          aria-hidden="true"
+                          className="app-codex-login-action-arrow"
+                        />
                       </a>
-                      <Text size="1" color="gray">
-                        Waiting for authorization…
-                      </Text>
-                    </Flex>
-                  ) : null}
+                      <Flex
+                        align="end"
+                        justify="between"
+                        gap="3"
+                        className="app-codex-code-row"
+                      >
+                        <Box className="app-codex-code-block">
+                          <Text size="1" color="gray" as="div">
+                            2 · Enter this device code
+                          </Text>
+                          <Text
+                            size="6"
+                            weight="bold"
+                            className="app-codex-code"
+                          >
+                            {codexLogin.user_code}
+                          </Text>
+                        </Box>
+                        <Button
+                          type="button"
+                          size="1"
+                          variant="soft"
+                          color="gray"
+                          className="app-codex-copy-button"
+                          onClick={() => void handleCopyCodexCode()}
+                        >
+                          {codexCodeCopied ? (
+                            <Check size={15} aria-hidden="true" />
+                          ) : (
+                            <Copy size={15} aria-hidden="true" />
+                          )}
+                          {codexCodeCopied ? "Copied" : "Copy code"}
+                        </Button>
+                      </Flex>
+                      <Flex
+                        align="center"
+                        gap="2"
+                        role="status"
+                        className="app-codex-login-status"
+                      >
+                        <Spinner size="1" />
+                        <Text size="1" color="gray">
+                          Waiting for authorization…
+                        </Text>
+                      </Flex>
+                    </Box>
+                  ) : (
+                    <Text size="2" color="gray" as="p" mt="4">
+                      Click &quot;Sign in with ChatGPT&quot; below to get a
+                      one-time device code.
+                    </Text>
+                  )}
                 </Box>
               ) : (
                 <>
@@ -1151,6 +1262,7 @@ export default function Config() {
                 type="button"
                 onClick={() => {
                   setCodexLogin(null);
+                  setCodexCodeCopied(false);
                   onOpenChange(false);
                 }}
               >

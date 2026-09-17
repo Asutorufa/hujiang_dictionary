@@ -7,6 +7,7 @@ use std::collections::HashSet;
 
 const DEFAULT_CODEX_BASE_URL: &str = "https://chatgpt.com/backend-api";
 const DEFAULT_CODEX_MODEL: &str = "gpt-5.4";
+const CODEX_USER_AGENT: &str = "hj-rust";
 
 #[derive(Clone)]
 pub struct OpenAICodex {
@@ -137,6 +138,7 @@ impl OpenAICodex {
             .header("OpenAI-Beta", "responses=experimental")
             .header("Accept", "text/event-stream")
             .header("Content-Type", "application/json")
+            .header("User-Agent", CODEX_USER_AGENT)
             .header("originator", "hj-rust")
             .json(request);
 
@@ -217,7 +219,7 @@ impl OpenAICodex {
         let status = response.status();
         if !status.is_success() {
             let error_body = response.text().await.unwrap_or_default();
-            return Err(Error::Api(format!("HTTP error {}: {}", status, error_body)));
+            return Err(Error::Api(codex_http_error_message(status, &error_body)));
         }
 
         let stream = crate::http::bytes_stream(response);
@@ -300,6 +302,22 @@ impl OpenAICodex {
             },
         ))
     }
+}
+
+fn codex_http_error_message(status: reqwest::StatusCode, body: &str) -> String {
+    if status == reqwest::StatusCode::FORBIDDEN && body.contains("Unable to load site") {
+        return "Codex request was blocked by Cloudflare (HTTP 403) from the Workers egress path. The OAuth token is present, but this shared Worker IP is not accepted by chatgpt.com. Run Codex through a non-Workers relay or local deployment.".to_string();
+    }
+
+    let body = body.trim();
+    let mut chars = body.chars();
+    let shortened: String = chars.by_ref().take(2_000).collect();
+    let body = if chars.next().is_some() {
+        format!("{shortened}…")
+    } else {
+        shortened
+    };
+    format!("HTTP error {status}: {body}")
 }
 
 fn response_error_message(value: &Value, fallback: &str) -> String {
