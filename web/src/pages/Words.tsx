@@ -13,8 +13,27 @@ import { useLocalStorage } from "usehooks-ts";
 import { LoadingOverlay } from "@/ui/LoadingOverlay";
 import { EmptyState } from "@/ui/EmptyState";
 import { PageContainer } from "@/ui/PageContainer";
+import { PageHeader } from "@/ui/PageHeader";
 import { Pager } from "@/ui/Pager";
-import { BookOpen, SlidersHorizontal, Plus, RefreshCw } from "lucide-react";
+import {
+  BookOpen,
+  RefreshCw,
+  Search,
+  SlidersHorizontal,
+  Plus,
+} from "lucide-react";
+
+const createEmptyWord = (): ListWordResponse => ({
+  word: "",
+  example: "",
+  explain: "",
+  add_time: 0,
+  update_time: 0,
+  reminder_time: 0,
+  anki_count: 0,
+  priority: 0,
+  type: 0,
+});
 
 export default function Words() {
   const [words, setWords] = useState<ListWordResponse[]>([]);
@@ -25,21 +44,12 @@ export default function Words() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [removeWord, setRemoveWord] = useState("");
   const [refresh, setRefresh] = useState(0);
+  const [search, setSearch] = useState("");
   const [newWord, setNewWord] = useState<{
     origin?: string;
     new: ListWordResponse;
   }>({
-    new: {
-      word: "",
-      example: "",
-      explain: "",
-      add_time: 0,
-      update_time: 0,
-      reminder_time: 0,
-      anki_count: 0,
-      priority: 0,
-      type: 0,
-    },
+    new: createEmptyWord(),
   });
   const [orderBy, setOrderBy] = useLocalStorage("order_by", "word");
   const [grammar, setGrammar] = useLocalStorage("grammar", false);
@@ -66,6 +76,11 @@ export default function Words() {
     });
   }, [page, orderBy, refresh, grammar]);
 
+  const openNewWord = () => {
+    setNewWord({ new: createEmptyWord() });
+    setOpen(true);
+  };
+
   const handleWordUpdate = (index: number, updatedWord: ListWordResponse) => {
     setWords((prev) => {
       const newWords = [...prev];
@@ -73,6 +88,20 @@ export default function Words() {
       return newWords;
     });
   };
+
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const visibleWords = words
+    .map((word, index) => ({ word, index }))
+    .filter(({ word }) => {
+      return (
+        word.word &&
+        word.word.length > 0 &&
+        (!normalizedSearch ||
+          `${word.word} ${word.example} ${word.explain}`
+            .toLocaleLowerCase()
+            .includes(normalizedSearch))
+      );
+    });
 
   return (
     <div className="app-library-page">
@@ -87,7 +116,7 @@ export default function Words() {
           if (removeWord) {
             await deleteWord(removeWord, (error) => {
               if (!error) {
-                setRefresh(refresh + 1);
+                setRefresh((value) => value + 1);
               }
             });
           }
@@ -103,32 +132,41 @@ export default function Words() {
         type={newWord.new.type}
         origin={newWord.origin}
         onSaved={() => {
-          setRefresh(refresh + 1);
+          setRefresh((value) => value + 1);
         }}
       />
 
       <LoadingOverlay show={loading} />
 
       <PageContainer size="7xl">
-        <header className="app-library-header">
-          <div>
-            <div className="app-library-eyebrow">Work / Library</div>
-            <h1>Vocabulary</h1>
-            <p>Keep the words you want to remember close at hand.</p>
-          </div>
-          <div className="app-library-header-actions">
-            <div className="app-library-page-count">
-              <Pager
-                page={page}
-                total={total || 1}
-                onPageChange={(p) => setPage(p)}
-              />
-            </div>
+        <PageHeader
+          title="Vocabulary"
+          subtitle="Save, review, and keep the words you want to remember close at hand."
+          actions={
+            <button type="button" className="app-primary-action" onClick={openNewWord}>
+              <Plus size={17} />
+              Add word
+            </button>
+          }
+        />
+
+        <div className="app-library-toolbar">
+          <label className="app-search-field">
+            <Search size={17} aria-hidden="true" />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Find a saved word"
+              aria-label="Find a saved word"
+            />
+          </label>
+          <div className="app-library-toolbar-actions">
             <DropdownMenu.Root modal={false}>
               <DropdownMenu.Trigger>
                 <button type="button" className="app-library-control">
                   <SlidersHorizontal size={16} />
-                  <span>Filter</span>
+                  <span>Sort & display</span>
                 </button>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content>
@@ -168,28 +206,13 @@ export default function Words() {
                 </DropdownMenu.RadioGroup>
               </DropdownMenu.Content>
             </DropdownMenu.Root>
-            <button
-              type="button"
-              className="app-library-add"
-              onClick={() => {
-                setNewWord({
-                  new: {
-                    word: "",
-                    example: "",
-                    explain: "",
-                    add_time: 0,
-                    update_time: 0,
-                    reminder_time: 0,
-                    anki_count: 0,
-                    priority: 0,
-                    type: 0,
-                  },
-                });
-                setOpen(true);
-              }}
-            >
-              <Plus size={17} /> Add word
-            </button>
+            <div className="app-library-page-count">
+              <Pager
+                page={page}
+                total={total || 1}
+                onPageChange={(p) => setPage(p)}
+              />
+            </div>
             <button
               type="button"
               className="app-library-icon-button"
@@ -199,7 +222,7 @@ export default function Words() {
               <RefreshCw size={17} />
             </button>
           </div>
-        </header>
+        </div>
 
         <div className="app-library-list-heading">
           <div>
@@ -208,40 +231,44 @@ export default function Words() {
               Review, edit, or adjust a word without leaving the list.
             </span>
           </div>
-          <span>{words.length} shown</span>
+          <span>
+            {visibleWords.length} {normalizedSearch ? "matching" : "shown"}
+          </span>
         </div>
 
         <div className="app-word-grid">
-          {words
-            .filter((w) => w.word && w.word.length > 0)
-            .map((w, i) => (
-              <div key={w.word + i} className="app-word-grid-item">
-                <WordCard
-                  word={w}
-                  onEdit={() => {
-                    setNewWord({
-                      origin: w.word,
-                      new: w,
-                    });
-                    setOpen(true);
-                  }}
-                  onDelete={() => {
-                    setRemoveWord(w.word);
-                    setConfirmOpen(true);
-                  }}
-                  onWordUpdate={(updated) => handleWordUpdate(i, updated)}
-                />
-              </div>
-            ))}
+          {visibleWords.map(({ word: w, index }) => (
+            <div key={w.word + index} className="app-word-grid-item">
+              <WordCard
+                word={w}
+                onEdit={() => {
+                  setNewWord({
+                    origin: w.word,
+                    new: w,
+                  });
+                  setOpen(true);
+                }}
+                onDelete={() => {
+                  setRemoveWord(w.word);
+                  setConfirmOpen(true);
+                }}
+                onWordUpdate={(updated) => handleWordUpdate(index, updated)}
+              />
+            </div>
+          ))}
 
-          {!loading && words.length === 0 && (
+          {!loading && visibleWords.length === 0 && (
             <div className="col-span-full">
               <EmptyState
-                title="No words found"
-                description="Add your first word to start reviewing."
+                title={normalizedSearch ? "No matching words" : "No words found"}
+                description={
+                  normalizedSearch
+                    ? "Try a different search or clear the search field."
+                    : "Add your first word to start reviewing."
+                }
                 icon={<BookOpen size={28} className="text-[var(--gray-a11)]" />}
-                actionLabel="Add a word"
-                onAction={() => setOpen(true)}
+                actionLabel={normalizedSearch ? "Clear search" : "Add a word"}
+                onAction={normalizedSearch ? () => setSearch("") : openNewWord}
               />
             </div>
           )}

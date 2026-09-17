@@ -43,6 +43,7 @@ function Main() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
     window.localStorage.getItem("dictdeck_sidebar_collapsed") === "true",
   );
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     window.localStorage.setItem(
@@ -62,6 +63,10 @@ function Main() {
       window.removeEventListener("unauthorized", handleUnauthorized);
     };
   }, [setLocation]);
+
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location]);
 
   const handleNavChange = (nextLocation: string) => {
     if (nextLocation === location) {
@@ -83,6 +88,9 @@ function Main() {
           onValueChange={handleNavChange}
           collapsed={sidebarCollapsed}
           onToggleCollapsed={() => setSidebarCollapsed((collapsed) => !collapsed)}
+          mobileOpen={mobileSidebarOpen}
+          onToggleMobile={() => setMobileSidebarOpen((open) => !open)}
+          onCloseMobile={() => setMobileSidebarOpen(false)}
         />
       )}
 

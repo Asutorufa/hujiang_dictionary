@@ -7,13 +7,16 @@ import {
   Flex,
   Text,
   Box,
+  Spinner,
   Switch,
 } from "@radix-ui/themes";
 import { addToast, ConfirmModal, useDisclosure } from "@/components";
 import { authorizedRequest } from "../lib/api";
 import { useLocation } from "wouter";
 import { ROUTE_LOGIN } from "../lib/constants";
+import { EmptyState } from "@/ui/EmptyState";
 import { PageContainer } from "@/ui/PageContainer";
+import { KeyRound, PlugZap, Search, Send } from "lucide-react";
 
 export type LlmProvider = {
   name: string;
@@ -51,6 +54,7 @@ const normalizeProviderType = (provider: string) =>
 export default function Config() {
   const [, setLocation] = useLocation();
   const [providers, setProviders] = useState<LlmProvider[]>([]);
+  const [providersLoading, setProvidersLoading] = useState(false);
   const [configurations, setConfigurations] = useState<Configuration[]>([]);
   const [mcpTokens, setMcpTokens] = useState<McpToken[]>([]);
   const [activeTab, setActiveTab] = useState("llm");
@@ -82,6 +86,7 @@ export default function Config() {
   const [thinkingBudget, setThinkingBudget] = useState<string>("1024");
 
   const fetchProviders = async () => {
+    setProvidersLoading(true);
     try {
       const res = await authorizedRequest("/llm/list", {
         method: "POST",
@@ -96,6 +101,8 @@ export default function Config() {
       setProviders(data);
     } catch (e) {
       console.error(e);
+    } finally {
+      setProvidersLoading(false);
     }
   };
 
@@ -506,47 +513,62 @@ export default function Config() {
                 </Button>
               </div>
 
-              <div className="app-provider-grid grid gap-4 md:grid-cols-2">
-                {providers.map((p) => (
-                  <Card key={p.name} size="2" className="app-provider-card">
-                    <Flex justify="between" align="start">
-                      <Box>
-                        <div className="app-provider-kicker">
-                          Connected provider
-                        </div>
-                        <Text size="4" weight="bold" as="div">
-                          {p.name}
-                        </Text>
-                        <Text size="2" color="gray" as="div">
-                          {normalizeProviderType(p.provider)}
-                        </Text>
-                        {p.base_url && (
-                          <Text size="1" className="truncate" as="div">
-                            {p.base_url}
+              {providersLoading ? (
+                <div className="app-settings-inline-state" role="status">
+                  <Spinner size="2" />
+                  <span>Loading providers…</span>
+                </div>
+              ) : providers.length > 0 ? (
+                <div className="app-provider-grid">
+                  {providers.map((p) => (
+                    <Card key={p.name} size="2" className="app-provider-card">
+                      <Flex justify="between" align="start" gap="4">
+                        <Box className="app-provider-details">
+                          <div className="app-provider-kicker">
+                            Connected provider
+                          </div>
+                          <Text size="4" weight="bold" as="div">
+                            {p.name}
                           </Text>
-                        )}
-                      </Box>
-                      <Flex gap="2">
-                        <Button
-                          size="1"
-                          variant="soft"
-                          onClick={() => openEditModal(p)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="1"
-                          color="red"
-                          variant="soft"
-                          onClick={() => handleDelete(p.name)}
-                        >
-                          Delete
-                        </Button>
+                          <Text size="2" color="gray" as="div">
+                            {normalizeProviderType(p.provider)}
+                          </Text>
+                          {p.base_url && (
+                            <Text size="1" className="truncate" as="div">
+                              {p.base_url}
+                            </Text>
+                          )}
+                        </Box>
+                        <Flex gap="2" className="shrink-0">
+                          <Button
+                            size="1"
+                            variant="soft"
+                            onClick={() => openEditModal(p)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="1"
+                            color="red"
+                            variant="soft"
+                            onClick={() => handleDelete(p.name)}
+                          >
+                            Delete
+                          </Button>
+                        </Flex>
                       </Flex>
-                    </Flex>
-                  </Card>
-                ))}
-              </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  title="No providers connected"
+                  description="Add a model provider to start using assisted lookups."
+                  icon={<PlugZap size={24} />}
+                  actionLabel="Add provider"
+                  onAction={openAddModal}
+                />
+              )}
             </>
           )}
 
@@ -562,142 +584,143 @@ export default function Config() {
                   </p>
                 </div>
               </div>
-              <Card
-                size="3"
-                className="app-settings-form"
-                style={{
-                  backgroundColor: "var(--color-panel-solid)",
-                  backdropFilter: "none",
-                }}
-              >
+              <div className="app-settings-form">
                 <form onSubmit={handleGeneralConfigSave}>
-                  <Flex direction="column" gap="4">
-                    <Text size="6" weight="bold" mb="2">
-                      General Configurations
-                    </Text>
-
-                    <Flex direction="column" gap="1">
-                      <Text as="label" size="2" weight="bold">
-                        Telegram Bot Token (TELEGRAM_TOKEN)
-                      </Text>
-                      <TextField.Root
-                        name="TELEGRAM_TOKEN"
-                        type="password"
-                        defaultValue={
-                          configurations.find((c) => c.key === "TELEGRAM_TOKEN")
-                            ?.value || ""
-                        }
-                        placeholder="123456789:ABCDefghIJKlmnopQRSTuvwxYZ1234567890"
-                      />
-                    </Flex>
-
-                    <Flex direction="column" gap="1">
-                      <Text as="label" size="2" weight="bold">
-                        Maintainer ID (MAINTAINER_ID)
-                      </Text>
-                      <Text size="1" color="gray">
-                        The primary admin user ID who receives cron messages and
-                        error reports.
-                      </Text>
-                      <TextField.Root
-                        name="MAINTAINER_ID"
-                        defaultValue={
-                          configurations.find((c) => c.key === "MAINTAINER_ID")
-                            ?.value || ""
-                        }
-                        placeholder="123456789"
-                      />
-                    </Flex>
-
-                    <Flex direction="column" gap="1">
-                      <Text as="label" size="2" weight="bold">
-                        Allowed Users (ALLOW_USERS)
-                      </Text>
-                      <Text size="1" color="gray">
-                        Comma-separated list of allowed Telegram User IDs.
-                      </Text>
-                      <TextField.Root
-                        name="ALLOW_USERS"
-                        defaultValue={
-                          configurations.find((c) => c.key === "ALLOW_USERS")
-                            ?.value || ""
-                        }
-                        placeholder="123456789,987654321"
-                      />
-                    </Flex>
-
-                    <Box mt="4">
-                      <Card variant="surface" className="app-accent-panel">
-                        <Flex direction="column" gap="4" p="1">
-                          <Text size="3" weight="bold">
-                            Google Search Grounding
+                  <div className="app-settings-panel-stack">
+                    <section className="app-settings-panel">
+                      <div className="app-settings-panel-heading">
+                        <span className="app-settings-panel-icon">
+                          <Send size={17} />
+                        </span>
+                        <div>
+                          <h3>Telegram delivery</h3>
+                          <p>Control notifications and who can use the bot.</p>
+                        </div>
+                      </div>
+                      <div className="app-settings-fields">
+                        <Flex direction="column" gap="1">
+                          <Text as="label" size="2" weight="bold">
+                            Bot token
                           </Text>
-                          <Flex direction="column" gap="1">
-                            <Text as="label" size="2" weight="bold">
-                              Google Custom Search API Key
-                              (GOOGLE_SEARCH_API_KEY)
-                            </Text>
-                            <TextField.Root
-                              name="GOOGLE_SEARCH_API_KEY"
-                              type="password"
-                              defaultValue={
-                                configurations.find(
-                                  (c) => c.key === "GOOGLE_SEARCH_API_KEY",
-                                )?.value || ""
-                              }
-                              placeholder="AIza..."
-                            />
-                          </Flex>
-                          <Flex direction="column" gap="1">
-                            <Text as="label" size="2" weight="bold">
-                              Google Custom Search CX (GOOGLE_SEARCH_CX)
-                            </Text>
-                            <TextField.Root
-                              name="GOOGLE_SEARCH_CX"
-                              defaultValue={
-                                configurations.find(
-                                  (c) => c.key === "GOOGLE_SEARCH_CX",
-                                )?.value || ""
-                              }
-                              placeholder="0123456789..."
-                            />
-                          </Flex>
+                          <TextField.Root
+                            name="TELEGRAM_TOKEN"
+                            type="password"
+                            defaultValue={
+                              configurations.find((c) => c.key === "TELEGRAM_TOKEN")
+                                ?.value || ""
+                            }
+                            placeholder="123456789:ABCDefghIJKlmnopQRSTuvwxYZ1234567890"
+                          />
+                          <Text size="1" color="gray">
+                            Stored securely for Telegram notifications.
+                          </Text>
                         </Flex>
-                      </Card>
-                    </Box>
+                        <Flex direction="column" gap="1">
+                          <Text as="label" size="2" weight="bold">
+                            Maintainer ID
+                          </Text>
+                          <TextField.Root
+                            name="MAINTAINER_ID"
+                            defaultValue={
+                              configurations.find((c) => c.key === "MAINTAINER_ID")
+                                ?.value || ""
+                            }
+                            placeholder="123456789"
+                          />
+                          <Text size="1" color="gray">
+                            The primary admin who receives cron messages and error reports.
+                          </Text>
+                        </Flex>
+                        <Flex direction="column" gap="1" className="app-settings-field-wide">
+                          <Text as="label" size="2" weight="bold">
+                            Allowed users
+                          </Text>
+                          <TextField.Root
+                            name="ALLOW_USERS"
+                            defaultValue={
+                              configurations.find((c) => c.key === "ALLOW_USERS")
+                                ?.value || ""
+                            }
+                            placeholder="123456789,987654321"
+                          />
+                          <Text size="1" color="gray">
+                            Comma-separated Telegram user IDs.
+                          </Text>
+                        </Flex>
+                      </div>
+                    </section>
 
-                    <Flex justify="end" mt="4">
+                    <section className="app-settings-panel">
+                      <div className="app-settings-panel-heading">
+                        <span className="app-settings-panel-icon">
+                          <Search size={17} />
+                        </span>
+                        <div>
+                          <h3>Web search</h3>
+                          <p>Allow grounded lookups to use Google Custom Search.</p>
+                        </div>
+                      </div>
+                      <div className="app-settings-fields">
+                        <Flex direction="column" gap="1">
+                          <Text as="label" size="2" weight="bold">
+                            API key
+                          </Text>
+                          <TextField.Root
+                            name="GOOGLE_SEARCH_API_KEY"
+                            type="password"
+                            defaultValue={
+                              configurations.find(
+                                (c) => c.key === "GOOGLE_SEARCH_API_KEY",
+                              )?.value || ""
+                            }
+                            placeholder="AIza..."
+                          />
+                        </Flex>
+                        <Flex direction="column" gap="1">
+                          <Text as="label" size="2" weight="bold">
+                            Search engine ID
+                          </Text>
+                          <TextField.Root
+                            name="GOOGLE_SEARCH_CX"
+                            defaultValue={
+                              configurations.find(
+                                (c) => c.key === "GOOGLE_SEARCH_CX",
+                              )?.value || ""
+                            }
+                            placeholder="0123456789..."
+                          />
+                        </Flex>
+                      </div>
+                    </section>
+
+                    <div className="app-settings-form-footer">
+                      <span>Changes apply to future lookups.</span>
                       <Button
                         color="gray"
                         className="app-primary-action"
                         type="submit"
-                        size="3"
                       >
-                        Save Configurations
+                        Save changes
                       </Button>
-                    </Flex>
-                  </Flex>
+                    </div>
+                  </div>
                 </form>
-              </Card>
+              </div>
 
-              <Card
-                size="3"
-                className="app-settings-form mt-6"
-                style={{
-                  backgroundColor: "var(--color-panel-solid)",
-                  backdropFilter: "none",
-                }}
-              >
+              <section className="app-settings-panel app-settings-mcp-panel">
                 <Flex justify="between" align="start" gap="4" wrap="wrap">
-                  <Box>
-                    <Text size="6" weight="bold" as="div">
-                      MCP access tokens
-                    </Text>
-                    <Text size="2" color="gray" as="div" mt="1">
-                      Let connected LLM clients search and manage saved words.
-                      Tokens are shown only once.
-                    </Text>
-                  </Box>
+                  <div className="app-settings-panel-heading">
+                    <span className="app-settings-panel-icon">
+                      <KeyRound size={17} />
+                    </span>
+                    <div>
+                      <h3>MCP access tokens</h3>
+                      <p>
+                        Let connected LLM clients search and manage saved words.
+                        Tokens are shown only once.
+                      </p>
+                    </div>
+                  </div>
                   <Button
                     color="gray"
                     className="app-primary-action"
@@ -714,9 +737,10 @@ export default function Config() {
 
                 <Flex direction="column" gap="3" mt="5">
                   {mcpTokens.length === 0 ? (
-                    <Text size="2" color="gray">
-                      No MCP tokens have been generated.
-                    </Text>
+                    <div className="app-settings-empty-row">
+                      <KeyRound size={17} />
+                      <span>No MCP tokens have been generated.</span>
+                    </div>
                   ) : (
                     mcpTokens.map((token) => (
                       <Flex
@@ -753,7 +777,7 @@ export default function Config() {
                     ))
                   )}
                 </Flex>
-              </Card>
+              </section>
             </div>
           )}
         </section>

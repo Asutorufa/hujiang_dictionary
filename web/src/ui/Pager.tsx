@@ -1,4 +1,4 @@
-import { IconButton, Text, TextField, Flex } from "@radix-ui/themes";
+import { IconButton, TextField } from "@radix-ui/themes";
 import {
   ChevronLeft,
   ChevronRight,
@@ -35,66 +35,81 @@ export function Pager({
   };
 
   return (
-    <Flex className="app-pager" gap="1" align="center">
-      <IconButton
-        size="1"
-        variant="ghost"
-        color="gray"
-        disabled={page <= 1}
-        onClick={() => onPageChange(1)}
-        aria-label="First page"
-      >
-        <ChevronsLeft size={16} />
-      </IconButton>
-      <IconButton
-        size="1"
-        variant="ghost"
-        color="gray"
-        disabled={page <= 1}
-        onClick={() => onPageChange(page - 1)}
-        aria-label="Previous page"
-      >
-        <ChevronLeft size={16} />
-      </IconButton>
+    <nav className="app-pager" aria-label="Vocabulary pages">
+      <div className="app-pager-group">
+        <IconButton
+          size="1"
+          variant="ghost"
+          color="gray"
+          disabled={page <= 1}
+          onClick={() => onPageChange(1)}
+          aria-label="First page"
+          title="First page"
+        >
+          <ChevronsLeft size={16} />
+        </IconButton>
+        <IconButton
+          size="1"
+          variant="ghost"
+          color="gray"
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+          aria-label="Previous page"
+          title="Previous page"
+        >
+          <ChevronLeft size={16} />
+        </IconButton>
+      </div>
 
-      <TextField.Root
-        size="1"
-        variant="surface"
-        className="w-[64px]"
-        inputMode="numeric"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") commit();
-          if (e.key === "Escape") setDraft(String(page));
-        }}
-        aria-label="Page number"
-      />
-      <Text size="1" color="gray" className="tabular-nums px-1">
-        / {safeTotal}
-      </Text>
+      <div className="app-pager-jump">
+        <span className="app-pager-jump-label">Jump to page</span>
+        <div className="app-pager-current" aria-live="polite">
+          <TextField.Root
+            size="2"
+            variant="surface"
+            className="app-pager-input"
+            inputMode="numeric"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commit();
+              if (e.key === "Escape") setDraft(String(page));
+            }}
+            aria-label="Page number"
+          />
+          <span>of</span>
+          <strong>{safeTotal}</strong>
+        </div>
+        <button type="button" className="app-pager-go" onClick={commit}>
+          Go
+        </button>
+      </div>
 
-      <IconButton
-        size="1"
-        variant="ghost"
-        color="gray"
-        disabled={page >= safeTotal}
-        onClick={() => onPageChange(page + 1)}
-        aria-label="Next page"
-      >
-        <ChevronRight size={16} />
-      </IconButton>
-      <IconButton
-        size="1"
-        variant="ghost"
-        color="gray"
-        disabled={page >= safeTotal}
-        onClick={() => onPageChange(safeTotal)}
-        aria-label="Last page"
-      >
-        <ChevronsRight size={16} />
-      </IconButton>
-    </Flex>
+      <div className="app-pager-group">
+        <IconButton
+          size="1"
+          variant="ghost"
+          color="gray"
+          disabled={page >= safeTotal}
+          onClick={() => onPageChange(page + 1)}
+          aria-label="Next page"
+          title="Next page"
+        >
+          <ChevronRight size={16} />
+        </IconButton>
+        <IconButton
+          size="1"
+          variant="ghost"
+          color="gray"
+          disabled={page >= safeTotal}
+          onClick={() => onPageChange(safeTotal)}
+          aria-label="Last page"
+          title="Last page"
+        >
+          <ChevronsRight size={16} />
+        </IconButton>
+      </div>
+    </nav>
   );
 }
