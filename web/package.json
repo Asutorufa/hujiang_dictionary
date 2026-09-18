@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "build:extension": "vite build --config vite.extension.config.ts && vite build --config vite.extension.content.config.ts && vite build --config vite.extension.background.config.ts && vite build --config vite.extension.safari.config.ts && node scripts/package-extension.mjs",
+    "build:extension:bundles": "vite build --config vite.extension.config.ts && vite build --config vite.extension.content.config.ts && vite build --config vite.extension.background.config.ts && vite build --config vite.extension.safari.config.ts",
+    "build:extension": "npm run build:extension:bundles && node scripts/package-extension.mjs",
+    "check:ui": "npm run lint && npm run build && npm run build:extension:bundles",
     "preview": "vite preview",
     "lint": "eslint",
     "lint:fix": "eslint --fix"

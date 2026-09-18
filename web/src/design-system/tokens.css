@@ -1,0 +1,144 @@
+/* DictDeck design tokens.
+   This file is the source of truth for every UI surface, including the
+   extension documents and the content-script Shadow DOM. */
+
+:root {
+  color-scheme: light;
+
+  --dd-color-bg: #f8f8f6;
+  --dd-color-bg-soft: #f1f3f0;
+  --dd-color-bg-raised: #ffffff;
+  --dd-color-surface: #ffffff;
+  --dd-color-surface-strong: #ffffff;
+  --dd-color-surface-muted: #f0f2ef;
+  --dd-color-border: #e1e4df;
+  --dd-color-border-strong: #c9cec7;
+  --dd-color-text: #282b27;
+  --dd-color-muted: #70756f;
+  --dd-color-accent: #0f9f7b;
+  --dd-color-accent-soft: rgba(15, 159, 123, 0.1);
+  --dd-color-accent-strong: #08775d;
+  --dd-color-positive: #2f8f65;
+  --dd-color-positive-soft: rgba(47, 143, 101, 0.12);
+  --dd-color-danger: #c2414b;
+  --dd-color-danger-soft: rgba(194, 65, 75, 0.11);
+  --dd-color-warning: #a36b00;
+  --dd-color-warning-soft: rgba(163, 107, 0, 0.12);
+  --dd-shadow-sm: 0 2px 8px rgba(40, 43, 39, 0.05);
+  --dd-shadow-md: 0 12px 28px rgba(40, 43, 39, 0.1);
+  --dd-shadow-lg: 0 20px 54px rgba(40, 43, 39, 0.16);
+
+  --dd-font-sans:
+    Inter, "PingFang SC", "Hiragino Sans", "Noto Sans CJK SC",
+    "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --dd-font-mono:
+    "SFMono-Regular", ui-monospace, "Cascadia Code", "JetBrains Mono",
+    Consolas, monospace;
+
+  --dd-radius-sm: 8px;
+  --dd-radius-md: 12px;
+  --dd-radius-lg: 16px;
+  --dd-radius-pill: 999px;
+  --dd-control-height: 40px;
+  --dd-focus-ring: 0 0 0 3px var(--dd-color-accent-soft);
+
+  /* Legacy extension aliases. Keep these until every surface is migrated. */
+  --dd-enji: var(--dd-color-accent);
+  --dd-yamabuki: #b7791f;
+  --dd-gofun: var(--dd-color-surface);
+  --dd-sumi: var(--dd-color-text);
+  --dd-nezumi: var(--dd-color-muted);
+  --dd-shironeri: var(--dd-color-border);
+  --dd-bg: var(--dd-color-bg);
+  --dd-panel: var(--dd-color-surface);
+  --dd-panel-strong: var(--dd-color-surface-strong);
+  --dd-shadow: var(--dd-shadow-lg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --dd-color-bg: #171a18;
+    --dd-color-bg-soft: #202420;
+    --dd-color-bg-raised: #252a26;
+    --dd-color-surface: #202420;
+    --dd-color-surface-strong: #272c28;
+    --dd-color-surface-muted: #2d332e;
+    --dd-color-border: #394039;
+    --dd-color-border-strong: #4e594f;
+    --dd-color-text: #eef2ed;
+    --dd-color-muted: #a9b1a8;
+    --dd-color-accent: #28bd94;
+    --dd-color-accent-soft: rgba(40, 189, 148, 0.14);
+    --dd-color-accent-strong: #67d6b4;
+    --dd-color-positive: #83d6a9;
+    --dd-color-positive-soft: rgba(131, 214, 169, 0.14);
+    --dd-color-danger: #f28b92;
+    --dd-color-danger-soft: rgba(242, 139, 146, 0.14);
+    --dd-color-warning: #e5b75e;
+    --dd-color-warning-soft: rgba(229, 183, 94, 0.14);
+    --dd-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.16);
+    --dd-shadow-md: 0 12px 28px rgba(0, 0, 0, 0.25);
+    --dd-shadow-lg: 0 20px 54px rgba(0, 0, 0, 0.38);
+    --dd-yamabuki: #e5b75e;
+  }
+}
+
+:root.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --dd-color-bg: #171a18;
+  --dd-color-bg-soft: #202420;
+  --dd-color-bg-raised: #252a26;
+  --dd-color-surface: #202420;
+  --dd-color-surface-strong: #272c28;
+  --dd-color-surface-muted: #2d332e;
+  --dd-color-border: #394039;
+  --dd-color-border-strong: #4e594f;
+  --dd-color-text: #eef2ed;
+  --dd-color-muted: #a9b1a8;
+  --dd-color-accent: #28bd94;
+  --dd-color-accent-soft: rgba(40, 189, 148, 0.14);
+  --dd-color-accent-strong: #67d6b4;
+  --dd-color-positive: #83d6a9;
+  --dd-color-positive-soft: rgba(131, 214, 169, 0.14);
+  --dd-color-danger: #f28b92;
+  --dd-color-danger-soft: rgba(242, 139, 146, 0.14);
+  --dd-color-warning: #e5b75e;
+  --dd-color-warning-soft: rgba(229, 183, 94, 0.14);
+  --dd-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.16);
+  --dd-shadow-md: 0 12px 28px rgba(0, 0, 0, 0.25);
+  --dd-shadow-lg: 0 20px 54px rgba(0, 0, 0, 0.38);
+  --dd-yamabuki: #e5b75e;
+}
+
+:root[data-theme="light"],
+[data-theme="light"] {
+  color-scheme: light;
+
+  --dd-color-bg: #f8f8f6;
+  --dd-color-bg-soft: #f1f3f0;
+  --dd-color-bg-raised: #ffffff;
+  --dd-color-surface: #ffffff;
+  --dd-color-surface-strong: #ffffff;
+  --dd-color-surface-muted: #f0f2ef;
+  --dd-color-border: #e1e4df;
+  --dd-color-border-strong: #c9cec7;
+  --dd-color-text: #282b27;
+  --dd-color-muted: #70756f;
+  --dd-color-accent: #0f9f7b;
+  --dd-color-accent-soft: rgba(15, 159, 123, 0.1);
+  --dd-color-accent-strong: #08775d;
+  --dd-color-positive: #2f8f65;
+  --dd-color-positive-soft: rgba(47, 143, 101, 0.12);
+  --dd-color-danger: #c2414b;
+  --dd-color-danger-soft: rgba(194, 65, 75, 0.11);
+  --dd-color-warning: #a36b00;
+  --dd-color-warning-soft: rgba(163, 107, 0, 0.12);
+  --dd-shadow-sm: 0 2px 8px rgba(40, 43, 39, 0.05);
+  --dd-shadow-md: 0 12px 28px rgba(40, 43, 39, 0.1);
+  --dd-shadow-lg: 0 20px 54px rgba(40, 43, 39, 0.16);
+  --dd-yamabuki: #b7791f;
+}

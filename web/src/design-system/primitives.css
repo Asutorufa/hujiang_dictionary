@@ -1,0 +1,155 @@
+/* Small, runtime-agnostic primitives shared by Web, extension pages, and
+   the content-script Shadow DOM. Page-specific layout belongs elsewhere. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.dd-panel {
+  border: 1px solid var(--dd-color-border);
+  border-radius: var(--dd-radius-md);
+  background: var(--dd-color-surface);
+  color: var(--dd-color-text);
+  box-shadow: var(--dd-shadow-sm);
+}
+
+.dd-button {
+  display: inline-flex;
+  min-height: var(--dd-control-height);
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--dd-color-border);
+  border-radius: var(--dd-radius-sm);
+  padding: 0 14px;
+  background: var(--dd-color-surface-strong);
+  color: var(--dd-color-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  line-height: 1.2;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.dd-button:hover:not(:disabled) {
+  border-color: var(--dd-color-border-strong);
+  background: var(--dd-color-bg-raised);
+  transform: translateY(-1px);
+}
+
+.dd-button:focus-visible,
+.dd-input:focus-visible,
+.dd-select:focus-visible,
+.dd-textarea:focus-visible {
+  outline: none;
+  border-color: var(--dd-color-accent);
+  box-shadow: var(--dd-focus-ring);
+}
+
+.dd-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+}
+
+.dd-button--primary {
+  border-color: var(--dd-color-accent);
+  background: var(--dd-color-accent);
+  color: #ffffff;
+}
+
+.dd-button--primary:hover:not(:disabled) {
+  border-color: var(--dd-color-accent-strong);
+  background: var(--dd-color-accent-strong);
+}
+
+.dd-button--quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--dd-color-muted);
+}
+
+.dd-button--quiet:hover:not(:disabled) {
+  background: var(--dd-color-surface-muted);
+  color: var(--dd-color-text);
+}
+
+.dd-input,
+.dd-select,
+.dd-textarea {
+  width: 100%;
+  min-height: var(--dd-control-height);
+  border: 1px solid var(--dd-color-border);
+  border-radius: var(--dd-radius-sm);
+  padding: 0 11px;
+  background: var(--dd-color-bg-raised);
+  color: var(--dd-color-text);
+  font: inherit;
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.dd-textarea {
+  min-height: 96px;
+  padding: 10px 11px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.dd-input::placeholder,
+.dd-textarea::placeholder {
+  color: var(--dd-color-muted);
+}
+
+.dd-badge {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  border-radius: var(--dd-radius-pill);
+  padding: 0 9px;
+  background: var(--dd-color-accent-soft);
+  color: var(--dd-color-accent-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dd-status {
+  border: 1px solid var(--dd-color-border);
+  border-radius: var(--dd-radius-sm);
+  background: var(--dd-color-surface);
+  color: var(--dd-color-muted);
+}
+
+.dd-status--success {
+  border-color: color-mix(in srgb, var(--dd-color-positive) 38%, var(--dd-color-border));
+  background: var(--dd-color-positive-soft);
+  color: var(--dd-color-positive);
+}
+
+.dd-status--danger {
+  border-color: color-mix(in srgb, var(--dd-color-danger) 38%, var(--dd-color-border));
+  background: var(--dd-color-danger-soft);
+  color: var(--dd-color-danger);
+}
+
+.dd-empty {
+  border: 1px dashed var(--dd-color-border-strong);
+  border-radius: var(--dd-radius-sm);
+  padding: 14px;
+  background: var(--dd-color-surface);
+  color: var(--dd-color-muted);
+  text-align: center;
+}
+
+.dd-muted {
+  color: var(--dd-color-muted);
+}

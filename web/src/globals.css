@@ -25,40 +25,6 @@ html {
   scrollbar-gutter: stable both-edges;
 }
 
-:root {
-  --app-bg: #f7f7f5;
-  --app-bg-soft: #f0f0ed;
-  --app-bg-raise: #ffffff;
-  --app-panel: #ffffff;
-  --app-panel-strong: #ffffff;
-  --app-panel-muted: #f2f2ef;
-  --app-border: #e5e5e2;
-  --app-border-strong: #d1d1cd;
-  --app-text: #2d2d2a;
-  --app-muted: #6b6b67;
-  --app-accent: #10a37f;
-  --app-accent-soft: rgba(16, 163, 127, 0.1);
-  --app-accent-strong: #087f63;
-  --app-accent-alt: #8e8e8a;
-}
-
-.dark {
-  --app-bg: #212121;
-  --app-bg-soft: #171717;
-  --app-bg-raise: #2f2f2f;
-  --app-panel: #2f2f2f;
-  --app-panel-strong: #343434;
-  --app-panel-muted: #3a3a3a;
-  --app-border: #454545;
-  --app-border-strong: #5b5b5b;
-  --app-text: #ececec;
-  --app-muted: #a9a9a9;
-  --app-accent: #19c37d;
-  --app-accent-soft: rgba(25, 195, 125, 0.14);
-  --app-accent-strong: #39d89a;
-  --app-accent-alt: #a9a9a9;
-}
-
 body {
   /* Neutral system typography keeps the interface quiet and content-first. */
   font-family:
@@ -872,22 +838,6 @@ button:disabled,
   .app-review-progress-copy {
     justify-content: flex-start;
   }
-}
-
-/* ------------------------------------------------------------
-   Workspace rebuild: ChatGPT-style application shell and composer
------------------------------------------------------------- */
-.dark {
-  --app-bg: #000000;
-  --app-bg-soft: #171717;
-  --app-bg-raise: #212121;
-  --app-panel: #1a1a1a;
-  --app-panel-strong: #202020;
-  --app-panel-muted: #2a2a2a;
-  --app-border: #303030;
-  --app-border-strong: #4a4a4a;
-  --app-text: #f5f5f5;
-  --app-muted: #a5a5a5;
 }
 
 .app-main {

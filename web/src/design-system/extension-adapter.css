@@ -1,0 +1,27 @@
+/* Extension document adapter. Each page may opt into a manual theme through
+   data-theme="light" or data-theme="dark"; otherwise the system preference
+   is used by tokens.css. */
+
+:root,
+body {
+  min-width: 0;
+  margin: 0;
+  background: var(--dd-color-bg);
+  color: var(--dd-color-text);
+  font-family: var(--dd-font-sans);
+}
+
+body {
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  background: var(--dd-color-accent-soft);
+}
