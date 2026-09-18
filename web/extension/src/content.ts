@@ -95,14 +95,20 @@ function styles() {
       font-size: 12px;
       font-weight: 800;
       line-height: 1;
+      padding: 0;
     }
     .trigger-mark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
       display: block;
-      width: 21px;
-      height: 21px;
+      width: 24px;
+      height: 24px;
+      margin: 0;
       border-radius: 6px;
-      object-fit: cover;
+      object-fit: contain;
       pointer-events: none;
+      transform: translate(-50%, -50%);
       user-select: none;
     }
     .trigger:hover {
