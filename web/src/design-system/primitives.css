@@ -130,13 +130,21 @@
 }
 
 .dd-status--success {
-  border-color: color-mix(in srgb, var(--dd-color-positive) 38%, var(--dd-color-border));
+  border-color: color-mix(
+    in srgb,
+    var(--dd-color-positive) 38%,
+    var(--dd-color-border)
+  );
   background: var(--dd-color-positive-soft);
   color: var(--dd-color-positive);
 }
 
 .dd-status--danger {
-  border-color: color-mix(in srgb, var(--dd-color-danger) 38%, var(--dd-color-border));
+  border-color: color-mix(
+    in srgb,
+    var(--dd-color-danger) 38%,
+    var(--dd-color-border)
+  );
   background: var(--dd-color-danger-soft);
   color: var(--dd-color-danger);
 }

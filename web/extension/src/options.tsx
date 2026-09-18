@@ -171,7 +171,10 @@ function OptionsApp() {
         "success",
       );
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error), "danger");
+      setStatus(
+        error instanceof Error ? error.message : String(error),
+        "danger",
+      );
     }
   }
 
@@ -192,7 +195,10 @@ function OptionsApp() {
       setSettings(loggedInSettings ?? nextSettings);
       setStatus("Logged in and settings saved.", "success");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error), "danger");
+      setStatus(
+        error instanceof Error ? error.message : String(error),
+        "danger",
+      );
     }
   }
 
@@ -205,7 +211,10 @@ function OptionsApp() {
       setSettings(nextSettings);
       setStatus("Saved password and token cleared.", "success");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error), "danger");
+      setStatus(
+        error instanceof Error ? error.message : String(error),
+        "danger",
+      );
     }
   }
 
@@ -220,7 +229,10 @@ function OptionsApp() {
       setHistoryPicker(undefined);
       setStatus("Translation history cleared.", "success");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error), "danger");
+      setStatus(
+        error instanceof Error ? error.message : String(error),
+        "danger",
+      );
     }
   }
 
@@ -234,7 +246,10 @@ function OptionsApp() {
       );
       setStatus("Translation history refreshed.", "success");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error), "danger");
+      setStatus(
+        error instanceof Error ? error.message : String(error),
+        "danger",
+      );
     }
   }
 
@@ -252,7 +267,10 @@ function OptionsApp() {
       setForm(formFromSettings(nextSettings));
       setStatus("Custom LLM list loaded.", "success");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error), "danger");
+      setStatus(
+        error instanceof Error ? error.message : String(error),
+        "danger",
+      );
     }
   }
 
@@ -277,7 +295,10 @@ function OptionsApp() {
       setHistoryPicker(undefined);
       setStatus("History item saved.", "success");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error), "danger");
+      setStatus(
+        error instanceof Error ? error.message : String(error),
+        "danger",
+      );
     }
   }
 
@@ -384,7 +405,7 @@ function OptionsApp() {
           <p className="options-hint">
             {settings.encryptedPassword
               ? "Encrypted password is saved for automatic re-login."
-              : "No saved password. Automatic re-login is disabled."} {" "}
+              : "No saved password. Automatic re-login is disabled."}{" "}
             {settings.token ? "Token is saved." : "No token saved yet."}
           </p>
         </section>
@@ -458,7 +479,10 @@ function OptionsApp() {
               className="dd-select options-select"
               value={form.defaultWordType}
               onChange={(event) =>
-                updateForm("defaultWordType", event.target.value === "1" ? 1 : 0)
+                updateForm(
+                  "defaultWordType",
+                  event.target.value === "1" ? 1 : 0,
+                )
               }
             >
               <option value="0">Word</option>
@@ -559,7 +583,9 @@ function OptionsApp() {
                 disabled={controlsDisabled}
                 onClick={() => void refreshHistory()}
               >
-                {pendingAction === "refresh-history" ? "Refreshing..." : "Refresh"}
+                {pendingAction === "refresh-history"
+                  ? "Refreshing..."
+                  : "Refresh"}
               </button>
               <button
                 className="dd-button"
@@ -567,17 +593,24 @@ function OptionsApp() {
                 disabled={controlsDisabled || history.length === 0}
                 onClick={() => void clearHistory()}
               >
-                {pendingAction === "clear-history" ? "Clearing..." : "Clear history"}
+                {pendingAction === "clear-history"
+                  ? "Clearing..."
+                  : "Clear history"}
               </button>
             </div>
           </div>
 
           <div className="options-history-list">
             {visibleHistory.length === 0 ? (
-              <p className="dd-empty options-empty">No translation history yet.</p>
+              <p className="dd-empty options-empty">
+                No translation history yet.
+              </p>
             ) : (
               visibleHistory.map((item) => (
-                <article className="dd-panel options-history-item" key={item.id}>
+                <article
+                  className="dd-panel options-history-item"
+                  key={item.id}
+                >
                   <div className="options-history-meta">
                     <span>
                       {new Intl.DateTimeFormat(undefined, {
@@ -617,7 +650,9 @@ function OptionsApp() {
                     </button>
                     {historyPicker === item.id && (
                       <div className="options-history-save-picker">
-                        <span className="options-history-save-label">Save as</span>
+                        <span className="options-history-save-label">
+                          Save as
+                        </span>
                         <button
                           className="dd-button"
                           type="button"
