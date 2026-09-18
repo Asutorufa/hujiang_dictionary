@@ -6,6 +6,9 @@ import {
   customMethodValue,
   type PromptMode,
 } from "@/lib/translation";
+import contentAdapterStyles from "@/design-system/content-adapter.css?inline";
+import contentPrimitives from "@/design-system/primitives.css?inline";
+import designTokens from "@/design-system/tokens.css?inline";
 import type {
   ExtensionSettings,
   QueryPortResponse,
@@ -49,18 +52,15 @@ let reasoningAutoCollapsed = false;
 let persistPreferencesTimer: number | undefined;
 
 function styles() {
-  return `
+  const contentTokenStyles = designTokens.replace(/:root/g, ":host");
+
+  return [
+    contentTokenStyles,
+    contentAdapterStyles,
+    contentPrimitives,
+    `
     :host {
-      all: initial;
-      color-scheme: light dark;
-      --dd-enji: #9f353a;
-      --dd-yamabuki: #f8b500;
-      --dd-gofun: #fffffb;
-      --dd-sumi: #1c1c1c;
-      --dd-nezumi: #787878;
-      --dd-shironeri: #f3f3f2;
-      --dd-shadow: 0 18px 50px rgba(28, 28, 28, 0.18);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: var(--dd-font-sans);
     }
     .panel {
       position: fixed;
@@ -528,7 +528,7 @@ function styles() {
     .pin-active {
       color: var(--dd-enji);
       border-color: var(--dd-shironeri);
-      background: rgba(159, 53, 58, 0.08);
+      background: color-mix(in srgb, var(--dd-enji) 10%, transparent);
     }
     .link {
       padding: 0;
@@ -537,13 +537,6 @@ function styles() {
       font-weight: 700;
     }
     @media (prefers-color-scheme: dark) {
-      :host {
-        --dd-gofun: #1c1c1c;
-        --dd-sumi: #fffffb;
-        --dd-nezumi: #b8b2aa;
-        --dd-shironeri: #2b2927;
-        --dd-shadow: 0 18px 50px rgba(0, 0, 0, 0.46);
-      }
       .icon-button:hover {
         background: rgba(255, 255, 255, 0.06);
       }
@@ -563,7 +556,8 @@ function styles() {
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
     }
-  `;
+    `,
+  ].join("\n");
 }
 
 async function sendMessage<T>(message: RuntimeRequest) {

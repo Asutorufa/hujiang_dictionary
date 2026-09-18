@@ -1,0 +1,24 @@
+/* Web adapter: keep the existing app variables as aliases during migration. */
+
+:root {
+  --app-bg: var(--dd-color-bg);
+  --app-bg-soft: var(--dd-color-bg-soft);
+  --app-bg-raise: var(--dd-color-bg-raised);
+  --app-panel: var(--dd-color-surface);
+  --app-panel-strong: var(--dd-color-surface-strong);
+  --app-panel-muted: var(--dd-color-surface-muted);
+  --app-border: var(--dd-color-border);
+  --app-border-strong: var(--dd-color-border-strong);
+  --app-text: var(--dd-color-text);
+  --app-muted: var(--dd-color-muted);
+  --app-accent: var(--dd-color-accent);
+  --app-accent-soft: var(--dd-color-accent-soft);
+  --app-accent-strong: var(--dd-color-accent-strong);
+  --app-accent-alt: var(--dd-color-muted);
+}
+
+html,
+body,
+#root {
+  font-family: var(--dd-font-sans);
+}

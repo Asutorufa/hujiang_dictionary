@@ -1,37 +1,5 @@
 /* DictDeck workspace system.
    Loaded after the legacy stylesheet so shared layout decisions have one home. */
-:root {
-  --app-bg: #f8f8f6;
-  --app-bg-soft: #f1f3f0;
-  --app-bg-raise: #ffffff;
-  --app-panel: #ffffff;
-  --app-panel-strong: #ffffff;
-  --app-panel-muted: #f0f2ef;
-  --app-border: #e1e4df;
-  --app-border-strong: #c9cec7;
-  --app-text: #282b27;
-  --app-muted: #70756f;
-  --app-accent: #0f9f7b;
-  --app-accent-soft: rgba(15, 159, 123, 0.1);
-  --app-accent-strong: #08775d;
-}
-
-.dark {
-  --app-bg: #171a18;
-  --app-bg-soft: #202420;
-  --app-bg-raise: #252a26;
-  --app-panel: #202420;
-  --app-panel-strong: #272c28;
-  --app-panel-muted: #2d332e;
-  --app-border: #394039;
-  --app-border-strong: #4e594f;
-  --app-text: #eef2ed;
-  --app-muted: #a9b1a8;
-  --app-accent: #28bd94;
-  --app-accent-soft: rgba(40, 189, 148, 0.14);
-  --app-accent-strong: #67d6b4;
-}
-
 .app-main {
   margin-left: 256px;
   background: var(--app-bg);

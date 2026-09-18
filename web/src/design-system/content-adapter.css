@@ -1,0 +1,7 @@
+/* Shadow-DOM adapter. The token sheet is injected separately after changing
+   :root to :host, so this file only owns boundary behavior. */
+
+:host {
+  all: initial;
+  font-family: var(--dd-font-sans);
+}

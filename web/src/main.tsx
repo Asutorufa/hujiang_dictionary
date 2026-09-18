@@ -2,6 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "@radix-ui/themes/styles.css";
+import "./design-system/tokens.css";
+import "./design-system/primitives.css";
+import "./design-system/web-adapter.css";
 import "./globals.css";
 import "./workspace.css";
 
