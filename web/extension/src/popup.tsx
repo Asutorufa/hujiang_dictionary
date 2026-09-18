@@ -115,9 +115,7 @@ function PopupApp() {
   return (
     <main className="popup-shell">
       <header className="popup-brand">
-        <div className="popup-mark" aria-hidden="true">
-          D
-        </div>
+        <img className="popup-mark" src="./assets/dictdeck.svg" alt="" />
         <div>
           <h1>DictDeck</h1>
           <div className="popup-subtitle">Selection translator</div>

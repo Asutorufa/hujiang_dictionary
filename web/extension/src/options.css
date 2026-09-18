@@ -22,6 +22,24 @@ body {
   border-bottom: 1px solid var(--dd-color-border);
 }
 
+.options-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 16px;
+  color: var(--dd-color-text);
+  font-size: 0.95rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.options-brand img {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  box-shadow: var(--dd-shadow-sm);
+}
+
 .options-eyebrow {
   margin: 0 0 10px;
   color: var(--dd-color-accent);

@@ -744,7 +744,9 @@ export default function Home() {
             </div>
           )}
           <div className="app-thread-message">
-            <div className="app-thread-avatar">D</div>
+            <div className="app-thread-avatar">
+              <img src="/dictdeck.svg" alt="" aria-hidden="true" />
+            </div>
             <div className="app-thread-message-body">
               <div className="app-thread-label">DictDeck</div>
               <div className="prose">

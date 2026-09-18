@@ -77,7 +77,8 @@ export default function Login() {
     >
       <Card size="4" className="app-login-card w-full max-w-sm">
         <Flex direction="column" gap="4">
-          <Box className="flex justify-center pb-0">
+          <Box className="app-login-brand flex justify-center pb-0">
+            <img src="/dictdeck.svg" alt="" aria-hidden="true" />
             <Text size="6" weight="bold">
               DictDeck
             </Text>

@@ -316,6 +316,10 @@ function OptionsApp() {
     <main className="options-page">
       <header className="options-header">
         <div>
+          <div className="options-brand">
+            <img src="./assets/dictdeck.svg" alt="" aria-hidden="true" />
+            <span>DictDeck</span>
+          </div>
           <p className="options-eyebrow">Workspace / Extension</p>
           <h1>Extension settings</h1>
           <p className="options-subtitle">

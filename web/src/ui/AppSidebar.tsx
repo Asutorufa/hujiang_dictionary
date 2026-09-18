@@ -49,6 +49,10 @@ function SidebarItem({ icon, label, active, onClick }: SidebarItemProps) {
   );
 }
 
+function BrandMark() {
+  return <img className="app-sidebar-brand-mark" src="/dictdeck.svg" alt="" />;
+}
+
 export function AppSidebar({
   value,
   onValueChange,
@@ -72,7 +76,7 @@ export function AppSidebar({
           onClick={() => go(ROUTE_HOME)}
           aria-label="Go to DictDeck home"
         >
-          <span className="app-sidebar-brand-mark">D</span>
+          <BrandMark />
           <span>DictDeck</span>
         </button>
         <button
@@ -105,7 +109,7 @@ export function AppSidebar({
               onClick={() => go(ROUTE_HOME)}
               aria-label="Go to DictDeck home"
             >
-              <span className="app-sidebar-brand-mark">D</span>
+              <BrandMark />
               <span>DictDeck</span>
             </button>
             <button

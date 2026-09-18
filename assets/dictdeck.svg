@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DictDeck stacked cards icon">
+  <rect width="512" height="512" rx="112" fill="#F8F8F6"/>
+  <rect x="126" y="102" width="260" height="292" rx="46" fill="#E1E4DF" transform="rotate(-7 256 248)"/>
+  <rect x="118" y="112" width="276" height="292" rx="48" fill="#FFFFFF" stroke="#C9CEC7" stroke-width="12"/>
+  <rect x="150" y="156" width="72" height="72" rx="24" fill="#0F9F7B"/>
+  <rect x="244" y="164" width="112" height="18" rx="9" fill="#282B27"/>
+  <rect x="244" y="199" width="82" height="16" rx="8" fill="#70756F"/>
+  <rect x="150" y="272" width="206" height="18" rx="9" fill="#282B27"/>
+  <rect x="150" y="310" width="168" height="16" rx="8" fill="#70756F"/>
+  <rect x="150" y="347" width="128" height="16" rx="8" fill="#0F9F7B" opacity="0.85"/>
+</svg>

@@ -1,5 +1,9 @@
 # DictDeck
 
+<p align="center">
+  <img src="./assets/dictdeck.svg" alt="DictDeck" width="128" />
+</p>
+
 DictDeck is a self-hosted AI dictionary, translator, and vocabulary flashcard app.
 It supports multiple dictionary sources, LLM-powered explanations, saved words,
 review cards, Telegram bot workflows, and Cloudflare Workers deployment.
