@@ -73,9 +73,9 @@ export default function Login() {
   return (
     <PageContainer
       size="3xl"
-      className="min-h-dvh flex items-center justify-center"
+      className="app-login-page min-h-dvh flex items-center justify-center"
     >
-      <Card size="4" className="w-full max-w-sm">
+      <Card size="4" className="app-login-card w-full max-w-sm">
         <Flex direction="column" gap="4">
           <Box className="flex justify-center pb-0">
             <Text size="6" weight="bold">

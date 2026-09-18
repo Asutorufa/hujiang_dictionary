@@ -1,4 +1,4 @@
-use crate::{Completion, Message, openai, openai_responses};
+use crate::{Completion, Message, codex, openai, openai_responses};
 use futures_util::StreamExt;
 use mockito::Server;
 
@@ -55,6 +55,32 @@ async fn test_openai_completion_success() {
     assert_eq!(response.content, "Hello there!");
     assert_eq!(response.thinking, Some("I am thinking...".to_string()));
 
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_openai_list_models() {
+    let mut server = Server::new_async().await;
+
+    let mock = server
+        .mock("GET", "/models")
+        .match_header("authorization", "Bearer test_key")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(r#"{"data":[{"id":"gpt-4.1"},{"id":"gpt-4o"}]}"#)
+        .create_async()
+        .await;
+
+    let openai = openai::OpenAI {
+        base_url: server.url(),
+        api_key: "test_key".to_string(),
+        ..Default::default()
+    };
+
+    assert_eq!(
+        openai.list_models().await.unwrap(),
+        vec!["gpt-4.1".to_string(), "gpt-4o".to_string()]
+    );
     mock.assert_async().await;
 }
 
@@ -119,6 +145,38 @@ async fn test_anthropic_completion_success() {
     assert_eq!(response.content, "Hello!");
     assert_eq!(response.thinking, Some("Thinking...".to_string()));
 
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_anthropic_list_models() {
+    let mut server = Server::new_async().await;
+
+    let mock = server
+        .mock("GET", "/v1/models?limit=1000")
+        .match_header("x-api-key", "test_key")
+        .match_header("anthropic-version", "2023-06-01")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(
+            r#"{"data":[{"id":"claude-sonnet-4-20250514"},{"id":"claude-3-7-sonnet-latest"}],"has_more":false,"last_id":"claude-3-7-sonnet-latest"}"#,
+        )
+        .create_async()
+        .await;
+
+    let anthropic = crate::anthropic::Anthropic {
+        base_url: server.url(),
+        api_key: "test_key".to_string(),
+        ..Default::default()
+    };
+
+    assert_eq!(
+        anthropic.list_models().await.unwrap(),
+        vec![
+            "claude-sonnet-4-20250514".to_string(),
+            "claude-3-7-sonnet-latest".to_string()
+        ]
+    );
     mock.assert_async().await;
 }
 
@@ -440,5 +498,135 @@ async fn test_openai_responses_completion_stream_success() {
     assert_eq!(full_content, "Hello world");
     assert_eq!(full_thinking, "");
 
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_codex_completion_stream_success() {
+    let mut server = Server::new_async().await;
+
+    let mock_response = "event: response.output_text.delta\n\
+                         data: {\"type\":\"response.output_text.delta\",\"delta\":\"Hello\"}\n\n\
+                         event: response.reasoning_summary_text.delta\n\
+                         data: {\"type\":\"response.reasoning_summary_text.delta\",\"delta\":\"Thinking\"}\n\n\
+                         event: response.completed\n\
+                         data: {\"type\":\"response.completed\"}\n\n";
+
+    let mock = server
+        .mock("POST", "/backend-api/codex/responses")
+        .match_header("authorization", "Bearer oauth-token")
+        .match_header("chatgpt-account-id", "acct_test")
+        .match_header("openai-beta", "responses=experimental")
+        .match_header("accept", "text/event-stream")
+        .match_header("user-agent", "hj-rust")
+        .match_body(mockito::Matcher::JsonString(
+            r#"{"model":"gpt-5.4","store":false,"stream":true,"instructions":"Translate this","input":[{"role":"user","content":[{"type":"input_text","text":"Hello"}]}],"text":{"verbosity":"low"},"include":["reasoning.encrypted_content"],"parallel_tool_calls":true}"#.to_string(),
+        ))
+        .with_status(200)
+        .with_header("content-type", "text/event-stream")
+        .with_body(mock_response)
+        .create_async()
+        .await;
+
+    let provider = codex::OpenAICodex {
+        base_url: format!("{}/backend-api", server.url()),
+        api_key: "oauth-token".to_string(),
+        account_id: "acct_test".to_string(),
+        model: "gpt-5.4".to_string(),
+        ..Default::default()
+    };
+
+    let messages = vec![
+        Message {
+            role: "system".to_string(),
+            content: "Translate this".to_string(),
+        },
+        Message {
+            role: "user".to_string(),
+            content: "Hello".to_string(),
+        },
+    ];
+
+    let stream = provider.completion_stream(messages).await.unwrap();
+    futures_util::pin_mut!(stream);
+    let mut content = String::new();
+    let mut thinking = String::new();
+    while let Some(result) = stream.next().await {
+        let chunk = result.unwrap();
+        content.push_str(&chunk.content);
+        if let Some(value) = chunk.thinking {
+            thinking.push_str(&value);
+        }
+    }
+
+    assert_eq!(content, "Hello");
+    assert_eq!(thinking, "Thinking");
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_codex_list_models_filters_unavailable_models() {
+    let mut server = Server::new_async().await;
+
+    let mock = server
+        .mock(
+            "GET",
+            "/backend-api/codex/models?client_version=99.99.99",
+        )
+        .match_header("authorization", "Bearer oauth-token")
+        .match_header("chatgpt-account-id", "acct_test")
+        .match_header("accept", "application/json")
+        .match_header("user-agent", "hj-rust")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(
+            r#"{"models":[{"slug":"gpt-5.4","supported_in_api":true},{"slug":"internal-preview","supported_in_api":false}]}"#,
+        )
+        .create_async()
+        .await;
+
+    let provider = codex::OpenAICodex {
+        base_url: format!("{}/backend-api", server.url()),
+        api_key: "oauth-token".to_string(),
+        account_id: "acct_test".to_string(),
+        ..Default::default()
+    };
+
+    assert_eq!(provider.list_models().await.unwrap(), vec!["gpt-5.4"]);
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_codex_cloudflare_worker_block_has_actionable_error() {
+    let mut server = Server::new_async().await;
+    let mock = server
+        .mock("POST", "/backend-api/codex/responses")
+        .match_header("user-agent", "hj-rust")
+        .with_status(403)
+        .with_header("content-type", "text/html")
+        .with_body("<html><body>Unable to load site</body></html>")
+        .create_async()
+        .await;
+
+    let provider = codex::OpenAICodex {
+        base_url: format!("{}/backend-api", server.url()),
+        api_key: "oauth-token".to_string(),
+        model: "gpt-5.4".to_string(),
+        ..Default::default()
+    };
+
+    let error = match provider
+        .completion(vec![Message {
+            role: "user".to_string(),
+            content: "Hi".to_string(),
+        }])
+        .await
+    {
+        Ok(_) => panic!("expected the mocked Codex request to fail"),
+        Err(error) => error.to_string(),
+    };
+
+    assert!(error.contains("Workers egress"));
+    assert!(!error.contains("Unable to load site"));
     mock.assert_async().await;
 }

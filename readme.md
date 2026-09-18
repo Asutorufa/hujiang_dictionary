@@ -87,57 +87,9 @@ Example:
 
 ## telegram bot
 
-Support run telegram at local, lambda and cloudflare workers.
+Telegram bot, HTTP API, and scheduled jobs run on Cloudflare Workers.
 
 ![screenshot](https://raw.githubusercontent.com/Asutorufa/hujiang_dictionary/rust/assets/images/telegram.png)
-
-### service
-
-```shell
-cargo build --release
-
-export TELOXIDE_TOKEN=12312313:sadsadasda
-export MAINTAINER_ID=312321312
-export ALLOW_USERS=312321312,232133424,123131243
-export CLOUDFLARE_ACCOUNT_ID=dksaodjasopdjpadjapd
-export CLOUDFLARE_API_TOKEN=dkapdpaksdpaspdnsknszcl
-export CLOUDFLARE_D1_DATABASE_ID=231331-adae-3123-vdfsf-1313adssaeqewq
-export CLOUDFLARE_D1_DATABASE_NAME=dictdeck
-
-./target/release/tg
-```
-
-### lambda
-
-set blow env in lambda
-
-- TELOXIDE_TOKEN=12312313:sadsadasda  
-    **telegram bot token**
-- MAINTAINER_ID=312321312  
-    **telegram user id**
-- ALLOW_USERS=312321312,232133424,123131243  
-    **allow telegram user id**
-- CLOUDFLARE_ACCOUNT_ID=dksaodjasopdjpadjapd  
-    **cloudflare account id**
-- CLOUDFLARE_API_TOKEN=dkapdpaksdpaspdnsknszcl  
-    **cloudflare api token**
-- CLOUDFLARE_D1_DATABASE_ID=231331-adae-3123-vdfsf-1313adssaeqewq  
-    **cloudflare d1 database id**
-- CLOUDFLARE_D1_DATABASE_NAME=dictdeck  
-    **cloudflare d1 database name**
-
-build and deploy lambda
-
-```shell
-cargo lambda build --release --bin lambda
-cargo lambda deploy --binary-name lambda hj-telegram-bot
-```
-
-register webhook
-
-```shell
-curl https://<lambda-url>/tgbot/register
-```
 
 ## cloudflare workers
 
@@ -145,22 +97,33 @@ set wrangler config
 
 ```shell
 vim wrangler.toml
+# set the production JWT signing secret outside source control
+npx wrangler secret put AUTH_SECRET
 # build and deploy
-cargo install worker-build
+cargo install worker-build --version 0.8.6
 npx wrangler deploy
 ```
 
 `wrangler.toml` config example
 
 ```toml
-D1_DATABASE_NAME=dict # d1 database name
-D1_DATABASE_ID="57ccd046-bd5c-42a3-90a3-21da43bc119d" # d1 database id
-TELEGRAM_TOKEN="****:*****" # telegram bot token
-ALLOW_USERS="12345678,-23456789,34567890" # allow telegram user id, split by comma
-MAINTAINER_ID="12345678" # send random word to the chat id when cron job run
 WORKER_NAME="dictdeck" # cloudflare workers name
 SCHEDULE="*/20 0-15 * * *" # cron schedule
 ```
+
+### MCP dictionary server
+
+The Worker exposes a Streamable HTTP MCP endpoint at `/mcp`. In the web settings page, generate a token with `dictionary:read` and/or `dictionary:write` permission. The plaintext token is shown only once; send it as a Bearer token:
+
+```shell
+curl https://<workers-url>/mcp \
+  -H 'Authorization: Bearer mcp_...' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Read access provides `dictionary.search` and `dictionary.get`. Write access adds save, rename, delete, priority, and preview/apply batch-change tools. Set `MCP_ALLOWED_ORIGINS` to a comma-separated origin allowlist when browser-based MCP clients are used.
 
 register webhook
 
@@ -179,7 +142,7 @@ cp -r react/out web/out
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh
 sh rustup.sh -y
 export PATH="$HOME/.cargo/bin:$PATH"
-cargo install worker-build
+cargo install worker-build --version 0.8.6
 ```
 
 Deploy Command

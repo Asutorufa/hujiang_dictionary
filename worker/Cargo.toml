@@ -10,8 +10,10 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
+base64 = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 frankenstein = { workspace = true }
 log = { workspace = true }
 cloudflare = { workspace = true }
@@ -24,9 +26,17 @@ js-sys = { workspace = true }
 getrandom = { version = "0.4.3", features = ["wasm_js"] }
 getrandom_02 = { package = "getrandom", version = "0.2.17", features = ["js"] }
 
-hjcommon = { path = "../common" }
+chrono = { workspace = true }
+jsonwebtoken = { workspace = true }
+subtle = "2.6.1"
+hjdict = { path = "../dict" }
 d1-orm = { version = "0.1.2", features = ["d1"] }
 async-trait = "0.1.89"
 futures-util = "0.3.32"
 bytes = "1.12.0"
 hj_ai = { path = "../ai", features = ["worker"] }
+sha2 = "0.10.9"
+url = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }

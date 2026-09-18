@@ -1,6 +1,8 @@
 use crate::model::*;
 use futures_util::Stream;
 use reqwest::{Client as HttpClient, Url};
+use serde::Deserialize;
+use std::collections::HashSet;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use thiserror::Error;
@@ -24,6 +26,27 @@ pub struct Client {
     base_url: String,
     project_id: Option<String>,
     location: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ListModelsResponse {
+    #[serde(default)]
+    models: Vec<ListModel>,
+    #[serde(default)]
+    publisher_models: Vec<ListModel>,
+    next_page_token: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ListModel {
+    name: String,
+    base_model_id: Option<String>,
+    #[serde(default)]
+    supported_generation_methods: Vec<String>,
+    #[serde(default)]
+    supported_actions: Vec<String>,
 }
 
 impl Client {
@@ -64,6 +87,89 @@ impl Client {
 
     pub fn set_model(&mut self, model: impl Into<String>) {
         self.model = model.into();
+    }
+
+    fn models_url(&self) -> String {
+        if let (Some(project_id), Some(location)) = (&self.project_id, &self.location) {
+            format!(
+                "{}/projects/{}/locations/{}/publishers/google/models",
+                self.base_url.trim_end_matches('/'),
+                project_id,
+                location
+            )
+        } else {
+            format!("{}/models", self.base_url.trim_end_matches('/'))
+        }
+    }
+
+    pub async fn list_models(&self) -> Result<Vec<String>, Error> {
+        let models_url = self.models_url();
+        let mut page_token: Option<String> = None;
+        let mut models = Vec::new();
+        let mut seen = HashSet::new();
+
+        loop {
+            let mut query = vec![("pageSize", "1000")];
+            if let Some(api_key) = &self.api_key {
+                query.push(("key", api_key));
+            }
+            if let Some(page_token) = &page_token {
+                query.push(("pageToken", page_token));
+            }
+
+            let mut request = self.http.get(&models_url).query(&query);
+            if let Some(token) = &self.token {
+                request = request.bearer_auth(token);
+            }
+
+            let response = request.send().await?;
+            let status = response.status();
+            if !status.is_success() {
+                let error_text = response.text().await?;
+                return Err(Error::Api(error_text));
+            }
+
+            let page: ListModelsResponse = response.json().await?;
+            for model in page.models.into_iter().chain(page.publisher_models) {
+                let supports_generate_content = model.supported_generation_methods.is_empty()
+                    && model.supported_actions.is_empty()
+                    || model
+                        .supported_generation_methods
+                        .iter()
+                        .chain(model.supported_actions.iter())
+                        .any(|action| action == "generateContent");
+                if !supports_generate_content {
+                    continue;
+                }
+
+                let model_id = model
+                    .base_model_id
+                    .filter(|model_id| !model_id.trim().is_empty())
+                    .unwrap_or_else(|| {
+                        model
+                            .name
+                            .rsplit('/')
+                            .next()
+                            .unwrap_or_default()
+                            .to_string()
+                    });
+                let model_id = model_id.strip_prefix("models/").unwrap_or(&model_id).trim();
+                if !model_id.is_empty() && seen.insert(model_id.to_string()) {
+                    models.push(model_id.to_string());
+                }
+            }
+
+            let Some(next_page_token) = page.next_page_token.filter(|token| !token.is_empty())
+            else {
+                break;
+            };
+            if page_token.as_deref() == Some(next_page_token.as_str()) {
+                break;
+            }
+            page_token = Some(next_page_token);
+        }
+
+        Ok(models)
     }
 
     fn url(&self, action: &str) -> String {
@@ -134,7 +240,7 @@ impl Client {
             return Err(Error::Api(error_text));
         }
 
-        let stream = resp.bytes_stream();
+        let stream = bytes_stream(resp);
         Ok(SseStream {
             inner: stream,
             buffer: String::new(),
@@ -171,12 +277,28 @@ impl Client {
             return Err(Error::Api(error_text));
         }
 
-        let stream = resp.bytes_stream();
+        let stream = bytes_stream(resp);
         Ok(SseStream {
             inner: stream,
             buffer: String::new(),
             queue: VecDeque::new(),
         })
+    }
+}
+
+fn bytes_stream(
+    response: reqwest::Response,
+) -> Pin<Box<dyn Stream<Item = Result<bytes::Bytes, reqwest::Error>>>> {
+    #[cfg(target_arch = "wasm32")]
+    {
+        Box::pin(futures_util::stream::once(
+            async move { response.bytes().await },
+        ))
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        Box::pin(response.bytes_stream())
     }
 }
 
@@ -320,6 +442,62 @@ mod tests {
     use super::*;
     use futures_util::stream::StreamExt;
     use mockito::Server;
+
+    #[tokio::test]
+    async fn test_list_models() {
+        let mut server = Server::new_async().await;
+
+        let mock = server
+            .mock("GET", "/models?pageSize=1000&key=test_key")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(
+                r#"{"models":[{"name":"models/gemini-2.5-flash","baseModelId":"gemini-2.5-flash","supportedGenerationMethods":["generateContent"]},{"name":"models/text-embedding-005","supportedGenerationMethods":["embedContent"]}]}"#,
+            )
+            .create_async()
+            .await;
+
+        let client = Client::new("test_key", "gemini-2.5-flash").with_base_url(server.url());
+
+        assert_eq!(
+            client.list_models().await.unwrap(),
+            vec!["gemini-2.5-flash".to_string()]
+        );
+        mock.assert_async().await;
+    }
+
+    #[tokio::test]
+    async fn test_list_vertex_ai_models() {
+        let mut server = Server::new_async().await;
+
+        let mock = server
+            .mock(
+                "GET",
+                "/projects/test-project/locations/us-central1/publishers/google/models?pageSize=1000",
+            )
+            .match_header("authorization", "Bearer test_token")
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(
+                r#"{"publisherModels":[{"name":"publishers/google/models/gemini-2.5-pro","baseModelId":"gemini-2.5-pro","supportedActions":["generateContent"]}]}"#,
+            )
+            .create_async()
+            .await;
+
+        let client = Client::new_vertex_ai(
+            "test-project",
+            "us-central1",
+            "gemini-2.5-pro",
+            "test_token",
+        )
+        .with_base_url(server.url());
+
+        assert_eq!(
+            client.list_models().await.unwrap(),
+            vec!["gemini-2.5-pro".to_string()]
+        );
+        mock.assert_async().await;
+    }
 
     #[tokio::test]
     async fn test_generate_content() {

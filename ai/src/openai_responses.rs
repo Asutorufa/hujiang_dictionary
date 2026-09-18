@@ -66,6 +66,10 @@ enum ResponsesStreamItem {
 }
 
 impl OpenAIResponses {
+    pub async fn list_models(&self) -> Result<Vec<String>, Error> {
+        crate::openai::fetch_models(&self.client, &self.base_url, &self.api_key).await
+    }
+
     fn responses_url(&self) -> String {
         let base_url = self.base_url.trim().trim_end_matches('/');
         let base_url = if base_url.is_empty() {
@@ -239,7 +243,7 @@ impl Completion for OpenAIResponses {
             return Err(Error::Api(format!("HTTP error {}: {}", status, err_msg)));
         }
 
-        let stream = resp.bytes_stream();
+        let stream = crate::http::bytes_stream(resp);
 
         Ok(futures_util::stream::unfold(
             (stream, String::new(), String::new()),

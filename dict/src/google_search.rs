@@ -57,11 +57,10 @@ pub async fn getv2(word: &str) -> Result<Vec<Body>, Error> {
         return Err(Error {
             status: Some(status),
             message: body,
-        })?;
+        });
     }
 
     let q = scraper::Html::parse_document(&body);
-
     let a_selector = scraper::Selector::parse("a").unwrap();
     let h3_selector = scraper::Selector::parse("h3").unwrap();
     let div_selector = scraper::Selector::parse("div").unwrap();
@@ -117,14 +116,14 @@ pub async fn get(word: &str) -> Result<Vec<Body>, Error> {
     println!("{}", text);
     info!("google search raw result: {}, status: {}", text, status);
 
-    if !status.is_success() {
-        return Err(Error {
+    if status.is_success() {
+        Ok(parse(&text))
+    } else {
+        Err(Error {
             status: Some(status),
             message: text,
-        })?;
+        })
     }
-
-    Ok(parse(&text))
 }
 
 #[derive(Debug)]

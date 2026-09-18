@@ -40,6 +40,18 @@ impl Gemini {
         self.client.set_model(model);
     }
 
+    pub fn with_base_url(mut self, base_url: impl Into<String>) -> Self {
+        self.client = self.client.with_base_url(base_url);
+        self
+    }
+
+    pub async fn list_models(&self) -> Result<Vec<String>, Error> {
+        self.client
+            .list_models()
+            .await
+            .map_err(|e| Error::Api(e.to_string()))
+    }
+
     fn get_tools(&self) -> Option<Vec<gemini::Tool>> {
         if self.gemini_search {
             Some(vec![gemini::Tool {

@@ -1,10 +1,17 @@
 pub mod ai;
 pub mod consolelog;
+pub mod d1;
+pub mod mcp;
+pub mod opts;
+pub mod route;
+pub mod telegram;
+pub mod tg;
+mod worker_ai;
 
-use crate::ai::WasmAI;
-use hjcommon::d1::migrations;
-use hjcommon::opts::{ConfigCache, RunOpt};
-use hjcommon::tg::send_random_word;
+use crate::d1::migrations;
+use crate::opts::{ConfigCache, WorkerState};
+use crate::tg::send_random_word;
+use crate::worker_ai::WasmAI;
 use log::error;
 use std::sync::RwLock;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -22,6 +29,7 @@ struct EnvConfig {
     auth_username: String,
     auth_password: String,
     auth_token_expiration: i64,
+    mcp_allowed_origins: HashSet<String>,
 }
 
 impl EnvConfig {
@@ -38,6 +46,12 @@ impl EnvConfig {
             auth_token_expiration: get_string_from_env(env, "AUTH_TOKEN_EXPIRATION")
                 .parse::<i64>()
                 .unwrap_or(1),
+            mcp_allowed_origins: get_string_from_env(env, "MCP_ALLOWED_ORIGINS")
+                .split(',')
+                .map(str::trim)
+                .filter(|origin| !origin.is_empty())
+                .map(str::to_string)
+                .collect(),
         })
     }
 }
@@ -49,7 +63,7 @@ fn get_string_from_env(env: &Env, key: &str) -> String {
     }
 }
 
-async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
+async fn get_opt(env: Env) -> Result<Arc<WorkerState>> {
     console_error_panic_hook::set_once();
     INIT.call_once(|| {
         match consolelog::init_with_level(log::Level::Info) {
@@ -71,7 +85,7 @@ async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
         hj_ai::workers::set_global_ai(ai);
     }
 
-    Ok(Arc::new(RunOpt {
+    Ok(Arc::new(WorkerState {
         d1: env.d1("DB").expect("D1 binding not found"),
         translator: WasmAI::new(&env, "AI"),
         workers_ai: if env.ai("AI").is_ok() {
@@ -90,6 +104,7 @@ async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
         auth_username: config.auth_username.clone(),
         auth_password: config.auth_password.clone(),
         auth_token_expiration: config.auth_token_expiration,
+        mcp_allowed_origins: Arc::new(config.mcp_allowed_origins.clone()),
         config_cache: GLOBAL_CONFIG_CACHE
             .get_or_init(|| {
                 Arc::new(RwLock::new(ConfigCache {
@@ -106,12 +121,10 @@ async fn get_opt(env: Env) -> Result<Arc<RunOpt<worker::D1Database, WasmAI>>> {
 }
 
 #[event(fetch)]
-async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
+async fn main(mut req: Request, env: Env, _ctx: Context) -> Result<Response> {
     if req.method() == Method::Options {
         return Response::ok("");
     }
-
-    ctx.pass_through_on_exception();
 
     let opt = get_opt(env.clone()).await?;
 
@@ -127,12 +140,14 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
         .await
     {
         error!("Migration failed: {}", e);
+        MIGRATION_DONE.store(false, Ordering::Release);
     }
 
     let req_clone = req.clone()?;
 
     let url = req.url()?;
     let domain = url.host_str().unwrap_or("").to_string();
+    let request_origin = format!("{}://{}", url.scheme(), domain);
     let path = url.path();
     let method = req.method().to_string();
 
@@ -142,17 +157,40 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
         .ok()
         .flatten()
         .or_else(|| headers.get("authorization").ok().flatten());
+    let header_origin = headers.get("Origin").ok().flatten();
+    let accept = headers.get("Accept").ok().flatten();
+    let protocol_version = headers.get("MCP-Protocol-Version").ok().flatten();
 
     let body = req.bytes().await?;
 
+    if path == "/mcp" {
+        return mcp::handle(
+            &method,
+            header_origin.as_deref(),
+            auth_header.as_deref(),
+            accept.as_deref(),
+            protocol_version.as_deref(),
+            body,
+            opt,
+        )
+        .await;
+    }
+
     match opt
-        .serve(&method, path, auth_header.as_deref(), body, &domain)
+        .serve(
+            &method,
+            path,
+            auth_header.as_deref(),
+            body,
+            &domain,
+            &request_origin,
+        )
         .await
     {
         Ok(resp) => {
             let mut r = match resp.body {
-                hjcommon::route::UnifiedBody::Bytes(b) => Response::from_bytes(b)?,
-                hjcommon::route::UnifiedBody::Stream(s) => {
+                route::UnifiedBody::Bytes(b) => Response::from_bytes(b)?,
+                route::UnifiedBody::Stream(s) => {
                     use futures_util::StreamExt;
                     let stream = s.map(|res: Result<bytes::Bytes, Box<dyn std::error::Error>>| {
                         res.map(|b| b.to_vec())
@@ -168,9 +206,7 @@ async fn main(mut req: Request, env: Env, ctx: Context) -> Result<Response> {
             Ok(r)
         }
         Err(e) => match e {
-            hjcommon::route::Error::NotFound => {
-                env.assets("ASSETS")?.fetch_request(req_clone).await
-            }
+            route::Error::NotFound => env.assets("ASSETS")?.fetch_request(req_clone).await,
             _ => Response::error(e.to_string(), 500),
         },
     }

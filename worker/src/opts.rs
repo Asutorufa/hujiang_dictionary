@@ -2,33 +2,32 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::RwLock;
 
-use frankenstein::client_reqwest;
-
+use crate::telegram::TelegramBotClient;
 use d1_orm::DatabaseExecutor;
 
 #[derive(Clone)]
 pub struct ConfigCache {
     pub allow_users: Arc<HashSet<i64>>,
     pub maintainer_id: i64,
-    pub bot: Option<client_reqwest::Bot>,
+    pub bot: Option<TelegramBotClient>,
     pub google_search_api_key: String,
     pub google_search_cx: String,
     pub last_updated: u64,
 }
 
-#[derive(Clone)]
-pub struct RunOpt<T: DatabaseExecutor, T2: crate::ai::Translator> {
-    pub d1: T,
-    pub translator: T2,
+pub struct WorkerState {
+    pub d1: worker::D1Database,
+    pub translator: crate::worker_ai::WasmAI,
     pub workers_ai: Option<hj_ai::provider::Provider>,
     pub auth_secret: String,
     pub auth_username: String,
     pub auth_password: String,
     pub auth_token_expiration: i64,
+    pub mcp_allowed_origins: Arc<HashSet<String>>,
     pub config_cache: Arc<RwLock<ConfigCache>>,
 }
 
-impl<T: DatabaseExecutor, T2: crate::ai::Translator> RunOpt<T, T2> {
+impl WorkerState {
     pub async fn get_config(&self) -> Result<ConfigCache, Box<dyn std::error::Error>> {
         let now = chrono::Utc::now().timestamp() as u64;
         {
@@ -78,7 +77,7 @@ impl<T: DatabaseExecutor, T2: crate::ai::Translator> RunOpt<T, T2> {
         let bot = if telegram_token.is_empty() {
             None
         } else {
-            Some(client_reqwest::Bot::new(&telegram_token))
+            Some(TelegramBotClient::new(&telegram_token))
         };
 
         let mut cache = self

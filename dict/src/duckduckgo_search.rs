@@ -26,14 +26,14 @@ pub async fn get(word: &str) -> Result<Vec<Body>, Error> {
 
     info!("duckduckgo search raw result: {}, status: {}", text, status);
 
-    if !status.is_success() {
-        return Err(Error {
+    if status.is_success() {
+        Ok(parse(&text))
+    } else {
+        Err(Error {
             status: Some(status),
             message: text,
-        })?;
+        })
     }
-
-    Ok(parse(&text))
 }
 
 fn parse(text: &str) -> Vec<Body> {

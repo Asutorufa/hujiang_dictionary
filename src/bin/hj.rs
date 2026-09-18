@@ -1,7 +1,7 @@
 use hjdict::{en, google, jp, kotobanku, kr, weblio};
 use std::env::args;
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::builder()
         .filter_level(log::LevelFilter::Debug)

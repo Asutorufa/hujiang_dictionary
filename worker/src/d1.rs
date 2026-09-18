@@ -45,6 +45,38 @@ define_model!(
     }
 );
 
+define_model!(
+    CodexOAuthState,
+    CodexOAuthStateField,
+    CodexOAuthStateUpdate {
+        state: String[pk],
+        verifier: String,
+        device_auth_id: String,
+        device_user_code: String,
+        device_interval_seconds: i64,
+        provider_name: String,
+        models: String,
+        redirect_uri: String,
+        return_url: String,
+        created_at: i64,
+    }
+);
+
+define_model!(
+    McpToken,
+    McpTokenField,
+    McpTokenUpdate {
+        id: String[pk],
+        name: String,
+        token_hash: String,
+        scopes: String,
+        created_at: i64,
+        expires_at: Option<i64>,
+        last_used_at: Option<i64>,
+        revoked_at: Option<i64>,
+    }
+);
+
 define_sql!(
     Queries
 
@@ -58,6 +90,7 @@ define_sql!(
     ChangePriority { priority: u64, word: &'a str } => "UPDATE words SET priority = ? WHERE word = ?",
 
     DeleteWord { word: &'a str } => "DELETE FROM words WHERE word = ?",
+    GetWord { word: &'a str } => "SELECT * FROM words WHERE word = ? LIMIT 1",
     CountWord { word_type: i64 } => "SELECT count(*) as size FROM words WHERE word_type = ?",
 
     // SaveWord (Upsert)
@@ -107,6 +140,41 @@ define_sql!(
 
     DeleteLlmProvider { name: &'a str } => "DELETE FROM llm_providers WHERE name = ?",
     GetLlmProviderByName { name: &'a str } => "SELECT * FROM llm_providers WHERE name = ?",
+
+    SaveCodexOAuthState {
+        state: &'a str,
+        verifier: &'a str,
+        device_auth_id: &'a str,
+        device_user_code: &'a str,
+        device_interval_seconds: i64,
+        provider_name: &'a str,
+        models: &'a str,
+        redirect_uri: &'a str,
+        return_url: &'a str,
+        created_at: i64
+    } => r#"
+        INSERT INTO codex_oauth_states
+            (state, verifier, device_auth_id, device_user_code, device_interval_seconds,
+             provider_name, models, redirect_uri, return_url, created_at)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+    "#,
+    GetCodexOAuthState { state: &'a str } => "SELECT * FROM codex_oauth_states WHERE state = ?",
+    DeleteCodexOAuthState { state: &'a str } => "DELETE FROM codex_oauth_states WHERE state = ?",
+    DeleteExpiredCodexOAuthStates { before: i64 } =>
+        "DELETE FROM codex_oauth_states WHERE created_at < ?",
+
+    InsertMcpToken {
+        id: &'a str,
+        name: &'a str,
+        token_hash: &'a str,
+        scopes: &'a str,
+        created_at: i64,
+        expires_at: Option<i64>
+    } => "INSERT INTO mcp_tokens (id, name, token_hash, scopes, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ListMcpTokens => "SELECT * FROM mcp_tokens ORDER BY created_at DESC",
+    FindMcpToken { token_hash: &'a str, now: i64 } => "SELECT * FROM mcp_tokens WHERE token_hash = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?) LIMIT 1",
+    TouchMcpToken { id: &'a str, now: i64 } => "UPDATE mcp_tokens SET last_used_at = ? WHERE id = ?",
+    RevokeMcpToken { id: &'a str } => "UPDATE mcp_tokens SET revoked_at = strftime('%s', 'now') WHERE id = ? AND revoked_at IS NULL",
 
     ListConfigurations => "SELECT * FROM configurations",
     GetConfigurationByKey { key: &'a str } => "SELECT * FROM configurations WHERE key = ?",
@@ -218,6 +286,77 @@ pub fn migrations() -> Vec<Migration<SqlStatement>> {
             "#
                 .to_string(),
             )],
+        ),
+        Migration::new(
+            6,
+            "add_mcp_tokens",
+            vec![SqlStatement(
+                r#"
+            CREATE TABLE IF NOT EXISTS mcp_tokens (
+                "id" TEXT PRIMARY KEY,
+                "name" TEXT NOT NULL,
+                "token_hash" TEXT NOT NULL UNIQUE,
+                "scopes" TEXT NOT NULL,
+                "created_at" INTEGER NOT NULL,
+                "expires_at" INTEGER,
+                "last_used_at" INTEGER,
+                "revoked_at" INTEGER
+            );
+            CREATE INDEX IF NOT EXISTS idx_mcp_tokens_active ON mcp_tokens(revoked_at, expires_at);
+            "#
+                .to_string(),
+            )],
+        ),
+        Migration::new(
+            7,
+            "add_codex_oauth_states",
+            vec![
+                SqlStatement(
+                    r#"
+            CREATE TABLE IF NOT EXISTS codex_oauth_states (
+                "state" TEXT PRIMARY KEY,
+                "verifier" TEXT NOT NULL,
+                "provider_name" TEXT NOT NULL,
+                "models" TEXT NOT NULL,
+                "redirect_uri" TEXT NOT NULL,
+                "return_url" TEXT NOT NULL,
+                "created_at" INTEGER NOT NULL
+            );
+            "#
+                    .to_string(),
+                ),
+                SqlStatement(
+                    "CREATE INDEX IF NOT EXISTS idx_codex_oauth_states_created_at ON codex_oauth_states(created_at);"
+                        .to_string(),
+                ),
+            ],
+        ),
+        Migration::new(
+            8,
+            "add_codex_device_auth_fields",
+            vec![
+                SqlStatement(
+                    r#"
+            ALTER TABLE codex_oauth_states
+                ADD COLUMN device_auth_id TEXT NOT NULL DEFAULT '';
+            "#
+                    .to_string(),
+                ),
+                SqlStatement(
+                    r#"
+            ALTER TABLE codex_oauth_states
+                ADD COLUMN device_user_code TEXT NOT NULL DEFAULT '';
+            "#
+                    .to_string(),
+                ),
+                SqlStatement(
+                    r#"
+            ALTER TABLE codex_oauth_states
+                ADD COLUMN device_interval_seconds INTEGER NOT NULL DEFAULT 5;
+            "#
+                    .to_string(),
+                ),
+            ],
         ),
     ]
 }

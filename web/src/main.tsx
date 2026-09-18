@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "@radix-ui/themes/styles.css";
 import "./globals.css";
+import "./workspace.css";
 
 async function enableMocking() {
   if (!import.meta.env.DEV) {
