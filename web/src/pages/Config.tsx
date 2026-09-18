@@ -403,7 +403,9 @@ export default function Config() {
         throw new Error("Provider returned an invalid model list");
       }
       const fetchedModels = parseModelIds(
-        payload.filter((model): model is string => typeof model === "string").join(","),
+        payload
+          .filter((model): model is string => typeof model === "string")
+          .join(","),
       );
       if (fetchedModels.length === 0) {
         throw new Error("Provider returned no usable models");
@@ -887,8 +889,9 @@ export default function Config() {
                             name="TELEGRAM_TOKEN"
                             type="password"
                             defaultValue={
-                              configurations.find((c) => c.key === "TELEGRAM_TOKEN")
-                                ?.value || ""
+                              configurations.find(
+                                (c) => c.key === "TELEGRAM_TOKEN",
+                              )?.value || ""
                             }
                             placeholder="123456789:ABCDefghIJKlmnopQRSTuvwxYZ1234567890"
                           />
@@ -903,24 +906,31 @@ export default function Config() {
                           <TextField.Root
                             name="MAINTAINER_ID"
                             defaultValue={
-                              configurations.find((c) => c.key === "MAINTAINER_ID")
-                                ?.value || ""
+                              configurations.find(
+                                (c) => c.key === "MAINTAINER_ID",
+                              )?.value || ""
                             }
                             placeholder="123456789"
                           />
                           <Text size="1" color="gray">
-                            The primary admin who receives cron messages and error reports.
+                            The primary admin who receives cron messages and
+                            error reports.
                           </Text>
                         </Flex>
-                        <Flex direction="column" gap="1" className="app-settings-field-wide">
+                        <Flex
+                          direction="column"
+                          gap="1"
+                          className="app-settings-field-wide"
+                        >
                           <Text as="label" size="2" weight="bold">
                             Allowed users
                           </Text>
                           <TextField.Root
                             name="ALLOW_USERS"
                             defaultValue={
-                              configurations.find((c) => c.key === "ALLOW_USERS")
-                                ?.value || ""
+                              configurations.find(
+                                (c) => c.key === "ALLOW_USERS",
+                              )?.value || ""
                             }
                             placeholder="123456789,987654321"
                           />
@@ -938,7 +948,9 @@ export default function Config() {
                         </span>
                         <div>
                           <h3>Web search</h3>
-                          <p>Allow grounded lookups to use Google Custom Search.</p>
+                          <p>
+                            Allow grounded lookups to use Google Custom Search.
+                          </p>
                         </div>
                       </div>
                       <div className="app-settings-fields">
@@ -1253,7 +1265,9 @@ export default function Config() {
               <Flex direction="column" gap="1">
                 <Flex align="center" justify="between" gap="2">
                   <Text as="label" size="2" weight="bold">
-                    {availableModels ? "Available models" : "Models (comma separated)"}
+                    {availableModels
+                      ? "Available models"
+                      : "Models (comma separated)"}
                   </Text>
                   {supportsModelDiscovery && (
                     <Button

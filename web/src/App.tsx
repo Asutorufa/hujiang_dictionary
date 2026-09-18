@@ -40,8 +40,8 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
 function Main() {
   const [location, setLocation] = useLocation();
   const [pageTransitionDirection, setPageTransitionDirection] = useState(0);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() =>
-    window.localStorage.getItem("dictdeck_sidebar_collapsed") === "true",
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => window.localStorage.getItem("dictdeck_sidebar_collapsed") === "true",
   );
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -87,14 +87,22 @@ function Main() {
           value={location}
           onValueChange={handleNavChange}
           collapsed={sidebarCollapsed}
-          onToggleCollapsed={() => setSidebarCollapsed((collapsed) => !collapsed)}
+          onToggleCollapsed={() =>
+            setSidebarCollapsed((collapsed) => !collapsed)
+          }
           mobileOpen={mobileSidebarOpen}
           onToggleMobile={() => setMobileSidebarOpen((open) => !open)}
           onCloseMobile={() => setMobileSidebarOpen(false)}
         />
       )}
 
-      <main className={isLogin ? undefined : `app-main${sidebarCollapsed ? " is-sidebar-collapsed" : ""}`}>
+      <main
+        className={
+          isLogin
+            ? undefined
+            : `app-main${sidebarCollapsed ? " is-sidebar-collapsed" : ""}`
+        }
+      >
         <Suspense fallback={null}>
           <div className="relative overflow-x-hidden">
             <motion.div

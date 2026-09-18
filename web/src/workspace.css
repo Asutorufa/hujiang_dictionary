@@ -133,7 +133,11 @@ button.app-primary-action {
 }
 
 button.app-primary-action:hover {
-  background: color-mix(in srgb, var(--app-text) 88%, var(--app-accent)) !important;
+  background: color-mix(
+    in srgb,
+    var(--app-text) 88%,
+    var(--app-accent)
+  ) !important;
 }
 
 .app-library-page .app-page-container {
@@ -340,7 +344,10 @@ button.app-primary-action:hover {
   border-radius: 16px;
   background: var(--app-panel);
   box-shadow: 0 5px 18px color-mix(in srgb, var(--app-text) 5%, transparent);
-  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
 }
 
 .app-word-card:hover {
@@ -530,7 +537,9 @@ button.app-primary-action:hover {
   font-size: 0.82rem;
   font-weight: 650;
   text-decoration: none;
-  transition: border-color 160ms ease, background 160ms ease,
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
     box-shadow 160ms ease;
 }
 
@@ -560,7 +569,9 @@ button.app-primary-action:hover {
 .app-codex-login-action-arrow {
   flex: 0 0 auto;
   color: var(--app-muted);
-  transition: transform 160ms ease, color 160ms ease;
+  transition:
+    transform 160ms ease,
+    color 160ms ease;
 }
 
 .app-codex-login-action:hover .app-codex-login-action-arrow {
@@ -580,8 +591,9 @@ button.app-primary-action:hover {
   display: block;
   margin-top: 5px;
   color: var(--app-text);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    "Liberation Mono", monospace;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
   letter-spacing: 0.14em;
   line-height: 1.15;
   overflow-wrap: anywhere;

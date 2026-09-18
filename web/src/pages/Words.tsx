@@ -143,7 +143,11 @@ export default function Words() {
           title="Vocabulary"
           subtitle="Save, review, and keep the words you want to remember close at hand."
           actions={
-            <button type="button" className="app-primary-action" onClick={openNewWord}>
+            <button
+              type="button"
+              className="app-primary-action"
+              onClick={openNewWord}
+            >
               <Plus size={17} />
               Add word
             </button>
@@ -260,7 +264,9 @@ export default function Words() {
           {!loading && visibleWords.length === 0 && (
             <div className="col-span-full">
               <EmptyState
-                title={normalizedSearch ? "No matching words" : "No words found"}
+                title={
+                  normalizedSearch ? "No matching words" : "No words found"
+                }
                 description={
                   normalizedSearch
                     ? "Try a different search or clear the search field."
