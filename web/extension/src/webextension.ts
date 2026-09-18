@@ -36,6 +36,7 @@ type CallbackStorageArea = {
 type PromiseRuntime = {
   sendMessage(message: unknown): Promise<unknown>;
   connect(connectInfo: { name: string }): ExtensionPort;
+  getURL(path: string): string;
   openOptionsPage?: () => Promise<void>;
   onMessage: { addListener(listener: MessageListener): void };
   onConnect: { addListener(listener: PortListener): void };
@@ -44,6 +45,7 @@ type PromiseRuntime = {
 type CallbackRuntime = {
   sendMessage(message: unknown, callback: (response: unknown) => void): void;
   connect(connectInfo: { name: string }): ExtensionPort;
+  getURL(path: string): string;
   openOptionsPage?: (callback?: () => void) => void;
   lastError?: { message?: string };
   onMessage: { addListener(listener: MessageListener): void };
@@ -94,6 +96,9 @@ export function getExtensionApi() {
       },
       connect(connectInfo: { name: string }) {
         return (promiseApi ?? callbackApi)?.runtime.connect(connectInfo);
+      },
+      getURL(path: string) {
+        return (promiseApi ?? callbackApi)?.runtime.getURL(path) ?? path;
       },
       openOptionsPage() {
         if (promiseApi?.runtime.openOptionsPage) {

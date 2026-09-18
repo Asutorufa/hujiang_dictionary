@@ -96,6 +96,15 @@ function styles() {
       font-weight: 800;
       line-height: 1;
     }
+    .trigger-mark {
+      display: block;
+      width: 21px;
+      height: 21px;
+      border-radius: 6px;
+      object-fit: cover;
+      pointer-events: none;
+      user-select: none;
+    }
     .trigger:hover {
       transform: translateY(-1px);
       box-shadow: 0 14px 34px rgba(28, 28, 28, 0.24);
@@ -969,7 +978,12 @@ function renderTrigger(snapshot: SelectionSnapshot) {
   trigger.type = "button";
   trigger.title = "Open DictDeck";
   trigger.setAttribute("aria-label", "Open DictDeck");
-  trigger.textContent = "D";
+  const mark = document.createElement("img");
+  mark.className = "trigger-mark";
+  mark.src = api.runtime.getURL("assets/dictdeck.svg");
+  mark.alt = "";
+  mark.setAttribute("aria-hidden", "true");
+  trigger.append(mark);
   trigger.addEventListener("click", () => {
     void openPendingSelection();
   });
