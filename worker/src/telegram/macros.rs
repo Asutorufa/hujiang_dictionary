@@ -23,6 +23,7 @@ macro_rules! bot_commands {
                         frankenstein::types::BotCommand {
                             command: $cmd_name.to_string(),
                             description: $cmd_desc.to_string(),
+                            is_ephemeral: None,
                         }
                     ),+
                 ]
