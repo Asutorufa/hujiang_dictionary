@@ -52,7 +52,9 @@ function HistoryList({
   }
 
   if (history.length === 0) {
-    return <div className="dd-empty popup-loading">No selection history yet.</div>;
+    return (
+      <div className="dd-empty popup-loading">No selection history yet.</div>
+    );
   }
 
   return (
@@ -90,7 +92,9 @@ function PopupApp() {
       setSettings(nextSettings);
       setHistory(nextHistory);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : String(loadError));
+      setError(
+        loadError instanceof Error ? loadError.message : String(loadError),
+      );
     } finally {
       setLoading(false);
     }
@@ -150,7 +154,9 @@ function PopupApp() {
           onClick={() => {
             void openOptions().catch((openError) => {
               setError(
-                openError instanceof Error ? openError.message : String(openError),
+                openError instanceof Error
+                  ? openError.message
+                  : String(openError),
               );
             });
           }}

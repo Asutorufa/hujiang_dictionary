@@ -32,8 +32,8 @@
     Inter, "PingFang SC", "Hiragino Sans", "Noto Sans CJK SC",
     "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
   --dd-font-mono:
-    "SFMono-Regular", ui-monospace, "Cascadia Code", "JetBrains Mono",
-    Consolas, monospace;
+    "SFMono-Regular", ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas,
+    monospace;
 
   --dd-radius-sm: 8px;
   --dd-radius-md: 12px;
