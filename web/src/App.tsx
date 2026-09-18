@@ -1,5 +1,5 @@
 import { Theme } from "@radix-ui/themes";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import { Toaster } from "sonner";
 import { Route, Router, Switch, useLocation } from "wouter";

@@ -9,7 +9,7 @@ import {
   Text,
   TextArea,
 } from "@radix-ui/themes";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion } from "motion/react";
 import { FC, ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 

@@ -17,7 +17,7 @@ import {
 import { Button, DropdownMenu, Switch, TextArea } from "@radix-ui/themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ROUTE_FLASHCARD } from "@/lib/constants";
 import {
   listModel as listModels,
