@@ -31,7 +31,7 @@ export const addToast = ({
 }: {
   title: string;
   description?: string;
-  color?: "success" | "danger" | "warning" | "default";
+  color?: "success" | "danger" | "warning" | "info" | "default";
   timeout?: number;
 }) => {
   const options: Record<string, unknown> = { description };
@@ -45,6 +45,8 @@ export const addToast = ({
     toast.success(title, options);
   } else if (color === "warning") {
     toast.warning(title, options);
+  } else if (color === "info") {
+    toast.info(title, options);
   } else {
     toast(title, options);
   }
