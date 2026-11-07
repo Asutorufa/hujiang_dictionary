@@ -628,7 +628,7 @@ export const Spoiler: FC<{
         onClick={() => setHide(false)}
       >
         <span className="app-spoiler-reveal-btn px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-transform shadow-sm group-hover:scale-105 active:scale-95">
-          Show Translation
+          Show translation
         </span>
       </button>
 

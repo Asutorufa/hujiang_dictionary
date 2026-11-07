@@ -1,0 +1,505 @@
+/* Design refresh: aligns the web workspace with the browser extension's
+   visual language (accent-green primary actions, sentence-case labels,
+   quieter headers, softer cards) and adds a consistent motion layer.
+   Loaded last so it wins over globals.css / workspace.css. */
+
+/* Primary actions ------------------------------------------------------- */
+
+button.app-primary-action,
+.app-primary-action,
+.app-review-know,
+.app-login-card .rt-Button {
+  border-color: var(--dd-color-accent) !important;
+  background: var(--dd-color-accent) !important;
+  color: #ffffff !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 1px 2px color-mix(in srgb, var(--dd-color-accent) 30%, transparent);
+}
+
+button.app-primary-action:hover,
+.app-primary-action:hover,
+.app-review-know:hover:not(:disabled),
+.app-login-card .rt-Button:hover {
+  border-color: var(--dd-color-accent-strong) !important;
+  background: var(--dd-color-accent-strong) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 6px 16px -4px color-mix(in srgb, var(--dd-color-accent) 45%, transparent);
+  transform: none;
+}
+
+button.app-primary-action,
+.app-secondary-action,
+.app-review-know,
+.app-review-skip,
+.app-review-back,
+.app-sidebar-new,
+.app-library-icon-button,
+.app-word-review-button,
+.app-spoiler-reveal-btn,
+.app-login-card .rt-Button {
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 160ms ease,
+    scale 120ms ease !important;
+}
+
+button.app-primary-action:active,
+.app-secondary-action:active,
+.app-review-know:active:not(:disabled),
+.app-review-skip:active:not(:disabled),
+.app-sidebar-new:active,
+.app-library-icon-button:active,
+.app-word-review-button:active,
+.app-spoiler-reveal-btn:active,
+.app-login-card .rt-Button:active {
+  scale: 0.97;
+}
+
+.app-secondary-action:hover {
+  transform: none;
+}
+
+/* Home composer send button follows the same accent. */
+.app-composer-submit {
+  background: var(--dd-color-accent) !important;
+  color: #ffffff !important;
+  transition:
+    background-color 140ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease,
+    scale 160ms var(--dd-ease-spring) !important;
+}
+
+.app-composer-submit:disabled {
+  background: var(--dd-color-border-strong) !important;
+  opacity: 1 !important;
+}
+
+.app-composer-submit:hover:not(:disabled) {
+  background: var(--dd-color-accent-strong) !important;
+  box-shadow: 0 6px 16px -4px color-mix(in srgb, var(--dd-color-accent) 50%, transparent) !important;
+  transform: none !important;
+  scale: 1.06;
+}
+
+.app-composer-submit:active:not(:disabled) {
+  scale: 0.94;
+}
+
+.app-composer {
+  transition:
+    border-color 160ms ease,
+    box-shadow 200ms ease !important;
+}
+
+.app-composer:focus-within {
+  border-color: color-mix(in srgb, var(--dd-color-accent) 45%, var(--dd-color-border)) !important;
+  box-shadow:
+    0 0 0 4px var(--dd-color-accent-soft),
+    var(--dd-shadow-md) !important;
+}
+
+/* The composer shell owns the focus ring; hide the inner field's. */
+.app-composer .rt-TextAreaRoot,
+.app-composer .rt-TextAreaRoot:focus-within,
+.app-composer textarea:focus,
+.app-composer textarea:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Sidebar --------------------------------------------------------------- */
+
+.app-sidebar-new {
+  border-color: var(--dd-color-border) !important;
+  background: var(--dd-color-surface) !important;
+  box-shadow: var(--dd-shadow-sm);
+  color: var(--dd-color-text) !important;
+  font-weight: 600;
+}
+
+.app-sidebar-new:hover {
+  border-color: var(--dd-color-border-strong) !important;
+  background: var(--dd-color-surface-muted) !important;
+}
+
+.app-sidebar-new svg {
+  color: var(--dd-color-accent);
+}
+
+.app-sidebar-new .app-sidebar-shortcut {
+  border: 1px solid var(--dd-color-border);
+  border-radius: 6px;
+  padding: 1px 6px;
+  background: var(--dd-color-surface-muted);
+  font-family: var(--dd-font-sans);
+}
+
+.app-sidebar-item {
+  border-color: transparent !important;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.app-sidebar-item.is-active {
+  border-color: transparent !important;
+  background: var(--dd-color-surface-muted) !important;
+  box-shadow: none;
+  color: var(--dd-color-text) !important;
+}
+
+.app-sidebar-item .app-sidebar-item-icon {
+  transition:
+    color 140ms ease,
+    scale 200ms var(--dd-ease-spring);
+}
+
+.app-sidebar-item:hover .app-sidebar-item-icon {
+  scale: 1.08;
+}
+
+.app-sidebar-item.is-active .app-sidebar-item-icon {
+  color: var(--dd-color-accent) !important;
+}
+
+/* Sentence-case labels (no tracked uppercase eyebrows) ------------------ */
+
+.app-sidebar-section-label,
+.app-provider-kicker,
+.app-library-eyebrow,
+.app-word-section-label,
+.app-settings-nav-label,
+.app-settings-section-kicker,
+.app-home-kicker {
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.app-sidebar-section-label,
+.app-word-section-label,
+.app-settings-nav-label,
+.app-settings-section-kicker,
+.app-provider-kicker {
+  color: var(--dd-color-muted) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.app-spoiler-reveal-btn {
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+/* Page headers ---------------------------------------------------------- */
+
+.app-page-header .app-header-title,
+.app-settings-hero h1,
+.app-review-header h1 {
+  font-size: clamp(1.6rem, 2.4vw, 2rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1.15 !important;
+}
+
+.app-page-header .app-header-subtitle,
+.app-settings-hero p,
+.app-review-header p {
+  font-size: 14px !important;
+}
+
+.app-page-header.app-header-root,
+.app-settings-hero,
+.app-review-header {
+  animation: dd-fade-up 320ms var(--dd-ease-out) both;
+}
+
+/* Cards ------------------------------------------------------------------ */
+
+.app-word-card,
+.app-provider-card,
+.app-settings-panel,
+.app-settings-form,
+.app-home-suggestion-grid button {
+  border-color: var(--dd-color-border) !important;
+  border-radius: var(--dd-radius-lg) !important;
+  box-shadow: var(--dd-shadow-sm) !important;
+  transition:
+    border-color 160ms ease,
+    box-shadow 200ms ease,
+    translate 200ms var(--dd-ease-out) !important;
+}
+
+.app-word-card:hover,
+.app-home-suggestion-grid button:hover {
+  border-color: var(--dd-color-border-strong) !important;
+  box-shadow: var(--dd-shadow-md) !important;
+  translate: 0 -2px;
+}
+
+/* Staggered entrance for grids and lists. */
+.app-word-grid > *,
+.app-provider-grid > *,
+.app-home-suggestion-grid > *,
+.app-quick-actions > * {
+  animation: dd-fade-up 340ms var(--dd-ease-out) both;
+}
+
+.app-word-grid > :nth-child(2),
+.app-provider-grid > :nth-child(2),
+.app-home-suggestion-grid > :nth-child(2),
+.app-quick-actions > :nth-child(2) {
+  animation-delay: 40ms;
+}
+
+.app-word-grid > :nth-child(3),
+.app-provider-grid > :nth-child(3),
+.app-home-suggestion-grid > :nth-child(3),
+.app-quick-actions > :nth-child(3) {
+  animation-delay: 80ms;
+}
+
+.app-word-grid > :nth-child(4),
+.app-quick-actions > :nth-child(4) {
+  animation-delay: 120ms;
+}
+
+.app-word-grid > :nth-child(5) {
+  animation-delay: 160ms;
+}
+
+.app-word-grid > :nth-child(n + 6) {
+  animation-delay: 200ms;
+}
+
+/* Settings: provider card ------------------------------------------------ */
+
+/* Radix Card paints its surface and border on ::before/::after using
+   --card-border-radius. Keep those layers in sync with our radius and let
+   the element's own border draw the edge, so corners never mismatch. */
+.app-provider-card.rt-Card,
+.app-settings-form.rt-Card,
+.app-settings-panel.rt-Card {
+  --card-border-radius: var(--dd-radius-lg);
+  --base-card-border-radius: var(--dd-radius-lg);
+  overflow: hidden;
+  background: var(--dd-color-surface) !important;
+}
+
+.app-provider-card.rt-Card::before,
+.app-provider-card.rt-Card::after,
+.app-settings-form.rt-Card::before,
+.app-settings-form.rt-Card::after,
+.app-settings-panel.rt-Card::before,
+.app-settings-panel.rt-Card::after {
+  display: none !important;
+}
+
+.app-provider-card {
+  min-height: 0 !important;
+  padding: 16px 18px !important;
+}
+
+.app-provider-card:hover {
+  border-color: var(--dd-color-border-strong) !important;
+}
+
+.app-provider-identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-provider-avatar {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 11px;
+  background: var(--dd-color-accent-soft);
+  color: var(--dd-color-accent-strong);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.app-provider-meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 2px;
+  color: var(--dd-color-muted);
+  font-size: 12px;
+}
+
+.app-provider-meta code {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 5px;
+  padding: 1px 6px;
+  background: var(--dd-color-surface-muted);
+  font-family: var(--dd-font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-provider-actions .dd-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.app-provider-actions .dd-button--danger {
+  color: var(--dd-color-muted);
+}
+
+.app-settings-hero-status {
+  border-color: transparent !important;
+  background: var(--dd-color-accent-soft) !important;
+  color: var(--dd-color-accent-strong) !important;
+  font-weight: 600;
+}
+
+.app-settings-nav button {
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease !important;
+}
+
+.app-settings-nav button {
+  position: relative;
+  border: 1px solid transparent !important;
+}
+
+.app-settings-nav button.is-active {
+  border-color: transparent !important;
+  background: var(--dd-color-surface-muted) !important;
+  box-shadow: none !important;
+}
+
+/* Rounded indicator instead of a straight border bent around the corners. */
+.app-settings-nav button::before {
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: 3px;
+  height: 0;
+  border-radius: 999px;
+  background: var(--dd-color-accent);
+  content: "";
+  translate: 0 -50%;
+  transition: height 220ms var(--dd-ease-out);
+}
+
+.app-settings-nav button.is-active::before {
+  height: 18px;
+}
+
+/* Login ------------------------------------------------------------------ */
+
+.app-login-page {
+  position: relative;
+  isolation: isolate;
+  background: var(--dd-color-bg);
+}
+
+.app-login-page::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(
+      600px 360px at 50% 18%,
+      var(--dd-color-accent-soft),
+      transparent 70%
+    ),
+    radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--dd-color-border-strong) 55%, transparent) 1px,
+      transparent 0
+    )
+    0 0 / 22px 22px;
+  content: "";
+  -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%);
+}
+
+.app-login-card {
+  border-color: var(--dd-color-border) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.02),
+    0 24px 60px -16px rgba(0, 0, 0, 0.18) !important;
+  animation: dd-pop-in 360ms var(--dd-ease-out) both;
+}
+
+.app-login-brand {
+  display: grid !important;
+  justify-items: center;
+  gap: 12px !important;
+  text-align: center;
+}
+
+.app-login-brand img {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 14px !important;
+  box-shadow:
+    0 0 0 1px var(--dd-color-border),
+    0 10px 24px -6px color-mix(in srgb, var(--dd-color-accent) 40%, transparent) !important;
+  animation: dd-pop-in 420ms var(--dd-ease-spring) 80ms both;
+}
+
+.app-login-heading {
+  display: grid;
+  gap: 4px;
+}
+
+.app-login-heading strong {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.app-login-heading span {
+  color: var(--dd-color-muted);
+  font-size: 13px;
+}
+
+.app-login-card .rt-Button {
+  font-weight: 600;
+}
+
+/* Route transition ------------------------------------------------------- */
+
+.app-route {
+  animation: dd-fade-up 260ms var(--dd-ease-out) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-route,
+  .app-page-header.app-header-root,
+  .app-settings-hero,
+  .app-review-header,
+  .app-login-card,
+  .app-login-brand img,
+  .app-word-grid > *,
+  .app-provider-grid > *,
+  .app-home-suggestion-grid > *,
+  .app-quick-actions > * {
+    animation: none !important;
+  }
+
+  .app-word-card:hover,
+  .app-home-suggestion-grid button:hover {
+    translate: none;
+  }
+}
