@@ -81,7 +81,8 @@ button.app-primary-action:active,
 
 .app-composer-submit:hover:not(:disabled) {
   background: var(--dd-color-accent-strong) !important;
-  box-shadow: 0 6px 16px -4px color-mix(in srgb, var(--dd-color-accent) 50%, transparent) !important;
+  box-shadow: 0 6px 16px -4px
+    color-mix(in srgb, var(--dd-color-accent) 50%, transparent) !important;
   transform: none !important;
   scale: 1.06;
 }
@@ -97,7 +98,11 @@ button.app-primary-action:active,
 }
 
 .app-composer:focus-within {
-  border-color: color-mix(in srgb, var(--dd-color-accent) 45%, var(--dd-color-border)) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--dd-color-accent) 45%,
+    var(--dd-color-border)
+  ) !important;
   box-shadow:
     0 0 0 4px var(--dd-color-accent-soft),
     var(--dd-shadow-md) !important;
@@ -424,13 +429,17 @@ button.app-primary-action:active,
       transparent 70%
     ),
     radial-gradient(
-      circle at 1px 1px,
-      color-mix(in srgb, var(--dd-color-border-strong) 55%, transparent) 1px,
-      transparent 0
-    )
-    0 0 / 22px 22px;
+        circle at 1px 1px,
+        color-mix(in srgb, var(--dd-color-border-strong) 55%, transparent) 1px,
+        transparent 0
+      )
+      0 0 / 22px 22px;
   content: "";
-  -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(
+    ellipse at 50% 40%,
+    #000 30%,
+    transparent 75%
+  );
   mask-image: radial-gradient(ellipse at 50% 40%, #000 30%, transparent 75%);
 }
 
