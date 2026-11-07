@@ -77,11 +77,12 @@ export default function Login() {
     >
       <Card size="4" className="app-login-card w-full max-w-sm">
         <Flex direction="column" gap="4">
-          <Box className="app-login-brand flex justify-center pb-0">
+          <Box className="app-login-brand pb-2">
             <img src="/dictdeck.svg" alt="" aria-hidden="true" />
-            <Text size="6" weight="bold">
-              DictDeck
-            </Text>
+            <div className="app-login-heading">
+              <strong>Welcome back</strong>
+              <span>Sign in to your DictDeck workspace</span>
+            </div>
           </Box>
           <Flex direction="column" gap="3">
             <Flex direction="column" gap="1">
@@ -110,7 +111,7 @@ export default function Login() {
               />
             </Flex>
             <Button size="3" loading={loading} onClick={handleLogin}>
-              Login
+              Sign in
             </Button>
           </Flex>
         </Flex>

@@ -22,11 +22,13 @@ import {
   Copy,
   ExternalLink,
   KeyRound,
+  Pencil,
   PlugZap,
   RefreshCw,
   Search,
   Send,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 
 export type LlmProvider = {
@@ -745,7 +747,6 @@ export default function Config() {
       />
 
       <header className="app-settings-hero">
-        <div className="app-library-eyebrow">Workspace / Settings</div>
         <div className="app-settings-hero-row">
           <div>
             <h1>Settings</h1>
@@ -803,41 +804,46 @@ export default function Config() {
                 <div className="app-provider-grid">
                   {providers.map((p) => (
                     <Card key={p.name} size="2" className="app-provider-card">
-                      <Flex justify="between" align="start" gap="4">
-                        <Box className="app-provider-details">
-                          <div className="app-provider-kicker">
-                            {normalizeProviderType(p.provider) === "codex"
-                              ? "ChatGPT OAuth"
-                              : "Connected provider"}
-                          </div>
-                          <Text size="4" weight="bold" as="div">
-                            {p.name}
-                          </Text>
-                          <Text size="2" color="gray" as="div">
-                            {providerLabel(p.provider)}
-                          </Text>
-                          {p.base_url && (
-                            <Text size="1" className="truncate" as="div">
-                              {p.base_url}
+                      <Flex justify="between" align="center" gap="4">
+                        <Box className="app-provider-details app-provider-identity">
+                          <span
+                            className="app-provider-avatar"
+                            aria-hidden="true"
+                          >
+                            {p.name.trim().charAt(0).toUpperCase() || "?"}
+                          </span>
+                          <div className="min-w-0">
+                            <Text size="3" weight="bold" as="div">
+                              {p.name}
                             </Text>
-                          )}
+                            <div className="app-provider-meta">
+                              <span>
+                                {normalizeProviderType(p.provider) === "codex"
+                                  ? "ChatGPT OAuth"
+                                  : providerLabel(p.provider)}
+                              </span>
+                              {p.base_url && <code>{p.base_url}</code>}
+                            </div>
+                          </div>
                         </Box>
-                        <Flex gap="2" className="shrink-0">
-                          <Button
-                            size="1"
-                            variant="soft"
+                        <Flex gap="2" className="app-provider-actions shrink-0">
+                          <button
+                            type="button"
+                            className="dd-button dd-button--sm"
                             onClick={() => openEditModal(p)}
                           >
+                            <Pencil aria-hidden="true" />
                             Edit
-                          </Button>
-                          <Button
-                            size="1"
-                            color="red"
-                            variant="soft"
+                          </button>
+                          <button
+                            type="button"
+                            className="dd-button dd-button--sm dd-button--icon dd-button--danger"
+                            title={`Delete ${p.name}`}
+                            aria-label={`Delete ${p.name}`}
                             onClick={() => handleDelete(p.name)}
                           >
-                            Delete
-                          </Button>
+                            <Trash2 aria-hidden="true" />
+                          </button>
                         </Flex>
                       </Flex>
                     </Card>

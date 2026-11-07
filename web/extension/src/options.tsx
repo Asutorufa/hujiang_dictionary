@@ -1,4 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  Bookmark,
+  Check,
+  CircleAlert,
+  CircleDashed,
+  Cpu,
+  ExternalLink,
+  History,
+  KeyRound,
+  Languages,
+  Loader2,
+  LogIn,
+  RefreshCw,
+  Save,
+  Trash2,
+  UserRound,
+  X,
+} from "lucide-react";
 import { createRoot } from "react-dom/client";
 import {
   BUILTIN_METHODS,
@@ -14,6 +32,8 @@ import {
 import "./options.css";
 import {
   DEFAULT_SETTINGS,
+  formatRelativeTime,
+  stripMarkdown,
   type ExtensionSettings,
   type RuntimeRequest,
   type RuntimeResponse,
@@ -29,6 +49,12 @@ if (!app) {
 }
 
 const HISTORY_RENDER_LIMIT = 30;
+const NAV_ITEMS = [
+  { id: "account", label: "Account", Icon: UserRound },
+  { id: "translation", label: "Translation", Icon: Languages },
+  { id: "llm", label: "Custom LLM", Icon: Cpu },
+  { id: "history", label: "History", Icon: History },
+];
 const MESSAGE_TIMEOUT_MS = 15000;
 
 type StatusKind = "idle" | "success" | "danger";
@@ -302,363 +328,395 @@ function OptionsApp() {
     }
   }
 
-  const statusClass =
-    statusKind === "success"
-      ? "dd-status--success"
-      : statusKind === "danger"
-        ? "dd-status--danger"
-        : "";
+  useEffect(() => {
+    if (statusKind !== "success" || !statusText) return;
+    const timer = window.setTimeout(() => setStatusText(""), 3200);
+    return () => window.clearTimeout(timer);
+  }, [statusKind, statusText]);
+
   const visibleHistory = history.slice(0, HISTORY_RENDER_LIMIT);
   const hiddenCount = Math.max(history.length - visibleHistory.length, 0);
   const controlsDisabled = Boolean(pendingAction) || initializing;
+  const toastVisible = Boolean(statusText) || initializing;
+  const toastKind = initializing || pendingAction ? "pending" : statusKind;
 
   return (
-    <main className="options-page">
-      <header className="options-header">
-        <div>
-          <div className="options-brand">
-            <img src="./assets/dictdeck.svg" alt="" aria-hidden="true" />
-            <span>DictDeck</span>
+    <div className="options-layout">
+      <aside className="options-sidebar">
+        <div className="options-brand">
+          <img src="./assets/dictdeck.svg" alt="" aria-hidden="true" />
+          <div>
+            <strong>DictDeck</strong>
+            <span>Extension settings</span>
           </div>
-          <p className="options-eyebrow">Workspace / Extension</p>
-          <h1>Extension settings</h1>
-          <p className="options-subtitle">
-            Configure selection translation, saved credentials, and vocabulary
-            capture from one shared DictDeck workspace.
-          </p>
         </div>
-        <button
-          className="dd-button dd-button--primary"
-          type="button"
-          disabled={controlsDisabled}
-          onClick={() => void loadCustomLLMs()}
+        <nav className="options-nav" aria-label="Sections">
+          {NAV_ITEMS.map(({ id, label, Icon }) => (
+            <a key={id} href={`#${id}`}>
+              <Icon aria-hidden="true" />
+              {label}
+            </a>
+          ))}
+        </nav>
+        <div
+          className={`options-connection ${settings.token ? "is-online" : ""}`}
         >
-          {pendingAction === "load-custom" ? "Loading..." : "Load custom LLMs"}
-        </button>
-      </header>
+          <span className="options-connection-dot" />
+          <span>
+            {initializing
+              ? "Loading…"
+              : settings.token
+                ? `Signed in as ${settings.username || "user"}`
+                : "Not signed in"}
+          </span>
+        </div>
+      </aside>
 
-      <p className={`dd-status options-status ${statusClass}`} role="status">
-        {initializing
-          ? "Loading extension settings..."
-          : statusText || "Settings changes will show a confirmation here."}
-      </p>
-
-      <div className="options-grid">
-        <section className="dd-panel options-section">
-          <h2>Account</h2>
-          <label className="options-field">
-            Service URL
-            <input
-              className="dd-input"
-              type="url"
-              value={form.baseUrl}
-              placeholder="https://dictdeck.example.com"
-              onChange={(event) => updateForm("baseUrl", event.target.value)}
-            />
-          </label>
-          <label className="options-field">
-            Username
-            <input
-              className="dd-input"
-              autoComplete="username"
-              value={form.username}
-              onChange={(event) => updateForm("username", event.target.value)}
-            />
-          </label>
-          <label className="options-field">
-            Password
-            <input
-              className="dd-input"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              placeholder={
-                settings.encryptedPassword
-                  ? "Saved. Fill only to replace."
-                  : "Saved encrypted after login"
-              }
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
-          <div className="options-actions">
-            <button
-              className="dd-button"
-              type="button"
-              disabled={controlsDisabled}
-              onClick={() => void forgetPassword()}
-            >
-              {pendingAction === "forget" ? "Clearing..." : "Forget password"}
-            </button>
-            <button
-              className="dd-button"
-              type="button"
-              disabled={controlsDisabled}
-              onClick={() => void saveSettings()}
-            >
-              {pendingAction === "save" ? "Saving..." : "Save settings"}
-            </button>
-            <button
-              className="dd-button dd-button--primary"
-              type="button"
-              disabled={controlsDisabled}
-              onClick={() => void login()}
-            >
-              {pendingAction === "login" ? "Logging in..." : "Log in"}
-            </button>
-          </div>
-          <p className="options-hint">
-            {settings.encryptedPassword
-              ? "Encrypted password is saved for automatic re-login."
-              : "No saved password. Automatic re-login is disabled."}{" "}
-            {settings.token ? "Token is saved." : "No token saved yet."}
-          </p>
-        </section>
-
-        <section className="dd-panel options-section">
-          <h2>Query</h2>
-          <label className="options-field">
-            Method
-            <select
-              className="dd-select options-select"
-              value={form.method}
-              onChange={(event) => updateForm("method", event.target.value)}
-            >
-              {BUILTIN_METHODS.map((method) => (
-                <option key={method.value} value={method.value}>
-                  {method.label}
-                </option>
-              ))}
-              {settings.customLLMs.length > 0 && (
-                <optgroup label="Custom LLM">
-                  {settings.customLLMs.flatMap((provider: CustomLLMProvider) =>
-                    provider.models.map((model) => {
-                      const value = customMethodValue({
-                        name: provider.name,
-                        model,
-                      });
-                      return (
-                        <option key={value} value={value}>
-                          {model} ({provider.name})
-                        </option>
-                      );
-                    }),
-                  )}
-                </optgroup>
-              )}
-            </select>
-          </label>
-          <div className="options-row">
-            <label className="options-field">
-              Source language
-              <select
-                className="dd-select options-select"
-                value={form.srcLang}
-                onChange={(event) => updateForm("srcLang", event.target.value)}
+      <main className="options-main">
+        <section className="options-section" id="account">
+          <SectionHeading
+            title="Account"
+            description="Connect the extension to your DictDeck server. Passwords are encrypted locally for automatic re-login."
+            aside={
+              <span
+                className={`dd-badge ${settings.token ? "" : "dd-badge--muted"}`}
               >
-                {LANGUAGES.map((language) => (
-                  <option key={language.value} value={language.value}>
-                    {language.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="options-field">
-              Target language
-              <select
-                className="dd-select options-select"
-                value={form.dstLang}
-                onChange={(event) => updateForm("dstLang", event.target.value)}
-              >
-                {LANGUAGES.map((language) => (
-                  <option key={language.value} value={language.value}>
-                    {language.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <label className="options-field">
-            Default save type
-            <select
-              className="dd-select options-select"
-              value={form.defaultWordType}
-              onChange={(event) =>
-                updateForm(
-                  "defaultWordType",
-                  event.target.value === "1" ? 1 : 0,
-                )
-              }
-            >
-              <option value="0">Word</option>
-              <option value="1">Grammar / Pattern</option>
-            </select>
-          </label>
-        </section>
-
-        <section className="dd-panel options-section options-section--wide">
-          <h2>Custom LLM options</h2>
-          <div className="options-row">
-            <label className="options-field">
-              Prompt mode
-              <select
-                className="dd-select options-select"
-                value={form.promptMode}
-                onChange={(event) =>
-                  updateForm("promptMode", event.target.value as PromptMode)
-                }
-              >
-                {PROMPT_MODES.map((mode) => (
-                  <option key={mode.value} value={mode.value}>
-                    {mode.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="options-field">
-              Search engine
-              <select
-                className="dd-select options-select"
-                value={form.searchEngine}
-                onChange={(event) =>
-                  updateForm("searchEngine", event.target.value)
-                }
-              >
-                {SEARCH_ENGINES.map((engine) => (
-                  <option key={engine.value} value={engine.value}>
-                    {engine.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <label className="options-checkbox">
-            <input
-              type="checkbox"
-              checked={form.googleSearch}
-              onChange={(event) =>
-                updateForm("googleSearch", event.target.checked)
-              }
-            />
-            Google Search
-          </label>
-          <label className="options-checkbox">
-            <input
-              type="checkbox"
-              checked={form.stream}
-              onChange={(event) => updateForm("stream", event.target.checked)}
-            />
-            Stream custom LLM responses
-          </label>
-          <label className="options-field">
-            Instruction
-            <textarea
-              className="dd-textarea options-textarea"
-              value={form.instruction}
-              placeholder="Optional custom instruction"
-              onChange={(event) =>
-                updateForm("instruction", event.target.value)
-              }
-            />
-          </label>
-          <div className="options-actions">
-            <button
-              className="dd-button dd-button--primary"
-              type="button"
-              disabled={controlsDisabled}
-              onClick={() => void saveSettings()}
-            >
-              {pendingAction === "save" ? "Saving..." : "Save settings"}
-            </button>
-          </div>
-        </section>
-
-        <section className="dd-panel options-section options-section--wide">
-          <div className="options-history-heading">
-            <div>
-              <h2>Translation history</h2>
-              <span className="options-history-count">
-                {history.length} / {HISTORY_LIMIT} recent selections
+                {settings.token ? <Check /> : <CircleDashed />}
+                {settings.token ? "Connected" : "Offline"}
               </span>
+            }
+          />
+          <div className="options-card">
+            <Field label="Service URL">
+              <input
+                className="dd-input"
+                type="url"
+                value={form.baseUrl}
+                placeholder="https://dictdeck.example.com"
+                onChange={(event) => updateForm("baseUrl", event.target.value)}
+              />
+            </Field>
+            <div className="options-row">
+              <Field label="Username">
+                <input
+                  className="dd-input"
+                  autoComplete="username"
+                  value={form.username}
+                  onChange={(event) =>
+                    updateForm("username", event.target.value)
+                  }
+                />
+              </Field>
+              <Field label="Password">
+                <input
+                  className="dd-input"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  placeholder={
+                    settings.encryptedPassword
+                      ? "Saved — fill only to replace"
+                      : "Encrypted after login"
+                  }
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+              </Field>
             </div>
-            <div className="options-actions options-history-actions">
+            <div className="options-card-footer">
+              <p className="options-hint">
+                <KeyRound aria-hidden="true" />
+                {settings.encryptedPassword
+                  ? "Auto re-login enabled."
+                  : "Auto re-login disabled."}
+              </p>
+              <div className="options-actions">
+                <button
+                  className="dd-button dd-button--quiet dd-button--danger"
+                  type="button"
+                  disabled={controlsDisabled}
+                  onClick={() => void forgetPassword()}
+                >
+                  {pendingAction === "forget" ? "Clearing…" : "Forget password"}
+                </button>
+                <button
+                  className="dd-button dd-button--primary"
+                  type="button"
+                  disabled={controlsDisabled}
+                  onClick={() => void login()}
+                >
+                  <LogIn />
+                  {pendingAction === "login" ? "Logging in…" : "Log in"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="options-section" id="translation">
+          <SectionHeading
+            title="Translation"
+            description="Defaults for the selection popup. You can still switch these per lookup."
+          />
+          <div className="options-card">
+            <Field label="Method">
+              <select
+                className="dd-select"
+                value={form.method}
+                onChange={(event) => updateForm("method", event.target.value)}
+              >
+                {BUILTIN_METHODS.map((method) => (
+                  <option key={method.value} value={method.value}>
+                    {method.label}
+                  </option>
+                ))}
+                {settings.customLLMs.length > 0 && (
+                  <optgroup label="Custom LLM">
+                    {settings.customLLMs.flatMap(
+                      (provider: CustomLLMProvider) =>
+                        provider.models.map((model) => {
+                          const value = customMethodValue({
+                            name: provider.name,
+                            model,
+                          });
+                          return (
+                            <option key={value} value={value}>
+                              {model} ({provider.name})
+                            </option>
+                          );
+                        }),
+                    )}
+                  </optgroup>
+                )}
+              </select>
+            </Field>
+            <div className="options-row">
+              <Field label="Source language">
+                <select
+                  className="dd-select"
+                  value={form.srcLang}
+                  onChange={(event) =>
+                    updateForm("srcLang", event.target.value)
+                  }
+                >
+                  {LANGUAGES.map((language) => (
+                    <option key={language.value} value={language.value}>
+                      {language.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Target language">
+                <select
+                  className="dd-select"
+                  value={form.dstLang}
+                  onChange={(event) =>
+                    updateForm("dstLang", event.target.value)
+                  }
+                >
+                  {LANGUAGES.map((language) => (
+                    <option key={language.value} value={language.value}>
+                      {language.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <Field label="Default save type">
+              <div className="options-segment" role="radiogroup">
+                {(
+                  [
+                    [0, "Word"],
+                    [1, "Grammar / Pattern"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={form.defaultWordType === value}
+                    className={form.defaultWordType === value ? "active" : ""}
+                    onClick={() => updateForm("defaultWordType", value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          </div>
+        </section>
+
+        <section className="options-section" id="llm">
+          <SectionHeading
+            title="Custom LLM"
+            description="Options that apply when the method is a custom model from your server."
+            aside={
               <button
-                className="dd-button"
+                className="dd-button dd-button--sm"
                 type="button"
                 disabled={controlsDisabled}
-                onClick={() => void refreshHistory()}
+                onClick={() => void loadCustomLLMs()}
               >
-                {pendingAction === "refresh-history"
-                  ? "Refreshing..."
-                  : "Refresh"}
+                <RefreshCw
+                  className={
+                    pendingAction === "load-custom" ? "options-spin" : ""
+                  }
+                />
+                {pendingAction === "load-custom" ? "Loading…" : "Load models"}
               </button>
-              <button
-                className="dd-button"
-                type="button"
-                disabled={controlsDisabled || history.length === 0}
-                onClick={() => void clearHistory()}
-              >
-                {pendingAction === "clear-history"
-                  ? "Clearing..."
-                  : "Clear history"}
-              </button>
-            </div>
-          </div>
-
-          <div className="options-history-list">
-            {visibleHistory.length === 0 ? (
-              <p className="dd-empty options-empty">
-                No translation history yet.
-              </p>
-            ) : (
-              visibleHistory.map((item) => (
-                <article
-                  className="dd-panel options-history-item"
-                  key={item.id}
+            }
+          />
+          <div className="options-card">
+            <div className="options-row">
+              <Field label="Prompt mode">
+                <select
+                  className="dd-select"
+                  value={form.promptMode}
+                  onChange={(event) =>
+                    updateForm("promptMode", event.target.value as PromptMode)
+                  }
                 >
-                  <div className="options-history-meta">
-                    <span>
-                      {new Intl.DateTimeFormat(undefined, {
-                        month: "short",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }).format(new Date(item.createdAt))}
-                    </span>
-                    <span>{methodLabel(item.method)}</span>
-                    <span>{item.wordType === 1 ? "Grammar" : "Word"}</span>
+                  {PROMPT_MODES.map((mode) => (
+                    <option key={mode.value} value={mode.value}>
+                      {mode.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Search engine">
+                <select
+                  className="dd-select"
+                  value={form.searchEngine}
+                  onChange={(event) =>
+                    updateForm("searchEngine", event.target.value)
+                  }
+                >
+                  {SEARCH_ENGINES.map((engine) => (
+                    <option key={engine.value} value={engine.value}>
+                      {engine.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <div className="options-toggles">
+              <Toggle
+                label="Google Search"
+                description="Let the model ground answers with web results."
+                checked={form.googleSearch}
+                onChange={(checked) => updateForm("googleSearch", checked)}
+              />
+              <Toggle
+                label="Stream responses"
+                description="Show the answer as it is being written."
+                checked={form.stream}
+                onChange={(checked) => updateForm("stream", checked)}
+              />
+            </div>
+            <Field label="Instruction">
+              <textarea
+                className="dd-textarea options-textarea"
+                value={form.instruction}
+                placeholder="Optional extra instruction appended to every prompt"
+                onChange={(event) =>
+                  updateForm("instruction", event.target.value)
+                }
+              />
+            </Field>
+          </div>
+        </section>
+
+        <div className="options-savebar">
+          <span>Changes apply to new lookups.</span>
+          <button
+            className="dd-button dd-button--primary"
+            type="button"
+            disabled={controlsDisabled}
+            onClick={() => void saveSettings()}
+          >
+            <Save />
+            {pendingAction === "save" ? "Saving…" : "Save settings"}
+          </button>
+        </div>
+
+        <section className="options-section" id="history">
+          <SectionHeading
+            title="History"
+            description={`${history.length} of ${HISTORY_LIMIT} recent selections are kept on this device.`}
+            aside={
+              <div className="options-actions">
+                <button
+                  className="dd-button dd-button--sm dd-button--icon"
+                  type="button"
+                  title="Refresh"
+                  aria-label="Refresh history"
+                  disabled={controlsDisabled}
+                  onClick={() => void refreshHistory()}
+                >
+                  <RefreshCw
+                    className={
+                      pendingAction === "refresh-history" ? "options-spin" : ""
+                    }
+                  />
+                </button>
+                <button
+                  className="dd-button dd-button--sm dd-button--danger"
+                  type="button"
+                  disabled={controlsDisabled || history.length === 0}
+                  onClick={() => void clearHistory()}
+                >
+                  <Trash2 />
+                  {pendingAction === "clear-history" ? "Clearing…" : "Clear"}
+                </button>
+              </div>
+            }
+          />
+
+          {visibleHistory.length === 0 ? (
+            <div className="options-empty">
+              <History aria-hidden="true" />
+              <p>No translation history yet.</p>
+            </div>
+          ) : (
+            <ul className="options-card options-history-list">
+              {visibleHistory.map((item, index) => (
+                <li
+                  className="options-history-item"
+                  key={item.id}
+                  style={{ animationDelay: `${Math.min(index, 12) * 30}ms` }}
+                >
+                  <div className="options-history-main">
+                    <div className="options-history-head">
+                      <span className="options-history-text">{item.text}</span>
+                      <span
+                        className={`dd-badge ${item.wordType === 1 ? "dd-badge--warning" : "dd-badge--muted"}`}
+                      >
+                        {item.wordType === 1 ? "Grammar" : "Word"}
+                      </span>
+                    </div>
+                    <p className="options-history-result">
+                      {stripMarkdown(item.result)}
+                    </p>
+                    <div className="options-history-meta">
+                      <span>{formatRelativeTime(item.createdAt)}</span>
+                      <span>{methodLabel(item.method)}</span>
+                      {item.url && (
+                        <a
+                          className="options-history-link"
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {item.title || item.url}
+                          <ExternalLink aria-hidden="true" />
+                        </a>
+                      )}
+                    </div>
                   </div>
-                  <p className="options-history-text">{item.text}</p>
-                  <p className="options-history-result">{item.result}</p>
-                  {item.url && (
-                    <a
-                      className="options-history-link"
-                      href={item.url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {item.title || item.url}
-                    </a>
-                  )}
-                  <div className="options-history-save-row">
-                    <button
-                      className="dd-button"
-                      type="button"
-                      disabled={Boolean(pendingAction)}
-                      onClick={() =>
-                        setHistoryPicker((current) =>
-                          current === item.id ? undefined : item.id,
-                        )
-                      }
-                    >
-                      Save
-                    </button>
-                    {historyPicker === item.id && (
-                      <div className="options-history-save-picker">
-                        <span className="options-history-save-label">
-                          Save as
-                        </span>
+                  <div className="options-history-save">
+                    {historyPicker === item.id ? (
+                      <div className="options-history-picker">
                         <button
-                          className="dd-button"
+                          className="dd-button dd-button--sm"
                           type="button"
                           disabled={Boolean(pendingAction)}
                           onClick={() => void saveHistoryItem(item.id, 0)}
@@ -666,7 +724,7 @@ function OptionsApp() {
                           Word
                         </button>
                         <button
-                          className="dd-button"
+                          className="dd-button dd-button--sm"
                           type="button"
                           disabled={Boolean(pendingAction)}
                           onClick={() => void saveHistoryItem(item.id, 1)}
@@ -674,28 +732,122 @@ function OptionsApp() {
                           Grammar
                         </button>
                         <button
-                          className="dd-button dd-button--quiet"
+                          className="dd-button dd-button--sm dd-button--quiet dd-button--icon"
                           type="button"
+                          title="Cancel"
+                          aria-label="Cancel"
                           disabled={Boolean(pendingAction)}
                           onClick={() => setHistoryPicker(undefined)}
                         >
-                          Cancel
+                          <X />
                         </button>
                       </div>
+                    ) : (
+                      <button
+                        className="dd-button dd-button--sm options-history-save-button"
+                        type="button"
+                        disabled={Boolean(pendingAction)}
+                        onClick={() => setHistoryPicker(item.id)}
+                      >
+                        <Bookmark />
+                        Save
+                      </button>
                     )}
                   </div>
-                </article>
-              ))
-            )}
-            {hiddenCount > 0 && (
-              <p className="options-history-more">
-                {hiddenCount} older records are kept but hidden here.
-              </p>
-            )}
-          </div>
+                </li>
+              ))}
+              {hiddenCount > 0 && (
+                <li className="options-history-more">
+                  {hiddenCount} older records are kept but hidden here.
+                </li>
+              )}
+            </ul>
+          )}
         </section>
+      </main>
+
+      <div
+        className={`options-toast is-${toastKind} ${toastVisible ? "is-visible" : ""}`}
+        role="status"
+        aria-live="polite"
+      >
+        {toastKind === "pending" ? (
+          <Loader2 className="options-spin" aria-hidden="true" />
+        ) : toastKind === "danger" ? (
+          <CircleAlert aria-hidden="true" />
+        ) : (
+          <Check aria-hidden="true" />
+        )}
+        <span>{initializing ? "Loading settings…" : statusText}</span>
+        {toastKind === "danger" && (
+          <button
+            type="button"
+            className="options-toast-close"
+            aria-label="Dismiss"
+            onClick={() => setStatusText("")}
+          >
+            <X />
+          </button>
+        )}
       </div>
-    </main>
+    </div>
+  );
+}
+
+function SectionHeading({
+  title,
+  description,
+  aside,
+}: {
+  title: string;
+  description: string;
+  aside?: ReactNode;
+}) {
+  return (
+    <header className="options-section-heading">
+      <div>
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </div>
+      {aside}
+    </header>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="options-field">
+      <span className="options-label">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Toggle({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="options-toggle">
+      <span>
+        <strong>{label}</strong>
+        <small>{description}</small>
+      </span>
+      <input
+        className="dd-switch"
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+    </label>
   );
 }
 

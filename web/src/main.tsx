@@ -17,6 +17,7 @@ import "./design-system/primitives.css";
 import "./design-system/web-adapter.css";
 import "./globals.css";
 import "./workspace.css";
+import "./design-refresh.css";
 
 async function enableMocking() {
   if (!import.meta.env.DEV) {

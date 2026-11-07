@@ -399,7 +399,6 @@ export default function Flashcard() {
     <div className="app-review-page">
       <header className="app-review-header">
         <div>
-          <div className="app-library-eyebrow">Work / Practice</div>
           <h1>Daily review</h1>
           <p>Move through your saved words at your own pace.</p>
         </div>

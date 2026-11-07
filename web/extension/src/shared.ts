@@ -121,3 +121,39 @@ export class AuthExpiredError extends Error {
     this.name = "AuthExpiredError";
   }
 }
+
+/** Flatten Markdown into a single readable line for compact previews. */
+export function stripMarkdown(markdown: string) {
+  return markdown
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+/gm, "")
+    .replace(/(\*\*|__|\*|_|~~|`)(.+?)\1/g, "$2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
+  ["day", 86_400_000],
+  ["hour", 3_600_000],
+  ["minute", 60_000],
+];
+
+export function formatRelativeTime(timestamp: number, now = Date.now()) {
+  const diff = timestamp - now;
+  if (Math.abs(diff) < 60_000) return "just now";
+  const formatter = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  for (const [unit, ms] of RELATIVE_UNITS) {
+    if (Math.abs(diff) >= ms || unit === "minute") {
+      if (unit === "day" && Math.abs(diff) > 6 * ms) {
+        return new Intl.DateTimeFormat(undefined, {
+          month: "short",
+          day: "numeric",
+        }).format(timestamp);
+      }
+      return formatter.format(Math.round(diff / ms), unit);
+    }
+  }
+  return "";
+}
