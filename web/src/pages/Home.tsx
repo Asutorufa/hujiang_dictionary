@@ -17,7 +17,6 @@ import {
 import { Button, DropdownMenu, Switch, TextArea } from "@radix-ui/themes";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ROUTE_FLASHCARD } from "@/lib/constants";
 import {
   listModel as listModels,
@@ -218,7 +217,6 @@ export default function Home() {
   const [customModels, setCustomModels] = useLocalStorage<
     Record<string, CustomLLM>
   >("custom_llms_cache", {});
-  const shouldReduceMotion = useReducedMotion();
   const streamFrameRef = useRef<number | null>(null);
   const persistTimeoutRef = useRef<number | null>(null);
   const pendingStreamRef = useRef({ result: "", reasoning: "" });
@@ -631,16 +629,13 @@ export default function Home() {
       </section>
 
       {hasCustomSelection && (
-        <AnimatePresence initial={false}>
-          {showAdvanced && (
-            <motion.section
-              className="app-advanced-panel"
-              initial={shouldReduceMotion ? false : { opacity: 0, height: 0 }}
-              animate={
-                shouldReduceMotion ? undefined : { opacity: 1, height: "auto" }
-              }
-              exit={shouldReduceMotion ? undefined : { opacity: 0, height: 0 }}
-            >
+        <div
+          className={`app-collapse${showAdvanced ? " is-open" : ""}`}
+          inert={!showAdvanced}
+          aria-hidden={!showAdvanced}
+        >
+          <div className="app-collapse-inner">
+            <section className="app-advanced-panel">
               <div className="app-advanced-heading">
                 <div>
                   <strong>Advanced options</strong>
@@ -717,9 +712,9 @@ export default function Home() {
                   </label>
                 )}
               </div>
-            </motion.section>
-          )}
-        </AnimatePresence>
+            </section>
+          </div>
+        </div>
       )}
 
       {(liveResult.reasoning || liveResult.result) && (
@@ -821,202 +816,4 @@ export default function Home() {
       )}
     </div>
   );
-  /*
-  return (
-    <div className="app-page-shell min-h-dvh">
-            <AnimatePresence initial={false}>
-              {showAdvanced && (
-                <motion.div
-                  initial={
-                    shouldReduceMotion
-                      ? false
-                      : { opacity: 0, height: 0, y: -6 }
-                  }
-                  animate={
-                    shouldReduceMotion
-                      ? undefined
-                      : { opacity: 1, height: "auto", y: 0 }
-                  }
-                  exit={
-                    shouldReduceMotion
-                      ? undefined
-                      : { opacity: 0, height: 0, y: -6 }
-                  }
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                  className="mt-4 space-y-4 overflow-hidden"
-                >
-                  <Flex gap="6" wrap="wrap" align="center">
-                    <Text as="label" size="2" weight="medium">
-                      <Flex gap="2" align="center" className="cursor-pointer">
-                        <Switch
-                          checked={googleSearch}
-                          onCheckedChange={(e) => setGoogleSearch(e)}
-                        />
-                        Google Search
-                      </Flex>
-                    </Text>
-
-                    {googleSearch && (
-                      <Box className="relative">
-                        <select
-                          value={searchEngine}
-                          onChange={(event) =>
-                            setSearchEngine(event.target.value)
-                          }
-                          className="app-native-select pr-10"
-                        >
-                          {SEARCH_ENGINES.map((engine) => (
-                            <option key={engine.value} value={engine.value}>
-                              {engine.label}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[var(--app-muted)]">
-                          ▾
-                        </span>
-                      </Box>
-                    )}
-
-                    <Text as="label" size="2" weight="medium">
-                      <Flex gap="2" align="center" className="cursor-pointer">
-                        <Switch
-                          checked={stream}
-                          onCheckedChange={(e) => setStream(e)}
-                        />
-                        Stream
-                      </Flex>
-                    </Text>
-                  </Flex>
-
-                  <Box>
-                    <Text
-                      as="label"
-                      size="1"
-                      weight="bold"
-                      color="gray"
-                      className="mb-2 block uppercase tracking-widest"
-                    >
-                      Prompt Mode
-                    </Text>
-                    <DropdownMenu.Root modal={false}>
-                      <DropdownMenu.Trigger>
-                        <Button
-                          variant="surface"
-                          color="gray"
-                          className="cursor-pointer"
-                        >
-                          {promptModeLabels[promptMode]}
-                        </Button>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Content>
-                        {PROMPT_MODES.map((mode) => (
-                          <DropdownMenu.Item
-                            key={mode.value}
-                            onSelect={() => setPromptMode(mode.value)}
-                          >
-                            {mode.label}
-                          </DropdownMenu.Item>
-                        ))}
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Root>
-                  </Box>
-
-                  {!googleSearch && (
-                    <Box>
-                      <Text
-                        as="label"
-                        size="1"
-                        weight="bold"
-                        color="gray"
-                        className="mb-2 block uppercase tracking-widest"
-                      >
-                        Custom Instruction
-                      </Text>
-                      <TextArea
-                        value={instruction}
-                        placeholder="e.g. Translate to natural spoken Japanese..."
-                        className="app-textarea min-h-[60px]"
-                        onChange={(e) => setInstruction(e.target.value)}
-                      />
-                    </Box>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Card>
-        )}
-
-        {liveResult.reasoning && (
-          <motion.div
-            initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-            animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-          >
-            <Text
-              size="1"
-              weight="bold"
-              color="blue"
-              className="mb-2 ml-1 block uppercase tracking-widest"
-            >
-              Thinking Process
-            </Text>
-            <Card variant="surface" className="app-section-card">
-              <Box className="prose prose-sm dark:prose-invert max-w-none opacity-80">
-                <Markdown>{liveResult.reasoning}</Markdown>
-              </Box>
-            </Card>
-          </motion.div>
-        )}
-
-        <motion.div
-          initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
-          animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0 }}
-        >
-          <Flex
-            justify="between"
-            align="center"
-            wrap="wrap"
-            gap="3"
-            className="mb-2 px-1"
-          >
-            <Text
-              size="1"
-              weight="bold"
-              color="gray"
-              className="block uppercase tracking-widest"
-            >
-              Result
-            </Text>
-            <div className="app-stat-chip text-xs">
-              {loading
-                ? "Translating..."
-                : `${hasCustomSelection ? "Custom LLM" : "Dictionary"} output`}
-            </div>
-          </Flex>
-          <Card className="app-section-card">
-            {liveResult.result ? (
-              <Box className="prose prose-sm dark:prose-invert max-w-none">
-                <Markdown>{liveResult.result}</Markdown>
-              </Box>
-            ) : (
-              <Flex
-                className="min-h-[150px]"
-                align="center"
-                justify="center"
-                direction="column"
-                gap="3"
-              >
-                <div className="rounded-full border border-[var(--gray-a6)] bg-[var(--gray-a2)] p-4 text-[var(--gray-a10)]">
-                  <PlayIcon size={34} />
-                </div>
-                <Text color="gray" size="2" className="italic">
-                  Waiting for input...
-                </Text>
-              </Flex>
-            )}
-          </Card>
-        </motion.div>
-      </PageContainer>
-    </div>
-  );
-  */
 }

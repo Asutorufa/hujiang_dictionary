@@ -29,34 +29,18 @@ export default defineConfig({
     rollupOptions: {
       external: ["mockServiceWorker.js"],
       output: {
+        // Only pin the long-lived framework code into stable vendor chunks.
+        // Everything else (Markdown/KaTeX/Shiki, motion, …) is left to the
+        // bundler so it is split along the lazy route/component boundaries
+        // instead of being modulepreloaded on the first visit.
         manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (
-              id.includes("react") ||
-              id.includes("react-dom") ||
-              id.includes("react-aria") ||
-              id.includes("react-stately")
-            ) {
-              return "vendor-react";
-            }
-            if (id.includes("@radix-ui")) {
-              return "vendor-radix";
-            }
-            if (id.includes("framer-motion")) {
-              return "vendor-motion";
-            }
-            if (id.includes("lucide-react")) {
-              return "vendor-lucide";
-            }
-            if (
-              id.includes("streamdown") ||
-              id.includes("rehype-raw") ||
-              id.includes("parse5") ||
-              id.includes("micromark")
-            ) {
-              return "vendor-markdown";
-            }
-            return "vendor-others";
+          if (
+            /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)
+          ) {
+            return "vendor-react";
+          }
+          if (id.includes("/node_modules/@radix-ui/")) {
+            return "vendor-radix";
           }
         },
       },

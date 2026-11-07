@@ -1,9 +1,8 @@
-import { cjk } from "@streamdown/cjk";
-import { createMathPlugin } from "@streamdown/math";
-import "katex/dist/katex.min.css";
-import { FC } from "react";
-import { Streamdown } from "streamdown";
-import { AudioPlayer } from "./AudioPlayer";
+import { FC, lazy, Suspense } from "react";
+
+// Streamdown + KaTeX + Shiki are by far the largest dependencies. Load them only
+// when a page actually renders Markdown instead of on the initial page load.
+const MarkdownRenderer = lazy(() => import("./MarkdownRenderer"));
 
 export const Markdown: FC<{
   children: string | null | undefined;
@@ -11,17 +10,14 @@ export const Markdown: FC<{
 }> = ({ children, className }) => {
   if (!children) return null;
   return (
-    <Streamdown
-      className={className}
-      plugins={{
-        cjk: cjk,
-        math: createMathPlugin({ singleDollarTextMath: true }),
-      }}
-      components={{
-        audio: AudioPlayer,
-      }}
+    <Suspense
+      fallback={
+        <div className={className} style={{ whiteSpace: "pre-wrap" }}>
+          {children}
+        </div>
+      }
     >
-      {children}
-    </Streamdown>
+      <MarkdownRenderer className={className}>{children}</MarkdownRenderer>
+    </Suspense>
   );
 };

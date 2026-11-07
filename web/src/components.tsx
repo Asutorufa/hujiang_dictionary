@@ -9,7 +9,6 @@ import {
   Text,
   TextArea,
 } from "@radix-ui/themes";
-import { AnimatePresence, motion } from "motion/react";
 import { FC, ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -596,15 +595,17 @@ export const Spoiler: FC<{
   const [hide, setHide] = useState(true);
   return (
     <div
-      className={`app-spoiler relative transition-all duration-300 ${flex ? "flex-1 flex flex-col min-h-0" : ""} ${className || ""}`}
+      className={`app-spoiler relative ${flex ? "flex-1 flex flex-col min-h-0" : ""} ${className || ""}`}
     >
-      <motion.div
-        animate={{
-          filter: hide ? "blur(7px)" : "blur(0px)",
+      <div
+        style={{
+          filter: hide ? "blur(7px)" : "none",
           opacity: hide ? 0.4 : 1,
-          scale: hide ? 0.985 : 1,
+          transform: hide ? "scale(0.985)" : "none",
+          transition:
+            "filter 280ms ease-in-out, opacity 280ms ease-in-out, transform 280ms ease-in-out",
         }}
-        transition={{ duration: 0.28, ease: "easeInOut" }}
+        aria-hidden={hide || undefined}
         className={`${flex ? "flex-1 flex flex-col min-h-0" : ""} ${hide ? "select-none pointer-events-none" : ""}`}
       >
         <div
@@ -612,23 +613,24 @@ export const Spoiler: FC<{
         >
           {children}
         </div>
-      </motion.div>
+      </div>
 
-      <AnimatePresence>
-        {hide && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="app-spoiler-overlay absolute inset-[1px] rounded-[15px] flex items-center justify-center z-10 group"
-            onClick={() => setHide(false)}
-          >
-            <span className="app-spoiler-reveal-btn px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-all shadow-sm group-hover:scale-105 active:scale-95">
-              Show Translation
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <button
+        type="button"
+        tabIndex={hide ? 0 : -1}
+        aria-hidden={!hide || undefined}
+        style={{
+          opacity: hide ? 1 : 0,
+          pointerEvents: hide ? "auto" : "none",
+          transition: "opacity 200ms ease",
+        }}
+        className="app-spoiler-overlay absolute inset-[1px] rounded-[15px] flex items-center justify-center z-10 group"
+        onClick={() => setHide(false)}
+      >
+        <span className="app-spoiler-reveal-btn px-4 py-1.5 text-xs font-bold uppercase tracking-wider transition-transform shadow-sm group-hover:scale-105 active:scale-95">
+          Show Translation
+        </span>
+      </button>
 
       {!hide && (
         <div className="shrink-0 flex justify-end px-2 pb-1">

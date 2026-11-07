@@ -75,6 +75,28 @@ function styles() {
       box-shadow: var(--dd-shadow);
       color: var(--dd-sumi);
       letter-spacing: 0;
+      transform-origin: top center;
+      animation: dd-panel-in 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    @keyframes dd-panel-in {
+      from {
+        opacity: 0;
+        translate: 0 -4px;
+        scale: 0.98;
+      }
+    }
+    @keyframes dd-trigger-in {
+      from {
+        opacity: 0;
+        scale: 0.6;
+      }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .panel,
+      .trigger {
+        animation: none !important;
+        transition: none !important;
+      }
     }
     .trigger {
       position: fixed;
@@ -96,6 +118,10 @@ function styles() {
       font-weight: 800;
       line-height: 1;
       padding: 0;
+      animation: dd-trigger-in 140ms cubic-bezier(0.34, 1.4, 0.64, 1);
+      transition:
+        transform 140ms ease,
+        box-shadow 140ms ease;
     }
     .trigger-mark {
       position: absolute;
@@ -630,6 +656,7 @@ function closePanel(resetPinned = true) {
   reasoningCollapsed = false;
   reasoningAutoCollapsed = false;
   manualPosition = undefined;
+  cancelResultRender();
   if (resetPinned) {
     isPinned = false;
   }
@@ -673,17 +700,53 @@ function toggleSavePicker(force?: boolean) {
   picker.classList.toggle("visible", visible);
 }
 
-function setResult(result: string, reasoning?: string) {
-  const previousResult = currentResult;
+let resultRenderFrame: number | undefined;
+let renderedResult: string | undefined;
+let renderedReasoning: string | undefined;
+
+/* Streaming chunks can arrive many times per frame. Keep the state current
+   immediately, but re-render the Markdown at most once per animation frame. */
+function setResult(
+  result: string,
+  reasoning?: string,
+  options: { defer?: boolean } = {},
+) {
   currentResult = result;
   currentReasoning = reasoning || "";
+
+  if (options.defer) {
+    if (resultRenderFrame === undefined) {
+      resultRenderFrame = window.requestAnimationFrame(flushResult);
+    }
+    return;
+  }
+
+  flushResult();
+}
+
+function cancelResultRender() {
+  if (resultRenderFrame !== undefined) {
+    window.cancelAnimationFrame(resultRenderFrame);
+    resultRenderFrame = undefined;
+  }
+  renderedResult = undefined;
+  renderedReasoning = undefined;
+}
+
+function flushResult() {
+  if (resultRenderFrame !== undefined) {
+    window.cancelAnimationFrame(resultRenderFrame);
+    resultRenderFrame = undefined;
+  }
+
+  const previousResult = renderedResult || "";
   const resultEl = shadowRootRef?.querySelector<HTMLElement>(".result");
   const reasoningWrap =
     shadowRootRef?.querySelector<HTMLElement>(".reasoning-wrap");
   const reasoningEl = shadowRootRef?.querySelector<HTMLElement>(".reasoning");
   const saveButton = shadowRootRef?.querySelector<HTMLButtonElement>(".save");
 
-  if (resultEl) {
+  if (resultEl && renderedResult !== currentResult) {
     resultEl.innerHTML = currentResult
       ? renderMarkdown(currentResult)
       : '<p class="markdown-empty">No result yet.</p>';
@@ -691,7 +754,12 @@ function setResult(result: string, reasoning?: string) {
   if (reasoningWrap) {
     reasoningWrap.hidden = !currentReasoning;
   }
-  if (reasoningEl) reasoningEl.innerHTML = renderMarkdown(currentReasoning);
+  if (reasoningEl && renderedReasoning !== currentReasoning) {
+    reasoningEl.innerHTML = renderMarkdown(currentReasoning);
+  }
+  renderedResult = currentResult;
+  renderedReasoning = currentReasoning;
+
   if (currentReasoning && !currentResult && !reasoningAutoCollapsed) {
     setReasoningCollapsed(false);
   }
@@ -1441,6 +1509,7 @@ function startTranslation() {
         setResult(
           currentResult + response.result,
           currentReasoning + (response.reasoning || ""),
+          { defer: true },
         );
         break;
       case "complete":

@@ -70,8 +70,20 @@ const ReviewCardMotion = forwardRef<
   useEffect(() => {
     controls.stop();
     dragX.set(0);
-    controls.set({ x: 0, y: 0, opacity: 1, scale: 1 });
-  }, [controls, currentWord, dragX, page]);
+    if (shouldReduceMotion) {
+      controls.set({ x: 0, y: 0, opacity: 1, scale: 1, rotate: 0 });
+      return;
+    }
+    // Bring the next card in softly instead of popping it into place after
+    // the previous one has been swiped away.
+    controls.set({ x: 0, y: 10, opacity: 0, scale: 0.985, rotate: 0 });
+    void controls.start({
+      y: 0,
+      opacity: 1,
+      scale: 1,
+      transition: { duration: 0.2, ease: [0.22, 0.61, 0.36, 1] },
+    });
+  }, [controls, currentWord, dragX, page, shouldReduceMotion]);
 
   const handleDragEnd = async (
     _event: MouseEvent | TouchEvent | PointerEvent,
@@ -99,7 +111,12 @@ const ReviewCardMotion = forwardRef<
         const exitX = action === "know" ? 500 : -500;
 
         if (canAdvance) {
-          await controls.start({ x: exitX, opacity: 0 });
+          await controls.start({
+            x: exitX,
+            opacity: 0,
+            rotate: shouldReduceMotion ? 0 : exitX > 0 ? 4 : -4,
+            transition: { duration: 0.2, ease: [0.4, 0, 1, 1] },
+          });
         } else {
           await controls.start({ x: exitX > 0 ? 56 : -56, opacity: 0.85 });
         }
@@ -113,7 +130,7 @@ const ReviewCardMotion = forwardRef<
         isAnimating.current = false;
       }
     },
-    [controls, onSwipe, page, total],
+    [controls, onSwipe, page, total, shouldReduceMotion],
   );
 
   useImperativeHandle(ref, () => ({ swipe: handleSwipe }), [handleSwipe]);
@@ -325,25 +342,25 @@ export default function Flashcard() {
     [orderBy, grammar, CHUNK_SIZE],
   );
 
+  // Changing the sort order or the word type invalidates the cached chunks.
+  // (Previously this also ran on every page change, which wiped the cache and
+  // refetched on each swipe, making the card flash between words.)
   useEffect(() => {
     setWordsMap(new Map());
     loadedChunksRef.current.clear();
-    fetchChunksIfNeeded(page);
-  }, [orderBy, grammar, fetchChunksIfNeeded, page]);
+  }, [fetchChunksIfNeeded]);
 
   useEffect(() => {
     fetchChunksIfNeeded(page);
+  }, [page, fetchChunksIfNeeded]);
+
+  useEffect(() => {
     countWord(grammar, (size) => {
-      if (size !== undefined) {
-        setTotal(size);
-        if (size === 0 && page !== 1) {
-          setPage(1);
-        } else if (size > 0 && page > size) {
-          setPage(size);
-        }
-      }
+      if (size === undefined) return;
+      setTotal(size);
+      setPage((current) => (size === 0 ? 1 : current > size ? size : current));
     });
-  }, [page, grammar, orderBy, fetchChunksIfNeeded, setPage, setTotal]);
+  }, [grammar, orderBy, setPage, setTotal]);
 
   const currentWord = wordsMap.get(page);
   const reviewCardRef = useRef<ReviewCardMotionHandle>(null);
@@ -394,7 +411,7 @@ export default function Flashcard() {
           <div className="app-review-progress-track" aria-hidden="true">
             <span
               style={{
-                width: `${total > 0 ? Math.min((page / total) * 100, 100) : 0}%`,
+                transform: `scaleX(${total > 0 ? Math.min(page / total, 1) : 0})`,
               }}
             />
           </div>
@@ -518,309 +535,4 @@ export default function Flashcard() {
       )}
     </div>
   );
-  /*
-  return (
-    <div className="app-page-shell relative flex h-[100dvh] flex-col items-center overflow-x-visible overflow-y-hidden p-4 pb-[calc(env(safe-area-inset-bottom)+112px)]">
-      Header / Filter Bar
-      <div className="app-bottom-actions mb-4 flex w-full max-w-md flex-wrap items-center justify-between gap-2 px-3 py-3 z-10">
-        <DropdownMenu.Root modal={false}>
-          <DropdownMenu.Trigger
-            disabled={loading && wordsMap.size === 0}
-            className="cursor-pointer"
-          >
-            <Button
-              variant="surface"
-              color="gray"
-              className="app-control-trigger capitalize"
-            >
-              <FilterIcon /> {orderBy.replace("_", " ")}
-            </Button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content>
-            <DropdownMenu.RadioGroup
-              value={orderBy}
-              onValueChange={(val) => {
-                setOrderBy(val);
-                setPage(1);
-              }}
-            >
-              <DropdownMenu.RadioItem value="word">Word</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="word desc">
-                Word DESC
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="priority">
-                Priority
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="priority desc">
-                Priority DESC
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="add_time">
-                Add Time
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="add_time desc">
-                Add Time DESC
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="update_time">
-                Update Time
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="update_time desc">
-                Update Time DESC
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="reminder_time">
-                Reminder
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="reminder_time desc">
-                Reminder DESC
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="anki_count">
-                Count
-              </DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="anki_count desc">
-                Count DESC
-              </DropdownMenu.RadioItem>
-            </DropdownMenu.RadioGroup>
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-
-        <DropdownMenu.Root modal={false}>
-          <DropdownMenu.Trigger
-            disabled={loading && wordsMap.size === 0}
-            className="cursor-pointer"
-          >
-            <Button
-              variant="surface"
-              color="gray"
-              className="app-control-trigger capitalize"
-            >
-              <BookIcon /> {grammar ? "Grammar" : "Word"}
-            </Button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content>
-            <DropdownMenu.RadioGroup
-              value={grammar ? "grammar" : "word"}
-              onValueChange={(val) => {
-                setGrammar(val === "grammar");
-                setPage(1);
-              }}
-            >
-              <DropdownMenu.RadioItem value="word">Word</DropdownMenu.RadioItem>
-              <DropdownMenu.RadioItem value="grammar">
-                Grammar
-              </DropdownMenu.RadioItem>
-            </DropdownMenu.RadioGroup>
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
-
-        <Flex align="center" ml="2" px="3" py="1" className="app-stat-chip">
-          <Text size="2">
-            {page} / {total}
-          </Text>
-        </Flex>
-      </div>
-
-      Main Content Area
-      <div className="relative flex min-h-0 flex-1 w-full max-w-md items-center justify-center overflow-visible">
-        {loading && wordsMap.size === 0 && <Spinner size="3" />}
-
-        {!loading && wordsMap.size === 0 && (
-          <EmptyState
-            title="No words found"
-            description="Add some words first, then come back to review."
-            icon={<Layers3 size={28} className="text-[var(--gray-a11)]" />}
-            actionLabel="Reset"
-            onAction={() => setPage(1)}
-          />
-        )}
-
-        {currentWord && (
-          <motion.div
-            key={page}
-            initial={
-              shouldReduceMotion ? false : { opacity: 0, y: 24, scale: 0.98 }
-            }
-            animate={controls}
-            transition={{ duration: 0.16 }}
-            drag="x"
-            dragListener={false}
-            dragControls={dragControls}
-            dragConstraints={{ left: 0, right: 0 }}
-            dragDirectionLock
-            dragElastic={shouldReduceMotion ? 0.15 : 0.45}
-            onDragEnd={handleDragEnd}
-            style={{ x, rotate, touchAction: "pan-y" }}
-            className="w-full absolute inset-0 cursor-grab active:cursor-grabbing flex flex-col min-h-0"
-            onTapStart={() => {
-              longPressTimer.current = setTimeout(handleLongPress, 800);
-            }}
-            onTapCancel={() => {
-              if (longPressTimer.current) clearTimeout(longPressTimer.current);
-            }}
-            onTap={() => {
-              if (longPressTimer.current) clearTimeout(longPressTimer.current);
-            }}
-            onDragStart={() => {
-              if (longPressTimer.current) clearTimeout(longPressTimer.current);
-            }}
-          >
-            Visual Feedback Overlays
-            <motion.div
-              className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
-              style={{ opacity: opacityRight }}
-            >
-              <div className="text-green-500 p-6 rounded-full border-4 border-green-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_92%,transparent)]">
-                <CheckIcon />
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
-              style={{ opacity: opacityLeft }}
-            >
-              <div className="text-red-500 p-6 rounded-full border-4 border-red-500 bg-[color-mix(in_srgb,var(--color-panel-solid)_92%,transparent)]">
-                <CrossIcon />
-              </div>
-            </motion.div>
-
-            <Card
-              className="app-section-card w-full h-full overflow-hidden relative"
-              style={{ padding: 0 }}
-              onPointerDown={(e) => {
-                const target = e.target as HTMLElement;
-                if (
-                  target.closest(
-                    "a,button,input,textarea,select,[role='menuitem'],[data-radix-collection-item]",
-                  )
-                ) {
-                  return;
-                }
-                dragControls.start(e);
-              }}
-            >
-              <div className="absolute inset-0 flex flex-col p-4">
-                Header
-                <Flex justify="between" align="start" flexShrink="0">
-                  <Flex direction="column">
-                    <Text size="5" weight="bold" className="break-words">
-                      {currentWord.word}
-                    </Text>
-                    <Text size="1" color="gray">
-                      {new Date(
-                        currentWord.update_time * 1000,
-                      ).toLocaleDateString()}
-                    </Text>
-                  </Flex>
-
-                  <Flex align="center" gap="2">
-                    <Text size="1" color="gray">
-                      Review:{" "}
-                      {new Date(
-                        currentWord.reminder_time * 1000,
-                      ).toLocaleDateString()}
-                    </Text>
-                    <DropdownMenu.Root modal={false}>
-                      <DropdownMenu.Trigger className="cursor-pointer">
-                        <Badge
-                          size="1"
-                          variant="soft"
-                          color={
-                            currentWord.priority === 0
-                              ? "green"
-                              : currentWord.priority === 1
-                                ? "orange"
-                                : "gray"
-                          }
-                        >
-                          {getPriorityText(currentWord.priority)}
-                        </Badge>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Content>
-                        <DropdownMenu.Item
-                          color="green"
-                          onSelect={() => handlePriorityChange("0")}
-                        >
-                          Low
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          color="orange"
-                          onSelect={() => handlePriorityChange("1")}
-                        >
-                          Medium
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          color="gray"
-                          onSelect={() => handlePriorityChange("2")}
-                        >
-                          High
-                        </DropdownMenu.Item>
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Root>
-                  </Flex>
-                </Flex>
-
-                Content Area
-                <div
-                  className="flex-1 flex flex-col min-h-0 mt-3 overscroll-contain"
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                  }}
-                >
-                  {currentWord.example && (
-                    <Box className="app-muted-panel mb-3 p-3 shrink-0 prose prose-sm max-w-none dark:prose-invert">
-                      <Markdown>{currentWord.example}</Markdown>
-                    </Box>
-                  )}
-
-                  <Spoiler
-                    flex
-                    className="flex-1 min-h-0"
-                    containerClassName="!p-0"
-                  >
-                    <div className="flex-1 flex flex-col min-h-0">
-                      <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 prose prose-sm max-w-none dark:prose-invert">
-                        <Markdown>{currentWord.explain}</Markdown>
-                      </div>
-                    </div>
-                  </Spoiler>
-                </div>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </div>
-
-      Fixed Bottom Buttons — always visible
-      {currentWord && (
-        <div className="app-bottom-actions w-full max-w-md py-3 px-3 flex items-center justify-between gap-3 z-10">
-          <Button
-            color="gray"
-            variant="soft"
-            className="app-secondary-action flex-1"
-            onClick={() => handleSwipe("skip")}
-          >
-            Skip
-          </Button>
-
-          <IconButton
-            variant="ghost"
-            color="gray"
-            disabled={page <= 1}
-            className="app-icon-chip"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            <LeftArrowIcon />
-          </IconButton>
-
-          <Button
-            color="gray"
-            variant="solid"
-            className="app-primary-action flex-1"
-            onClick={() => handleSwipe("know")}
-          >
-            Know
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-  */
 }
