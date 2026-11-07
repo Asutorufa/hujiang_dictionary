@@ -153,10 +153,6 @@ body {
   margin-top: 18px;
 }
 
-.options-actions--between {
-  justify-content: space-between;
-}
-
 .options-hint {
   margin: 10px 0 0;
   color: var(--dd-color-muted);

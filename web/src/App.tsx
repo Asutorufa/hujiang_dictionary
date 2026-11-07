@@ -1,5 +1,4 @@
 import { Theme } from "@radix-ui/themes";
-import { motion } from "motion/react";
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import { Toaster } from "sonner";
 import { Route, Router, Switch, useLocation } from "wouter";
@@ -39,7 +38,6 @@ function ThemeWrapper({ children }: { children: React.ReactNode }) {
 
 function Main() {
   const [location, setLocation] = useLocation();
-  const [pageTransitionDirection, setPageTransitionDirection] = useState(0);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => window.localStorage.getItem("dictdeck_sidebar_collapsed") === "true",
   );
@@ -54,7 +52,6 @@ function Main() {
 
   useEffect(() => {
     const handleUnauthorized = () => {
-      setPageTransitionDirection(0);
       setLocation(ROUTE_LOGIN);
     };
 
@@ -73,7 +70,6 @@ function Main() {
       return;
     }
 
-    setPageTransitionDirection(0);
     setLocation(nextLocation);
   };
 
@@ -104,29 +100,14 @@ function Main() {
         }
       >
         <Suspense fallback={null}>
-          <div className="relative overflow-x-hidden">
-            <motion.div
-              key={location}
-              initial={{
-                x:
-                  pageTransitionDirection === 0
-                    ? 0
-                    : pageTransitionDirection > 0
-                      ? 44
-                      : -44,
-              }}
-              animate={{ x: 0 }}
-              transition={{ duration: 0.22, ease: [0.22, 0.61, 0.36, 1] }}
-              style={{ width: "100%", willChange: "transform" }}
-            >
-              <Switch>
-                <Route path={ROUTE_HOME} component={Home} />
-                <Route path={ROUTE_LOGIN} component={Login} />
-                <Route path={ROUTE_WORDS} component={Words} />
-                <Route path={ROUTE_FLASHCARD} component={Flashcard} />
-                <Route path={ROUTE_CONFIG} component={Config} />
-              </Switch>
-            </motion.div>
+          <div key={location} className="app-route">
+            <Switch>
+              <Route path={ROUTE_HOME} component={Home} />
+              <Route path={ROUTE_LOGIN} component={Login} />
+              <Route path={ROUTE_WORDS} component={Words} />
+              <Route path={ROUTE_FLASHCARD} component={Flashcard} />
+              <Route path={ROUTE_CONFIG} component={Config} />
+            </Switch>
           </div>
         </Suspense>
       </main>
